@@ -3,7 +3,11 @@
 Free all-miles truck rate calculator + load dashboard for owner-operators  
 (built for **Sand Lily Pad LLC** / hotshot O/Os · free for anyone to use).
 
-**Live URL:** https://brewpage.app/hotshotrate/EY9IBADue1  
+**Live URL (permanent):** https://cd866.github.io/hotshotrate/
+
+Repo: https://github.com/cd866/hotshotrate
+
+Temporary BrewPage mirror (expires ~Oct 28, 2026): https://brewpage.app/hotshotrate/EY9IBADue1  
 
 > Privacy-first: all math and saved loads stay in the browser (`localStorage`). No signup. No backend.  
 > Brand: **HotshotRate** (not truckratelab.com).
