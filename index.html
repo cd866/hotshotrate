@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a0a0a" />
+  <meta name="description" content="HotshotRate — free all-miles truck rate calculator for owner-operators. Fuel, deadhead, lease-on, factoring, fixed costs. Privacy-first, works offline." />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>HotshotRate — Free Owner-Op Rate Calculator</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230a0a0a'/%3E%3Ctext x='32' y='44' text-anchor='middle' font-size='36' fill='%23F5A623'%3E%E2%9A%99%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">⚙</span>
+      <div>
+        <h1>HotshotRate</h1>
+        <p class="tagline">Free for owner-operators · privacy-first</p>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button type="button" class="tab active" data-tab="calc" role="tab" aria-selected="true">Calculator</button>
+      <button type="button" class="tab" data-tab="dash" role="tab" aria-selected="false">Dashboard</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- CALCULATOR -->
+    <section id="panel-calc" class="panel active" role="tabpanel">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-head">
+            <h2>Load inputs</h2>
+            <div class="preset-row">
+              <button type="button" class="btn ghost sm" id="btn-preset-slp" title="Sand Lily Pad hotshot defaults">Sand Lily Pad</button>
+              <button type="button" class="btn ghost sm" id="btn-reset">Reset</button>
+            </div>
+          </div>
+
+          <div class="fields">
+            <label class="field full">
+              <span>Total rate ($)</span>
+              <input type="number" id="rate" inputmode="decimal" min="0" step="1" value="1800" />
+            </label>
+            <label class="field">
+              <span>Deadhead (mi)</span>
+              <input type="number" id="dh" inputmode="decimal" min="0" step="1" value="85" />
+            </label>
+            <label class="field">
+              <span>Loaded (mi)</span>
+              <input type="number" id="loaded" inputmode="decimal" min="0" step="1" value="520" />
+            </label>
+            <label class="field">
+              <span>Fuel ($/gal)</span>
+              <input type="number" id="fuelPrice" inputmode="decimal" min="0" step="0.01" value="3.89" />
+            </label>
+            <label class="field">
+              <span>MPG</span>
+              <input type="number" id="mpg" inputmode="decimal" min="0.1" step="0.1" value="6.5" />
+            </label>
+            <label class="field">
+              <span>Tolls ($)</span>
+              <input type="number" id="tolls" inputmode="decimal" min="0" step="1" value="45" />
+            </label>
+            <label class="field">
+              <span>Lease-on MC fee %</span>
+              <input type="number" id="leasePct" inputmode="decimal" min="0" max="100" step="0.1" value="5" />
+            </label>
+            <label class="field">
+              <span>Factoring %</span>
+              <input type="number" id="factorPct" inputmode="decimal" min="0" max="100" step="0.1" value="0" />
+            </label>
+            <label class="field">
+              <span>Target all-miles ($/mi)</span>
+              <input type="number" id="target" inputmode="decimal" min="0" step="0.01" value="1.20" />
+            </label>
+            <label class="field">
+              <span>Target basis</span>
+              <select id="targetBasis">
+                <option value="afterFee">After lease/factor fees</option>
+                <option value="beforeFee">Before fees (gross RPM)</option>
+                <option value="netFixed">Net after fixed costs</option>
+              </select>
+            </label>
+          </div>
+
+          <details class="fixed-costs" open>
+            <summary>Monthly fixed costs (optional)</summary>
+            <p class="hint">Spread into $/mi using estimated monthly miles.</p>
+            <div class="fields">
+              <label class="field">
+                <span>Est. monthly miles</span>
+                <input type="number" id="monthlyMiles" inputmode="decimal" min="1" step="100" value="8000" />
+              </label>
+              <label class="field">
+                <span>Truck payment $/mo</span>
+                <input type="number" id="truckNote" inputmode="decimal" min="0" step="1" value="1573" />
+              </label>
+              <label class="field">
+                <span>Insurance $/mo</span>
+                <input type="number" id="insurance" inputmode="decimal" min="0" step="1" value="0" />
+              </label>
+              <label class="field">
+                <span>Trailer payment $/mo</span>
+                <input type="number" id="trailerNote" inputmode="decimal" min="0" step="1" value="0" />
+              </label>
+              <label class="field">
+                <span>ELD / other $/mo</span>
+                <input type="number" id="eldOther" inputmode="decimal" min="0" step="1" value="0" />
+              </label>
+              <label class="field">
+                <span>Maint. reserve $/mi</span>
+                <input type="number" id="maintPerMi" inputmode="decimal" min="0" step="0.01" value="0.10" />
+              </label>
+            </div>
+          </details>
+
+          <label class="field full notes-field">
+            <span>Broker / lane notes (for save)</span>
+            <input type="text" id="notes" maxlength="120" placeholder="e.g. TQL DAL→ATL flatbed" />
+          </label>
+        </div>
+
+        <div class="card results-card">
+          <div class="card-head">
+            <h2>Live calculation</h2>
+            <span class="privacy-pill" title="All math runs in your browser">On-device</span>
+          </div>
+
+          <div id="verdict" class="verdict take" role="status">
+            <span class="verdict-label">TAKE IT</span>
+            <span class="verdict-msg">Meets your target.</span>
+          </div>
+
+          <dl class="metrics" id="metrics">
+            <!-- filled by JS -->
+          </dl>
+
+          <div class="actions">
+            <button type="button" class="btn primary" id="btn-save">Save load</button>
+            <button type="button" class="btn ghost" id="btn-copy">Copy summary</button>
+          </div>
+          <p class="save-feedback" id="save-feedback" hidden></p>
+        </div>
+      </div>
+
+      <section class="card info-card">
+        <h2>How HotshotRate works</h2>
+        <ul class="bullets">
+          <li><strong>All-miles RPM</strong> = Total rate ÷ (deadhead + loaded). Honest number — empty miles count.</li>
+          <li><strong>Fuel</strong> = (total miles ÷ MPG) × $/gal. Tolls subtract from contribution.</li>
+          <li><strong>Fees</strong> = lease-on % + factoring % of gross rate (typical lease-on ~5%).</li>
+          <li><strong>True contribution</strong> = rate − fuel − tolls − fees — money left before fixed costs.</li>
+          <li><strong>Net after fixed</strong> allocates truck note, insurance, trailer, ELD, and maintenance reserve across estimated monthly miles.</li>
+          <li><strong>TAKE IT / MARGINAL / PASS</strong> vs your target on the basis you choose (after fees by default).</li>
+        </ul>
+        <p class="privacy-note"><strong>Privacy:</strong> Calculations and saved loads stay on this device (localStorage). Nothing is uploaded. No signup. Free forever for owner-ops.</p>
+      </section>
+    </section>
+
+    <!-- DASHBOARD -->
+    <section id="panel-dash" class="panel" role="tabpanel" hidden>
+      <div class="stats-grid" id="stats-grid">
+        <!-- filled by JS -->
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-head">
+            <h2>RPM trend</h2>
+            <span class="muted" id="chart-hint">Last 20 loads</span>
+          </div>
+          <canvas id="rpm-chart" width="640" height="200" aria-label="Rate per mile chart"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <h2>Verdict mix</h2>
+          </div>
+          <div class="bars" id="verdict-bars">
+            <!-- filled by JS -->
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Saved loads</h2>
+          <div class="preset-row">
+            <button type="button" class="btn ghost sm" id="btn-export">Export CSV</button>
+            <button type="button" class="btn danger sm" id="btn-clear">Clear data</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="loads-table" id="loads-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Notes</th>
+                <th>Rate</th>
+                <th>Miles</th>
+                <th>$/mi</th>
+                <th>Profit</th>
+                <th>Verdict</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <p class="empty" id="loads-empty">No saved loads yet. Run a calc and hit Save load.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p><strong>HotshotRate</strong> · free for owner-operators · built for Sand Lily Pad LLC &amp; hotshot O/Os</p>
+    <p>Not financial advice. Verify rates, miles, and fuel. © <span id="year"></span></p>
+  </footer>
+
+  <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(function () {});
+    }
+  </script>
+</body>
+</html>
