@@ -167,7 +167,7 @@
     var take = '$' + s.takeAt.toFixed(2);
     if (!result.ready) {
       return {
-        label: 'Ready',
+        label: 'READY',
         msg: 'Enter the rate plus loaded miles, deadhead, or both.',
         meta: 'Under ' + floor + '/mi all-miles is PASS. Up to the ' + take + ' take line is NEGOTIATE.'
       };
@@ -188,7 +188,7 @@
     if (state.tarp) bits.push('Tarp required.');
     if (!result.fuelKnown) bits.push('Set MPG to estimate fuel.');
     return {
-      label: result.verdict === 'take' ? 'Take it' : (result.verdict === 'negotiate' ? 'Negotiate' : 'Pass'),
+      label: result.verdict === 'take' ? 'TAKE IT' : (result.verdict === 'negotiate' ? 'NEGOTIATE' : 'PASS'),
       msg: msg,
       meta: bits.join(' ')
     };
