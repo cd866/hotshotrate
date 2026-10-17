@@ -1,127 +1,67 @@
-# HotshotRate
+# Black Ram Towing
 
-Free all-miles truck rate calculator + load dashboard for owner-operators  
-(built for **Sand Lily Pad LLC** / hotshot O/Os · free for anyone to use).
+Installable phone app for Sand Lily Pad LLC’s hotshot business, doing business as **Black Ram Towing**, leased onto Totni Enterprise’s MC authority. Rig: 2026 Ram 3500 dually and a 40 ft Big Tex gooseneck.
 
-**Live URL (permanent):** https://cd866.github.io/hotshotrate/
+**Live:** https://cd866.github.io/hotshotrate/
 
-Repo: https://github.com/cd866/hotshotrate
+Static HTML, CSS, and JavaScript. No build step. GitHub Pages serves the repository root.
 
-Temporary BrewPage mirror (expires ~Oct 28, 2026): https://brewpage.app/hotshotrate/EY9IBADue1  
+## Tabs
 
-> Privacy-first: all math and saved loads stay in the browser (`localStorage`). No signup. No backend.  
-> Brand: **HotshotRate** (not truckratelab.com).
+1. **Load check.** Enter a rate, loaded miles, deadhead miles, weight, optional cities, tarp, and optional hours. The verdict is TAKE IT, NEGOTIATE, or PASS, with all-miles $/mi, loaded $/mi, the Totni fee, estimated fuel, net kept, and net per hour.
+2. **Reports.** Month-to-date numbers from `data/feed.json`: gross, Totni fees, fuel, other expenses, net, $/loaded mile, loads, cancelled loads, and day notes. Fresh fetch on open, pull to refresh, last-updated time, and an offline copy.
+3. **KPIs.** Revenue per loaded mile and per all-miles, deadhead %, loads per week, truck utilization, net margin, fuel per mile, Totni fees, break-even against the trailer payment and insurance, plus week-over-week and month-over-month charts. Short history says “Not enough data.”
 
-## What’s improved vs TruckRateLab
+## Defaults
 
-| Feature | TruckRateLab | HotshotRate |
-|---|---|---|
-| All-miles RPM + deadhead/fuel/tolls | Yes | Yes |
-| Lease-on % + factoring % | No | Yes (defaults 5% / 0%) |
-| Fixed costs (truck note, insurance, trailer, ELD, maint $/mi) | No | Yes |
-| TAKE IT / MARGINAL / PASS | TAKE IT / PASS | + MARGINAL (±10%) |
-| Target basis (before fee / after fee / net fixed) | Gross only | 3 bases |
-| Sand Lily Pad preset | No | Yes (~$1573 note, 5% lease, $1.20 target) |
-| Load history + dashboard + CSV | No | Yes (localStorage) |
-| Offline PWA shell | Claimed | Service worker + manifest |
-| Ads / tracking | AdSense mentioned | None from us |
+Saved on the phone (localStorage):
 
-## Sample math (verified)
-
-Inputs: rate **$1800**, DH **85**, loaded **520**, fuel **$3.89**, MPG **6.5**, tolls **$45**, lease **5%**, factoring **0%**
-
-| Output | Value |
+| Setting | Default |
 |---|---|
-| Total miles | 605 |
-| All-miles RPM | **$2.98/mi** |
-| Fuel | 93.1 gal → **$362.07** |
-| Lease fee | **$90.00** |
-| Rate after fees | **$1,710** → **$2.83/mi** |
-| True contribution | **$1,302.93** |
-| Net after fixed (note $1573/mo @ 8k mi + $0.10 maint) | **$1,123.47** → **$1.86/mi** |
-| Verdict vs $1.20 after-fee target | **TAKE IT** |
+| Totni fee | 13% |
+| Pass / negotiate floor | $2.40 per all-miles (deadhead counts) |
+| Take line | $3.00 per all-miles |
+| Trailer payment | $434.84 / month |
+| Insurance | $0, badged **Set this** until you enter it |
+| Deck warning | over 15,000 lb |
+| MPG and diesel | estimates, badged **EST** |
 
-Screenshots: `screenshot-sample.png`, `screenshot-desktop.png`, `screenshot-live.png`
+Under the floor is PASS. From the floor up to the take line is NEGOTIATE. At or above the take line is TAKE IT. MPG, diesel price, and hours inferred from miles are estimates.
 
-## Local files
+## How the feed gets updated
 
+The internal dashboard file (`data.json`) includes who paid each expense. This site is public, so that file is not published. `scripts/make_feed.py` (Python 3 standard library only) converts one month and merges it into `data/feed.json`.
+
+Kept: loads, fuel, other operating expenses, cancelled loads, and notes that are not personal. Dropped: `paid_by`, reimbursement flags, per-person balances, photos, capex payables, and notes that name people or private admin (bank, notary, ownership).
+
+Other months already in the feed stay, which is what makes month-over-month work after the next export.
+
+```bash
+python3 scripts/make_feed.py /path/to/data.json
+git add data/feed.json
+git commit -m "Update hotshot feed"
+git push origin main
 ```
-/workspace/hotshot-rate/
-  index.html
-  styles.css
-  app.js
-  sw.js
-  manifest.json
-  README.md
-  DEPLOY.json          # host metadata + refresh token (do not publish)
-```
+
+GitHub Pages publishes `main` with the existing pages deployment. `.nojekyll` keeps `data/feed.json` as a real file. The service worker asks the network for the feed first and falls back to the cached copy offline. After the push, open Reports and pull to refresh.
+
+## Add to an iPhone
+
+1. Open https://cd866.github.io/hotshotrate/ in Safari.
+2. Tap the Share button.
+3. Tap **Add to Home Screen**, then **Add**.
+4. Open **Black Ram** from the home screen.
+
+The icon is the ram mark. The app runs full screen (no Safari toolbar). After that first online visit, the shell and the last feed work offline. Load-check settings never leave the phone.
 
 ## Local preview
 
 ```bash
-cd /workspace/hotshot-rate
 python3 -m http.server 4173
-# open http://127.0.0.1:4173
 ```
 
-## Update / redeploy
+Open http://127.0.0.1:4173
 
-### Refresh current BrewPage URL (same link)
+## Brand
 
-```bash
-cd /workspace/hotshot-rate
-python3 - <<'PY'
-import zipfile, os
-root='.'; out='/tmp/hotshotrate.zip'
-skip={'DEPLOY.json','manifest.webmanifest','screenshot-sample.png','screenshot-desktop.png','screenshot-live.png'}
-with zipfile.ZipFile(out,'w',zipfile.ZIP_DEFLATED) as z:
-  for dp,_,fs in os.walk(root):
-    for f in fs:
-      if f in skip or f.startswith('.'): continue
-      p=os.path.join(dp,f); z.write(p, os.path.relpath(p, root))
-print('wrote', out)
-PY
-
-# Owner token is in DEPLOY.json → primary.ownerToken
-curl -X PUT "https://brewpage.app/api/sites/hotshotrate/EY9IBADue1?ttl=30" \
-  -H "User-Agent: HotshotRateDeploy/1.0" \
-  -H "X-Owner-Token: <OWNER_TOKEN>" \
-  -F "archive=@/tmp/hotshotrate.zip;type=application/zip"
-```
-
-**Note:** BrewPage free TTL max is **30 days** (expires ~2026-10-28). Refresh before then, or move to a permanent host below.
-
-### Permanent hosts (when authenticated)
-
-**GitHub Pages** (preferred once `gh` / GitHub is connected):
-
-```bash
-gh auth login
-gh repo create hotshotrate --public --source=/workspace/hotshot-rate --push
-# Settings → Pages → Deploy from branch main /
-```
-
-**Surge.sh**
-
-```bash
-npx surge /workspace/hotshot-rate your-name.surge.sh
-```
-
-**Netlify / Cloudflare / Vercel**
-
-```bash
-npx netlify deploy --dir=/workspace/hotshot-rate --prod
-# or: npx wrangler pages deploy /workspace/hotshot-rate --project-name hotshotrate
-# or: npx vercel --prod /workspace/hotshot-rate
-```
-
-## Deploy status (this build)
-
-- `gh` CLI: **not logged in**
-- GitHub MCP: **needsAuth**
-- Netlify Drop API: 401 / daily limit without signup
-- PagedNet: site create OK, upload IP-blocked from this network
-- Surge: requires account token
-- **Live now:** BrewPage (above URL)
-
-Connect GitHub (or Surge/Netlify) for a permanent `*.github.io` / custom domain, then swap the share link.
+Background `#0E0E10`, cards `#2A2A2E`, gold `#D4A62A`, highlight `#F2C94C`, cream text `#F5F1E6`, alert `#8C1C13`. Oswald (self-hosted, SIL Open Font License in `fonts/OFL.txt`) for headings and numbers. System sans for body text. Logos in `brand/`. Home-screen icons in `icons/`.

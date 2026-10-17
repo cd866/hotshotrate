@@ -1,0 +1,28 @@
+name: Check public feed
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  feed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reject personal markers in data/feed.json
+        run: |
+          python3 - << 'PY'
+          import json, re, pathlib
+          blob = pathlib.Path("data/feed.json").read_text(encoding="utf-8")
+          json.loads(blob)
+          banned = re.compile(
+              r"meshach|claudio|smokovich|\briley\b|\bdias\b|\bben\b|esther|"
+              r"zelle|bluevine|reimburse|paid_by|notari|whatsapp",
+              re.I,
+          )
+          match = banned.search(blob)
+          if match:
+              raise SystemExit("personal marker in feed: " + match.group(0))
+          print("feed ok")
+          PY

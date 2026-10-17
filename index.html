@@ -3,223 +3,191 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#0a0a0a" />
-  <meta name="description" content="HotshotRate — free all-miles truck rate calculator for owner-operators. Fuel, deadhead, lease-on, factoring, fixed costs. Privacy-first, works offline." />
+  <meta name="theme-color" content="#0E0E10" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="description" content="Black Ram Towing load check, month-to-date reports, and owner KPIs. Sand Lily Pad LLC hotshot, leased to Totni Enterprise." />
   <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>HotshotRate — Free Owner-Op Rate Calculator</title>
-  <link rel="manifest" href="manifest.json" />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230a0a0a'/%3E%3Ctext x='32' y='44' text-anchor='middle' font-size='36' fill='%23F5A623'%3E%E2%9A%99%3C/text%3E%3C/svg%3E" />
+  <meta name="apple-mobile-web-app-title" content="Black Ram" />
+  <title>Black Ram Towing</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" sizes="180x180" />
+  <link rel="preload" href="fonts/oswald-700.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="stylesheet" href="styles.css" />
+  <script>
+    try {
+      if (localStorage.getItem('blackram_splash_seen') === '1') {
+        document.documentElement.classList.add('splash-seen');
+      }
+    } catch (err) { /* storage blocked */ }
+  </script>
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <span class="brand-mark" aria-hidden="true">⚙</span>
-      <div>
-        <h1>HotshotRate</h1>
-        <p class="tagline">Free for owner-operators · privacy-first</p>
+  <div class="app">
+    <div id="about" class="sheet" role="dialog" aria-modal="true" aria-labelledby="about-title">
+      <div class="sheet-inner">
+        <div class="sheet-top">
+          <button type="button" class="about-btn" id="about-close">Close</button>
+        </div>
+        <div class="logo-primary"><svg role="img" aria-label="Black Ram Towing" xmlns="http://www.w3.org/2000/svg" width="500" height="390" viewBox="0 0 500 390"><rect width="500" height="390" fill="#0E0E10"/><g transform="translate(150,10)"><circle cx="100" cy="100" r="96" fill="#0E0E10" stroke="#D4A62A" stroke-width="5"/><path d="M84,72 C46,38 10,62 18,104 C24,140 62,144 64,116 C65,98 46,94 42,108" fill="none" stroke="#D4A62A" stroke-width="13" stroke-linecap="round"/><g transform="translate(200,0) scale(-1,1)"><path d="M84,72 C46,38 10,62 18,104 C24,140 62,144 64,116 C65,98 46,94 42,108" fill="none" stroke="#D4A62A" stroke-width="13" stroke-linecap="round"/></g><polygon points="80,62 120,62 134,96 120,158 100,176 80,158 66,96" fill="#2A2A2E" stroke="#D4A62A" stroke-width="5" stroke-linejoin="round"/>
+<polygon points="78,100 94,106 80,112" fill="#F2C94C"/><polygon points="122,100 106,106 120,112" fill="#F2C94C"/>
+<path d="M92,150 L100,160 L108,150" fill="none" stroke="#D4A62A" stroke-width="4"/></g><text x="250" y="285" text-anchor="middle" style="font-family:Oswald,'Antonio',sans-serif;font-weight:700;font-size:64px;letter-spacing:6px" fill="#F5F1E6">BLACK RAM</text><text x="250" y="335" text-anchor="middle" style="font-family:Oswald,'Antonio',sans-serif;font-weight:500;font-size:34px;letter-spacing:18px" fill="#D4A62A">TOWING</text><text x="250" y="372" text-anchor="middle" style="font-family:Oswald,'Antonio',sans-serif;font-size:16px;letter-spacing:4px" fill="#aaa">TEXAS CITY, TX · HOTSHOT</text></svg></div>
+        <h2 id="about-title" class="sr-only">Black Ram Towing</h2>
+        <p>Black Ram Towing is the hotshot DBA of Sand Lily Pad LLC, leased onto Totni Enterprise’s MC authority.</p>
+        <p>Rig: 2026 Ram 3500 dually and a 40 ft Big Tex gooseneck. Deck capacity is about 15,000 lb.</p>
+        <h2>Add to your iPhone</h2>
+        <ol>
+          <li>Open this site in Safari.</li>
+          <li>Tap the Share button.</li>
+          <li>Tap Add to Home Screen, then Add.</li>
+          <li>Open Black Ram from the home screen. It runs full screen, and the month stays available offline after this visit.</li>
+        </ol>
+        <p>Load-check settings stay on this phone. The public reports feed lists loads, fuel, and expense totals. It does not list who paid or what anyone is owed.</p>
+        <div class="sheet-actions">
+          <button type="button" class="btn gold block" id="about-done">Continue</button>
+        </div>
       </div>
     </div>
-    <nav class="tabs" role="tablist">
-      <button type="button" class="tab active" data-tab="calc" role="tab" aria-selected="true">Calculator</button>
-      <button type="button" class="tab" data-tab="dash" role="tab" aria-selected="false">Dashboard</button>
-    </nav>
-  </header>
 
-  <main>
-    <!-- CALCULATOR -->
-    <section id="panel-calc" class="panel active" role="tabpanel">
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-head">
-            <h2>Load inputs</h2>
-            <div class="preset-row">
-              <button type="button" class="btn ghost sm" id="btn-preset-slp" title="Sand Lily Pad hotshot defaults">Sand Lily Pad</button>
-              <button type="button" class="btn ghost sm" id="btn-reset">Reset</button>
-            </div>
-          </div>
+    <header class="top">
+      <div class="top-row">
+        <button type="button" class="about-btn" id="about-open">About</button>
+      </div>
+      <div class="logo-wrap"><svg role="img" aria-label="Black Ram Towing" xmlns="http://www.w3.org/2000/svg" width="720" height="190" viewBox="0 0 720 190"><rect width="720" height="190" fill="#0E0E10"/><g transform="translate(10,10) scale(.9)"><circle cx="100" cy="100" r="96" fill="#0E0E10" stroke="#D4A62A" stroke-width="5"/><path d="M84,72 C46,38 10,62 18,104 C24,140 62,144 64,116 C65,98 46,94 42,108" fill="none" stroke="#D4A62A" stroke-width="13" stroke-linecap="round"/><g transform="translate(200,0) scale(-1,1)"><path d="M84,72 C46,38 10,62 18,104 C24,140 62,144 64,116 C65,98 46,94 42,108" fill="none" stroke="#D4A62A" stroke-width="13" stroke-linecap="round"/></g><polygon points="80,62 120,62 134,96 120,158 100,176 80,158 66,96" fill="#2A2A2E" stroke="#D4A62A" stroke-width="5" stroke-linejoin="round"/>
+<polygon points="78,100 94,106 80,112" fill="#F2C94C"/><polygon points="122,100 106,106 120,112" fill="#F2C94C"/>
+<path d="M92,150 L100,160 L108,150" fill="none" stroke="#D4A62A" stroke-width="4"/></g><text x="205" y="105" style="font-family:Oswald,'Antonio',sans-serif;font-weight:700;font-size:78px;letter-spacing:5px" fill="#F5F1E6">BLACK RAM</text><text x="208" y="152" style="font-family:Oswald,'Antonio',sans-serif;font-weight:500;font-size:36px;letter-spacing:21px" fill="#D4A62A">TOWING</text></svg></div>
+      <p class="tag">Sand Lily Pad LLC</p>
+      <p class="rig">2026 Ram 3500 dually · 40 ft Big Tex · Totni 13%</p>
+    </header>
 
+    <main>
+      <section id="panel-check" class="panel" role="tabpanel" aria-labelledby="tab-check">
+        <div id="verdict" class="verdict idle" role="status" aria-live="polite">
+          <div class="verdict-label" id="verdict-label">Ready</div>
+          <p class="verdict-msg" id="verdict-msg">Enter the rate plus loaded miles, deadhead, or both.</p>
+          <p class="verdict-meta" id="verdict-meta"></p>
+        </div>
+        <p id="weight-warn" class="warn" hidden></p>
+        <div id="metrics" class="metrics"></div>
+
+        <form id="offer" action="#" autocomplete="off">
           <div class="fields">
             <label class="field full">
-              <span>Total rate ($)</span>
-              <input type="number" id="rate" inputmode="decimal" min="0" step="1" value="1800" />
+              <span class="lbl">Rate ($)</span>
+              <input id="rate" name="rate" type="number" inputmode="decimal" min="0" step="1" placeholder="0" />
             </label>
             <label class="field">
-              <span>Deadhead (mi)</span>
-              <input type="number" id="dh" inputmode="decimal" min="0" step="1" value="85" />
+              <span class="lbl">Loaded miles</span>
+              <input id="loaded" name="loaded" type="number" inputmode="decimal" min="0" step="1" placeholder="0" />
             </label>
             <label class="field">
-              <span>Loaded (mi)</span>
-              <input type="number" id="loaded" inputmode="decimal" min="0" step="1" value="520" />
+              <span class="lbl">Deadhead miles</span>
+              <input id="deadhead" name="deadhead" type="number" inputmode="decimal" min="0" step="1" placeholder="0" />
+            </label>
+            <label class="field full">
+              <span class="lbl">Weight (lb)</span>
+              <input id="weight" name="weight" type="number" inputmode="decimal" min="0" step="1" placeholder="Deck about 15,000" />
             </label>
             <label class="field">
-              <span>Fuel ($/gal)</span>
-              <input type="number" id="fuelPrice" inputmode="decimal" min="0" step="0.01" value="3.89" />
+              <span class="lbl">Pickup city</span>
+              <input id="pickup" name="pickup" type="text" maxlength="60" autocapitalize="words" placeholder="Optional" />
             </label>
             <label class="field">
-              <span>MPG</span>
-              <input type="number" id="mpg" inputmode="decimal" min="0.1" step="0.1" value="6.5" />
+              <span class="lbl">Delivery city</span>
+              <input id="delivery" name="delivery" type="text" maxlength="60" autocapitalize="words" placeholder="Optional" />
             </label>
-            <label class="field">
-              <span>Tolls ($)</span>
-              <input type="number" id="tolls" inputmode="decimal" min="0" step="1" value="45" />
-            </label>
-            <label class="field">
-              <span>Lease-on MC fee %</span>
-              <input type="number" id="leasePct" inputmode="decimal" min="0" max="100" step="0.1" value="5" />
-            </label>
-            <label class="field">
-              <span>Factoring %</span>
-              <input type="number" id="factorPct" inputmode="decimal" min="0" max="100" step="0.1" value="0" />
-            </label>
-            <label class="field">
-              <span>Target all-miles ($/mi)</span>
-              <input type="number" id="target" inputmode="decimal" min="0" step="0.01" value="1.20" />
-            </label>
-            <label class="field">
-              <span>Target basis</span>
-              <select id="targetBasis">
-                <option value="afterFee">After lease/factor fees</option>
-                <option value="beforeFee">Before fees (gross RPM)</option>
-                <option value="netFixed">Net after fixed costs</option>
-              </select>
-            </label>
-          </div>
-
-          <details class="fixed-costs" open>
-            <summary>Monthly fixed costs (optional)</summary>
-            <p class="hint">Spread into $/mi using estimated monthly miles.</p>
-            <div class="fields">
-              <label class="field">
-                <span>Est. monthly miles</span>
-                <input type="number" id="monthlyMiles" inputmode="decimal" min="1" step="100" value="8000" />
-              </label>
-              <label class="field">
-                <span>Truck payment $/mo</span>
-                <input type="number" id="truckNote" inputmode="decimal" min="0" step="1" value="1573" />
-              </label>
-              <label class="field">
-                <span>Insurance $/mo</span>
-                <input type="number" id="insurance" inputmode="decimal" min="0" step="1" value="0" />
-              </label>
-              <label class="field">
-                <span>Trailer payment $/mo</span>
-                <input type="number" id="trailerNote" inputmode="decimal" min="0" step="1" value="0" />
-              </label>
-              <label class="field">
-                <span>ELD / other $/mo</span>
-                <input type="number" id="eldOther" inputmode="decimal" min="0" step="1" value="0" />
-              </label>
-              <label class="field">
-                <span>Maint. reserve $/mi</span>
-                <input type="number" id="maintPerMi" inputmode="decimal" min="0" step="0.01" value="0.10" />
-              </label>
+            <div class="field full">
+              <span class="lbl">Tarp</span>
+              <div class="seg" role="group" aria-label="Tarp">
+                <button type="button" id="tarp-no" aria-pressed="true">No tarp</button>
+                <button type="button" id="tarp-yes" aria-pressed="false">Tarp</button>
+              </div>
             </div>
-          </details>
-
-          <label class="field full notes-field">
-            <span>Broker / lane notes (for save)</span>
-            <input type="text" id="notes" maxlength="120" placeholder="e.g. TQL DAL→ATL flatbed" />
-          </label>
-        </div>
-
-        <div class="card results-card">
-          <div class="card-head">
-            <h2>Live calculation</h2>
-            <span class="privacy-pill" title="All math runs in your browser">On-device</span>
+            <label class="field full">
+              <span class="lbl">Est. hours <span class="est">Optional</span></span>
+              <input id="hours" name="hours" type="number" inputmode="decimal" min="0" step="0.5" placeholder="Blank uses miles ÷ speed" />
+            </label>
           </div>
-
-          <div id="verdict" class="verdict take" role="status">
-            <span class="verdict-label">TAKE IT</span>
-            <span class="verdict-msg">Meets your target.</span>
+          <div class="row-actions">
+            <button type="button" class="btn" id="clear-offer">Clear offer</button>
           </div>
+        </form>
 
-          <dl class="metrics" id="metrics">
-            <!-- filled by JS -->
-          </dl>
-
-          <div class="actions">
-            <button type="button" class="btn primary" id="btn-save">Save load</button>
-            <button type="button" class="btn ghost" id="btn-copy">Copy summary</button>
+        <details class="settings" id="settings">
+          <summary>
+            <span>Settings</span>
+            <span class="brief" id="settings-brief"></span>
+          </summary>
+          <p class="hint">Saved on this phone. Floor is all-miles, deadhead included. Under the floor is PASS. From the floor up to the take line is NEGOTIATE. At or above the take line is TAKE IT.</p>
+          <div class="fields">
+            <label class="field">
+              <span class="lbl">Totni fee %</span>
+              <input id="feePct" type="number" inputmode="decimal" min="0" max="100" step="0.1" value="13" />
+            </label>
+            <label class="field">
+              <span class="lbl">Floor $/all-mi</span>
+              <input id="floor" type="number" inputmode="decimal" min="0" step="0.01" value="2.40" />
+            </label>
+            <label class="field">
+              <span class="lbl">Take at $/all-mi</span>
+              <input id="takeAt" type="number" inputmode="decimal" min="0" step="0.01" value="3.00" />
+            </label>
+            <label class="field">
+              <span class="lbl">Trailer $/mo</span>
+              <input id="trailer" type="number" inputmode="decimal" min="0" step="0.01" value="434.84" />
+            </label>
+            <label class="field">
+              <span class="lbl">Insurance $/mo <span class="flag" id="ins-flag">Set this</span></span>
+              <input id="insurance" type="number" inputmode="decimal" min="0" step="1" value="0" />
+            </label>
+            <label class="field">
+              <span class="lbl">Other fixed $/mo</span>
+              <input id="otherFixed" type="number" inputmode="decimal" min="0" step="1" value="0" />
+            </label>
+            <label class="field">
+              <span class="lbl">MPG <span class="est">EST</span></span>
+              <input id="mpg" type="number" inputmode="decimal" min="0.1" step="0.1" value="9" />
+            </label>
+            <label class="field">
+              <span class="lbl">Diesel $/gal <span class="est">EST</span></span>
+              <input id="diesel" type="number" inputmode="decimal" min="0" step="0.01" value="3.85" />
+            </label>
+            <label class="field">
+              <span class="lbl">Deck capacity lb</span>
+              <input id="capacity" type="number" inputmode="decimal" min="0" step="100" value="15000" />
+            </label>
+            <label class="field">
+              <span class="lbl">Speed for hours <span class="est">EST</span></span>
+              <input id="assumedMph" type="number" inputmode="decimal" min="1" step="1" value="50" />
+            </label>
           </div>
-          <p class="save-feedback" id="save-feedback" hidden></p>
-        </div>
-      </div>
-
-      <section class="card info-card">
-        <h2>How HotshotRate works</h2>
-        <ul class="bullets">
-          <li><strong>All-miles RPM</strong> = Total rate ÷ (deadhead + loaded). Honest number — empty miles count.</li>
-          <li><strong>Fuel</strong> = (total miles ÷ MPG) × $/gal. Tolls subtract from contribution.</li>
-          <li><strong>Fees</strong> = lease-on % + factoring % of gross rate (typical lease-on ~5%).</li>
-          <li><strong>True contribution</strong> = rate − fuel − tolls − fees — money left before fixed costs.</li>
-          <li><strong>Net after fixed</strong> allocates truck note, insurance, trailer, ELD, and maintenance reserve across estimated monthly miles.</li>
-          <li><strong>TAKE IT / MARGINAL / PASS</strong> vs your target on the basis you choose (after fees by default).</li>
-        </ul>
-        <p class="privacy-note"><strong>Privacy:</strong> Calculations and saved loads stay on this device (localStorage). Nothing is uploaded. No signup. Free forever for owner-ops.</p>
+        </details>
       </section>
-    </section>
 
-    <!-- DASHBOARD -->
-    <section id="panel-dash" class="panel" role="tabpanel" hidden>
-      <div class="stats-grid" id="stats-grid">
-        <!-- filled by JS -->
-      </div>
+      <section id="panel-reports" class="panel" role="tabpanel" aria-labelledby="tab-reports" hidden>
+        <div id="reports-root"></div>
+      </section>
 
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-head">
-            <h2>RPM trend</h2>
-            <span class="muted" id="chart-hint">Last 20 loads</span>
-          </div>
-          <canvas id="rpm-chart" width="640" height="200" aria-label="Rate per mile chart"></canvas>
-        </div>
-        <div class="card">
-          <div class="card-head">
-            <h2>Verdict mix</h2>
-          </div>
-          <div class="bars" id="verdict-bars">
-            <!-- filled by JS -->
-          </div>
-        </div>
-      </div>
+      <section id="panel-kpis" class="panel" role="tabpanel" aria-labelledby="tab-kpis" hidden>
+        <div id="kpis-root"></div>
+      </section>
 
-      <div class="card">
-        <div class="card-head">
-          <h2>Saved loads</h2>
-          <div class="preset-row">
-            <button type="button" class="btn ghost sm" id="btn-export">Export CSV</button>
-            <button type="button" class="btn danger sm" id="btn-clear">Clear data</button>
-          </div>
-        </div>
-        <div class="table-wrap">
-          <table class="loads-table" id="loads-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Notes</th>
-                <th>Rate</th>
-                <th>Miles</th>
-                <th>$/mi</th>
-                <th>Profit</th>
-                <th>Verdict</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-          <p class="empty" id="loads-empty">No saved loads yet. Run a calc and hit Save load.</p>
-        </div>
-      </div>
-    </section>
-  </main>
+      <footer class="footer">
+        <p><strong>Black Ram Towing</strong> · DBA of Sand Lily Pad LLC</p>
+        <p>Estimates are marked EST. Not a quote and not tax advice.</p>
+      </footer>
+      <div class="pad" aria-hidden="true"></div>
+    </main>
 
-  <footer class="footer">
-    <p><strong>HotshotRate</strong> · free for owner-operators · built for Sand Lily Pad LLC &amp; hotshot O/Os</p>
-    <p>Not financial advice. Verify rates, miles, and fuel. © <span id="year"></span></p>
-  </footer>
-
+    <nav class="tabbar" role="tablist" aria-label="Sections">
+      <button type="button" id="tab-check" data-tab="check" role="tab" aria-selected="true" aria-controls="panel-check">Load check</button>
+      <button type="button" id="tab-reports" data-tab="reports" role="tab" aria-selected="false" aria-controls="panel-reports">Reports</button>
+      <button type="button" id="tab-kpis" data-tab="kpis" role="tab" aria-selected="false" aria-controls="panel-kpis">KPIs</button>
+    </nav>
+  </div>
+  <noscript><p class="noscript">Black Ram Towing needs JavaScript for the load check and reports.</p></noscript>
   <script src="app.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
