@@ -1,0 +1,178 @@
+{
+  "schema": 1,
+  "generated_at": "2026-10-17T05:06:29Z",
+  "company": "Sand Lily Pad LLC",
+  "dba": "Black Ram Towing",
+  "authority": "Leased onto Totni Enterprise",
+  "fee_pct": 13,
+  "rig": {
+    "truck": "2026 Ram 3500 dually",
+    "trailer": "40 ft Big Tex gooseneck",
+    "deck_capacity_lb": 15000
+  },
+  "months": [
+    {
+      "month": "2026-10",
+      "as_of": "2026-10-16",
+      "fee_pct": 13,
+      "loads": [
+        {
+          "date": "2026-10-12",
+          "desc": "Wood mats",
+          "lane": "Near FL 32091 → Fernandina Beach FL",
+          "weight_lb": 12000,
+          "loaded_mi": 73.63,
+          "gross": 600.0,
+          "delivery_date": "2026-10-13",
+          "broker": "MegaCorp Logistics",
+          "load_no": "PO 2771215",
+          "notes": "Signed rate con: MegaCorp PO 2771215, $600, 73.63 mi; PU 10/12, DEL 10/13 (Totni 13%)"
+        },
+        {
+          "date": "2026-10-13",
+          "desc": "JCB telehandler",
+          "lane": "Pooler GA → EquipmentShare Chattanooga TN",
+          "weight_lb": 12000,
+          "loaded_mi": 363,
+          "gross": 1200.0,
+          "broker": "Tetria Global",
+          "load_no": "4710856",
+          "notes": "Signed rate con: $895.08 linehaul + $304.92 fuel = $1,200, 363 mi. Macropoint clause: up to $150/day deduction if tracking lost (UNCONFIRMED whether applied)."
+        },
+        {
+          "date": "2026-10-14",
+          "desc": "Bucket attachment (new)",
+          "lane": "Tag Mfg Chattanooga TN → Stribling Equipment Memphis TN",
+          "weight_lb": null,
+          "loaded_mi": 300,
+          "gross": 1700.0,
+          "delivery_date": "2026-10-15",
+          "miles_estimate": true,
+          "broker": "Logistek",
+          "load_no": "171297",
+          "notes": "Signed rate con $1,700 (was $1,800). Rate con lists no miles: ~300 mi EST. 2nd stop Little Rock AR listed on rate con (UNCONFIRMED)."
+        }
+      ],
+      "expenses": [
+        {
+          "date": "2026-10-03",
+          "vendor": "Buc-ee's",
+          "amount": 78.74,
+          "category": "fuel"
+        },
+        {
+          "date": "2026-10-03",
+          "vendor": "Circle K",
+          "amount": 78.72,
+          "category": "fuel"
+        },
+        {
+          "date": "2026-10-03",
+          "vendor": "Shell",
+          "amount": 25.02,
+          "category": "fuel"
+        },
+        {
+          "date": "2026-10-05",
+          "vendor": "BP Jacksonville FL",
+          "amount": 100.0,
+          "category": "fuel"
+        },
+        {
+          "date": "2026-10-05",
+          "vendor": "QT Lamont FL",
+          "amount": 50.0,
+          "category": "fuel"
+        },
+        {
+          "date": "2026-10-07",
+          "vendor": "CAT Scale (RaceTrac Jacksonville FL)",
+          "amount": 15.25,
+          "category": "scale"
+        },
+        {
+          "date": "2026-10-10",
+          "vendor": "Roma Trucking (2 tarps)",
+          "amount": 400.0,
+          "category": "equipment"
+        },
+        {
+          "date": "2026-10-12",
+          "vendor": "Pilot #1047 Jacksonville FL",
+          "amount": 170.0,
+          "category": "fuel"
+        },
+        {
+          "date": "2026-10-13",
+          "vendor": "Circle K #3333 McDonough GA",
+          "amount": 130.0,
+          "category": "fuel",
+          "gallons": 23.218
+        },
+        {
+          "date": "2026-10-13",
+          "vendor": "Parker's #69 Pooler GA",
+          "amount": 160.0,
+          "category": "fuel"
+        },
+        {
+          "date": "2026-10-14",
+          "vendor": "Love's #490 Jasper TN",
+          "amount": 140.0,
+          "category": "fuel",
+          "gallons": 23.69
+        },
+        {
+          "date": "2026-10-14",
+          "vendor": "Love's #490 Jasper TN (BlueDEF)",
+          "amount": 38.4,
+          "category": "def"
+        },
+        {
+          "date": "2026-10-14",
+          "vendor": "Pilot #1366 Holladay TN",
+          "amount": 110.0,
+          "category": "fuel"
+        },
+        {
+          "date": "2026-10-15",
+          "vendor": "One9 #1330 Brinkley AR",
+          "amount": 150.0,
+          "category": "fuel",
+          "deadhead_for": "cancelled-2026-10-15"
+        },
+        {
+          "date": "2026-10-15",
+          "vendor": "OneNotary, Inc.",
+          "amount": 45.0,
+          "category": "legal/LLC admin"
+        },
+        {
+          "date": "2026-10-15",
+          "vendor": "QuikTrip #07151 West Memphis AR",
+          "amount": 110.0,
+          "category": "fuel",
+          "deadhead_for": "cancelled-2026-10-15"
+        }
+      ],
+      "cancelled": [
+        {
+          "date": "2026-10-15",
+          "status": "Cancelled (broker double-booked)",
+          "gross": 0.0,
+          "broker": "Unknown",
+          "load_no": "unknown",
+          "tonu": "TONU requested, amount pending (typical $150-250 EST)",
+          "deadhead_fuel": 260.0,
+          "notes": "Load gone on arrival; $260 company-AmEx fuel (One9 $150 + QuikTrip $110) = deadhead for this cancelled load"
+        }
+      ],
+      "day_notes": [
+        {
+          "date": "2026-10-16",
+          "text": "No loads today; Black Ram brand concepts made; signed rate cons for loads 1–3"
+        }
+      ]
+    }
+  ]
+}
