@@ -1,7 +1,7 @@
 /* Black Ram Towing service worker.
    Bump CACHE when the shell changes so old caches are dropped.
    data/feed.json is network-first and falls back to the cached copy. */
-var CACHE = 'blackram-v3';
+var CACHE = 'blackram-v4';
 var ASSETS = [
   './',
   './index.html',

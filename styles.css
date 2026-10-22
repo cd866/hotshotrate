@@ -462,6 +462,9 @@ html.splash-seen #about:not(.open) { display: none; }
 }
 .sheet p, .sheet li { color: var(--cream); font-size: 16px; }
 .sheet ol { margin: 0 0 12px; padding-left: 1.2rem; }
+.native-only { display: none; }
+html.native-app .pwa-only { display: none; }
+html.native-app .native-only { display: block; }
 .sheet li { margin: 6px 0; }
 .sheet-actions {
   position: sticky;
