@@ -323,13 +323,19 @@ def check_copy_and_site():
         fail("native feed path is not gated")
     if "fetch('data/feed.json', { cache: 'no-cache' })" not in app:
         fail("website feed fetch was removed")
-    if "var CACHE = 'blackram-v4';" not in (ROOT / "sw.js").read_text(encoding="utf-8"):
+    if "var CACHE = 'blackram-v5';" not in (ROOT / "sw.js").read_text(encoding="utf-8"):
         fail("service worker cache was not bumped with the shell")
     swift = (IOS / "BlackRam/FeedBridge.swift").read_text(encoding="utf-8")
     if LIVE_FEED not in swift:
         fail("native live feed URL is not the public GitHub Pages feed")
-    if "blackram://localhost/index.html" not in (IOS / "BlackRam/WebHostController.swift").read_text(encoding="utf-8"):
+    host = (IOS / "BlackRam/WebHostController.swift").read_text(encoding="utf-8")
+    if "blackram://localhost/index.html" not in host:
         fail("web view does not load the bundled site")
+    if "BLACKRAM_CAPTURE" not in app:
+        fail("simulator capture hook is missing from app.js")
+    if "BLACKRAM_CAPTURE" not in host:
+        fail("native shell does not read BLACKRAM_CAPTURE")
+    subprocess.check_call(["bash", "-n", str(IOS / "scripts/capture-simulator.sh")])
 
     if shutil.which("rsync"):
         with tempfile.TemporaryDirectory() as tmp:

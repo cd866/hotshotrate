@@ -917,6 +917,41 @@
     setupPull();
     renderCheck();
     refreshFeed();
+    applyCapture();
+  }
+
+  // Simulator capture only. The website never sets BLACKRAM_CAPTURE.
+  function applyCapture() {
+    var mode = window.BLACKRAM_CAPTURE;
+    if (!mode || mode === 'launch') return;
+
+    function readyHome() {
+      closeAbout();
+      showTab('check');
+    }
+
+    function fillTake() {
+      readyHome();
+      $('rate').value = '3000';
+      $('loaded').value = '800';
+      $('deadhead').value = '200';
+      renderCheck();
+    }
+
+    if (mode === 'home') readyHome();
+    else if (mode === 'take') fillTake();
+    else if (mode === 'reports') {
+      closeAbout();
+      showTab('reports');
+    } else if (mode === 'kpis') {
+      closeAbout();
+      showTab('kpis');
+    } else if (mode === 'tour') {
+      readyHome();
+      setTimeout(fillTake, 3000);
+      setTimeout(function () { showTab('reports'); }, 6500);
+      setTimeout(function () { showTab('kpis'); }, 10000);
+    }
   }
 
   window.BlackRam = {

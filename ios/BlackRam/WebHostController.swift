@@ -13,10 +13,18 @@ final class WebHostController: UIViewController, WKNavigationDelegate, WKUIDeleg
 
     override var preferredStatusBarStyle: UIStatusBarStyle { .lightContent }
 
+    private let captureMode: String
+
     /// Runs before the page scripts. The public site never sees this object.
-    static let bootstrapScript = """
+    /// BLACKRAM_CAPTURE is set only for the simulator recording job.
+    static func bootstrapSource(capture: String) -> String {
+        let captureLine = (capture.isEmpty || capture == "launch")
+            ? ""
+            : "window.BLACKRAM_CAPTURE = '\(capture)'; document.documentElement.classList.add('splash-seen');"
+        return """
     (function () {
       document.documentElement.classList.add('native-app');
+      \(captureLine)
       window.BlackRamNative = {
         fetchLiveFeed: function () {
           return new Promise(function (resolve, reject) {
@@ -47,8 +55,19 @@ final class WebHostController: UIViewController, WKNavigationDelegate, WKUIDeleg
       };
     })();
     """
+    }
+
+    private static func allowedCapture(_ raw: String) -> String {
+        switch raw {
+        case "launch", "home", "take", "reports", "kpis", "tour":
+            return raw
+        default:
+            return ""
+        }
+    }
 
     init() {
+        let captureMode = Self.allowedCapture(ProcessInfo.processInfo.environment["BLACKRAM_CAPTURE"] ?? "")
         let schemeHandler = LocalSchemeHandler()
         let feedBridge = FeedBridge()
         let configuration = WKWebViewConfiguration()
@@ -58,7 +77,7 @@ final class WebHostController: UIViewController, WKNavigationDelegate, WKUIDeleg
 
         let userContent = WKUserContentController()
         userContent.addUserScript(WKUserScript(
-            source: WebHostController.bootstrapScript,
+            source: WebHostController.bootstrapSource(capture: captureMode),
             injectionTime: .atDocumentStart,
             forMainFrameOnly: true
         ))
@@ -66,6 +85,7 @@ final class WebHostController: UIViewController, WKNavigationDelegate, WKUIDeleg
         configuration.userContentController = userContent
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
+        self.captureMode = captureMode
         self.schemeHandler = schemeHandler
         self.feedBridge = feedBridge
         self.webView = webView
@@ -108,6 +128,24 @@ final class WebHostController: UIViewController, WKNavigationDelegate, WKUIDeleg
         }
         #endif
 
+        if captureMode == "launch" {
+            showLaunchSplash()
+            return
+        }
+
+        installWebView()
+        if captureMode == "tour" {
+            let splash = showLaunchSplash()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                splash.removeFromSuperview()
+                self?.loadSite()
+            }
+            return
+        }
+        loadSite()
+    }
+
+    private func installWebView() {
         webView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(webView)
         NSLayoutConstraint.activate([
@@ -116,7 +154,25 @@ final class WebHostController: UIViewController, WKNavigationDelegate, WKUIDeleg
             webView.topAnchor.constraint(equalTo: view.topAnchor),
             webView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
+    }
 
+    /// Same black field and ram mark as LaunchScreen.storyboard.
+    @discardableResult
+    private func showLaunchSplash() -> UIImageView {
+        let imageView = UIImageView(image: UIImage(named: "SplashLogo"))
+        imageView.contentMode = .scaleAspectFit
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(imageView)
+        NSLayoutConstraint.activate([
+            imageView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            imageView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            imageView.widthAnchor.constraint(equalToConstant: 200),
+            imageView.heightAnchor.constraint(equalToConstant: 200)
+        ])
+        return imageView
+    }
+
+    private func loadSite() {
         if let url = URL(string: "blackram://localhost/index.html") {
             webView.load(URLRequest(url: url))
         }

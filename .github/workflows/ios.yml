@@ -68,6 +68,21 @@ jobs:
           test -f "$APP/PrivacyInfo.xcprivacy"
           echo "built $APP"
 
+      - name: Capture iPhone screenshots and tour video
+        run: |
+          APP="ios/build/DerivedData/Build/Products/Debug-iphonesimulator/BlackRam.app"
+          if [ ! -d "$APP" ]; then
+            APP=$(find ios/build/DerivedData -name BlackRam.app -type d | head -1)
+          fi
+          bash ios/scripts/capture-simulator.sh "$APP" ios/build/capture
+
+      - name: Upload iPhone capture
+        uses: actions/upload-artifact@v4
+        with:
+          name: blackram-iphone
+          path: ios/build/capture/*
+          if-no-files-found: error
+
   testflight:
     needs: simulator
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.upload_testflight }}
