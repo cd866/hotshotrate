@@ -19,17 +19,29 @@ final class WebHostController: UIViewController, WKNavigationDelegate, WKUIDeleg
       document.documentElement.classList.add('native-app');
       window.BlackRamNative = {
         fetchLiveFeed: function () {
-          var bridge = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.liveFeed;
-          if (!bridge || typeof bridge.postMessage !== 'function') {
-            return Promise.reject(new Error('missing bridge'));
-          }
-          var result = bridge.postMessage({});
-          if (!result || typeof result.then !== 'function') {
-            return Promise.reject(new Error('bridge'));
-          }
-          return result.then(function (text) {
-            if (typeof text !== 'string') throw new Error('bad feed');
-            return JSON.parse(text);
+          return new Promise(function (resolve, reject) {
+            var bridge = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.liveFeed;
+            if (!bridge || typeof bridge.postMessage !== 'function') {
+              reject(new Error('missing bridge'));
+              return;
+            }
+            var id = Date.now().toString(36) + Math.random().toString(16).slice(2);
+            window.__blackRamFeedWait = window.__blackRamFeedWait || {};
+            var timer = setTimeout(function () {
+              delete window.__blackRamFeedWait[id];
+              reject(new Error('timeout'));
+            }, 20000);
+            window.__blackRamFeedWait[id] = function (ok, text) {
+              clearTimeout(timer);
+              delete window.__blackRamFeedWait[id];
+              if (!ok || typeof text !== 'string') {
+                reject(new Error('offline'));
+                return;
+              }
+              try { resolve(JSON.parse(text)); }
+              catch (err) { reject(err); }
+            };
+            bridge.postMessage({ id: id });
           });
         }
       };
@@ -50,7 +62,7 @@ final class WebHostController: UIViewController, WKNavigationDelegate, WKUIDeleg
             injectionTime: .atDocumentStart,
             forMainFrameOnly: true
         ))
-        userContent.add(feedBridge, contentWorld: .page, name: "liveFeed")
+        userContent.add(feedBridge, name: "liveFeed")
         configuration.userContentController = userContent
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
@@ -65,7 +77,7 @@ final class WebHostController: UIViewController, WKNavigationDelegate, WKUIDeleg
     }
 
     deinit {
-        webView.configuration.userContentController.removeScriptMessageHandler(forName: "liveFeed", contentWorld: .page)
+        webView.configuration.userContentController.removeScriptMessageHandler(forName: "liveFeed")
     }
 
     override func viewDidLoad() {
