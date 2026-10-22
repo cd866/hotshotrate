@@ -1,2 +1,9 @@
 DEPLOY.json
 .DS_Store
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+DerivedData/
+ios/build/
+*.ipa
+*.xcarchive

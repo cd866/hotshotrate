@@ -6,6 +6,8 @@ Installable phone app for Sand Lily Pad LLC’s hotshot business, doing business
 
 Static HTML, CSS, and JavaScript. No build step. GitHub Pages serves the repository root.
 
+The native iPhone project is in `ios/`. Building it does not change the website.
+
 ## Tabs
 
 1. **Load check.** Enter a rate, loaded miles, deadhead miles, weight, optional cities, tarp, and optional hours. The verdict is TAKE IT, NEGOTIATE, or PASS, with all-miles $/mi, loaded $/mi, the Totni fee, estimated fuel, net kept, and net per hour.
@@ -53,6 +55,57 @@ GitHub Pages publishes `main` with the existing pages deployment. `.nojekyll` ke
 4. Open **Black Ram** from the home screen.
 
 The icon is the ram mark. The app runs full screen (no Safari toolbar). After that first online visit, the shell and the last feed work offline. Load-check settings never leave the phone.
+
+## Native iPhone app (TestFlight)
+
+The home-screen shortcut above still works. This is the separate app you install from TestFlight, and later from the App Store. The name under the icon is Black Ram. The icon is the gold ram on black. The bundle id is `com.blackramtowing.hotshotrate`. That id is a placeholder. Change it in `ios/Config/Signing.xcconfig` before the first upload if you want a different one. After Apple has the first build, the bundle id cannot change.
+
+The app is the same load check, reports, and KPIs. Xcode copies the website into the app when you archive, so you do not install Node or any other build tool. The calculator works with no service. Reports open the copy that shipped inside the app when you are offline, and they download the public feed when you have service.
+
+You need the Apple Developer Program to put the app on a phone that is not plugged into your Mac. It costs $99 per year. Enroll at https://developer.apple.com/programs/ as Sand Lily Pad LLC if you have a D-U-N-S number, or in your own name. Signing is not locked to a team. The team starts blank.
+
+### One-time setup in App Store Connect
+
+1. Sign in at https://appstoreconnect.apple.com and accept the latest agreements.
+2. Create an app. Name: Black Ram. Bundle ID: com.blackramtowing.hotshotrate. SKU: hotshotrate.
+3. On the privacy questions, say the app does not collect data. Load-check settings stay on the phone. The app only downloads the public reports feed.
+
+### From a Mac
+
+1. Install Xcode from the Mac App Store. In Xcode, open Settings, Accounts, and sign in with the Apple ID on the developer account.
+2. Open `ios/BlackRam.xcodeproj`.
+3. Click the BlackRam project, then the BlackRam target, then Signing & Capabilities.
+4. Turn on Automatically manage signing and choose your team. You can instead put the 10-character Team ID on the `DEVELOPMENT_TEAM` line in `ios/Config/Signing.xcconfig`.
+5. At the top of the window, set the destination to Any iOS Device (arm64). The scheme is BlackRam.
+6. Choose Product, then Archive.
+7. When the Organizer opens, click Distribute App, then App Store Connect, then Upload.
+8. Wait until the build finishes processing in TestFlight. Then add Claudio, Ben, and Meshach.
+   Internal testers must already be users on the App Store Connect team. They can install as soon as processing finishes.
+   External testers only need an email and the TestFlight app. The first build you send outside the team goes through a short Beta App Review.
+9. On the iPhone, install TestFlight from the App Store, open the invite, and install Black Ram.
+
+To try it on your own phone without TestFlight, plug the phone in, choose it as the run destination, set the team, and press Run. If the phone says the developer is not trusted, open Settings, General, VPN & Device Management, and trust the certificate.
+
+The version in the project is 1.0.0 and the build number starts at 1. Raise the build number in Xcode before each new upload. TestFlight will not accept the same build number twice.
+
+### From GitHub, if you do not want to archive on a Mac
+
+The iOS workflow already builds the app for the iOS Simulator on every pull request, with signing turned off, so you can see that the project compiles.
+
+To upload from GitHub:
+
+1. In App Store Connect, open Users and Access, then Integrations, then App Store Connect API. Make a key with Admin or App Manager access. Download the AuthKey file once. Write down the Key ID, the Issuer ID, and the 10-character Team ID from your membership page.
+2. In this GitHub repo, open Settings, then Secrets and variables, then Actions. Add these secrets:
+   - `APPLE_TEAM_ID`
+   - `APP_STORE_CONNECT_KEY_ID`
+   - `APP_STORE_CONNECT_ISSUER_ID`
+   - `APP_STORE_CONNECT_API_KEY` (paste the whole .p8 file, including the BEGIN and END lines)
+3. Open Actions, choose iOS, then Run workflow, and check Upload a Release build to TestFlight.
+4. When the workflow is green, the build shows up in TestFlight. Install it the same way as above.
+
+That upload uses version 1.0.0 and a build number of 1000 plus the GitHub run number, so it does not collide with build 1 from Xcode. Create the app record in App Store Connect before the first upload, or the upload has nowhere to land.
+
+Defaults match the website: Totni fee 13%, trailer payment $434.84 per month, take line $3.00 per all-miles (deadhead counts). Insurance stays $0 until you type it on the phone. The field keeps the Set this badge until then.
 
 ## Local preview
 

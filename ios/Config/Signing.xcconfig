@@ -1,0 +1,7 @@
+// Black Ram signing. The team is blank on purpose.
+// Write your 10-character Apple Team ID after the equals sign, or choose the
+// team in Xcode under Signing & Capabilities. Either one is enough.
+// Example: DEVELOPMENT_TEAM = ABCDE12345
+DEVELOPMENT_TEAM =
+CODE_SIGN_STYLE = Automatic
+PRODUCT_BUNDLE_IDENTIFIER = com.blackramtowing.hotshotrate

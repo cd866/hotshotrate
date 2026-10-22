@@ -449,7 +449,54 @@
     if (state.tab === 'kpis') renderKpis();
   }
 
+  function isNativeApp() {
+    return !!(window.BlackRamNative && typeof window.BlackRamNative.fetchLiveFeed === 'function');
+  }
+
+  function showFeedError() {
+    state.error = 'Couldn’t load the month. Check the connection and pull to refresh.';
+    state.feed = null;
+    if (state.tab === 'reports') renderReports();
+    if (state.tab === 'kpis') renderKpis();
+  }
+
+  // The iPhone app injects BlackRamNative. The website never does, so this
+  // path does not run in Safari or the installed home-screen app.
+  function refreshFeedNative() {
+    if (state.inflight) return state.inflight;
+    var status = $('feed-status-text');
+    if (status) status.textContent = 'Updating…';
+
+    function useOfflineCopy() {
+      var cached = recallFeed();
+      if (cached && cached.feed) {
+        applyFeed(cached.feed, { offline: true, savedAt: cached.savedAt });
+        return;
+      }
+      return fetch('data/feed.json', { cache: 'no-cache' }).then(function (res) {
+        if (!res.ok) throw new Error('bundled feed ' + res.status);
+        return res.json();
+      }).then(function (feed) {
+        if (!feed || !feed.months) throw new Error('Feed has no months');
+        applyFeed(feed, { offline: true, savedAt: null });
+      }).catch(function () {
+        showFeedError();
+      });
+    }
+
+    state.inflight = window.BlackRamNative.fetchLiveFeed().then(function (feed) {
+      if (!feed || !feed.months) throw new Error('Feed has no months');
+      applyFeed(feed, { offline: false, savedAt: rememberFeed(feed) });
+    }).catch(function () {
+      return useOfflineCopy();
+    }).then(function () {
+      state.inflight = null;
+    });
+    return state.inflight;
+  }
+
   function refreshFeed() {
+    if (isNativeApp()) return refreshFeedNative();
     if (state.inflight) return state.inflight;
     var status = $('feed-status-text');
     if (status) status.textContent = 'Updating…';
@@ -870,6 +917,41 @@
     setupPull();
     renderCheck();
     refreshFeed();
+    applyCapture();
+  }
+
+  // Simulator capture only. The website never sets BLACKRAM_CAPTURE.
+  function applyCapture() {
+    var mode = window.BLACKRAM_CAPTURE;
+    if (!mode || mode === 'launch') return;
+
+    function readyHome() {
+      closeAbout();
+      showTab('check');
+    }
+
+    function fillTake() {
+      readyHome();
+      $('rate').value = '3000';
+      $('loaded').value = '800';
+      $('deadhead').value = '200';
+      renderCheck();
+    }
+
+    if (mode === 'home') readyHome();
+    else if (mode === 'take') fillTake();
+    else if (mode === 'reports') {
+      closeAbout();
+      showTab('reports');
+    } else if (mode === 'kpis') {
+      closeAbout();
+      showTab('kpis');
+    } else if (mode === 'tour') {
+      readyHome();
+      setTimeout(fillTake, 3000);
+      setTimeout(function () { showTab('reports'); }, 6500);
+      setTimeout(function () { showTab('kpis'); }, 10000);
+    }
   }
 
   window.BlackRam = {

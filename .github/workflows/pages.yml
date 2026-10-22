@@ -27,10 +27,27 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
+      - name: Stage site
+        run: |
+          mkdir -p _site
+          rsync -a \
+            --exclude '.git/' \
+            --exclude '.github/' \
+            --exclude 'ios/' \
+            --exclude '_site/' \
+            ./ _site/
+          test -f _site/index.html
+          test -f _site/app.js
+          test -f _site/styles.css
+          test -f _site/sw.js
+          test -f _site/data/feed.json
+          test -f _site/.nojekyll
+          test ! -e _site/ios
+
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: _site
 
       - name: Deploy to GitHub Pages
         id: deployment
