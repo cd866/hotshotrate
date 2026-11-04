@@ -9,8 +9,9 @@ Static HTML, CSS, and JavaScript. No build step. GitHub Pages serves the reposit
 ## Tabs
 
 1. **Load check.** Enter a rate, loaded miles, deadhead miles, weight, optional cities, tarp, and optional hours. The verdict is TAKE IT, NEGOTIATE, or PASS, with all-miles $/mi, loaded $/mi, the Totni fee, estimated fuel, net kept, and net per hour.
-2. **Reports.** Month-to-date numbers from `data/feed.json`: gross, Totni fees, fuel, other expenses, net, $/loaded mile, loads, cancelled loads, and day notes. Fresh fetch on open, pull to refresh, last-updated time, and an offline copy.
-3. **KPIs.** Revenue per loaded mile and per all-miles, deadhead %, loads per week, truck utilization, net margin, fuel per mile, Totni fees, break-even against the trailer payment and insurance, plus week-over-week and month-over-month charts. Short history says “Not enough data.”
+2. **Stops.** Love's and TA, TA Express, and Petro on an OpenStreetMap map. Filter by brand. Near me sorts the closest stops by miles using the phone's location. Along a route takes a pickup and delivery (typed, copied from Load check, or a saved load on the feed), routes it, and lists stops within 5, 10, or 25 miles of the road in order. Tap a stop for the address, a call button, tire care / truck service when the locator lists it, and Apple Maps and Google Maps. The list is `data/stops.json`, so it still opens when the map tiles are slow.
+3. **Reports.** Month-to-date numbers from `data/feed.json`: gross, Totni fees, fuel, other expenses, net, $/loaded mile, loads, cancelled loads, and day notes. Fresh fetch on open, pull to refresh, last-updated time, and an offline copy.
+4. **KPIs.** Revenue per loaded mile and per all-miles, deadhead %, loads per week, truck utilization, net margin, fuel per mile, Totni fees, break-even against the trailer payment and insurance, plus week-over-week and month-over-month charts. Short history says “Not enough data.”
 
 ## Defaults
 
@@ -43,7 +44,17 @@ git commit -m "Update hotshot feed"
 git push origin main
 ```
 
-GitHub Pages publishes `main` with the existing pages deployment. `.nojekyll` keeps `data/feed.json` as a real file. The service worker asks the network for the feed first and falls back to the cached copy offline. After the push, open Reports and pull to refresh.
+GitHub Pages publishes `main` with the existing pages deployment. `.nojekyll` keeps `data/feed.json` as a real file. The service worker asks the network for the feed and the stop list first and falls back to the cached copy offline. After the push, open Reports and pull to refresh.
+
+## Truck stop list
+
+`data/stops.json` is a copy of the public Love's store locator and the TA/Petro location download. Refresh it with the standard library only:
+
+```bash
+python3 scripts/refresh_stops.py
+```
+
+The file records the source URLs and the date it was fetched. The Stops tab shows that date. Place search from the phone uses OpenStreetMap Nominatim (one request at a time, results saved on the phone) and the public OSRM demo server for the route. Both are for light use. Map tiles are OpenStreetMap and need a connection; the stop list does not, after one visit. Leaflet 1.9.4 is vendored under `vendor/leaflet/` (BSD 2-Clause).
 
 ## Add to an iPhone
 
