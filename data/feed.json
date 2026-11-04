@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-04T02:39:33Z",
+  "generated_at": "2026-11-04T03:38:41Z",
   "company": "Sand Lily Pad LLC",
   "dba": "Black Ram Towing",
   "authority": "Leased onto Totni Enterprise",
@@ -270,7 +270,8 @@
           "vendor": "Ram dealer oil change (pre-invoice EST)",
           "amount": 265.0,
           "category": "maintenance",
-          "est": true
+          "est": true,
+          "notes": "Estimate; final receipt not posted yet"
         },
         {
           "date": "2026-10-26",
@@ -359,10 +360,10 @@
           "weight_lb": 9600,
           "loaded_mi": 526,
           "gross": 1100.0,
-          "delivery_date": "2026-11-04",
           "broker": "Unicargo",
           "load_no": "U008069",
-          "notes": "Rate con U008069: $1,100 flat, 526 mi, 9,600 lb open-top container, 6 straps, PU 11/3 DEL 11/4. Picked up 11/3 (loaded; trailer flat repaired at Love's Houston en route). Rate $2.09/mi is below the $2.82 break-even. Totni 13% assumed (UNCONFIRMED for this load)",
+          "notes": "Rate con U008069: $1,100 flat, 526 mi, 9,600 lb open-top container, 6 straps, PU 11/3 DEL 11/4. Picked up 11/3; trailer flat from a nail repaired (spare swapped) at Love's Houston en route. $2.09/mi is below the $2.71-$2.82 break-even EST. Totni 13% fee on this load is UNCONFIRMED.",
+          "delivery_date": "2026-11-04",
           "pay_status": "in_transit",
           "net_due": 957.0,
           "net_received": 0.0,
@@ -374,29 +375,34 @@
       "expenses": [
         {
           "date": "2026-11-03",
-          "vendor": "In-N-Out (business meal)",
+          "vendor": "In-N-Out lunch (meal)",
           "amount": 25.17,
-          "category": "meals",
-          "notes": "$23.25 + $1.92 tax; business discussed, 50% deductible"
+          "category": "meals"
         },
         {
           "date": "2026-11-03",
-          "vendor": "Love's #315 Houston TX (trailer tire, spare swap)",
+          "vendor": "Love's Houston TX (trailer spare tire swap after nail flat)",
           "amount": 41.0,
           "category": "maintenance",
-          "notes": "Quoted price; final receipt not posted yet. Nail flat on loaded trailer. Ask the tire-and-wheel warranty whether it covers this",
-          "est": true
+          "est": true,
+          "notes": "Estimate; final receipt not posted yet"
+        },
+        {
+          "date": "2026-11-03",
+          "vendor": "TA Express Houston TX #0978",
+          "amount": 80.0,
+          "category": "fuel"
         }
       ],
       "cancelled": [],
       "day_notes": [
         {
           "date": "2026-11-02",
-          "text": "No loads; trailer registered with Texas Token Trailer plate"
+          "text": "No loads; Big Tex trailer titled and registered in Galveston County (Texas Token Trailer plate Z09-246) (done); title address fixed to 2312 Sand Lily Dr, county system update within 48 hrs"
         },
         {
           "date": "2026-11-03",
-          "text": "Picked up Unicargo U008069 Houston to Pensacola (DEL 11/4). Trailer flat from a nail, spare swapped at Love's Houston. Fuel receipt posted 5:22 PM, amount not read yet, not in totals"
+          "text": "Picked up Unicargo U008069 open-top container, Houston TX to Pensacola FL, $1,100, 526 mi, delivery 11/4; trailer flat from a nail, spare swapped at Love's Houston for about $41 EST (final receipt not posted); $80 company-AmEx diesel at TA Express Houston (nothing owed); Progressive payment schedule on file: $1,221.62 due the 30th of each month starting Nov 30"
         }
       ]
     }
@@ -426,11 +432,13 @@
           "count": 10,
           "amount": 1221.62,
           "last_amount": 1221.61,
-          "due_dates_known": false
+          "due_dates_known": true,
+          "first_due": "2026-11-30",
+          "due_day": "30th of each month (Feb 28), Nov 30 2026 to Aug 30 2027 (Progressive payment schedule)"
         },
         "total_cash_12mo": 14600.0,
         "avg_monthly_incl_down": 1216.67,
-        "unconfirmed": "Installment due dates (payment schedule not on file); whether premium drops after own DOT; dashcam (Snapshot Pro) cost"
+        "unconfirmed": "Whether premium drops after own DOT; dashcam (Snapshot Pro) cost"
       }
     ],
     "per_load_deductions": [
