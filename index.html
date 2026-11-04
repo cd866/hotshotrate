@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0E0E10" />
   <meta name="color-scheme" content="dark" />
-  <meta name="description" content="Black Ram Towing load check, month-to-date reports, and owner KPIs. Sand Lily Pad LLC hotshot, leased to Totni Enterprise." />
+  <meta name="description" content="Black Ram Towing load check, truck stops, month-to-date reports, and owner KPIs. Sand Lily Pad LLC hotshot, leased to Totni Enterprise." />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black" />
@@ -18,6 +18,7 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=3" sizes="180x180" />
   <link rel="preload" href="fonts/oswald-700.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
   <script>
     try {
       if (localStorage.getItem('blackram_splash_seen') === '1') {
@@ -47,6 +48,7 @@
           <li>Open Black Ram from the home screen. It runs full screen, and the month stays available offline after this visit.</li>
         </ol>
         <p>Load-check settings stay on this phone. The public reports feed lists loads, fuel, and expense totals. It does not list who paid or what anyone is owed.</p>
+        <p>Stops maps Love’s and TA/Petro truck stops from their public locators, including the closest ones to the truck and the ones along a route.</p>
         <div class="sheet-actions">
           <button type="button" class="btn gold block" id="about-done">Continue</button>
         </div>
@@ -168,6 +170,53 @@
         </details>
       </section>
 
+      <section id="panel-stops" class="panel" role="tabpanel" aria-labelledby="tab-stops" hidden>
+        <p class="fine" id="stops-stamp">Loading truck stops…</p>
+        <p id="stops-offline" class="offline" hidden>Showing the saved stop list. The map tiles need a connection.</p>
+        <div class="seg" role="group" aria-label="How to search stops">
+          <button type="button" id="stops-near" aria-pressed="false">Near me</button>
+          <button type="button" id="stops-route" aria-pressed="false">Along route</button>
+        </div>
+        <div class="chips" id="stops-brands" role="group" aria-label="Brand">
+          <button type="button" data-brand="all" aria-pressed="true">All</button>
+          <button type="button" data-brand="loves" aria-pressed="false">Love's</button>
+          <button type="button" data-brand="ta" aria-pressed="false">TA</button>
+          <button type="button" data-brand="ta-express" aria-pressed="false">TA Express</button>
+          <button type="button" data-brand="petro" aria-pressed="false">Petro</button>
+        </div>
+        <form id="stops-route-form" action="#" autocomplete="off" hidden>
+          <div class="fields">
+            <label class="field">
+              <span class="lbl">Pickup</span>
+              <input id="stops-pickup" type="text" maxlength="80" autocapitalize="words" autocomplete="off" placeholder="Houston TX" />
+            </label>
+            <label class="field">
+              <span class="lbl">Delivery</span>
+              <input id="stops-delivery" type="text" maxlength="80" autocapitalize="words" autocomplete="off" placeholder="Pensacola FL" />
+            </label>
+            <label class="field full">
+              <span class="lbl">Saved load</span>
+              <select id="stops-load">
+                <option value="">Pick a saved load</option>
+              </select>
+            </label>
+          </div>
+          <div class="row-actions">
+            <button type="button" class="btn" id="stops-from-check">Use load check</button>
+          </div>
+          <div class="seg stops-corridor" id="stops-corridor" role="group" aria-label="Miles off the route">
+            <button type="button" data-miles="5" aria-pressed="false">5 mi</button>
+            <button type="button" data-miles="10" aria-pressed="true">10 mi</button>
+            <button type="button" data-miles="25" aria-pressed="false">25 mi</button>
+          </div>
+          <button type="submit" class="btn gold block" id="stops-go">Show stops along this route</button>
+        </form>
+        <p class="fine" id="stops-status" role="status" aria-live="polite"></p>
+        <div id="stops-map" class="stops-map" role="application" aria-label="Map of Love's and TA/Petro stops"></div>
+        <div id="stops-list"></div>
+        <p class="fine">Love's and TA/Petro public locators, saved in this app. Map © OpenStreetMap. Place search uses Nominatim, then Photon if a street is missing. Routes use the public OSRM server.</p>
+      </section>
+
       <section id="panel-reports" class="panel" role="tabpanel" aria-labelledby="tab-reports" hidden>
         <div id="reports-root"></div>
       </section>
@@ -185,12 +234,24 @@
 
     <nav class="tabbar" role="tablist" aria-label="Sections">
       <button type="button" id="tab-check" data-tab="check" role="tab" aria-selected="true" aria-controls="panel-check">Load check</button>
+      <button type="button" id="tab-stops" data-tab="stops" role="tab" aria-selected="false" aria-controls="panel-stops">Stops</button>
       <button type="button" id="tab-reports" data-tab="reports" role="tab" aria-selected="false" aria-controls="panel-reports">Reports</button>
       <button type="button" id="tab-kpis" data-tab="kpis" role="tab" aria-selected="false" aria-controls="panel-kpis">KPIs</button>
     </nav>
   </div>
-  <noscript><p class="noscript">Black Ram Towing needs JavaScript for the load check and reports.</p></noscript>
+  <div id="stop-sheet" class="stop-sheet" hidden>
+    <button type="button" class="stop-backdrop" id="stop-backdrop" aria-label="Close stop details"></button>
+    <div class="stop-card" role="dialog" aria-modal="true" aria-labelledby="stop-title">
+      <div class="sheet-top">
+        <button type="button" class="about-btn" id="stop-close">Close</button>
+      </div>
+      <div id="stop-body"></div>
+    </div>
+  </div>
+  <noscript><p class="noscript">Black Ram Towing needs JavaScript for the load check, stops, and reports.</p></noscript>
+  <script src="vendor/leaflet/leaflet.js"></script>
   <script src="app.js"></script>
+  <script src="stops.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').catch(function () {});

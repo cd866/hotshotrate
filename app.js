@@ -447,6 +447,7 @@
     state.error = '';
     if (state.tab === 'reports') renderReports();
     if (state.tab === 'kpis') renderKpis();
+    if (window.BlackRamStops && BlackRamStops.onFeed) BlackRamStops.onFeed(feed);
   }
 
   function refreshFeed() {
@@ -785,17 +786,20 @@
 
   function showTab(name) {
     state.tab = name;
-    ['check', 'reports', 'kpis'].forEach(function (id) {
+    ['check', 'reports', 'kpis', 'stops'].forEach(function (id) {
       var on = id === name;
       $('tab-' + id).setAttribute('aria-selected', on ? 'true' : 'false');
       $('panel-' + id).hidden = !on;
     });
+    document.querySelector('.app').classList.toggle('tab-stops', name === 'stops');
     if (name === 'reports') {
       renderReports();
       refreshFeed();
     } else if (name === 'kpis') {
       renderKpis();
       refreshFeed();
+    } else if (name === 'stops' && window.BlackRamStops) {
+      window.BlackRamStops.show();
     }
     window.scrollTo(0, 0);
   }
@@ -878,7 +882,8 @@
     refreshFeed: refreshFeed,
     monthFigures: monthFigures,
     latestMonth: latestMonth,
-    showTab: showTab
+    showTab: showTab,
+    getFeed: function () { return state.feed; }
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

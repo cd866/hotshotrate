@@ -1,7 +1,8 @@
 /* Black Ram Towing service worker.
    Bump CACHE when the shell changes so old caches are dropped.
-   data/feed.json is network-first and falls back to the cached copy. */
-var CACHE = 'blackram-v3';
+   data/feed.json and data/stops.json are network-first and fall back
+   to the cached copy, so the stop list still opens when tiles are slow. */
+var CACHE = 'blackram-v4';
 var ASSETS = [
   './',
   './index.html',
@@ -31,11 +32,20 @@ var ASSETS = [
   './fonts/oswald-500.woff2',
   './fonts/oswald-600.woff2',
   './fonts/oswald-700.woff2',
-  './data/feed.json'
+  './data/feed.json',
+  './data/stops.json',
+  './stops.js',
+  './vendor/leaflet/leaflet.css',
+  './vendor/leaflet/leaflet.js',
+  './vendor/leaflet/images/marker-icon.png',
+  './vendor/leaflet/images/marker-icon-2x.png',
+  './vendor/leaflet/images/marker-shadow.png',
+  './vendor/leaflet/images/layers.png',
+  './vendor/leaflet/images/layers-2x.png'
 ];
 
-function isFeed(url) {
-  return url.pathname.endsWith('/data/feed.json');
+function isFreshData(url) {
+  return url.pathname.endsWith('/data/feed.json') || url.pathname.endsWith('/data/stops.json');
 }
 
 self.addEventListener('install', function (event) {
@@ -98,7 +108,7 @@ self.addEventListener('fetch', function (event) {
   try { url = new URL(req.url); } catch (err) { return; }
   if (url.origin !== self.location.origin) return;
 
-  if (isFeed(url)) {
+  if (isFreshData(url)) {
     event.respondWith(
       fetch(req).then(function (res) {
         return store(req, res);
