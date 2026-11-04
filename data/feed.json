@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-04T03:38:41Z",
+  "generated_at": "2026-11-04T21:46:14Z",
   "company": "Sand Lily Pad LLC",
   "dba": "Black Ram Towing",
   "authority": "Leased onto Totni Enterprise",
@@ -350,7 +350,7 @@
     },
     {
       "month": "2026-11",
-      "as_of": "2026-11-03",
+      "as_of": "2026-11-04",
       "fee_pct": 13,
       "loads": [
         {
@@ -370,6 +370,23 @@
           "net_due_est": true,
           "pay_note": "Not delivered yet; $957 = $1,100 less 13%, EST until Totni confirms the fee on this load",
           "rate_per_mi": 2.09
+        },
+        {
+          "date": "2026-11-05",
+          "desc": "Washing machines (tarped)",
+          "lane": "B&C Technologies Panama City Beach FL to STT Cargo Medley FL",
+          "weight_lb": 6233,
+          "loaded_mi": 560,
+          "gross": 1400.0,
+          "broker": "Priority 1 Inc.",
+          "load_no": "60116522463",
+          "notes": "Signed rate con 60116522463 under Totni MC 1122113: $1,250 line haul + $150 tarp = $1,400. PU Thu 11/5, DEL Fri 11/6. Miles about 560 EST (not on rate con), about $2.50/mi EST. Check calls loaded/empty or $50 penalty; detention $35/hr after 2 hr.",
+          "delivery_date": "2026-11-06",
+          "pay_status": "booked",
+          "net_due": 1218.0,
+          "net_received": 0.0,
+          "pay_note": "Booked; PU 11/5, DEL 11/6. $1,218 = $1,400 less 13% ($182). Miles about 560 EST",
+          "rate_per_mi": 2.5
         }
       ],
       "expenses": [
@@ -389,9 +406,35 @@
         },
         {
           "date": "2026-11-03",
+          "vendor": "Shell Fast Stop Red Dog Egan LA",
+          "amount": 160.0,
+          "category": "fuel"
+        },
+        {
+          "date": "2026-11-03",
           "vendor": "TA Express Houston TX #0978",
           "amount": 80.0,
           "category": "fuel"
+        },
+        {
+          "date": "2026-11-04",
+          "vendor": "Circle A Travel Center Pensacola FL",
+          "amount": 135.0,
+          "category": "fuel",
+          "gallons": 19.5
+        },
+        {
+          "date": "2026-11-04",
+          "vendor": "DEF - convenience store Pensacola FL",
+          "amount": 26.29,
+          "category": "DEF"
+        },
+        {
+          "date": "2026-11-04",
+          "vendor": "Fuel prepay - Regular",
+          "amount": 160.0,
+          "category": "fuel",
+          "notes": "Receipt says Regular (pump 7); station not shown. Possibly gasoline, UNCONFIRMED"
         }
       ],
       "cancelled": [],
@@ -403,6 +446,10 @@
         {
           "date": "2026-11-03",
           "text": "Picked up Unicargo U008069 open-top container, Houston TX to Pensacola FL, $1,100, 526 mi, delivery 11/4; trailer flat from a nail, spare swapped at Love's Houston for about $41 EST (final receipt not posted); $80 company-AmEx diesel at TA Express Houston (nothing owed); Progressive payment schedule on file: $1,221.62 due the 30th of each month starting Nov 30"
+        },
+        {
+          "date": "2026-11-04",
+          "text": "In Pensacola FL with a 40 ft container on the trailer (U008069 delivery status not); fuel $160 (receipt says Regular, UNCONFIRMED) + $135 diesel Circle A Pensacola, $26.29 DEF; booked Priority 1 load 60116522463 $1,400, Panama City Beach FL to Medley FL, PU 11/5 DEL 11/6, about 560 mi EST"
         }
       ]
     }
