@@ -1,7 +1,8 @@
 (function () {
   'use strict';
 
-  var SETTINGS_KEY = 'blackram_settings_v1';
+  var SETTINGS_KEY = 'blackram_settings_v2';
+  var SETTINGS_KEY_V1 = 'blackram_settings_v1';
   var FEED_CACHE_KEY = 'blackram_feed_cache_v1';
   var SPLASH_KEY = 'blackram_splash_seen';
 
@@ -12,6 +13,7 @@
     tab: 'check',
     tarp: false,
     feed: null,
+    viewMonth: null,
     offline: false,
     savedAt: null,
     error: '',
@@ -72,13 +74,13 @@
     var mph = n('assumedMph', 50);
     return {
       feePct: n('feePct', 13),
-      floor: n('floor', 2.4),
+      floor: n('floor', 2.82),
       takeAt: n('takeAt', 3),
       trailer: n('trailer', 434.84),
-      insurance: n('insurance', 0),
-      otherFixed: n('otherFixed', 0),
+      insurance: n('insurance', 1221.62),
+      otherFixed: n('otherFixed', 1573.04),
       mpg: n('mpg', 9),
-      diesel: n('diesel', 3.85),
+      diesel: n('diesel', 6.04),
       capacity: n('capacity', 15000),
       assumedMph: mph > 0 ? mph : 50
     };
@@ -94,11 +96,21 @@
   function loadSettings() {
     try {
       var raw = localStorage.getItem(SETTINGS_KEY);
+      var fromV1 = false;
+      if (!raw) {
+        raw = localStorage.getItem(SETTINGS_KEY_V1);
+        fromV1 = !!raw;
+      }
       if (!raw) return;
       var data = JSON.parse(raw);
+      // v1 phones saved insurance and the truck note at $0. Keep their
+      // non-cost prefs and let the new cost defaults land.
+      var resetCosts = { floor: 1, insurance: 1, otherFixed: 1, diesel: 1 };
       Object.keys(data).forEach(function (id) {
-        if ($(id) && data[id] != null) $(id).value = data[id];
+        if (fromV1 && resetCosts[id]) return;
+        if ($(id) && data[id] != null && data[id] !== '') $(id).value = data[id];
       });
+      if (fromV1) saveSettings();
     } catch (err) { /* ignore bad storage */ }
   }
 
@@ -371,6 +383,39 @@
     return months.length ? months[months.length - 1] : null;
   }
 
+  function selectedMonth(feed) {
+    var months = sortedMonths(feed);
+    if (!months.length) return null;
+    if (state.viewMonth) {
+      for (var i = 0; i < months.length; i++) {
+        if (months[i].month === state.viewMonth) return months[i];
+      }
+    }
+    return months[months.length - 1];
+  }
+
+  function monthSwitcher(feed, current) {
+    var months = sortedMonths(feed);
+    if (months.length < 2 || !current) return '';
+    var buttons = months.map(function (month) {
+      var on = month.month === current.month;
+      return '<button type="button" class="month-btn" data-month="' + esc(month.month) +
+        '" aria-pressed="' + (on ? 'true' : 'false') + '">' + esc(monthTitle(month.month)) + '</button>';
+    }).join('');
+    return '<div class="chips month-switch" role="group" aria-label="Month">' + buttons + '</div>';
+  }
+
+  function bindMonthSwitch(root) {
+    if (!root) return;
+    root.querySelectorAll('.month-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        state.viewMonth = btn.getAttribute('data-month');
+        if (state.tab === 'reports') renderReports();
+        else if (state.tab === 'kpis') renderKpis();
+      });
+    });
+  }
+
   function monthFigures(month) {
     var loads = month.loads || [];
     var expenses = month.expenses || [];
@@ -492,17 +537,59 @@
   }
 
   function catName(cat) {
-    if (cat === 'fuel') return 'Fuel';
-    if (cat === 'def') return 'DEF';
-    if (cat === 'equipment') return 'Equipment';
-    if (cat === 'scale') return 'Scale';
-    return cat;
+    var known = {
+      fuel: 'Fuel',
+      def: 'DEF',
+      equipment: 'Equipment',
+      scale: 'Scale',
+      insurance: 'Insurance',
+      maintenance: 'Maintenance',
+      'safety equipment': 'Safety',
+      parking: 'Parking',
+      meals: 'Meals',
+      'legal/LLC admin': 'Legal'
+    };
+    return known[cat] || cat;
+  }
+
+  function payBadge(load) {
+    var labels = {
+      paid: 'Paid',
+      paid_short: 'Paid short',
+      unpaid: 'Unpaid',
+      in_transit: 'In transit'
+    };
+    var key = load && load.pay_status;
+    if (!labels[key]) return '';
+    return ' <span class="pay pay-' + key + '">' + labels[key] + '</span>';
+  }
+
+  function payLine(load) {
+    var bits = [];
+    if (load.net_due != null && load.net_due !== '' && isFinite(Number(load.net_due))) {
+      var due = 'Due ' + money(Number(load.net_due));
+      if (load.net_due_est) due = '<span class="est">EST</span> ' + due;
+      bits.push(due);
+    }
+    if (load.net_received != null && load.net_received !== '' && isFinite(Number(load.net_received))) {
+      bits.push('Received ' + money(Number(load.net_received)));
+    }
+    if (load.pay_note) bits.push(esc(load.pay_note));
+    if (!bits.length) return '';
+    return '<p class="notes">' + bits.join(' · ') + '</p>';
+  }
+
+  function fixedCostNote(feed) {
+    var block = feed && feed.fixed_costs;
+    if (!block || !isFinite(Number(block.monthly_total))) return '';
+    return '<p class="fine">Fixed costs on file ' + money(Number(block.monthly_total)) +
+      '/mo. Break-even uses the trailer, insurance, and truck note on Load check.</p>';
   }
 
   function renderReports() {
     var root = $('reports-root');
     var feed = state.feed;
-    var month = feed ? latestMonth(feed) : null;
+    var month = feed ? selectedMonth(feed) : null;
     var head = '<div id="pull" class="pull">Pull to refresh</div>' +
       '<div class="status"><p id="feed-status-text">' + esc(feed ? statusLine(feed) : (state.error || 'Loading the month…')) +
       '</p><button type="button" class="btn" id="refresh-btn">Refresh</button></div>';
@@ -512,6 +599,7 @@
       return;
     }
     if (state.offline) head += '<p class="offline">Showing the saved copy. Pull down or tap refresh when you have service.</p>';
+    head += monthSwitcher(feed, month);
     var fig = monthFigures(month);
     var asOf = month.as_of || monthEnd(month.month);
     var cats = Object.keys(fig.byCat).filter(function (cat) { return cat !== 'fuel'; });
@@ -532,15 +620,18 @@
           : formatDay(load.date) + ' – ' + end;
       }
       var mileCell = miles == null ? '—' : plainNum(miles, 2) + (load.miles_estimate ? ' <span class="est">EST</span>' : '');
+      var rateCell = miles ? rpm(load.rate_per_mi != null && isFinite(Number(load.rate_per_mi)) ? Number(load.rate_per_mi) : gross / miles) : '—';
+      if (miles && load.miles_estimate) rateCell += ' <span class="est">EST</span>';
       var who = [load.broker, load.load_no].filter(Boolean).join(' · ');
-      return '<article class="load"><h3>' + esc(load.desc || 'Load') + '</h3>' +
+      return '<article class="load"><h3>' + esc(load.desc || 'Load') + payBadge(load) + '</h3>' +
         '<p class="lane">' + esc(when) + (load.lane ? ' · ' + esc(load.lane) : '') + '</p>' +
         '<div class="kv">' +
         '<div><span>Gross</span><b>' + money(gross) + '</b></div>' +
         '<div><span>Miles</span><b>' + mileCell + '</b></div>' +
-        '<div><span>$/mi</span><b>' + (miles ? rpm(gross / miles) : '—') + '</b></div>' +
+        '<div><span>$/mi</span><b>' + rateCell + '</b></div>' +
         '<div><span>Net</span><b>' + money(roundMoney(gross - fee)) + '</b></div>' +
-        '</div><p class="notes">Fee ' + money(fee) +
+        '</div>' + payLine(load) +
+        '<p class="notes">Fee ' + money(fee) +
         (who ? ' · ' + esc(who) : '') +
         (typeof load.weight_lb === 'number' ? ' · ' + plainNum(load.weight_lb, 0) + ' lb' : '') +
         (load.notes ? '<br>' + esc(load.notes) : '') + '</p></article>';
@@ -564,13 +655,14 @@
         '<span>' + esc(formatDay(row.date)) + ' · ' + esc(catName(row.category || 'other')) +
         (row.deadhead_for ? ' · cancelled-load deadhead' : '') +
         (typeof row.gallons === 'number' ? ' · ' + plainNum(row.gallons, 2) + ' gal' : '') +
-        '</span></div><b>' + money(row.amount) + '</b></div>';
+        '</span></div><b>' + money(row.amount) + (row.est ? ' <span class="est">EST</span>' : '') + '</b></div>';
     }).join('');
 
     root.innerHTML = head +
       '<section class="big"><div class="kicker">' + esc(monthTitle(month.month)) + ' gross, month to date</div>' +
       '<span class="n">' + money(fig.gross) + '</span>' +
-      '<p class="sub">Through ' + esc(formatDay(asOf)) + ' · ' + fig.loads.length + ' loads · net ' + money(fig.net) + '</p></section>' +
+      '<p class="sub">Through ' + esc(formatDay(asOf)) + ' · ' + fig.loads.length +
+      (fig.loads.length === 1 ? ' load' : ' loads') + ' · net ' + money(fig.net) + '</p></section>' +
       '<div class="stats">' +
       metric(money(fig.fees), 'Totni fees', plainNum(fig.feePct, 2).replace(/\.00$/, '') + '% of gross') +
       metric(money(fig.fuel), 'Fuel', 'DEF and other costs are separate') +
@@ -588,6 +680,7 @@
       (notes || '<p class="fine">No day notes.</p>') +
       '<details class="expenses"><summary>Expense lines</summary>' + expenses + '</details>';
     bindRefresh();
+    bindMonthSwitch(root);
   }
 
   function bindRefresh() {
@@ -680,7 +773,7 @@
   function renderKpis() {
     var root = $('kpis-root');
     var feed = state.feed;
-    var month = feed ? latestMonth(feed) : null;
+    var month = feed ? selectedMonth(feed) : null;
     if (!month) {
       root.innerHTML = '<p class="fine">' + esc(state.error || 'Loading KPIs…') + '</p>';
       return;
@@ -781,7 +874,9 @@
     root.innerHTML =
       '<p class="fine" id="kpi-stamp">' + esc(statusLine(feed)) + ' · ' + esc(monthTitle(month.month)) +
       ' through ' + esc(formatDay(asOf)) + '</p>' +
-      be + '<div class="stats">' + cards + '</div>' + wow + mom;
+      monthSwitcher(feed, month) +
+      be + fixedCostNote(feed) + '<div class="stats">' + cards + '</div>' + wow + mom;
+    bindMonthSwitch(root);
   }
 
   function showTab(name) {
