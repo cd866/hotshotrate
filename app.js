@@ -4,7 +4,9 @@
   var SETTINGS_KEY = 'blackram_settings_v2';
   var SETTINGS_KEY_V1 = 'blackram_settings_v1';
   var FEED_CACHE_KEY = 'blackram_feed_cache_v1';
+  var PERIOD_KEY = 'blackram_period_v1';
   var SPLASH_KEY = 'blackram_splash_seen';
+  var ALL_TIME = 'all';
 
   var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -383,10 +385,28 @@
     return months.length ? months[months.length - 1] : null;
   }
 
-  function selectedMonth(feed) {
+  function chipLabel(ym) {
+    var p = String(ym || '').split('-');
+    return (MON[Number(p[1]) - 1] || ym) + ' ' + p[0];
+  }
+
+  function loadView() {
+    try {
+      var saved = localStorage.getItem(PERIOD_KEY);
+      if (saved) state.viewMonth = saved;
+    } catch (err) { /* private mode */ }
+  }
+
+  function saveView() {
+    try {
+      if (state.viewMonth) localStorage.setItem(PERIOD_KEY, state.viewMonth);
+    } catch (err) { /* private mode */ }
+  }
+
+  function activeMonth(feed) {
     var months = sortedMonths(feed);
     if (!months.length) return null;
-    if (state.viewMonth) {
+    if (state.viewMonth && state.viewMonth !== ALL_TIME) {
       for (var i = 0; i < months.length; i++) {
         if (months[i].month === state.viewMonth) return months[i];
       }
@@ -394,15 +414,22 @@
     return months[months.length - 1];
   }
 
-  function monthSwitcher(feed, current) {
+  function viewingAll(feed) {
+    return state.viewMonth === ALL_TIME && sortedMonths(feed).length > 0;
+  }
+
+  function monthSwitcher(feed) {
     var months = sortedMonths(feed);
-    if (months.length < 2 || !current) return '';
+    if (!months.length) return '';
+    var current = viewingAll(feed) ? ALL_TIME : activeMonth(feed).month;
     var buttons = months.map(function (month) {
-      var on = month.month === current.month;
+      var on = month.month === current;
       return '<button type="button" class="month-btn" data-month="' + esc(month.month) +
-        '" aria-pressed="' + (on ? 'true' : 'false') + '">' + esc(monthTitle(month.month)) + '</button>';
+        '" aria-pressed="' + (on ? 'true' : 'false') + '">' + esc(chipLabel(month.month)) + '</button>';
     }).join('');
-    return '<div class="chips month-switch" role="group" aria-label="Month">' + buttons + '</div>';
+    buttons += '<button type="button" class="month-btn" data-month="' + ALL_TIME +
+      '" aria-pressed="' + (current === ALL_TIME ? 'true' : 'false') + '">All time</button>';
+    return '<div class="chips month-switch" role="group" aria-label="Period">' + buttons + '</div>';
   }
 
   function bindMonthSwitch(root) {
@@ -410,10 +437,124 @@
     root.querySelectorAll('.month-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
         state.viewMonth = btn.getAttribute('data-month');
+        saveView();
         if (state.tab === 'reports') renderReports();
         else if (state.tab === 'kpis') renderKpis();
       });
     });
+  }
+
+  function byDateDesc(a, b) {
+    var da = a.date || '';
+    var db = b.date || '';
+    if (da === db) return 0;
+    return da < db ? 1 : -1;
+  }
+
+  function paySummary(loads) {
+    var receivedC = 0;
+    var owedC = 0;
+    var owedEst = false;
+    var counts = { paid: 0, paid_short: 0, unpaid: 0, in_transit: 0 };
+    loads.forEach(function (load) {
+      if (counts[load.pay_status] != null) counts[load.pay_status] += 1;
+      var hasDue = load.net_due != null && load.net_due !== '' && isFinite(Number(load.net_due));
+      var hasGot = load.net_received != null && load.net_received !== '' && isFinite(Number(load.net_received));
+      if (!hasDue) return;
+      var due = Number(load.net_due);
+      var got = hasGot ? Number(load.net_received) : 0;
+      receivedC += cents(got);
+      if (due - got > 0.004) {
+        owedC += cents(due - got);
+        if (load.net_due_est) owedEst = true;
+      }
+    });
+    var bits = [];
+    if (counts.unpaid) bits.push(counts.unpaid + ' unpaid');
+    if (counts.paid_short) bits.push(counts.paid_short + ' paid short');
+    if (counts.in_transit) bits.push(counts.in_transit + ' in transit');
+    if (counts.paid) bits.push(counts.paid + ' paid');
+    return {
+      received: receivedC / 100,
+      owed: owedC / 100,
+      owedEst: owedEst,
+      detail: bits.join(' · ') || 'No pay status on these loads'
+    };
+  }
+
+  function allTimeFigures(months) {
+    var grossC = 0;
+    var feeC = 0;
+    var fuelC = 0;
+    var otherC = 0;
+    var loaded = 0;
+    var dead = 0;
+    var deadKnown = true;
+    var sawLoads = false;
+    var byCatC = {};
+    var pcts = {};
+    var entries = [];
+    var expenses = [];
+    var cancelled = [];
+    var notes = [];
+    months.forEach(function (month) {
+      var fig = monthFigures(month);
+      grossC += cents(fig.gross);
+      feeC += cents(fig.fees);
+      fuelC += cents(fig.fuel);
+      otherC += cents(fig.other);
+      loaded += fig.loadedMi;
+      pcts[String(fig.feePct)] = true;
+      if ((month.loads || []).length) {
+        sawLoads = true;
+        if (fig.deadMi == null) deadKnown = false;
+        else dead += fig.deadMi;
+      }
+      (month.loads || []).forEach(function (load) {
+        entries.push({ load: load, pct: fig.feePct });
+      });
+      (month.expenses || []).forEach(function (row) {
+        expenses.push(row);
+        var cat = row.category || 'other';
+        var amount = isFinite(Number(row.amount)) ? Number(row.amount) : 0;
+        byCatC[cat] = (byCatC[cat] || 0) + cents(amount);
+      });
+      (month.cancelled || []).forEach(function (row) { cancelled.push(row); });
+      (month.day_notes || []).forEach(function (row) { notes.push(row); });
+    });
+    if (!sawLoads) deadKnown = false;
+    entries.sort(function (a, b) { return byDateDesc(a.load, b.load); });
+    expenses.sort(byDateDesc);
+    cancelled.sort(byDateDesc);
+    notes.sort(byDateDesc);
+    var byCat = {};
+    Object.keys(byCatC).forEach(function (cat) { byCat[cat] = byCatC[cat] / 100; });
+    var gross = grossC / 100;
+    var loads = entries.map(function (entry) { return entry.load; });
+    var pctKeys = Object.keys(pcts);
+    var start = months[0].month + '-01';
+    var last = months[months.length - 1];
+    var end = last.as_of && String(last.as_of).slice(0, 7) === last.month ? last.as_of : monthEnd(last.month);
+    return {
+      gross: gross,
+      fees: feeC / 100,
+      fuel: fuelC / 100,
+      other: otherC / 100,
+      net: (grossC - feeC - fuelC - otherC) / 100,
+      loadedMi: loaded,
+      deadMi: deadKnown ? dead : null,
+      perLoaded: loaded > 0 ? gross / loaded : null,
+      feePct: pctKeys.length === 1 ? Number(pctKeys[0]) : null,
+      byCat: byCat,
+      entries: entries,
+      expenses: expenses,
+      cancelled: cancelled,
+      notes: notes,
+      pay: paySummary(loads),
+      start: start,
+      end: end,
+      months: months.length
+    };
   }
 
   function monthFigures(month) {
@@ -586,58 +727,81 @@
       '/mo. Break-even uses the trailer, insurance, and truck note on Load check.</p>';
   }
 
+  function loadCard(load, pct) {
+    var gross = isFinite(Number(load.gross)) ? Number(load.gross) : 0;
+    var fee = loadFee(load, pct);
+    var miles = isFinite(Number(load.loaded_mi)) ? Number(load.loaded_mi) : null;
+    var when = formatDay(load.date);
+    if (load.delivery_date && load.delivery_date !== load.date) {
+      var end = formatDay(load.delivery_date);
+      when = formatDay(load.date).split(' ')[0] === end.split(' ')[0]
+        ? formatDay(load.date) + '–' + end.split(' ')[1]
+        : formatDay(load.date) + ' – ' + end;
+    }
+    var mileCell = miles == null ? '—' : plainNum(miles, 2) + (load.miles_estimate ? ' <span class="est">EST</span>' : '');
+    var rateCell = miles ? rpm(load.rate_per_mi != null && isFinite(Number(load.rate_per_mi)) ? Number(load.rate_per_mi) : gross / miles) : '—';
+    if (miles && load.miles_estimate) rateCell += ' <span class="est">EST</span>';
+    var who = [load.broker, load.load_no].filter(Boolean).join(' · ');
+    return '<article class="load"><h3>' + esc(load.desc || 'Load') + payBadge(load) + '</h3>' +
+      '<p class="lane">' + esc(when) + (load.lane ? ' · ' + esc(load.lane) : '') + '</p>' +
+      '<div class="kv">' +
+      '<div><span>Gross</span><b>' + money(gross) + '</b></div>' +
+      '<div><span>Miles</span><b>' + mileCell + '</b></div>' +
+      '<div><span>$/mi</span><b>' + rateCell + '</b></div>' +
+      '<div><span>Net</span><b>' + money(roundMoney(gross - fee)) + '</b></div>' +
+      '</div>' + payLine(load) +
+      '<p class="notes">Fee ' + money(fee) +
+      (who ? ' · ' + esc(who) : '') +
+      (typeof load.weight_lb === 'number' ? ' · ' + plainNum(load.weight_lb, 0) + ' lb' : '') +
+      (load.notes ? '<br>' + esc(load.notes) : '') + '</p></article>';
+  }
+
+  function expenseRows(rows) {
+    return (rows || []).map(function (row) {
+      return '<div class="exp"><div>' + esc(row.vendor || 'Expense') +
+        '<span>' + esc(formatDay(row.date)) + ' · ' + esc(catName(row.category || 'other')) +
+        (row.deadhead_for ? ' · cancelled-load deadhead' : '') +
+        (typeof row.gallons === 'number' ? ' · ' + plainNum(row.gallons, 2) + ' gal' : '') +
+        '</span></div><b>' + money(row.amount) + (row.est ? ' <span class="est">EST</span>' : '') + '</b></div>';
+    }).join('');
+  }
+
   function renderReports() {
     var root = $('reports-root');
     var feed = state.feed;
-    var month = feed ? selectedMonth(feed) : null;
+    var months = feed ? sortedMonths(feed) : [];
     var head = '<div id="pull" class="pull">Pull to refresh</div>' +
       '<div class="status"><p id="feed-status-text">' + esc(feed ? statusLine(feed) : (state.error || 'Loading the month…')) +
       '</p><button type="button" class="btn" id="refresh-btn">Refresh</button></div>';
-    if (!month) {
+    if (!months.length) {
       root.innerHTML = head + (state.error ? '<p class="offline">' + esc(state.error) + '</p>' : '');
       bindRefresh();
       return;
     }
     if (state.offline) head += '<p class="offline">Showing the saved copy. Pull down or tap refresh when you have service.</p>';
-    head += monthSwitcher(feed, month);
-    var fig = monthFigures(month);
-    var asOf = month.as_of || monthEnd(month.month);
+    head += monthSwitcher(feed);
+    var all = viewingAll(feed);
+    var month = all ? null : activeMonth(feed);
+    var fig = all ? allTimeFigures(months) : monthFigures(month);
+    var entries = all ? fig.entries : (month.loads || []).map(function (load) {
+      return { load: load, pct: fig.feePct };
+    });
+    var cancelledRows = all ? fig.cancelled : (month.cancelled || []);
+    var noteRows = all ? fig.notes : (month.day_notes || []);
+    var expenseList = all ? fig.expenses : (month.expenses || []);
+    var asOf = all ? fig.end : (month.as_of || monthEnd(month.month));
+    var kicker = all ? 'All time gross' : (monthTitle(month.month) + ' gross, month to date');
+    var span = all
+      ? (formatDay(fig.start) + ' – ' + formatDay(fig.end))
+      : ('Through ' + formatDay(asOf));
     var cats = Object.keys(fig.byCat).filter(function (cat) { return cat !== 'fuel'; });
     cats.sort(function (a, b) { return fig.byCat[b] - fig.byCat[a]; });
     var breakout = cats.map(function (cat) {
       return esc(catName(cat)) + ' ' + money(fig.byCat[cat]);
     }).join(' · ');
-
-    var loads = fig.loads.map(function (load) {
-      var gross = isFinite(Number(load.gross)) ? Number(load.gross) : 0;
-      var fee = loadFee(load, fig.feePct);
-      var miles = isFinite(Number(load.loaded_mi)) ? Number(load.loaded_mi) : null;
-      var when = formatDay(load.date);
-      if (load.delivery_date && load.delivery_date !== load.date) {
-        var end = formatDay(load.delivery_date);
-        when = formatDay(load.date).split(' ')[0] === end.split(' ')[0]
-          ? formatDay(load.date) + '–' + end.split(' ')[1]
-          : formatDay(load.date) + ' – ' + end;
-      }
-      var mileCell = miles == null ? '—' : plainNum(miles, 2) + (load.miles_estimate ? ' <span class="est">EST</span>' : '');
-      var rateCell = miles ? rpm(load.rate_per_mi != null && isFinite(Number(load.rate_per_mi)) ? Number(load.rate_per_mi) : gross / miles) : '—';
-      if (miles && load.miles_estimate) rateCell += ' <span class="est">EST</span>';
-      var who = [load.broker, load.load_no].filter(Boolean).join(' · ');
-      return '<article class="load"><h3>' + esc(load.desc || 'Load') + payBadge(load) + '</h3>' +
-        '<p class="lane">' + esc(when) + (load.lane ? ' · ' + esc(load.lane) : '') + '</p>' +
-        '<div class="kv">' +
-        '<div><span>Gross</span><b>' + money(gross) + '</b></div>' +
-        '<div><span>Miles</span><b>' + mileCell + '</b></div>' +
-        '<div><span>$/mi</span><b>' + rateCell + '</b></div>' +
-        '<div><span>Net</span><b>' + money(roundMoney(gross - fee)) + '</b></div>' +
-        '</div>' + payLine(load) +
-        '<p class="notes">Fee ' + money(fee) +
-        (who ? ' · ' + esc(who) : '') +
-        (typeof load.weight_lb === 'number' ? ' · ' + plainNum(load.weight_lb, 0) + ' lb' : '') +
-        (load.notes ? '<br>' + esc(load.notes) : '') + '</p></article>';
-    }).join('');
-
-    var cancelled = (month.cancelled || []).map(function (row) {
+    var loads = entries.map(function (entry) { return loadCard(entry.load, entry.pct); }).join('');
+    var loadCount = entries.length;
+    var cancelled = cancelledRows.map(function (row) {
       return '<article class="note cancel"><time>' + esc(formatDay(row.date)) + '</time>' +
         '<h3>' + esc(row.status || 'Cancelled') + '</h3>' +
         '<p>' + esc([row.broker, row.load_no].filter(Boolean).join(' · ')) +
@@ -645,40 +809,37 @@
         (row.deadhead_fuel ? ' Deadhead fuel ' + money(row.deadhead_fuel) + ' is already in the fuel total.' : '') +
         (row.notes ? ' ' + esc(row.notes) : '') + '</p></article>';
     }).join('');
-
-    var notes = (month.day_notes || []).map(function (row) {
+    var notes = noteRows.map(function (row) {
       return '<article class="note"><time>' + esc(formatDay(row.date)) + '</time><p>' + esc(row.text) + '</p></article>';
     }).join('');
-
-    var expenses = (month.expenses || []).map(function (row) {
-      return '<div class="exp"><div>' + esc(row.vendor || 'Expense') +
-        '<span>' + esc(formatDay(row.date)) + ' · ' + esc(catName(row.category || 'other')) +
-        (row.deadhead_for ? ' · cancelled-load deadhead' : '') +
-        (typeof row.gallons === 'number' ? ' · ' + plainNum(row.gallons, 2) + ' gal' : '') +
-        '</span></div><b>' + money(row.amount) + (row.est ? ' <span class="est">EST</span>' : '') + '</b></div>';
-    }).join('');
+    var pay = all ? fig.pay : null;
+    var owedValue = pay ? ((pay.owedEst ? '<span class="est">EST</span> ' : '') + money(pay.owed)) : '';
+    var feeSub = fig.feePct == null ? 'Rates differ by month' : (plainNum(fig.feePct, 2).replace(/\.00$/, '') + '% of gross');
 
     root.innerHTML = head +
-      '<section class="big"><div class="kicker">' + esc(monthTitle(month.month)) + ' gross, month to date</div>' +
+      '<section class="big"><div class="kicker">' + esc(kicker) + '</div>' +
       '<span class="n">' + money(fig.gross) + '</span>' +
-      '<p class="sub">Through ' + esc(formatDay(asOf)) + ' · ' + fig.loads.length +
-      (fig.loads.length === 1 ? ' load' : ' loads') + ' · net ' + money(fig.net) + '</p></section>' +
+      '<p class="sub">' + esc(span) + ' · ' + loadCount +
+      (loadCount === 1 ? ' load' : ' loads') + ' · net ' + money(fig.net) + '</p></section>' +
       '<div class="stats">' +
-      metric(money(fig.fees), 'Totni fees', plainNum(fig.feePct, 2).replace(/\.00$/, '') + '% of gross') +
+      metric(money(fig.fees), 'Totni fees', feeSub) +
       metric(money(fig.fuel), 'Fuel', 'DEF and other costs are separate') +
       metric(money(fig.other), 'Other expenses', breakout || 'None logged') +
       metric(money(fig.net), 'Net kept', 'Gross − fee − fuel − other') +
       metric(fig.perLoaded == null ? '—' : rpm(fig.perLoaded), '$ / loaded mile', plainNum(fig.loadedMi, 2) + ' loaded mi') +
-      metric(String(fig.loads.length), 'Loads hauled', 'Cancelled loads are listed below') +
+      metric(String(loadCount), 'Loads hauled', all ? 'Newest load first' : 'Cancelled loads are listed below') +
+      (pay ? metric(money(pay.received), 'Collected', 'Settlements received') : '') +
+      (pay ? metric(owedValue, 'Still owed', pay.detail) : '') +
       '</div>' +
-      '<p class="fine">Load net below is after the Totni fee only. Fuel is totaled for the month, not split onto each load.</p>' +
+      '<p class="fine">Load net below is after the Totni fee only. Fuel is totaled ' +
+      (all ? 'across every month' : 'for the month') + ', not split onto each load.</p>' +
       '<h2 class="sec">Loads</h2>' +
-      (loads || '<p class="fine">No loads this month.</p>') +
+      (loads || '<p class="fine">No loads' + (all ? '.' : ' this month.') + '</p>') +
       '<h2 class="sec">Cancelled</h2>' +
       (cancelled || '<p class="fine">No cancelled loads.</p>') +
       '<h2 class="sec">Day notes</h2>' +
       (notes || '<p class="fine">No day notes.</p>') +
-      '<details class="expenses"><summary>Expense lines</summary>' + expenses + '</details>';
+      '<details class="expenses"><summary>Expense lines</summary>' + expenseRows(expenseList) + '</details>';
     bindRefresh();
     bindMonthSwitch(root);
   }
@@ -770,23 +931,65 @@
     });
   }
 
+  function weeksForLoads(loads, start, end) {
+    var weeks = weeksCovering(start, end);
+    return weeks.map(function (week) {
+      var gross = 0;
+      var miles = 0;
+      var count = 0;
+      loads.forEach(function (load) {
+        if (!load.date || load.date < week.start || load.date > week.end) return;
+        gross += isFinite(Number(load.gross)) ? Number(load.gross) : 0;
+        miles += isFinite(Number(load.loaded_mi)) ? Number(load.loaded_mi) : 0;
+        count += 1;
+      });
+      return {
+        label: rangeLabel(week.start, week.end),
+        start: week.start,
+        end: week.end,
+        gross: gross,
+        miles: miles,
+        count: count,
+        rpm: miles > 0 ? gross / miles : null,
+        text: money(gross),
+        value: gross
+      };
+    });
+  }
+
   function renderKpis() {
     var root = $('kpis-root');
     var feed = state.feed;
-    var month = feed ? selectedMonth(feed) : null;
-    if (!month) {
+    var months = feed ? sortedMonths(feed) : [];
+    if (!months.length) {
       root.innerHTML = '<p class="fine">' + esc(state.error || 'Loading KPIs…') + '</p>';
       return;
     }
-    var fig = monthFigures(month);
+    var all = viewingAll(feed);
+    var month = all ? null : activeMonth(feed);
+    var fig = all ? allTimeFigures(months) : monthFigures(month);
     var s = settings();
-    var asOf = month.as_of && month.as_of.slice(0, 7) === month.month ? month.as_of : monthEnd(month.month);
-    var periodStart = month.month + '-01';
+    var asOf = all ? fig.end : (month.as_of && month.as_of.slice(0, 7) === month.month ? month.as_of : monthEnd(month.month));
+    var periodStart = all ? fig.start : (month.month + '-01');
     var days = daysInclusive(periodStart, asOf);
-    var used = utilizedDays(month, asOf);
-    var fixed = roundMoney(s.trailer + s.insurance + s.otherFixed);
+    var usedLoads = all ? fig.entries.map(function (entry) { return entry.load; }) : (month.loads || []);
+    var used = all ? (function () {
+      var seen = {};
+      usedLoads.forEach(function (load) {
+        if (!load.date) return;
+        var end = load.delivery_date || load.date;
+        if (end < load.date) end = load.date;
+        eachDate(load.date, end, function (day) {
+          if (day >= periodStart && day <= asOf) seen[day] = true;
+        });
+      });
+      return Object.keys(seen).length;
+    })() : utilizedDays(month, asOf);
+    var monthlyFixed = roundMoney(s.trailer + s.insurance + s.otherFixed);
+    var fixed = all ? roundMoney(monthlyFixed * months.length) : monthlyFixed;
+    var loadCount = all ? fig.entries.length : fig.loads.length;
     var weeks = days > 0 ? days / 7 : 0;
-    var loadsPerWeek = weeks > 0 ? fig.loads.length / weeks : null;
+    var loadsPerWeek = weeks > 0 ? loadCount / weeks : null;
     var margin = fig.gross > 0 ? fig.net / fig.gross : null;
     var fuelPer = fig.loadedMi > 0 ? fig.fuel / fig.loadedMi : null;
     var allMiles = fig.deadMi == null ? null : fig.loadedMi + fig.deadMi;
@@ -794,21 +997,27 @@
     var perAll = allMiles ? fig.gross / allMiles : null;
 
     var be;
-    if (fixed <= 0) {
+    if (monthlyFixed <= 0) {
       be = need('Break-even', 'Set the trailer payment or insurance on Load check. Fixed costs are $0, so there is no monthly target yet.');
     } else {
-      var ratio = fig.net / fixed;
+      var ratio = fixed > 0 ? fig.net / fixed : 0;
       var width = Math.max(0, Math.min(100, ratio * 100));
       var headline = ratio >= 1 ? 'Past break-even' : money(roundMoney(fixed - fig.net)) + ' still to cover';
       var ins = s.insurance <= 0
         ? '<p class="fine">Insurance is $0 <span class="flag">Set this</span>. This target is the trailer payment until insurance is entered, so break-even is understated.</p>'
         : '';
-      be = '<section class="big"><div class="kicker">Break-even · ' + esc(monthTitle(month.month)) + '</div>' +
+      var fixedCopy = all
+        ? (money(fig.net) + ' net vs ' + money(fixed) + ' fixed across ' + months.length +
+          (months.length === 1 ? ' month' : ' months') + ' (' + money(monthlyFixed) + '/mo, ' +
+          Math.round(ratio * 100) + '%).')
+        : (money(fig.net) + ' net vs ' + money(fixed) + ' fixed (' +
+          Math.round(ratio * 100) + '%). Trailer ' + money(s.trailer) + ' + insurance ' + money(s.insurance) +
+          ' + other ' + money(s.otherFixed) + '.');
+      be = '<section class="big"><div class="kicker">Break-even · ' +
+        esc(all ? 'All time' : monthTitle(month.month)) + '</div>' +
         '<span class="n phrase">' + esc(headline) + '</span>' +
-        '<p class="sub">' + money(fig.net) + ' net vs ' + money(fixed) + ' fixed (' +
-        Math.round(ratio * 100) + '%). Trailer ' + money(s.trailer) + ' + insurance ' + money(s.insurance) +
-        ' + other ' + money(s.otherFixed) + '.</p>' +
-        '<div class="track" role="meter" aria-label="Progress toward monthly break-even" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' +
+        '<p class="sub">' + fixedCopy + '</p>' +
+        '<div class="track" role="meter" aria-label="Progress toward break-even" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' +
         Math.round(width) + '"><span style="width:' + width.toFixed(1) + '%"></span></div>' + ins + '</section>';
     }
 
@@ -820,13 +1029,15 @@
       (deadPct == null
         ? metric('Not enough data', 'Deadhead %', 'No deadhead miles recorded on these loads.', true)
         : metric((deadPct * 100).toFixed(1) + '%', 'Deadhead', plainNum(fig.deadMi, 1) + ' empty mi')) +
-      metric(loadsPerWeek == null ? '—' : loadsPerWeek.toFixed(1), 'Loads per week', fig.loads.length + ' loads / ' + days + ' days') +
+      metric(loadsPerWeek == null ? '—' : loadsPerWeek.toFixed(1), 'Loads per week', loadCount + ' loads / ' + days + ' days') +
       metric(days ? Math.round(used / days * 100) + '%' : '—', 'Truck utilization', used + ' days with a load of ' + days) +
       metric(margin == null ? '—' : (margin * 100).toFixed(1) + '%', 'Net margin', money(fig.net) + ' of ' + money(fig.gross)) +
       metric(fuelPer == null ? '—' : rpm(fuelPer), 'Fuel per loaded mile', fig.deadMi == null ? 'All-miles fuel rate needs deadhead' : 'Loaded miles only in this label') +
-      metric(money(fig.fees), 'Totni fees paid', plainNum(fig.feePct, 2).replace(/\.00$/, '') + '% · through ' + formatDay(asOf));
+      metric(money(fig.fees), 'Totni fees paid', (fig.feePct == null ? 'Mixed rates' : plainNum(fig.feePct, 2).replace(/\.00$/, '') + '%') + ' · through ' + formatDay(asOf)) +
+      (all && fig.pay ? metric(money(fig.pay.received), 'Collected', 'Settlements received') : '') +
+      (all && fig.pay ? metric((fig.pay.owedEst ? '<span class="est">EST</span> ' : '') + money(fig.pay.owed), 'Still owed', fig.pay.detail) : '');
 
-    var weeksData = weekRows(month);
+    var weeksData = all ? weeksForLoads(usedLoads, periodStart, asOf) : weekRows(month);
     var wow = '';
     if (weeksData.length < 2) {
       wow = '<h2 class="sec">Week over week</h2>' + need('Not enough data', 'This month does not cover two weeks yet.');
@@ -856,7 +1067,7 @@
     var mom;
     if (months.length < 2) {
       mom = '<h2 class="sec">Month over month</h2>' +
-        need('Not enough data', monthTitle(month.month) + ' is the only month in the feed. The next monthly update adds this comparison.');
+        need('Not enough data', 'Only one month is in the feed. The next monthly update adds this comparison.');
     } else {
       var rows = months.map(function (item) {
         var f = monthFigures(item);
@@ -871,10 +1082,12 @@
         ' (' + (netDelta >= 0 ? '+' : '-') + money(Math.abs(netDelta)) + ').</p></div>';
     }
 
+    var periodLabel = all
+      ? ('All time · ' + formatDay(fig.start) + ' – ' + formatDay(fig.end))
+      : (monthTitle(month.month) + ' through ' + formatDay(asOf));
     root.innerHTML =
-      '<p class="fine" id="kpi-stamp">' + esc(statusLine(feed)) + ' · ' + esc(monthTitle(month.month)) +
-      ' through ' + esc(formatDay(asOf)) + '</p>' +
-      monthSwitcher(feed, month) +
+      '<p class="fine" id="kpi-stamp">' + esc(statusLine(feed)) + ' · ' + esc(periodLabel) + '</p>' +
+      monthSwitcher(feed) +
       be + fixedCostNote(feed) + '<div class="stats">' + cards + '</div>' + wow + mom;
     bindMonthSwitch(root);
   }
@@ -951,6 +1164,7 @@
 
   function init() {
     loadSettings();
+    loadView();
     $('offer').addEventListener('submit', function (event) { event.preventDefault(); });
     $('offer').addEventListener('input', renderCheck);
     $('settings').addEventListener('input', function () {

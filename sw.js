@@ -2,7 +2,7 @@
    Bump CACHE when the shell changes so old caches are dropped.
    data/feed.json and data/stops.json are network-first and fall back
    to the cached copy, so the stop list still opens when tiles are slow. */
-var CACHE = 'blackram-v5';
+var CACHE = 'blackram-v6';
 var ASSETS = [
   './',
   './index.html',

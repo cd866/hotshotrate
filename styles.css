@@ -518,7 +518,13 @@ html.splash-seen #about:not(.open) { display: none; }
   border-color: var(--gold);
 }
 .month-switch { margin: 10px 0; }
-.month-switch button { flex: 1 1 calc(50% - 8px); }
+.month-switch button {
+  flex: 1 1 0;
+  min-height: 48px;
+  min-width: 0;
+  font-size: 15px;
+  padding: 8px 6px;
+}
 .pay {
   display: inline-block;
   margin-left: 6px;
