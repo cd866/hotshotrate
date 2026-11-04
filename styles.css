@@ -517,6 +517,25 @@ html.splash-seen #about:not(.open) { display: none; }
   color: var(--bg);
   border-color: var(--gold);
 }
+.month-switch { margin: 10px 0; }
+.month-switch button { flex: 1 1 calc(50% - 8px); }
+.pay {
+  display: inline-block;
+  margin-left: 6px;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 2px 8px;
+  vertical-align: 3px;
+}
+.pay-paid { background: var(--gold); color: var(--bg); }
+.pay-paid_short { background: var(--gold-hi); color: var(--bg); }
+.pay-unpaid { background: var(--pass); color: var(--cream); }
+.pay-in_transit { background: #7EB6FF; color: #0E0E10; }
+.load h3 .pay { vertical-align: 4px; }
 .seg.stops-corridor { margin-top: 10px; grid-template-columns: 1fr 1fr 1fr; }
 #stops-go { margin-top: 10px; }
 select {

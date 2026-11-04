@@ -10,8 +10,8 @@ Static HTML, CSS, and JavaScript. No build step. GitHub Pages serves the reposit
 
 1. **Load check.** Enter a rate, loaded miles, deadhead miles, weight, optional cities, tarp, and optional hours. The verdict is TAKE IT, NEGOTIATE, or PASS, with all-miles $/mi, loaded $/mi, the Totni fee, estimated fuel, net kept, and net per hour.
 2. **Stops.** Love's and TA, TA Express, and Petro on an OpenStreetMap map. Filter by brand. Near me sorts the closest stops by miles using the phone's location. Along a route takes a pickup and delivery (typed, copied from Load check, or a saved load on the feed), routes it, and lists stops within 5, 10, or 25 miles of the road in order. Tap a stop for the address, a call button, tire care / truck service when the locator lists it, and Apple Maps and Google Maps. The list is `data/stops.json`, so it still opens when the map tiles are slow.
-3. **Reports.** Month-to-date numbers from `data/feed.json`: gross, Totni fees, fuel, other expenses, net, $/loaded mile, loads, cancelled loads, and day notes. Fresh fetch on open, pull to refresh, last-updated time, and an offline copy.
-4. **KPIs.** Revenue per loaded mile and per all-miles, deadhead %, loads per week, truck utilization, net margin, fuel per mile, Totni fees, break-even against the trailer payment and insurance, plus week-over-week and month-over-month charts. Short history says “Not enough data.”
+3. **Reports.** Month numbers from `data/feed.json`: gross, Totni fees, fuel, other expenses, net, $/loaded mile, loads, cancelled loads, and day notes. Each load shows paid, paid short, unpaid, or in transit, and an EST mark when the miles or the amount still owed is an estimate. Switch months when more than one is in the feed. Fresh fetch on open, pull to refresh, last-updated time, and an offline copy.
+4. **KPIs.** The same month switcher, then revenue per loaded mile and per all-miles, deadhead %, loads per week, truck utilization, net margin, fuel per mile, Totni fees, break-even against the trailer payment, insurance, and truck note, plus week-over-week and month-over-month charts. Short history says “Not enough data.”
 
 ## Defaults
 
@@ -20,12 +20,14 @@ Saved on the phone (localStorage):
 | Setting | Default |
 |---|---|
 | Totni fee | 13% |
-| Pass / negotiate floor | $2.40 per all-miles (deadhead counts) |
+| Pass / negotiate floor | $2.82 per all-miles (deadhead counts) |
 | Take line | $3.00 per all-miles |
 | Trailer payment | $434.84 / month |
-| Insurance | $0, badged **Set this** until you enter it |
+| Insurance | $1,221.62 / month |
+| Truck note (other fixed) | $1,573.04 / month |
 | Deck warning | over 15,000 lb |
-| MPG and diesel | estimates, badged **EST** |
+| MPG | 9, estimate, badged **EST** |
+| Diesel | $6.04 / gal, estimate, badged **EST** |
 
 Under the floor is PASS. From the floor up to the take line is NEGOTIATE. At or above the take line is TAKE IT. MPG, diesel price, and hours inferred from miles are estimates.
 
@@ -43,6 +45,8 @@ git add data/feed.json
 git commit -m "Update hotshot feed"
 git push origin main
 ```
+
+`scripts/build_feed.py` is the ops-box copy that rebuilds the whole feed, including pay status, from the private ledger. It is not run in this repo.
 
 GitHub Pages publishes `main` with the existing pages deployment. `.nojekyll` keeps `data/feed.json` as a real file. The service worker asks the network for the feed and the stop list first and falls back to the cached copy offline. After the push, open Reports and pull to refresh.
 
