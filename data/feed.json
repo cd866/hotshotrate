@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-04T22:18:01Z",
+  "generated_at": "2026-11-05T03:41:20Z",
   "company": "Sand Lily Pad LLC",
   "dba": "Black Ram Towing",
   "authority": "Leased onto Totni Enterprise",
@@ -418,10 +418,10 @@
         },
         {
           "date": "2026-11-04",
-          "vendor": "Circle A Travel Center Pensacola FL",
-          "amount": 135.0,
+          "vendor": "Circle K Travel Center #2721591 Pensacola FL",
+          "amount": 115.0,
           "category": "fuel",
-          "gallons": 19.5
+          "gallons": 19.52
         },
         {
           "date": "2026-11-04",
@@ -449,7 +449,7 @@
         },
         {
           "date": "2026-11-04",
-          "text": "In Pensacola FL with a 40 ft container on the trailer (U008069 delivery not yet verified); fuel $160 diesel + $135 diesel Circle A Pensacola, $26.29 DEF; booked Priority 1 load 60116522463 $1,400, Panama City Beach FL to Medley FL, PU 11/5 DEL 11/6, about 560 mi EST"
+          "text": "In Pensacola FL with a 40 ft container on the trailer (U008069 delivery not yet verified); fuel $160 diesel + $115 diesel Circle K Pensacola (19.52 gal), $26.29 DEF; booked Priority 1 load 60116522463 $1,400, Panama City Beach FL to Medley FL, PU 11/5 DEL 11/6, about 560 mi EST"
         }
       ]
     }
