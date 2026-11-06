@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-05T03:41:20Z",
+  "generated_at": "2026-11-06T03:37:49Z",
   "company": "Sand Lily Pad LLC",
   "dba": "Black Ram Towing",
   "authority": "Leased onto Totni Enterprise",
@@ -350,7 +350,7 @@
     },
     {
       "month": "2026-11",
-      "as_of": "2026-11-04",
+      "as_of": "2026-11-05",
       "fee_pct": 13,
       "loads": [
         {
@@ -380,12 +380,12 @@
           "gross": 1400.0,
           "broker": "Priority 1 Inc.",
           "load_no": "60116522463",
-          "notes": "Signed rate con 60116522463 under Totni MC 1122113: $1,250 line haul + $150 tarp = $1,400. PU Thu 11/5, DEL Fri 11/6. Miles about 560 EST (not on rate con), about $2.50/mi EST. Check calls loaded/empty or $50 penalty; detention $35/hr after 2 hr.",
+          "notes": "Signed rate con 60116522463 under Totni MC 1122113: $1,250 line haul + $150 tarp = $1,400. PU Thu 11/5, DEL Fri 11/6. Miles about 560 EST (not on rate con), about $2.50/mi EST. Check calls loaded/empty or $50 penalty; detention $35/hr after 2 hr. Picked up 11/5: sent two photos (crates strapped, then tarped) from what looks like the B&C Technologies warehouse. Status set to IN TRANSIT; delivery still due 11/6 at STT Cargo Medley FL.",
           "delivery_date": "2026-11-06",
-          "pay_status": "booked",
+          "pay_status": "in_transit",
           "net_due": 1218.0,
           "net_received": 0.0,
-          "pay_note": "Booked; PU 11/5, DEL 11/6. $1,218 = $1,400 less 13% ($182). Miles about 560 EST",
+          "pay_note": "Picked up 11/5; DEL 11/6. $1,218 = $1,400 less 13% ($182). Miles about 560 EST",
           "rate_per_mi": 2.5
         }
       ],
@@ -435,6 +435,12 @@
           "amount": 160.0,
           "category": "fuel",
           "notes": "Diesel (confirmed 11/4); station not shown on receipt"
+        },
+        {
+          "date": "2026-11-05",
+          "vendor": "Flying J Store 623, Quincy FL",
+          "amount": 160.0,
+          "category": "fuel"
         }
       ],
       "cancelled": [],
@@ -450,6 +456,10 @@
         {
           "date": "2026-11-04",
           "text": "In Pensacola FL with a 40 ft container on the trailer (U008069 delivery not yet verified); fuel $160 diesel + $115 diesel Circle K Pensacola (19.52 gal), $26.29 DEF; booked Priority 1 load 60116522463 $1,400, Panama City Beach FL to Medley FL, PU 11/5 DEL 11/6, about 560 mi EST"
+        },
+        {
+          "date": "2026-11-05",
+          "text": "Priority 1 load 60116522463 picked up (washing machines / appliances, tarped) at B&C Technologies Panama City Beach FL; delivery due 11/6 at STT Cargo Medley FL; $1,400 ($1,250 line haul + $150 tarp), about 560 mi EST. Pickup photos saved; $160 company-AmEx diesel at Flying J Store 623 Quincy FL (pump 19, gallons not on receipt)"
         }
       ]
     }
