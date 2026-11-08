@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-06T03:37:49Z",
+  "generated_at": "2026-11-08T01:55:30Z",
   "company": "Sand Lily Pad LLC",
   "dba": "Black Ram Towing",
   "authority": "Leased onto Totni Enterprise",
@@ -440,6 +440,18 @@
           "date": "2026-11-05",
           "vendor": "Flying J Store 623, Quincy FL",
           "amount": 160.0,
+          "category": "fuel"
+        },
+        {
+          "date": "2026-11-06",
+          "vendor": "Flying J Store 622, St. Lucie FL",
+          "amount": 180.0,
+          "category": "fuel"
+        },
+        {
+          "date": "2026-11-06",
+          "vendor": "TA Jacksonville South #0148 (diesel #2)",
+          "amount": 90.0,
           "category": "fuel"
         }
       ],
