@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-10T01:56:23Z",
+  "generated_at": "2026-11-10T03:06:08Z",
   "company": "Sand Lily Pad LLC",
   "dba": "Black Ram Towing",
   "authority": "Leased onto Totni Enterprise",
@@ -62,10 +62,10 @@
           "broker": "Logistek",
           "load_no": "171297",
           "notes": "Signed rate con $1,700. Rate con lists no miles: about 300 mi EST; PU 10/14, DEL 10/15",
-          "pay_status": "unpaid",
+          "pay_status": "paid",
           "net_due": 1479.0,
-          "net_received": 0.0,
-          "pay_note": "No settlement on file; Totni checking",
+          "net_received": 1479.0,
+          "pay_note": "Paid 11/9; net $1,479 = $1,700 less 13%, no stub seen",
           "rate_per_mi": 5.67
         },
         {
@@ -96,10 +96,10 @@
           "broker": "Trinity Logistics",
           "load_no": "9935849",
           "notes": "Rate con: $1,000 flat, 460 mi, 12,000 lb structural steel; PU 10/24, DEL 10/26",
-          "pay_status": "unpaid",
+          "pay_status": "paid",
           "net_due": 870.0,
-          "net_received": 0.0,
-          "pay_note": "No settlement on file; Totni checking",
+          "net_received": 870.0,
+          "pay_note": "Paid 11/9: $870 ACH (Totni side), $1,000 less 13%",
           "rate_per_mi": 2.17
         }
       ],
@@ -350,7 +350,7 @@
     },
     {
       "month": "2026-11",
-      "as_of": "2026-11-05",
+      "as_of": "2026-11-09",
       "fee_pct": 13,
       "loads": [
         {
@@ -456,9 +456,11 @@
         },
         {
           "date": "2026-11-09",
-          "vendor": "V (Miss V, Totni dispatch side)",
+          "vendor": "Dispatch fee (Totni side, about)",
           "amount": 150.0,
-          "category": "dispatch"
+          "category": "dispatch",
+          "est": true,
+          "notes": "Estimate; final receipt not posted yet"
         }
       ],
       "cancelled": [],
