@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-10T03:06:08Z",
+  "generated_at": "2026-11-15T03:35:00Z",
   "company": "Sand Lily Pad LLC",
   "dba": "Black Ram Towing",
   "authority": "Leased onto Totni Enterprise",
@@ -350,7 +350,7 @@
     },
     {
       "month": "2026-11",
-      "as_of": "2026-11-09",
+      "as_of": "2026-11-13",
       "fee_pct": 13,
       "loads": [
         {
@@ -387,6 +387,24 @@
           "net_received": 0.0,
           "pay_note": "Picked up 11/5; DEL 11/6. $1,218 = $1,400 less 13% ($182). Miles about 560 EST",
           "rate_per_mi": 2.5
+        },
+        {
+          "date": "2026-11-13",
+          "desc": "10' conduit",
+          "lane": "Jackson Lighting & Elec Supply, Jacksonville FL 32206 to 1800 E Paul Dirac Dr, Tallahassee FL 32310",
+          "weight_lb": 1200,
+          "loaded_mi": 168.5,
+          "gross": 500.0,
+          "miles_estimate": true,
+          "broker": "Bennett International Logistics",
+          "load_no": "1938674",
+          "notes": "Rate con: $500.00 linehaul, 10' conduit, 1 pc, 1,200 lb, hot shot. PU Jacksonville FL 32206 11/13 10:30-12:30, DEL Tallahassee FL 32310 11/13 12:00-17:00. About 168.5 mi EST (not on rate con), about $2.97/mi EST. Totni 13% fee $65.00, expected net $435.00; payment not received. BOL TBD. Delivery/BOL/POD not yet confirmed. Tracking required - $100 rate reduction if not tracked; dedicated straight-through delivery; Bennett BOL needed.",
+          "delivery_date": "2026-11-13",
+          "pay_status": "in_transit",
+          "net_due": 435.0,
+          "net_received": 0.0,
+          "pay_note": "Booked 11/13; delivery/BOL/POD not yet confirmed; payment not received. $435 = $500 less 13% ($65). About 168.5 mi EST, about $2.97/mi EST. Tracking required or $100 rate reduction",
+          "rate_per_mi": 2.97
         }
       ],
       "expenses": [
@@ -480,6 +498,10 @@
         {
           "date": "2026-11-05",
           "text": "Priority 1 load 60116522463 picked up (washing machines / appliances, tarped) at B&C Technologies Panama City Beach FL; delivery due 11/6 at STT Cargo Medley FL; $1,400 ($1,250 line haul + $150 tarp), about 560 mi EST. Pickup photos saved; $160 company-AmEx diesel at Flying J Store 623 Quincy FL (pump 19, gallons not on receipt)"
+        },
+        {
+          "date": "2026-11-13",
+          "text": "Bennett International Logistics load 1938674 booked, 10' conduit, Jacksonville FL 32206 to Tallahassee FL 32310, $500.00, about 168.5 mi EST; delivery/BOL/POD still unverified; tracking required or $100 rate reduction; payment not received"
         }
       ]
     }
