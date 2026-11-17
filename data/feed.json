@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-15T03:35:00Z",
+  "generated_at": "2026-11-17T02:01:48Z",
   "company": "Sand Lily Pad LLC",
   "dba": "Black Ram Towing",
   "authority": "Leased onto Totni Enterprise",
@@ -127,6 +127,12 @@
           "vendor": "BP Jacksonville FL",
           "amount": 100.0,
           "category": "fuel"
+        },
+        {
+          "date": "2026-10-05",
+          "vendor": "JetBlue / United UA 6204 JAX-IAH (flight home 10/6 after trailer pickup)",
+          "amount": 543.4,
+          "category": "travel"
         },
         {
           "date": "2026-10-05",
@@ -350,7 +356,7 @@
     },
     {
       "month": "2026-11",
-      "as_of": "2026-11-13",
+      "as_of": "2026-11-16",
       "fee_pct": 13,
       "loads": [
         {
@@ -362,13 +368,14 @@
           "gross": 1100.0,
           "broker": "Unicargo",
           "load_no": "U008069",
-          "notes": "Rate con U008069: $1,100 flat, 526 mi, 9,600 lb open-top container, 6 straps, PU 11/3 DEL 11/4. Picked up 11/3; trailer flat from a nail repaired (spare swapped) at Love's Houston en route. $2.09/mi is below the $2.71-$2.82 break-even EST. Totni 13% fee on this load is UNCONFIRMED.",
+          "notes": "Rate con U008069: $1,100 flat, 526 mi, 9,600 lb open-top container, 6 straps, PU 11/3 DEL 11/4. Picked up 11/3; trailer flat from a nail repaired (spare swapped) at Love's Houston en route. $2.09/mi is below the $2.71-$2.82 break-even EST. Totni 13% fee on this load is UNCONFIRMED. | 11/16: paid in Zora $2,110.51 deposit (best fit: Unicargo + Priority 1 = $2,175 expected net). Share $928.62 is a pro-rata EST split; $64.49 total short, reason unknown (maybe Totni $50 insurance add-on + other). Delivery assumed from payment.",
           "delivery_date": "2026-11-04",
-          "pay_status": "in_transit",
+          "pay_status": "paid_short",
           "net_due": 957.0,
-          "net_received": 0.0,
+          "net_received": 928.62,
+          "net_received_est": true,
           "net_due_est": true,
-          "pay_note": "Not delivered yet; $957 = $1,100 less 13%, EST until Totni confirms the fee on this load",
+          "pay_note": "Paid 11/16 in a combined $2,110.51 Totni-side settlement covering this load and Priority 1 60116522463 (best fit). Share $928.62 is a pro-rata EST split of a $64.49 shortfall vs $957 expected net ($1,100 less 13%, fee on this load still EST)",
           "rate_per_mi": 2.09
         },
         {
@@ -380,12 +387,13 @@
           "gross": 1400.0,
           "broker": "Priority 1 Inc.",
           "load_no": "60116522463",
-          "notes": "Signed rate con 60116522463 under Totni MC 1122113: $1,250 line haul + $150 tarp = $1,400. PU Thu 11/5, DEL Fri 11/6. Miles about 560 EST (not on rate con), about $2.50/mi EST. Check calls loaded/empty or $50 penalty; detention $35/hr after 2 hr. Picked up 11/5: sent two photos (crates strapped, then tarped) from what looks like the B&C Technologies warehouse. Status set to IN TRANSIT; delivery still due 11/6 at STT Cargo Medley FL.",
+          "notes": "Signed rate con 60116522463 under Totni MC 1122113: $1,250 line haul + $150 tarp = $1,400. PU Thu 11/5, DEL Fri 11/6. Miles about 560 EST (not on rate con), about $2.50/mi EST. Check calls loaded/empty or $50 penalty; detention $35/hr after 2 hr. Picked up 11/5: sent two photos (crates strapped, then tarped) from what looks like the B&C Technologies warehouse. Status set to IN TRANSIT; delivery still due 11/6 at STT Cargo Medley FL. | 11/16: paid in Zora $2,110.51 deposit with Unicargo. Share $1,181.89 is a pro-rata EST split of the $64.49 shortfall. Delivery assumed from payment.",
           "delivery_date": "2026-11-06",
-          "pay_status": "in_transit",
+          "pay_status": "paid_short",
           "net_due": 1218.0,
-          "net_received": 0.0,
-          "pay_note": "Picked up 11/5; DEL 11/6. $1,218 = $1,400 less 13% ($182). Miles about 560 EST",
+          "net_received": 1181.89,
+          "net_received_est": true,
+          "pay_note": "Paid 11/16 in a combined $2,110.51 Totni-side settlement with Unicargo U008069 (best fit). Share $1,181.89 is a pro-rata EST split of a $64.49 shortfall vs $1,218 expected net ($1,400 less 13%). Miles about 560 EST",
           "rate_per_mi": 2.5
         },
         {
@@ -405,9 +413,36 @@
           "net_received": 0.0,
           "pay_note": "Booked 11/13; delivery/BOL/POD not yet confirmed; payment not received. $435 = $500 less 13% ($65). About 168.5 mi EST, about $2.97/mi EST. Tracking required or $100 rate reduction",
           "rate_per_mi": 2.97
+        },
+        {
+          "date": "2026-11-16",
+          "desc": "Office container (flatbed hotshot)",
+          "lane": "UR Albany GA (3268 Palmyra Rd, Albany GA 31707) to United Rentals, 11637 Camden Rd, Jacksonville FL 32218",
+          "weight_lb": 8980,
+          "loaded_mi": 212.3,
+          "gross": 700.0,
+          "deadhead_mi": 96.1,
+          "miles_estimate": true,
+          "broker": "LST Group LLC",
+          "load_no": "251586",
+          "notes": "Rate con: $700.00, office container, 8,980 lb, flatbed hotshot. PU Albany GA 11/16, DEL Jacksonville FL 11/17. About 212.3 loaded mi EST plus about 96.1 deadhead mi EST from Tallahassee (not on rate con), about $3.30/mi loaded and $2.27/mi all-in EST. Totni 13% fee $91.00, expected net $609.00; payment not received. Delivery/BOL/POD not yet confirmed. PPE required or $250 off; tracking required or $150 off; signed POD within 5 business days or $100 off.",
+          "delivery_date": "2026-11-17",
+          "pay_status": "in_transit",
+          "net_due": 609.0,
+          "net_received": 0.0,
+          "pay_note": "Picked up 11/16; DEL 11/17. $609 = $700 less 13% ($91). About 212.3 loaded mi EST plus about 96.1 deadhead mi EST from Tallahassee, about $2.27/mi all-in EST. Payment not received. PPE required or $250 off; tracking required or $150 off; signed POD within 5 business days or $100 off",
+          "rate_per_mi": 3.3
         }
       ],
       "expenses": [
+        {
+          "date": "2026-11-02",
+          "vendor": "Galveston County tax office - trailer title, TX sales tax and registration (2027 Big Tex)",
+          "amount": 1743.0,
+          "category": "title & registration",
+          "est": true,
+          "notes": "Estimate; final receipt not posted yet"
+        },
         {
           "date": "2026-11-03",
           "vendor": "In-N-Out lunch (meal)",
@@ -474,11 +509,53 @@
         },
         {
           "date": "2026-11-09",
+          "vendor": "Pilot (diesel)",
+          "amount": 160.0,
+          "category": "fuel"
+        },
+        {
+          "date": "2026-11-09",
           "vendor": "Dispatch fee (Totni side, about)",
           "amount": 150.0,
           "category": "dispatch",
           "est": true,
           "notes": "Estimate; final receipt not posted yet"
+        },
+        {
+          "date": "2026-11-10",
+          "vendor": "RecNation Texas City TX (overnight truck/trailer parking)",
+          "amount": 84.37,
+          "category": "parking"
+        },
+        {
+          "date": "2026-11-12",
+          "vendor": "Same-day ACH fee (company checking)",
+          "amount": 10.0,
+          "category": "bank fees"
+        },
+        {
+          "date": "2026-11-13",
+          "vendor": "Pilot (Blue DEF $27.99 + $2.10 tax)",
+          "amount": 30.09,
+          "category": "DEF"
+        },
+        {
+          "date": "2026-11-13",
+          "vendor": "Pilot (diesel)",
+          "amount": 160.0,
+          "category": "fuel"
+        },
+        {
+          "date": "2026-11-16",
+          "vendor": "Pilot Store 087, Baldwin FL (truck diesel)",
+          "amount": 140.0,
+          "category": "fuel"
+        },
+        {
+          "date": "2026-11-16",
+          "vendor": "Pilot Store 260, Albany GA (truck diesel)",
+          "amount": 140.0,
+          "category": "fuel"
         }
       ],
       "cancelled": [],
@@ -502,6 +579,10 @@
         {
           "date": "2026-11-13",
           "text": "Bennett International Logistics load 1938674 booked, 10' conduit, Jacksonville FL 32206 to Tallahassee FL 32310, $500.00, about 168.5 mi EST; delivery/BOL/POD still unverified; tracking required or $100 rate reduction; payment not received"
+        },
+        {
+          "date": "2026-11-16",
+          "text": "LST Group load 251586 picked up: office container, Albany GA to Jacksonville FL, $700.00 gross, $609.00 net after the 13% fee, delivery due 11/17, payment not received. About 212.3 loaded mi EST plus about 96.1 deadhead mi EST from Tallahassee, all-in about $2.27/mi EST. Two Pilot diesel fills $140.00 each (Albany GA and Baldwin FL) on the company card, tied to this load; gallons not printed. November truck note $1,573.04 paid from the company checking account."
         }
       ]
     }
@@ -513,7 +594,7 @@
       {
         "name": "Truck note (Chase, 84 mo)",
         "monthly": 1573.04,
-        "source": "loan terms in capital model; Oct payment confirmed paid 10/23"
+        "source": "loan terms in capital model; Oct paid 10/23, Nov paid 11/16"
       },
       {
         "name": "Trailer note (Synchrony, 84 mo)",
