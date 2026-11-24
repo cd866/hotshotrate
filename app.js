@@ -1004,7 +1004,10 @@
       '</div>';
     var toggle = '<button type="button" class="load-toggle" aria-expanded="false">' +
       (canMap ? 'Show route' : 'Show $/mi') + '</button>';
-    return '<article class="load has-route">' +
+    load = withResolvedStatus(load);
+    var statusCls = 'load-' + String(load.status || '').replace(/_/g, '-');
+    var payCls = load.pay_status ? ' load-pay-' + String(load.pay_status).replace(/_/g, '-') : '';
+    return '<article class="load has-route ' + esc(statusCls) + esc(payCls) + '">' +
       '<h3>' + esc(load.desc || 'Load') + payBadge(load) + '</h3>' +
       '<p class="lane">' + esc(when) + (load.lane ? ' · ' + esc(load.lane) : '') + '</p>' +
       '<div class="kv">' +
@@ -1022,7 +1025,7 @@
 
   function pastLoadMapsUrl(load) {
     if (!load) return '';
-    var origin = coordKey(load.empty_from_coord) || load.empty_from || 'Jacksonville, FL';
+    var origin = coordKey(load.empty_from_coord) || load.empty_from || 'Home base (Jacksonville)';
     var waypoint = coordKey(load.pickup_coord) || load.pickup_place || '';
     var dest = coordKey(load.drop_coord) || load.drop_place || '';
     if (!dest) return '';
@@ -1462,13 +1465,13 @@
     // This only reloads data/load_searches.json. It does not start a new board search.
     var url = 'data/load_searches.json?t=' + Date.now();
     state.searchInflight = fetch(url, { cache: 'no-cache' }).then(function (res) {
-      if (!res.ok) throw new Error('Searches responded ' + res.status);
+      if (!res.ok) throw new Error('Load Boards responded ' + res.status);
       var fromCache = res.headers.get('X-Feed-Cache') === '1';
       return res.json().then(function (data) {
         return { data: data, fromCache: fromCache };
       });
     }).then(function (pack) {
-      if (!pack.data || !pack.data.loads) throw new Error('Searches feed has no loads');
+      if (!pack.data || !pack.data.loads) throw new Error('Load Boards feed has no loads');
       if (pack.fromCache) {
         var prev = recallSearches();
         applySearches(pack.data, { offline: true, savedAt: prev && prev.savedAt });
@@ -1872,7 +1875,7 @@
   function loadMapsUrl(row) {
     if (!row) return '';
     var home = state.searches || {};
-    var origin = coordKey(row.truck_coord) || coordKey(home.origin_coord) || home.origin || 'Jacksonville, FL';
+    var origin = coordKey(row.truck_coord) || coordKey(home.origin_coord) || home.origin || 'Home base (Jacksonville)';
     var waypoint = coordKey(row.origin_coord) || row.origin || '';
     var dest = coordKey(row.destination_coord) || row.destination || '';
     if (!waypoint || !dest) return '';
@@ -1882,7 +1885,7 @@
   function comboMapsUrl(combo) {
     if (!combo) return '';
     var home = state.searches || {};
-    var origin = coordKey(combo.truck_coord) || coordKey(home.origin_coord) || home.origin || 'Jacksonville, FL';
+    var origin = coordKey(combo.truck_coord) || coordKey(home.origin_coord) || home.origin || 'Home base (Jacksonville)';
     var stops = [];
     (combo.stop_order || []).forEach(function (stop) {
       var key = coordKey(stop.coord) || stop.place || '';
@@ -1937,6 +1940,44 @@
     state.routePayloads = {};
   }
 
+  function bindMapGestures(map, el) {
+    if (!map || !el) return;
+    if (map.scrollWheelZoom) map.scrollWheelZoom.disable();
+    var touch = (window.L && (L.Browser.touch || L.Browser.mobile)) || ('ontouchstart' in window);
+    if (!touch) return;
+    if (map.dragging) map.dragging.disable();
+    var hint = el.querySelector('.map-gesture-hint');
+    if (!hint) {
+      hint = document.createElement('div');
+      hint.className = 'map-gesture-hint';
+      hint.setAttribute('aria-hidden', 'true');
+      hint.textContent = 'Use two fingers to move the map';
+      el.appendChild(hint);
+    }
+    var hideTimer = 0;
+    function showHint() {
+      hint.classList.add('show');
+      if (hideTimer) window.clearTimeout(hideTimer);
+      hideTimer = window.setTimeout(function () { hint.classList.remove('show'); }, 1400);
+    }
+    el.addEventListener('touchstart', function (ev) {
+      var n = ev.touches ? ev.touches.length : 0;
+      if (n >= 2) {
+        if (map.dragging) map.dragging.enable();
+        hint.classList.remove('show');
+      } else if (n === 1) {
+        if (map.dragging) map.dragging.disable();
+        showHint();
+      }
+    }, { passive: true });
+    function stopDragIfOneFinger(ev) {
+      var n = ev.touches ? ev.touches.length : 0;
+      if (n < 2 && map.dragging) map.dragging.disable();
+    }
+    el.addEventListener('touchend', stopDragIfOneFinger, { passive: true });
+    el.addEventListener('touchcancel', stopDragIfOneFinger, { passive: true });
+  }
+
   function mountRouteMap(el) {
     if (!el || el.getAttribute('data-mounted') || !window.L) return;
     var payload = state.routePayloads && state.routePayloads[el.getAttribute('data-route-id')];
@@ -1944,9 +1985,12 @@
     el.setAttribute('data-mounted', '1');
     var map = L.map(el, {
       scrollWheelZoom: false,
+      dragging: true,
+      tap: true,
       attributionControl: true,
       zoomControl: true
     });
+    bindMapGestures(map, el);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 18,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -1966,8 +2010,9 @@
     (payload.points || []).forEach(function (pt) {
       if (!pt || pt.lat == null || pt.lon == null) return;
       bounds.push([pt.lat, pt.lon]);
-      var label = pt.kind === 'truck' ? 'T' : (pt.n != null ? String(pt.n) : '');
-      var title = (pt.kind === 'truck' ? 'Truck · ' : (pt.kind === 'pickup' ? 'Pickup · ' : (pt.kind === 'drop' ? 'Drop · ' : ''))) + (pt.label || '');
+      var isHome = pt.kind === 'truck' || (pt.label || '') === 'Home base (Jacksonville)';
+      var label = isHome ? 'H' : (pt.n != null ? String(pt.n) : '');
+      var title = isHome ? (pt.label || 'Home base (Jacksonville)') : ((pt.kind === 'pickup' ? 'Pickup · ' : (pt.kind === 'drop' ? 'Drop · ' : (pt.kind === 'empty' ? 'Empty miles · ' : ''))) + (pt.label || ''));
       var icon = L.divIcon({
         className: 'route-pin-wrap',
         html: '<div class="route-pin ' + esc(pt.kind || '') + '">' + esc(label) + '</div>',
@@ -2080,7 +2125,7 @@
       if (row.board) bits.push(row.board);
       if (row.load_number) bits.push('Load # ' + row.load_number);
       var reason = verdictReason(row);
-      return '<li class="combo-leg">' +
+      return '<li class="combo-leg ' + esc(String(row.verdict || '').toLowerCase()) + '">' +
         '<div class="search-head">' +
           netBlock(row.net_est, perHourValue(row), netPerMileValue(row), '', row) +
           (row.verdict ? '<span class="verdict-pill ' + esc(String(row.verdict).toLowerCase()) + '">' + esc(row.verdict) + '</span>' : '') +
@@ -2218,7 +2263,7 @@
     root.innerHTML =
       head +
       '<div class="searches-hero">' +
-        '<h2>Load Searches</h2>' +
+        '<h2>Load Boards</h2>' +
         '<p class="fine">' + (scanStamp ? 'Scan ' + esc(scanStamp) : 'Latest saved scan') +
           (data.origin ? ' / from ' + esc(data.origin) : '') +
           (state.searchOffline ? ' / offline copy' : '') + '</p>' +
@@ -2233,7 +2278,7 @@
       '</div>' +
       renderCombos(data) +
       renderSearchChart(rows) +
-      '<div class="search-filters" role="group" aria-label="Filter loads">' + filters + '</div>' +
+      '<div class="search-filters" role="group" aria-label="Filter load boards">' + filters + '</div>' +
       cards;
     bindSearchRefresh();
     root.querySelectorAll('.search-filters button').forEach(function (btn) {

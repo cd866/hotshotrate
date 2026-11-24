@@ -43,55 +43,35 @@
             "lat": 30.63539,
             "lon": -81.46883
           },
-          "empty_from": "Jacksonville, FL",
+          "empty_from": "Home base (Jacksonville)",
           "empty_from_coord": {
-            "lat": 30.3163,
-            "lon": -81.4175
+            "lat": 30.33,
+            "lon": -81.58
           },
           "empty_inferred_from": "home",
-          "empty_mi_est": 62.1,
-          "total_mi_est": 135.7,
-          "gross_per_mile": 4.42,
-          "net_est": 419.43,
-          "net_per_mile": 3.09,
-          "hours": 4.71,
-          "per_hour": 89.05,
+          "empty_mi_est": 51.8,
+          "total_mi_est": 125.4,
+          "gross_per_mile": 4.78,
+          "net_est": 422.52,
+          "net_per_mile": 3.37,
+          "hours": 4.51,
+          "per_hour": 93.69,
           "route": {
             "legs": [
               {
                 "kind": "deadhead",
                 "path": [
                   [
-                    30.31627,
-                    -81.4174
+                    30.33,
+                    -81.58
                   ],
                   [
-                    30.32448,
-                    -81.4195
+                    30.32725,
+                    -81.63636
                   ],
                   [
-                    30.31774,
-                    -81.47654
-                  ],
-                  [
-                    30.32464,
-                    -81.51206
-                  ],
-                  [
-                    30.32165,
-                    -81.55192
-                  ],
-                  [
-                    30.32766,
-                    -81.57261
-                  ],
-                  [
-                    30.32728,
-                    -81.63672
-                  ],
-                  [
-                    30.33735,
-                    -81.66945
+                    30.33734,
+                    -81.66949
                   ],
                   [
                     30.3208,
@@ -114,8 +94,8 @@
                     -81.98092
                   ],
                   [
-                    30.29317,
-                    -81.98382
+                    30.29306,
+                    -81.98398
                   ],
                   [
                     30.2831,
@@ -226,9 +206,9 @@
             "points": [
               {
                 "kind": "truck",
-                "label": "Jacksonville, FL",
-                "lat": 30.3163,
-                "lon": -81.4175
+                "label": "Home base (Jacksonville)",
+                "lat": 30.33,
+                "lon": -81.58
               },
               {
                 "kind": "pickup",
