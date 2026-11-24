@@ -1,6 +1,6 @@
 {
   "schema": 2,
-  "as_of": "2026-11-24 00:56 CT",
+  "as_of": "2026-11-24 01:07 CT",
   "scanned_at": "2026-11-23 23:00 CT",
   "origin": "Jacksonville, FL",
   "rules": {
@@ -100,7 +100,9 @@
           "broker": "",
           "broker_mc": "",
           "broker_dot": "",
-          "broker_email": ""
+          "broker_email": "",
+          "broker_phone": "",
+          "looked_up": false
         },
         {
           "board": "Truckstop",
@@ -124,7 +126,9 @@
           "broker": "BLUE COMET LOGISTICS LLC",
           "broker_mc": "1069009",
           "broker_dot": "3346353",
-          "broker_email": "kleverson@bluecometlogistics.com"
+          "broker_email": "kleverson@bluecometlogistics.com",
+          "broker_phone": "",
+          "looked_up": false
         }
       ],
       "flags": [
@@ -175,6 +179,8 @@
       "notes": "1997 CAT 416C",
       "link": "https://main.truckstop.com/app/search/loads",
       "broker_email": "kleverson@bluecometlogistics.com",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": false,
       "hours": 27.22,
       "per_hour": 43.5
@@ -207,6 +213,8 @@
       "notes": "Flatbed hotshot, no tarps, round bales of hay, 1 pick/1 drop, live load/unload, quickpay",
       "link": "https://main.truckstop.com/app/search/loads",
       "broker_email": "rd@iftrans.com",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": false,
       "hours": 28.46,
       "per_hour": 21.19
@@ -239,6 +247,8 @@
       "notes": "2015 Chevy 3500 crew cab w/ flatbed; excavator machinery",
       "link": "https://main.truckstop.com/app/search/loads",
       "broker_email": "hector@advtransports.com",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": false,
       "hours": 28.92,
       "per_hour": 18.29
@@ -273,6 +283,8 @@
       "notes": "Used Freightliner Cascadia day cab; COD",
       "link": "https://main.truckstop.com/app/search/loads",
       "broker_email": "logistics@limitlesspro.one",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": false,
       "hours": 29.38,
       "per_hour": 47.33
@@ -307,6 +319,8 @@
       "notes": "",
       "link": "https://www.directfreight.com",
       "broker_email": "",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": true,
       "hours": 24.62,
       "per_hour": 54.91
@@ -341,6 +355,8 @@
       "notes": "",
       "link": "https://www.directfreight.com",
       "broker_email": "",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": true,
       "hours": 20.44,
       "per_hour": 39.28
@@ -375,6 +391,8 @@
       "notes": "",
       "link": "https://www.directfreight.com",
       "broker_email": "",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": true,
       "hours": 20.86,
       "per_hour": 36.51
@@ -409,6 +427,8 @@
       "notes": "",
       "link": "https://www.directfreight.com",
       "broker_email": "",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": true,
       "hours": 38.3,
       "per_hour": 99.5
@@ -443,6 +463,8 @@
       "notes": "LENGTH 48, OVERDIMENSIONAL",
       "link": "https://main.truckstop.com/app/search/loads",
       "broker_email": "loaddetails+truckstop@wwex.com",
+      "broker_phone": "2144667471",
+      "looked_up": false,
       "tarp": false,
       "hours": 30.62,
       "per_hour": 85.08
@@ -478,6 +500,8 @@
       "notes": "Straps & tarps required; zero trailer damage; tracking required; 1 additional stop; LENGTH 53",
       "link": "https://main.truckstop.com/app/search/loads",
       "broker_email": "fmg_carrier.sales@ryder.com",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": true,
       "hours": 23.06,
       "per_hour": 82.7
@@ -512,6 +536,8 @@
       "notes": "NEED RAMPS",
       "link": "https://main.truckstop.com/app/search/loads",
       "broker_email": "jade.thell@ascentgl.net",
+      "broker_phone": "8886568848",
+      "looked_up": false,
       "tarp": false,
       "hours": 23.46,
       "per_hour": 56.9
@@ -547,6 +573,8 @@
       "notes": "",
       "link": "https://www.directfreight.com",
       "broker_email": "",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": true,
       "hours": 28.44,
       "per_hour": 41.87
@@ -582,6 +610,8 @@
       "notes": "",
       "link": "https://www.directfreight.com",
       "broker_email": "",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": true,
       "hours": 24.96,
       "per_hour": 41.35
@@ -616,6 +646,8 @@
       "notes": "Isuzu NRR; 111 ask Josue; Zelle/ACH/wire on delivery",
       "link": "https://main.truckstop.com/app/search/loads",
       "broker_email": "office@soltransports.us",
+      "broker_phone": "8667430311",
+      "looked_up": false,
       "tarp": false,
       "hours": 20.48,
       "per_hour": 48.89
@@ -650,6 +682,8 @@
       "notes": "",
       "link": "https://www.directfreight.com",
       "broker_email": "",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": true,
       "hours": 12.0,
       "per_hour": 78.51
@@ -684,6 +718,8 @@
       "notes": "Building products; no tarp, no conestoga; 2 stops Biloxi and Houston",
       "link": "https://main.truckstop.com/app/search/loads",
       "broker_email": "marshallm@mmlogisticsga.com",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": false,
       "hours": 21.02,
       "per_hour": 44.04
@@ -719,6 +755,8 @@
       "notes": "",
       "link": "https://www.directfreight.com",
       "broker_email": "",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": true,
       "hours": 17.56,
       "per_hour": 50.85
@@ -754,6 +792,8 @@
       "notes": "",
       "link": "https://www.directfreight.com",
       "broker_email": "",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": true,
       "hours": 19.76,
       "per_hour": 39.91
@@ -789,6 +829,8 @@
       "notes": "",
       "link": "https://www.directfreight.com",
       "broker_email": "",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": true,
       "hours": 11.4,
       "per_hour": 64.37
@@ -824,6 +866,8 @@
       "notes": "",
       "link": "https://www.directfreight.com",
       "broker_email": "",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": true,
       "hours": 15.98,
       "per_hour": 45.76
@@ -858,6 +902,8 @@
       "notes": "",
       "link": "https://www.directfreight.com",
       "broker_email": "",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": true,
       "hours": 10.38,
       "per_hour": 70.32
@@ -892,6 +938,8 @@
       "notes": "",
       "link": "https://www.directfreight.com",
       "broker_email": "",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": true,
       "hours": 11.82,
       "per_hour": 60.02
@@ -927,6 +975,8 @@
       "notes": "",
       "link": "https://www.directfreight.com",
       "broker_email": "",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": true,
       "hours": 16.8,
       "per_hour": 40.98
@@ -961,6 +1011,8 @@
       "notes": "",
       "link": "https://www.directfreight.com",
       "broker_email": "",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": true,
       "hours": 12.48,
       "per_hour": 54.37
@@ -996,6 +1048,8 @@
       "notes": "",
       "link": "https://www.directfreight.com",
       "broker_email": "",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": true,
       "hours": 13.32,
       "per_hour": 50.9
@@ -1031,6 +1085,8 @@
       "notes": "",
       "link": "https://www.directfreight.com",
       "broker_email": "",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": true,
       "hours": 15.02,
       "per_hour": 43.65
@@ -1065,6 +1121,8 @@
       "notes": "COD; hot patch truck;; 1 piece",
       "link": "https://main.truckstop.com/app/search/loads",
       "broker_email": "sales@reliablecargos.net",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": false,
       "hours": 33.22,
       "per_hour": 19.36
@@ -1100,6 +1158,8 @@
       "notes": "",
       "link": "https://www.directfreight.com",
       "broker_email": "",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": true,
       "hours": 18.88,
       "per_hour": 33.78
@@ -1135,6 +1195,8 @@
       "notes": "",
       "link": "https://www.directfreight.com",
       "broker_email": "",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": true,
       "hours": 11.74,
       "per_hour": 51.26
@@ -1169,6 +1231,8 @@
       "notes": "",
       "link": "https://www.directfreight.com",
       "broker_email": "",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": true,
       "hours": 13.42,
       "per_hour": 44.78
@@ -1204,6 +1268,8 @@
       "notes": "",
       "link": "https://www.directfreight.com",
       "broker_email": "",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": true,
       "hours": 11.26,
       "per_hour": 52.53
@@ -1238,6 +1304,8 @@
       "notes": "",
       "link": "https://www.directfreight.com",
       "broker_email": "",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": true,
       "hours": 13.22,
       "per_hour": 44.19
@@ -1272,6 +1340,8 @@
       "notes": "",
       "link": "https://www.directfreight.com",
       "broker_email": "",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": true,
       "hours": 11.08,
       "per_hour": 49.72
@@ -1304,6 +1374,8 @@
       "notes": "TeleSkid Steer JCB 3TS-8T 17x6.1x6.5ft; factor or same day pay; 15 day standard",
       "link": "https://main.truckstop.com/app/search/loads",
       "broker_email": "info@comradelogistics.com",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": false,
       "hours": 26.52,
       "per_hour": 17.34
@@ -1339,6 +1411,8 @@
       "notes": "",
       "link": "https://www.directfreight.com",
       "broker_email": "",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": true,
       "hours": 9.28,
       "per_hour": 49.03
@@ -1371,6 +1445,8 @@
       "notes": "2015 Ford F550 truck box; 3105825529 (already in Saved loads before scan)",
       "link": "https://main.truckstop.com/app/search/loads",
       "broker_email": "erikba1@cfilogisticsinc.com",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": false,
       "hours": 61.44,
       "per_hour": 7.3
@@ -1406,6 +1482,8 @@
       "notes": "",
       "link": "https://www.directfreight.com",
       "broker_email": "",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": true,
       "hours": 8.68,
       "per_hour": 46.11
@@ -1440,6 +1518,8 @@
       "notes": "Weight not posted; 2006 Ford E-450 cutaway",
       "link": "https://main.truckstop.com/app/search/loads",
       "broker_email": "mark@luminaexpressinc.com",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": false,
       "hours": 34.78,
       "per_hour": 10.65
@@ -1475,6 +1555,8 @@
       "notes": "",
       "link": "https://www.directfreight.com",
       "broker_email": "",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": true,
       "hours": 9.7,
       "per_hour": 36.83
@@ -1510,6 +1592,8 @@
       "notes": "",
       "link": "https://www.directfreight.com",
       "broker_email": "",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": true,
       "hours": 11.52,
       "per_hour": 28.58
@@ -1545,6 +1629,8 @@
       "notes": "",
       "link": "https://www.directfreight.com",
       "broker_email": "",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": true,
       "hours": 11.2,
       "per_hour": 28.31
@@ -1577,6 +1663,8 @@
       "notes": "",
       "link": "https://www.directfreight.com",
       "broker_email": "",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": false,
       "hours": 6.28,
       "per_hour": 41.12
@@ -1612,6 +1700,8 @@
       "notes": "",
       "link": "https://www.directfreight.com",
       "broker_email": "",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": true,
       "hours": 13.44,
       "per_hour": 16.61
@@ -1644,6 +1734,8 @@
       "notes": "Yale GLC040 forklift; ext 728",
       "link": "https://main.truckstop.com/app/search/loads",
       "broker_email": "adam@ntslogistics.com",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": false,
       "hours": 38.38,
       "per_hour": 5.77
@@ -1679,6 +1771,8 @@
       "notes": "",
       "link": "https://www.directfreight.com",
       "broker_email": "",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": true,
       "hours": 10.64,
       "per_hour": 20.54
@@ -1711,6 +1805,8 @@
       "notes": "Waterproofing materials. PU Tues 12-2PM drop Weds 8AM-2PM. Tarps n straps, PPE",
       "link": "https://main.truckstop.com/app/search/loads",
       "broker_email": "carriersales@shipwithcore.com",
+      "broker_phone": "9542893024",
+      "looked_up": false,
       "tarp": true,
       "hours": 16.76,
       "per_hour": 11.36
@@ -1743,6 +1839,8 @@
       "notes": "",
       "link": "https://www.directfreight.com",
       "broker_email": "",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": false,
       "hours": 22.76,
       "per_hour": 6.83
@@ -1777,6 +1875,8 @@
       "notes": "Combilift CB10000 forklift 109in H, no Friday delivery in AZ",
       "link": "https://main.truckstop.com/app/search/loads",
       "broker_email": "dkooi@triviumlogistics.com",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": false,
       "hours": 49.16,
       "per_hour": -4.34
@@ -1809,6 +1909,8 @@
       "notes": "Bobcat T62, 1 piece",
       "link": "https://main.truckstop.com/app/search/loads",
       "broker_email": "dispatch.info@bahlogisticsusa.com",
+      "broker_phone": "8184764913",
+      "looked_up": false,
       "tarp": false,
       "hours": 49.2,
       "per_hour": -4.73
@@ -1841,6 +1943,8 @@
       "notes": "195",
       "link": "https://main.truckstop.com/app/search/loads",
       "broker_email": "jefry.leon@sttlg.us",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": false,
       "hours": 52.66,
       "per_hour": -5.4
@@ -1875,6 +1979,8 @@
       "notes": "Combilift CB10000 forklift; no Friday delivery in AZ; Brandon X195",
       "link": "https://main.truckstop.com/app/search/loads",
       "broker_email": "bff.ops@safreight.com",
+      "broker_phone": "4699457575",
+      "looked_up": false,
       "tarp": false,
       "hours": 49.28,
       "per_hour": -8.0
@@ -1907,6 +2013,8 @@
       "notes": "Call/text; Generator 4x6 3000 lb; factoring COD/ACH/wire/zelle",
       "link": "https://main.truckstop.com/app/search/loads",
       "broker_email": "gbravo@bluert.com",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": false,
       "hours": 27.76,
       "per_hour": -25.57
@@ -1939,6 +2047,8 @@
       "notes": "",
       "link": "https://www.directfreight.com",
       "broker_email": "",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": false,
       "hours": 53.32,
       "per_hour": -16.59
@@ -1971,6 +2081,8 @@
       "notes": "Ford F-550 cab & front-end shell; cash on delivery; call/text",
       "link": "https://main.truckstop.com/app/search/loads",
       "broker_email": "hector@v-lionslogisticsllc.com",
+      "broker_phone": "",
+      "looked_up": false,
       "tarp": false,
       "hours": 67.52,
       "per_hour": -27.91

@@ -904,12 +904,23 @@ select:focus {
   font-family: var(--display);
   letter-spacing: 0.4px;
 }
-.email-broker {
+.email-broker, .call-broker {
   color: var(--gold-hi);
   border: 1px solid var(--gold);
   border-radius: 999px;
   padding: 4px 10px;
   text-decoration: none;
+}
+.call-broker { color: var(--cream); border-color: var(--purple-hi); }
+.looked-up {
+  display: inline-block;
+  font-size: 11px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--quiet);
+  border: 1px solid var(--quiet);
+  border-radius: 999px;
+  padding: 3px 8px;
 }
 .no-email {
   color: var(--quiet);

@@ -1417,15 +1417,31 @@
     return 'mailto:' + addr + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
   }
 
+  function brokerTel(row) {
+    var d = String((row && row.broker_phone) || '').replace(/\D/g, '');
+    if (d.length === 11 && d.charAt(0) === '1') d = d.slice(1);
+    if (d.length !== 10) return '';
+    return 'tel:+1' + d;
+  }
+
   function searchActions(row) {
     var href = openLoadHref(row);
     var html = '<div class="search-actions">' +
       '<a class="search-link" href="' + esc(href) + '" target="_blank" rel="noopener noreferrer">Open load</a>';
     var mail = brokerMailto(row);
+    var tel = brokerTel(row);
+    var hiddenDf = row && row.board === 'Direct Freight' && !row.broker && !row.broker_mc;
     if (mail) {
       html += '<a class="email-broker" href="' + esc(mail) + '">Email broker</a>';
+    } else if (tel) {
+      html += '<a class="call-broker" href="' + esc(tel) + '">Call broker</a>';
+    } else if (hiddenDf) {
+      html += '<a class="search-link" href="' + esc(href) + '" target="_blank" rel="noopener noreferrer">Broker on Direct Freight detail</a>';
     } else {
-      html += '<span class="no-email">No email listed</span>';
+      html += '<span class="no-email">No company contact listed</span>';
+    }
+    if (row && row.looked_up) {
+      html += '<span class="looked-up">Looked up</span>';
     }
     return html + '</div>';
   }
