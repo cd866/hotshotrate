@@ -691,7 +691,7 @@
     });
     var bits = [];
     if (counts.unpaid) bits.push(counts.unpaid + ' unpaid');
-    if (counts.paid_short) bits.push(counts.paid_short + ' paid short');
+    if (counts.paid_short) bits.push(counts.paid_short + ' paid - ELD fees');
     if (counts.in_transit) bits.push(counts.in_transit + ' in transit');
     if (counts.booked) bits.push(counts.booked + ' booked');
     if (counts.paid) bits.push(counts.paid + ' paid');
@@ -914,6 +914,14 @@
     return known[cat] || cat;
   }
 
+  function eldFeeAmount(load) {
+    if (!load) return null;
+    if (load.eld_fee_withheld != null && load.eld_fee_withheld !== '' && isFinite(Number(load.eld_fee_withheld)) && Number(load.eld_fee_withheld) > 0) {
+      return Number(load.eld_fee_withheld);
+    }
+    return null;
+  }
+
   function payBadge(load) {
     load = withResolvedStatus(load);
     var html = '';
@@ -925,13 +933,20 @@
     if (runLabels[load.status]) {
       html += ' <span class="pay pay-' + load.status + '">' + runLabels[load.status] + '</span>';
     }
-    var payLabels = {
-      paid: 'Paid',
-      paid_short: 'Paid short',
-      unpaid: 'Unpaid'
-    };
-    if (payLabels[load.pay_status]) {
-      html += ' <span class="pay pay-' + load.pay_status + '">' + payLabels[load.pay_status] + '</span>';
+    var eld = eldFeeAmount(load);
+    if (eld != null) {
+      var eldLabel = 'Paid - ELD fees (' + money(eld) + ')';
+      html += ' <span class="pay pay-paid_short">' + eldLabel +
+        (load.eld_fee_est ? ' <span class="est">EST</span>' : '') + '</span>';
+    } else {
+      var payLabels = {
+        paid: 'Paid',
+        paid_short: 'Paid short',
+        unpaid: 'Unpaid'
+      };
+      if (payLabels[load.pay_status]) {
+        html += ' <span class="pay pay-' + load.pay_status + '">' + payLabels[load.pay_status] + '</span>';
+      }
     }
     return html;
   }
