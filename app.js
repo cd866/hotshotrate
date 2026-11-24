@@ -22,6 +22,7 @@
     searchOffline: false,
     searchSavedAt: null,
     searchError: '',
+    searchRefreshing: false,
     searchInflight: null,
     viewMonth: null,
     offline: false,
@@ -1174,9 +1175,36 @@
     if (state.tab === 'searches') renderSearches();
   }
 
+  function searchUpdatedText() {
+    var when = '';
+    if (state.searchSavedAt) when = formatStamp(state.searchSavedAt);
+    else if (state.searches && (state.searches.as_of || state.searches.scanned_at)) {
+      when = state.searches.as_of || state.searches.scanned_at;
+    }
+    if (state.searchRefreshing) return 'Updating...';
+    if (!when) return 'Updated --';
+    var text = 'Updated ' + when;
+    if (state.searchOffline) text += ' / offline copy';
+    return text;
+  }
+
+  function setSearchRefreshing(on) {
+    state.searchRefreshing = !!on;
+    var spin = $('search-spinner');
+    var stamp = $('search-updated-text') || $('search-updated');
+    var btn = $('search-refresh-btn');
+    if (spin) spin.hidden = !on;
+    if (stamp) stamp.textContent = searchUpdatedText();
+    if (btn) btn.disabled = !!on;
+  }
+
   function refreshSearches() {
     if (state.searchInflight) return state.searchInflight;
-    state.searchInflight = fetch('data/load_searches.json', { cache: 'no-cache' }).then(function (res) {
+    setSearchRefreshing(true);
+    // Cache-bust so the phone gets the newest saved scan, not a stale copy.
+    // This only reloads data/load_searches.json. It does not start a new board search.
+    var url = 'data/load_searches.json?t=' + Date.now();
+    state.searchInflight = fetch(url, { cache: 'no-cache' }).then(function (res) {
       if (!res.ok) throw new Error('Searches responded ' + res.status);
       var fromCache = res.headers.get('X-Feed-Cache') === '1';
       return res.json().then(function (data) {
@@ -1200,6 +1228,13 @@
       }
     }).then(function () {
       state.searchInflight = null;
+      setSearchRefreshing(false);
+      if (state.tab === 'searches') {
+        var stamp = $('search-updated-text') || $('search-updated');
+        if (stamp) stamp.textContent = searchUpdatedText();
+        var spin = $('search-spinner');
+        if (spin) spin.hidden = true;
+      }
     });
     return state.searchInflight;
   }
@@ -1288,22 +1323,43 @@
       link + '</article>';
   }
 
+  function searchToolbar() {
+    var spinHidden = state.searchRefreshing ? '' : ' hidden';
+    return '<div id="search-pull" class="pull">Pull to refresh</div>' +
+      '<div class="search-toolbar">' +
+        '<p class="search-updated" id="search-updated">' +
+          '<span id="search-spinner" class="search-spinner"' + spinHidden + ' aria-hidden="true"></span>' +
+          '<span id="search-updated-text">' + esc(searchUpdatedText()) + '</span>' +
+        '</p>' +
+        '<button type="button" class="btn" id="search-refresh-btn"' +
+          (state.searchRefreshing ? ' disabled' : '') + '>Refresh</button>' +
+      '</div>' +
+      '<p class="fine">Refresh reloads the latest saved scan. It does not start a new board search.</p>';
+  }
+
+  function bindSearchRefresh() {
+    var btn = $('search-refresh-btn');
+    if (btn) btn.addEventListener('click', function () { refreshSearches(); });
+  }
+
   function renderSearches() {
     var root = $('searches-root');
     if (!root) return;
     var data = state.searches;
+    var head = searchToolbar();
     if (state.searchError && !data) {
-      root.innerHTML = '<p class="warn">' + esc(state.searchError) + '</p>';
+      root.innerHTML = head + '<p class="warn">' + esc(state.searchError) + '</p>';
+      bindSearchRefresh();
       return;
     }
     if (!data) {
-      root.innerHTML = '<p class="fine">Loading the latest load board scan...</p>';
+      root.innerHTML = head + '<p class="fine">Loading the latest saved scan...</p>';
+      bindSearchRefresh();
       return;
     }
     var counts = data.counts || {};
     var rules = data.rules || {};
-    var stamp = (data.scanned_at || data.as_of || '') +
-      (state.searchOffline ? ' / offline copy' : '');
+    var scanStamp = data.scanned_at || data.as_of || '';
     var formula = rules.formula || 'net EST = rate x 0.87 - $1.64 per loaded mile - $0.30 per deadhead mile';
     var bar = rules.quality_bar || '';
     var rows = filteredSearches(data);
@@ -1320,9 +1376,12 @@
     }).join('');
     var cards = rows.map(renderSearchCard).join('') || '<p class="fine">No loads in this filter.</p>';
     root.innerHTML =
+      head +
       '<div class="searches-hero">' +
         '<h2>Load Searches</h2>' +
-        '<p class="fine">' + esc(stamp) + (data.origin ? ' / from ' + data.origin : '') + '</p>' +
+        '<p class="fine">' + (scanStamp ? 'Scan ' + esc(scanStamp) : 'Latest saved scan') +
+          (data.origin ? ' / from ' + esc(data.origin) : '') +
+          (state.searchOffline ? ' / offline copy' : '') + '</p>' +
         '<p class="fine">' + esc(formula) + '. ' + esc(bar) + '</p>' +
         '<div class="search-counts">' +
           '<div class="search-count"><div class="n">' + esc(String(counts.total || 0)) + '</div><div class="l">Loads</div></div>' +
@@ -1334,6 +1393,7 @@
       renderSearchChart(data.loads || []) +
       '<div class="search-filters" role="group" aria-label="Filter loads">' + filters + '</div>' +
       cards;
+    bindSearchRefresh();
     root.querySelectorAll('.search-filters button').forEach(function (btn) {
       btn.addEventListener('click', function () {
         state.searchFilter = btn.getAttribute('data-filter') || 'all';
@@ -1383,14 +1443,14 @@
     var dy = 0;
 
     function indicator(px, text) {
-      var el = $('pull');
+      var el = document.querySelector('.panel:not([hidden]) .pull') || $('pull') || $('search-pull');
       if (!el) return;
       el.style.height = px + 'px';
       el.textContent = text || 'Pull to refresh';
     }
 
     document.addEventListener('touchstart', function (event) {
-      if (state.tab !== 'reports') return;
+      if (state.tab !== 'reports' && state.tab !== 'searches') return;
       if (window.scrollY > 2) return;
       if (event.target.closest('input, textarea, button, a, summary')) return;
       startY = event.touches[0].clientY;
