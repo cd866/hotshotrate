@@ -843,6 +843,31 @@ select:focus {
   color: var(--quiet);
   font-weight: 600;
 }
+.search-net .per-hour {
+  display: block;
+  margin-top: 4px;
+  font-size: 16px;
+  letter-spacing: 0.2px;
+  font-weight: 700;
+  color: var(--cream);
+  text-transform: none;
+}
+.combo-leg-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+.combo-leg .search-net {
+  font-size: 22px;
+}
+.combo-leg .search-net .per-hour { font-size: 14px; }
+.rig-note {
+  margin: 4px 0 0;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--quiet);
+}
 .verdict-pill {
   display: inline-block;
   font-family: var(--display);

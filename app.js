@@ -1256,6 +1256,44 @@
     return (neg ? '-$' : '$') + body;
   }
 
+  var PER_HOUR_MPH = 50;
+  var LOAD_UNLOAD_HOURS = 2;
+
+  function hoursEst(loadedMi, deadMi, nLoads) {
+    var loaded = Number(loadedMi) || 0;
+    var dead = Number(deadMi) || 0;
+    if (loaded <= 0 && dead <= 0) return null;
+    var n = nLoads && nLoads > 0 ? nLoads : 1;
+    return (loaded + dead) / PER_HOUR_MPH + LOAD_UNLOAD_HOURS * n;
+  }
+
+  function perHourValue(row, nLoads) {
+    if (!row) return null;
+    if (row.per_hour != null && isFinite(Number(row.per_hour))) return Number(row.per_hour);
+    var loaded = row.trip_mi != null ? row.trip_mi : row.loaded_mi;
+    var dead = row.origin_dh_mi != null ? row.origin_dh_mi : row.deadhead_mi;
+    var hours = row.hours != null && isFinite(Number(row.hours))
+      ? Number(row.hours)
+      : hoursEst(loaded, dead, nLoads || 1);
+    if (row.net_est == null || hours == null || hours <= 0) return null;
+    return row.net_est / hours;
+  }
+
+  function perHourLabel(row, nLoads) {
+    var n = perHourValue(row, nLoads);
+    if (n == null) return 'n/a/hr EST';
+    return searchMoney(n) + '/hr EST';
+  }
+
+  function netBlock(net, perHour, unitExtra) {
+    var hourly = (perHour != null && isFinite(Number(perHour)))
+      ? '<span class="per-hour">' + esc(searchMoney(perHour)) + '/hr EST</span>'
+      : '';
+    return '<div class="search-net">' + esc(searchMoney(net)) +
+      '<span class="unit">Net EST' + (unitExtra || '') + '</span>' +
+      hourly + '</div>';
+  }
+
   function filteredSearches(data) {
     var rows = (data && data.loads) ? data.loads.slice() : [];
     var f = state.searchFilter || 'all';
@@ -1307,12 +1345,17 @@
       if (row.net_est < 0) color = '#8C1C13';
       var lane = (row.origin || '') + ' -> ' + (row.destination || '');
       if (lane.length > 28) lane = lane.slice(0, 26) + '...';
-      return '<text class="chart-label" x="0" y="' + (y + 14) + '">' + esc(lane) + '</text>' +
+      var tip = (row.origin || '') + ' -> ' + (row.destination || '') +
+        ' · ' + searchMoney(row.net_est) + ' net EST · ' + perHourLabel(row);
+      return '<g>' +
+        '<title>' + esc(tip) + '</title>' +
+        '<text class="chart-label" x="0" y="' + (y + 14) + '">' + esc(lane) + '</text>' +
         '<rect x="' + left + '" y="' + (y + 4) + '" width="' + w + '" height="14" rx="3" fill="' + color + '"></rect>' +
-        '<text class="chart-val" x="' + (left + w + 6) + '" y="' + (y + 15) + '">' + esc(searchMoney(row.net_est)) + '</text>';
+        '<text class="chart-val" x="' + (left + w + 6) + '" y="' + (y + 15) + '">' + esc(searchMoney(row.net_est)) + '</text>' +
+        '</g>';
     }).join('');
     return '<div class="net-chart"><h3>Best to take first</h3>' +
-      '<svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="Net EST bar chart">' + bars + '</svg></div>';
+      '<svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="Net EST and dollars per hour bar chart">' + bars + '</svg></div>';
   }
 
 
@@ -1413,7 +1456,7 @@
       '<div class="search-top"><div>' +
       '<div class="lane">' + esc(origin) + dh + ' -> ' + esc(dest) + '</div>' +
       '<span class="verdict-pill ' + esc(verd) + '">' + esc(row.verdict || 'PASS') + '</span>' +
-      '</div><div class="search-net">' + esc(searchMoney(row.net_est)) + '<span class="unit">Net EST</span></div></div>' +
+      '</div>' + netBlock(row.net_est, perHourValue(row)) + '</div>' +
       (row.math ? '<p class="search-math">' + esc(row.math) + '</p>' : '') +
       (flags ? '<p class="search-flags">' + esc(flags) + '</p>' : '') +
       (row.tarp ? '<p class="search-fit">Tarps, straps</p>' : '') +
@@ -1429,14 +1472,15 @@
         (stop.window ? ' · ' + esc(stop.window) : '') + '</li>';
     }).join('');
     var legs = (combo.loads || []).map(function (row) {
-      var bits = [row.origin + ' -> ' + row.destination, searchMoney(row.net_est) + ' alone'];
+      var bits = [row.origin + ' -> ' + row.destination];
       if (row.weight_lb != null) bits.push(plainNum(row.weight_lb, 0) + ' lb');
       else bits.push('weight n/a');
       if (row.length_ft != null) bits.push(plainNum(row.length_ft, 1) + ' ft');
       else bits.push('length n/a');
       if (row.board) bits.push(row.board);
       if (row.load_number) bits.push('Load # ' + row.load_number);
-      return '<li class="combo-leg"><div>' + esc(bits.join(' · ')) + '</div>' +
+      return '<li class="combo-leg"><div class="combo-leg-top"><div>' + esc(bits.join(' · ')) + '</div>' +
+        netBlock(row.net_est, perHourValue(row)) + '</div>' +
         searchActions(row) + '</li>';
     }).join('');
     var wt = combo.combined_weight_lb != null ? plainNum(combo.combined_weight_lb, 0) + ' lb' : 'n/a';
@@ -1448,8 +1492,8 @@
       '<div class="search-top"><div>' +
       '<div class="lane">' + esc(kind) + '</div>' +
       '<span class="verdict-pill ' + esc(verd) + '">' + esc(combo.verdict || 'MAYBE') + '</span>' +
-      '</div><div class="search-net">' + esc(searchMoney(combo.net_est)) +
-      '<span class="unit">Net EST · ' + esc(searchMoney(combo.net_per_day)) + '/day</span></div></div>' +
+      '</div>' + netBlock(combo.net_est, perHourValue(combo, (combo.loads || []).length),
+        ' · ' + esc(searchMoney(combo.net_per_day)) + '/day') + '</div>' +
       (combo.math ? '<p class="search-math">' + esc(combo.math) + '</p>' : '') +
       '<p class="search-meta">On deck at once: ' + esc(wt) + ' · ' + esc(len) +
       (combo.timing_note ? ' · ' + esc(combo.timing_note) : '') + '</p>' +
