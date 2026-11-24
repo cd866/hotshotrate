@@ -518,7 +518,7 @@
             "lon": -85.3081
           },
           "empty_inferred_from": "previous drop",
-          "empty_mi_est": null,
+          "empty_mi_est": 0.0,
           "total_mi_est": 300.0,
           "gross_per_mile": 5.67,
           "net_est": 1137.0,
@@ -2410,12 +2410,12 @@
           },
           "empty_inferred_from": "previous drop",
           "empty_mi_est": 97.9,
-          "total_mi_est": 310.2,
-          "gross_per_mile": 2.26,
-          "net_est": 337.61,
-          "net_per_mile": 1.09,
-          "hours": 8.2,
-          "per_hour": 41.17,
+          "total_mi_est": 308.4,
+          "gross_per_mile": 2.27,
+          "net_est": 338.15,
+          "net_per_mile": 1.1,
+          "hours": 8.17,
+          "per_hour": 41.39,
           "route": {
             "legs": [
               {
@@ -2753,12 +2753,12 @@
           },
           "empty_inferred_from": "home",
           "empty_mi_est": 142.3,
-          "total_mi_est": 472.3,
+          "total_mi_est": 473.0,
           "gross_per_mile": 1.59,
-          "net_est": 233.61,
+          "net_est": 233.4,
           "net_per_mile": 0.49,
-          "hours": 11.45,
-          "per_hour": 20.4,
+          "hours": 11.46,
+          "per_hour": 20.37,
           "route": {
             "legs": [
               {

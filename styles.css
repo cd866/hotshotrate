@@ -1851,3 +1851,53 @@ input::placeholder { color: var(--muted); }
 .leaflet-control-zoom a { border-color: #2e2940 !important; color: #f2f0f7 !important; }
 .leaflet-control-zoom a:hover { background: #2a2540 !important; color: #a78bfa !important; }
 .leaflet-control-attribution a { color: #c4b5fd !important; }
+
+/* Deadhead / loaded / total miles strip on every load card (v23) */
+.miles-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin: 10px 0 0;
+}
+.miles-strip .mi-cell {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 9px;
+  background: rgba(14, 14, 16, 0.45);
+  min-width: 0;
+}
+.miles-strip .mi-cell span {
+  display: block;
+  font-size: 12px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #E7E1D4;
+  margin-bottom: 2px;
+}
+.miles-strip .mi-cell b {
+  display: block;
+  font-family: var(--display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--cream);
+  white-space: nowrap;
+}
+.miles-strip .mi-cell b .est {
+  font-style: normal;
+  font-family: var(--body);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  vertical-align: middle;
+}
+.miles-strip .mi-cell small {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.miles-strip .mi-dead { border-left: 3px dashed #8b8799; }
+.miles-strip .mi-loaded { border-left: 3px solid var(--purple); }
+.miles-strip .mi-total { border-left: 3px solid var(--gold); }

@@ -2,7 +2,7 @@
    Bump CACHE when the shell changes so old caches are dropped.
    data/feed.json, data/load_searches.json and data/stops.json are network-first and fall back
    to the cached copy, so the stop list still opens when tiles are slow. */
-var CACHE = 'blackram-v22';
+var CACHE = 'blackram-v23';
 var ASSETS = [
   './',
   './index.html',
@@ -110,11 +110,32 @@ self.addEventListener('fetch', function (event) {
   if (url.origin !== self.location.origin) return;
 
   if (isFreshData(url)) {
+    // One cache entry per data file (ignore the ?t= cache-buster) so the
+    // cache does not grow with every refresh. Give the network 12 s, then
+    // fall back to the saved copy instead of hanging on a weak signal.
+    var key = new Request(url.origin + url.pathname);
     event.respondWith(
-      fetch(req).then(function (res) {
-        return store(req, res);
-      }).catch(function () {
-        return feedFromCache(req);
+      new Promise(function (resolve) {
+        var settled = false;
+        var timer = setTimeout(function () {
+          if (settled) return;
+          caches.match(key).then(function (hit) {
+            if (settled || !hit) return;
+            settled = true;
+            resolve(feedFromCache(key));
+          });
+        }, 12000);
+        fetch(req).then(function (res) {
+          if (settled) { store(key, res); return; }
+          settled = true;
+          clearTimeout(timer);
+          resolve(store(key, res));
+        }).catch(function () {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          resolve(feedFromCache(key));
+        });
       })
     );
     return;

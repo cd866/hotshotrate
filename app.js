@@ -78,6 +78,72 @@
     return n.toLocaleString('en-US', { maximumFractionDigits: digits == null ? 2 : digits });
   }
 
+  // fetch with a timeout so a weak signal falls back to the saved copy
+  // instead of spinning forever.
+  function fetchTimed(url, opts, ms) {
+    var ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+    var o = {};
+    for (var k in (opts || {})) o[k] = opts[k];
+    if (ctrl) o.signal = ctrl.signal;
+    return new Promise(function (resolve, reject) {
+      var done = false;
+      var timer = setTimeout(function () {
+        if (done) return;
+        done = true;
+        if (ctrl) { try { ctrl.abort(); } catch (e) { /* ignore */ } }
+        reject(new Error('Timed out'));
+      }, ms || 15000);
+      fetch(url, o).then(function (res) {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        resolve(res);
+      }, function (err) {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        reject(err);
+      });
+    });
+  }
+
+  function milesNum(v) {
+    if (v == null || v === '' || typeof v === 'boolean') return null;
+    var n = Number(v);
+    return isFinite(n) ? n : null;
+  }
+
+  // Deadhead, loaded, and total miles side by side on every load card.
+  function milesStrip(loaded, empty, opts) {
+    opts = opts || {};
+    var lo = milesNum(loaded);
+    var em = milesNum(empty);
+    if (lo == null && em == null) return '';
+    var total = (lo || 0) + (em || 0);
+    function cell(cls, label, val, est, sub) {
+      return '<div class="mi-cell ' + cls + '"><span>' + esc(label) + '</span>' +
+        '<b>' + (val == null ? 'n/a' : esc(plainNum(val, 0)) + ' mi') +
+        (est && val != null ? ' <i class="est">EST</i>' : '') + '</b>' +
+        (sub ? '<small>' + esc(sub) + '</small>' : '') + '</div>';
+    }
+    return '<div class="miles-strip">' +
+      cell('mi-dead', 'Deadhead', em, opts.emptyEst, opts.emptyFrom ? 'from ' + opts.emptyFrom : '') +
+      cell('mi-loaded', 'Loaded', lo, opts.loadedEst, '') +
+      cell('mi-total', 'Total', total > 0 ? total : null, opts.loadedEst || opts.emptyEst, '') +
+      '</div>';
+  }
+
+  // Ledger loads: recorded deadhead_mi wins, else the inferred empty_mi_est.
+  function ledgerEmpty(load) {
+    if (!load) return { mi: null, from: '' };
+    var rec = milesNum(load.deadhead_mi);
+    var est = milesNum(load.empty_mi_est);
+    var from = load.empty_inferred_from === 'home' ? 'home' : (load.empty_from || '');
+    if (rec != null) return { mi: rec, from: from };
+    if (est != null) return { mi: est, from: from };
+    return { mi: null, from: '' };
+  }
+
   function settings() {
     function n(id, fallback) {
       var v = fieldNum(id);
@@ -792,7 +858,8 @@
       grossC += cents(gross);
       feeC += cents(roundMoney(gross * pct / 100));
       loaded += isFinite(Number(load.loaded_mi)) ? Number(load.loaded_mi) : 0;
-      if (typeof load.deadhead_mi === 'number' && isFinite(load.deadhead_mi)) dead += load.deadhead_mi;
+      var em = ledgerEmpty(load).mi;
+      if (em != null) dead += em;
       else deadKnown = false;
     });
     var fuelC = 0;
@@ -861,7 +928,7 @@
     if (state.inflight) return state.inflight;
     var status = $('feed-status-text');
     if (status) status.textContent = 'Updating…';
-    state.inflight = fetch('data/feed.json', { cache: 'no-cache' }).then(function (res) {
+    state.inflight = fetchTimed('data/feed.json', { cache: 'no-cache' }, 15000).then(function (res) {
       if (!res.ok) throw new Error('Feed responded ' + res.status);
       var fromCache = res.headers.get('X-Feed-Cache') === '1';
       return res.json().then(function (feed) {
@@ -984,7 +1051,9 @@
         ? formatDay(load.date) + '–' + end.split(' ')[1]
         : formatDay(load.date) + ' – ' + end;
     }
-    var mileCell = miles == null ? '—' : plainNum(miles, 2) + (load.miles_estimate ? ' <span class="est">EST</span>' : '');
+    var emp = ledgerEmpty(load);
+    var allMi = (miles || 0) + (emp.mi || 0);
+    var allRate = allMi > 0 && gross ? rpm(gross / allMi) : '—';
     var rateCell = miles ? rpm(load.rate_per_mi != null && isFinite(Number(load.rate_per_mi)) ? Number(load.rate_per_mi) : gross / miles) : '—';
     if (miles && load.miles_estimate) rateCell += ' <span class="est">EST</span>';
     var who = [load.broker, load.load_no].filter(Boolean).join(' | ');
@@ -1010,10 +1079,11 @@
     return '<article class="load has-route ' + esc(statusCls) + esc(payCls) + '">' +
       '<h3>' + esc(load.desc || 'Load') + payBadge(load) + '</h3>' +
       '<p class="lane">' + esc(when) + (load.lane ? ' · ' + esc(load.lane) : '') + '</p>' +
+      milesStrip(miles, emp.mi, { loadedEst: !!load.miles_estimate, emptyEst: true, emptyFrom: emp.from }) +
       '<div class="kv">' +
       '<div><span>Gross</span><b>' + money(gross) + '</b></div>' +
-      '<div><span>Miles</span><b>' + mileCell + '</b></div>' +
       '<div><span>Loaded $/mi</span><b>' + rateCell + '</b></div>' +
+      '<div><span>All-mi $/mi</span><b>' + allRate + '</b></div>' +
       '<div><span>Net</span><b>' + money(roundMoney(gross - fee)) + '</b></div>' +
       '</div>' + payLine(load) +
       '<p class="notes">Fee ' + money(fee) +
@@ -1464,7 +1534,7 @@
     // Cache-bust so the phone gets the newest saved scan, not a stale copy.
     // This only reloads data/load_searches.json. It does not start a new board search.
     var url = 'data/load_searches.json?t=' + Date.now();
-    state.searchInflight = fetch(url, { cache: 'no-cache' }).then(function (res) {
+    state.searchInflight = fetchTimed(url, { cache: 'no-cache' }, 15000).then(function (res) {
       if (!res.ok) throw new Error('Load Boards responded ' + res.status);
       var fromCache = res.headers.get('X-Feed-Cache') === '1';
       return res.json().then(function (data) {
@@ -1705,15 +1775,21 @@
     return '<div><span>' + esc(label) + '</span><b>' + value + '</b></div>';
   }
 
-  function loadStatRow(row) {
+  function loadStatRow(row, emptyFrom) {
     var cells = [];
-    if (row.trip_mi != null) cells.push(statCell('Loaded', esc(plainNum(row.trip_mi, 0)) + ' mi'));
-    if (row.origin_dh_mi != null) cells.push(statCell('Empty miles', esc(plainNum(row.origin_dh_mi, 0)) + ' mi'));
+    var strip = milesStrip(rowLoadedMiles(row) || null, row.origin_dh_mi != null ? row.origin_dh_mi : null,
+      { emptyFrom: emptyFrom || '' });
     if (row.weight_lb != null) cells.push(statCell('Weight', esc(plainNum(row.weight_lb, 0)) + ' lb'));
     else cells.push(statCell('Weight', 'n/a'));
     if (row.length_ft != null) cells.push(statCell('Length', esc(plainNum(row.length_ft, 1)) + ' ft'));
     if (row.posted_rate != null) cells.push(statCell('Posted', esc(money(row.posted_rate))));
-    return cells.length ? '<div class="stat-row">' + cells.join('') + '</div>' : '';
+    return strip + (cells.length ? '<div class="stat-row">' + cells.join('') + '</div>' : '');
+  }
+
+  function searchOriginLabel() {
+    var o = state.searches && state.searches.origin;
+    o = o ? String(o).replace(/\s*\(.*\)\s*$/, '') : '';
+    return o || 'truck';
   }
 
   function rateLegend() {
@@ -2105,7 +2181,7 @@
       '</div>' +
       (reason ? '<p class="search-reason">' + esc(reason) + '</p>' : '') +
       '<div class="lane">' + esc(origin) + ' to ' + esc(dest) + '</div>' +
-      loadStatRow(row) +
+      loadStatRow(row, searchOriginLabel()) +
       (row.math ? '<p class="search-math">' + esc(row.math) + '</p>' : '') +
       (row.tarp ? '<p class="search-fit">Tarps, straps</p>' : '') +
       '<p class="search-meta">' + esc(bits.filter(Boolean).join(' | ')) + '</p>' +
@@ -2120,7 +2196,11 @@
         (stop.lane ? ' <span class="lane-mini">(' + esc(stop.lane) + ')</span>' : '') +
         (stop.window ? ' · ' + esc(stop.window) : '') + '</li>';
     }).join('');
-    var legs = (combo.loads || []).map(function (row) {
+    var comboLoads = combo.loads || [];
+    var legs = comboLoads.map(function (row, i) {
+      var from;
+      if (combo.kind === 'shared') from = searchOriginLabel() + ' (solo run)';
+      else from = i === 0 ? searchOriginLabel() : (comboLoads[i - 1].destination || 'previous drop');
       var bits = [(row.origin || '') + ' to ' + (row.destination || '')];
       if (row.board) bits.push(row.board);
       if (row.load_number) bits.push('Load # ' + row.load_number);
@@ -2131,8 +2211,8 @@
           (row.verdict ? '<span class="verdict-pill ' + esc(String(row.verdict).toLowerCase()) + '">' + esc(row.verdict) + '</span>' : '') +
         '</div>' +
         (reason ? '<p class="search-reason">' + esc(reason) + '</p>' : '') +
-        '<div class="lane">' + esc(bits.join(' · ')) + '</div>' +
-        loadStatRow(row) +
+        '<div class="lane">' + (i + 1) + '. ' + esc(bits.join(' · ')) + '</div>' +
+        loadStatRow(row, from) +
         routeBlock(routePayload(row), loadMapsUrl(row), (row.origin || '') + ' to ' + (row.destination || '') + ' route map') +
         searchActions(row) + '</li>';
     }).join('');
@@ -2152,6 +2232,7 @@
       '</div>' +
       (reason ? '<p class="search-reason">' + esc(reason) + '</p>' : '') +
       '<div class="lane">' + esc(kind) + '</div>' +
+      milesStrip(combo.loaded_mi, combo.deadhead_mi, { emptyFrom: searchOriginLabel() + ', all legs' }) +
       (combo.math ? '<p class="search-math">' + esc(combo.math) + '</p>' : '') +
       '<div class="stat-row">' +
         statCell('On deck', esc(wt)) +
