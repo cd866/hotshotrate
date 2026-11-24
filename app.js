@@ -978,7 +978,7 @@
       '<div class="kv">' +
       '<div><span>Gross</span><b>' + money(gross) + '</b></div>' +
       '<div><span>Miles</span><b>' + mileCell + '</b></div>' +
-      '<div><span>$/mi</span><b>' + rateCell + '</b></div>' +
+      '<div><span>Rate/mi</span><b>' + rateCell + '</b></div>' +
       '<div><span>Net</span><b>' + money(roundMoney(gross - fee)) + '</b></div>' +
       '</div>' + payLine(load) +
       '<p class="notes">Fee ' + money(fee) +
@@ -1450,13 +1450,38 @@
     return searchMoney(n) + '/hr EST';
   }
 
-  function netBlock(net, perHour, unitExtra) {
+  function moneyPerMile(n) {
+    if (n == null || !isFinite(n)) return 'n/a';
+    var neg = n < 0;
+    return (neg ? '-$' : '$') + Math.abs(n).toFixed(2);
+  }
+
+  function netPerMileValue(row) {
+    if (!row) return null;
+    if (row.net_per_mile != null && isFinite(Number(row.net_per_mile))) return Number(row.net_per_mile);
+    var loaded = row.trip_mi != null ? row.trip_mi : row.loaded_mi;
+    var dead = row.origin_dh_mi != null ? row.origin_dh_mi : row.deadhead_mi;
+    var miles = (Number(loaded) || 0) + (Number(dead) || 0);
+    if (row.net_est == null || miles <= 0) return null;
+    return row.net_est / miles;
+  }
+
+  function netPerMileLabel(row) {
+    var n = netPerMileValue(row);
+    if (n == null) return 'n/a/mi EST';
+    return moneyPerMile(n) + '/mi EST';
+  }
+
+  function netBlock(net, perHour, netPerMile, unitExtra) {
     var hourly = (perHour != null && isFinite(Number(perHour)))
       ? '<span class="per-hour">' + esc(searchMoney(perHour)) + '/hr EST</span>'
       : '';
+    var perMi = (netPerMile != null && isFinite(Number(netPerMile)))
+      ? '<span class="per-mile">' + esc(moneyPerMile(netPerMile)) + '/mi EST</span>'
+      : '';
     return '<div class="search-net">' + esc(searchMoney(net)) +
       '<span class="unit">Net EST' + (unitExtra || '') + '</span>' +
-      hourly + '</div>';
+      hourly + perMi + '</div>';
   }
 
   function filteredSearches(data) {
@@ -1511,7 +1536,8 @@
       var lane = (row.origin || '') + ' -> ' + (row.destination || '');
       if (lane.length > 28) lane = lane.slice(0, 26) + '...';
       var tip = (row.origin || '') + ' -> ' + (row.destination || '') +
-        ' · ' + searchMoney(row.net_est) + ' net EST · ' + perHourLabel(row);
+        ' · ' + searchMoney(row.net_est) + ' net EST · ' + perHourLabel(row) +
+        ' · ' + netPerMileLabel(row);
       return '<g>' +
         '<title>' + esc(tip) + '</title>' +
         '<text class="chart-label" x="0" y="' + (y + 14) + '">' + esc(lane) + '</text>' +
@@ -1520,7 +1546,7 @@
         '</g>';
     }).join('');
     return '<div class="net-chart"><h3>Best to take first</h3>' +
-      '<svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="Net EST and dollars per hour bar chart">' + bars + '</svg></div>';
+      '<svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="Net EST, dollars per hour, and net dollars per mile bar chart">' + bars + '</svg></div>';
   }
 
 
@@ -1623,7 +1649,7 @@
     if (row.weight_lb != null) bits.push(plainNum(row.weight_lb, 0) + ' lb');
     if (row.length_ft != null) bits.push(plainNum(row.length_ft, 1) + ' ft');
     if (row.posted_rate != null) bits.push('posted ' + money(row.posted_rate));
-    if (row.rate_per_mi != null) bits.push('$' + Number(row.rate_per_mi).toFixed(2) + '/mi');
+    if (row.rate_per_mi != null) bits.push('Rate/mi $' + Number(row.rate_per_mi).toFixed(2));
     if (row.pickup_window) bits.push('PU ' + row.pickup_window);
     if (row.drop_window) bits.push('DEL ' + row.drop_window);
     var broker = row.broker || (row.board === 'Direct Freight' ? 'Broker not listed on the free list' : '');
@@ -1637,7 +1663,7 @@
       '<div class="search-top"><div>' +
       '<div class="lane">' + esc(origin) + dh + ' -> ' + esc(dest) + '</div>' +
       '<span class="verdict-pill ' + esc(verd) + '">' + esc(row.verdict || 'PASS') + '</span>' +
-      '</div>' + netBlock(row.net_est, perHourValue(row)) + '</div>' +
+      '</div>' + netBlock(row.net_est, perHourValue(row), netPerMileValue(row)) + '</div>' +
       (row.math ? '<p class="search-math">' + esc(row.math) + '</p>' : '') +
       (flags ? '<p class="search-flags">' + esc(flags) + '</p>' : '') +
       (row.tarp ? '<p class="search-fit">Tarps, straps</p>' : '') +
@@ -1661,7 +1687,7 @@
       if (row.board) bits.push(row.board);
       if (row.load_number) bits.push('Load # ' + row.load_number);
       return '<li class="combo-leg"><div class="combo-leg-top"><div>' + esc(bits.join(' · ')) + '</div>' +
-        netBlock(row.net_est, perHourValue(row)) + '</div>' +
+        netBlock(row.net_est, perHourValue(row), netPerMileValue(row)) + '</div>' +
         searchActions(row) + '</li>';
     }).join('');
     var wt = combo.combined_weight_lb != null ? plainNum(combo.combined_weight_lb, 0) + ' lb' : 'n/a';
@@ -1674,6 +1700,7 @@
       '<div class="lane">' + esc(kind) + '</div>' +
       '<span class="verdict-pill ' + esc(verd) + '">' + esc(combo.verdict || 'MAYBE') + '</span>' +
       '</div>' + netBlock(combo.net_est, perHourValue(combo, (combo.loads || []).length),
+        netPerMileValue(combo),
         ' · ' + esc(searchMoney(combo.net_per_day)) + '/day') + '</div>' +
       (combo.math ? '<p class="search-math">' + esc(combo.math) + '</p>' : '') +
       '<p class="search-meta">On deck at once: ' + esc(wt) + ' · ' + esc(len) +

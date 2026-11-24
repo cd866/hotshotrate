@@ -845,7 +845,8 @@ select:focus {
   color: var(--quiet);
   font-weight: 600;
 }
-.search-net .per-hour {
+.search-net .per-hour,
+.search-net .per-mile {
   display: block;
   margin-top: 4px;
   font-size: 16px;
@@ -854,6 +855,7 @@ select:focus {
   color: var(--cream);
   text-transform: none;
 }
+.search-net .per-mile { margin-top: 2px; }
 .combo-leg-top {
   display: flex;
   justify-content: space-between;
@@ -863,7 +865,8 @@ select:focus {
 .combo-leg .search-net {
   font-size: 22px;
 }
-.combo-leg .search-net .per-hour { font-size: 14px; }
+.combo-leg .search-net .per-hour,
+.combo-leg .search-net .per-mile { font-size: 14px; }
 .rig-note {
   margin: 4px 0 0;
   font-size: 11px;
