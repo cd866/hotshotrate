@@ -864,13 +864,36 @@ select:focus {
   line-height: 1.35;
 }
 .search-flags { color: var(--gold-hi); font-weight: 700; }
-.search-link {
-  display: inline-block;
+.search-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
   margin-top: 10px;
+}
+.search-link, .email-broker {
+  display: inline-block;
   color: var(--purple-hi);
   font-weight: 700;
   text-decoration: underline;
+  font-family: var(--display);
+  letter-spacing: 0.4px;
 }
+.email-broker {
+  color: var(--gold-hi);
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  padding: 4px 10px;
+  text-decoration: none;
+}
+.no-email {
+  color: var(--quiet);
+  font-size: 13px;
+}
+.combo-leg {
+  margin: 0 0 10px;
+}
+.combo-leg .search-actions { margin-top: 6px; }
 
 .search-toolbar {
   display: flex;

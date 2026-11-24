@@ -1,6 +1,6 @@
 {
   "schema": 2,
-  "as_of": "2026-11-24 00:33 CT",
+  "as_of": "2026-11-24 00:50 CT",
   "scanned_at": "2026-11-23 23:00 CT",
   "origin": "Jacksonville, FL",
   "rules": {
@@ -87,7 +87,11 @@
           "equipment": "HS",
           "mode": "FULL",
           "tarp": false,
-          "link": "https://www.directfreight.com"
+          "link": "https://www.directfreight.com",
+          "broker": "",
+          "broker_mc": "",
+          "broker_dot": "",
+          "broker_email": ""
         },
         {
           "board": "Truckstop",
@@ -103,7 +107,11 @@
           "equipment": "HS",
           "mode": "PTL",
           "tarp": false,
-          "link": "https://main.truckstop.com/app/search/loads"
+          "link": "https://main.truckstop.com/app/search/loads",
+          "broker": "BLUE COMET LOGISTICS LLC",
+          "broker_mc": "1069009",
+          "broker_dot": "3346353",
+          "broker_email": "kleverson@bluecometlogistics.com"
         }
       ],
       "flags": [
@@ -153,6 +161,7 @@
       "load_number": "",
       "notes": "1997 CAT 416C",
       "link": "https://main.truckstop.com/app/search/loads",
+      "broker_email": "kleverson@bluecometlogistics.com",
       "tarp": false
     },
     {
@@ -182,6 +191,7 @@
       "load_number": "",
       "notes": "Flatbed hotshot, no tarps, round bales of hay, 1 pick/1 drop, live load/unload, quickpay",
       "link": "https://main.truckstop.com/app/search/loads",
+      "broker_email": "rd@iftrans.com",
       "tarp": false
     },
     {
@@ -211,6 +221,7 @@
       "load_number": "",
       "notes": "2015 Chevy 3500 crew cab w/ flatbed; excavator machinery",
       "link": "https://main.truckstop.com/app/search/loads",
+      "broker_email": "hector@advtransports.com",
       "tarp": false
     },
     {
@@ -242,6 +253,7 @@
       "load_number": "",
       "notes": "Used Freightliner Cascadia day cab; COD",
       "link": "https://main.truckstop.com/app/search/loads",
+      "broker_email": "logistics@limitlesspro.one",
       "tarp": false
     },
     {
@@ -273,6 +285,7 @@
       "load_number": "",
       "notes": "",
       "link": "https://www.directfreight.com",
+      "broker_email": "",
       "tarp": true
     },
     {
@@ -304,6 +317,7 @@
       "load_number": "",
       "notes": "",
       "link": "https://www.directfreight.com",
+      "broker_email": "",
       "tarp": true
     },
     {
@@ -335,6 +349,7 @@
       "load_number": "",
       "notes": "",
       "link": "https://www.directfreight.com",
+      "broker_email": "",
       "tarp": true
     },
     {
@@ -366,6 +381,7 @@
       "load_number": "",
       "notes": "",
       "link": "https://www.directfreight.com",
+      "broker_email": "",
       "tarp": true
     },
     {
@@ -397,6 +413,7 @@
       "load_number": "G5537010-7553540",
       "notes": "LENGTH 48, OVERDIMENSIONAL",
       "link": "https://main.truckstop.com/app/search/loads",
+      "broker_email": "loaddetails+truckstop@wwex.com",
       "tarp": false
     },
     {
@@ -429,6 +446,7 @@
       "load_number": "1773396",
       "notes": "Straps & tarps required; zero trailer damage; tracking required; 1 additional stop; LENGTH 53",
       "link": "https://main.truckstop.com/app/search/loads",
+      "broker_email": "fmg_carrier.sales@ryder.com",
       "tarp": true
     },
     {
@@ -460,6 +478,7 @@
       "load_number": "",
       "notes": "NEED RAMPS",
       "link": "https://main.truckstop.com/app/search/loads",
+      "broker_email": "jade.thell@ascentgl.net",
       "tarp": false
     },
     {
@@ -492,6 +511,7 @@
       "load_number": "",
       "notes": "",
       "link": "https://www.directfreight.com",
+      "broker_email": "",
       "tarp": true
     },
     {
@@ -524,6 +544,7 @@
       "load_number": "",
       "notes": "",
       "link": "https://www.directfreight.com",
+      "broker_email": "",
       "tarp": true
     },
     {
@@ -555,6 +576,7 @@
       "load_number": "",
       "notes": "Isuzu NRR; 111 ask Josue; Zelle/ACH/wire on delivery",
       "link": "https://main.truckstop.com/app/search/loads",
+      "broker_email": "office@soltransports.us",
       "tarp": false
     },
     {
@@ -586,6 +608,7 @@
       "load_number": "",
       "notes": "",
       "link": "https://www.directfreight.com",
+      "broker_email": "",
       "tarp": true
     },
     {
@@ -617,6 +640,7 @@
       "load_number": "",
       "notes": "Building products; no tarp, no conestoga; 2 stops Biloxi and Houston",
       "link": "https://main.truckstop.com/app/search/loads",
+      "broker_email": "marshallm@mmlogisticsga.com",
       "tarp": false
     },
     {
@@ -649,6 +673,7 @@
       "load_number": "",
       "notes": "",
       "link": "https://www.directfreight.com",
+      "broker_email": "",
       "tarp": true
     },
     {
@@ -681,6 +706,7 @@
       "load_number": "",
       "notes": "",
       "link": "https://www.directfreight.com",
+      "broker_email": "",
       "tarp": true
     },
     {
@@ -713,6 +739,7 @@
       "load_number": "",
       "notes": "",
       "link": "https://www.directfreight.com",
+      "broker_email": "",
       "tarp": true
     },
     {
@@ -745,6 +772,7 @@
       "load_number": "",
       "notes": "",
       "link": "https://www.directfreight.com",
+      "broker_email": "",
       "tarp": true
     },
     {
@@ -776,6 +804,7 @@
       "load_number": "",
       "notes": "",
       "link": "https://www.directfreight.com",
+      "broker_email": "",
       "tarp": true
     },
     {
@@ -807,6 +836,7 @@
       "load_number": "",
       "notes": "",
       "link": "https://www.directfreight.com",
+      "broker_email": "",
       "tarp": true
     },
     {
@@ -839,6 +869,7 @@
       "load_number": "",
       "notes": "",
       "link": "https://www.directfreight.com",
+      "broker_email": "",
       "tarp": true
     },
     {
@@ -870,6 +901,7 @@
       "load_number": "",
       "notes": "",
       "link": "https://www.directfreight.com",
+      "broker_email": "",
       "tarp": true
     },
     {
@@ -902,6 +934,7 @@
       "load_number": "",
       "notes": "",
       "link": "https://www.directfreight.com",
+      "broker_email": "",
       "tarp": true
     },
     {
@@ -934,6 +967,7 @@
       "load_number": "",
       "notes": "",
       "link": "https://www.directfreight.com",
+      "broker_email": "",
       "tarp": true
     },
     {
@@ -965,6 +999,7 @@
       "load_number": "",
       "notes": "COD; hot patch truck;; 1 piece",
       "link": "https://main.truckstop.com/app/search/loads",
+      "broker_email": "sales@reliablecargos.net",
       "tarp": false
     },
     {
@@ -997,6 +1032,7 @@
       "load_number": "",
       "notes": "",
       "link": "https://www.directfreight.com",
+      "broker_email": "",
       "tarp": true
     },
     {
@@ -1029,6 +1065,7 @@
       "load_number": "",
       "notes": "",
       "link": "https://www.directfreight.com",
+      "broker_email": "",
       "tarp": true
     },
     {
@@ -1060,6 +1097,7 @@
       "load_number": "",
       "notes": "",
       "link": "https://www.directfreight.com",
+      "broker_email": "",
       "tarp": true
     },
     {
@@ -1092,6 +1130,7 @@
       "load_number": "",
       "notes": "",
       "link": "https://www.directfreight.com",
+      "broker_email": "",
       "tarp": true
     },
     {
@@ -1123,6 +1162,7 @@
       "load_number": "",
       "notes": "",
       "link": "https://www.directfreight.com",
+      "broker_email": "",
       "tarp": true
     },
     {
@@ -1154,6 +1194,7 @@
       "load_number": "",
       "notes": "",
       "link": "https://www.directfreight.com",
+      "broker_email": "",
       "tarp": true
     },
     {
@@ -1183,6 +1224,7 @@
       "load_number": "",
       "notes": "TeleSkid Steer JCB 3TS-8T 17x6.1x6.5ft; factor or same day pay; 15 day standard",
       "link": "https://main.truckstop.com/app/search/loads",
+      "broker_email": "info@comradelogistics.com",
       "tarp": false
     },
     {
@@ -1215,6 +1257,7 @@
       "load_number": "",
       "notes": "",
       "link": "https://www.directfreight.com",
+      "broker_email": "",
       "tarp": true
     },
     {
@@ -1244,6 +1287,7 @@
       "load_number": "",
       "notes": "2015 Ford F550 truck box; 3105825529 (already in Saved loads before scan)",
       "link": "https://main.truckstop.com/app/search/loads",
+      "broker_email": "erikba1@cfilogisticsinc.com",
       "tarp": false
     },
     {
@@ -1276,6 +1320,7 @@
       "load_number": "",
       "notes": "",
       "link": "https://www.directfreight.com",
+      "broker_email": "",
       "tarp": true
     },
     {
@@ -1307,6 +1352,7 @@
       "load_number": "",
       "notes": "Weight not posted; 2006 Ford E-450 cutaway",
       "link": "https://main.truckstop.com/app/search/loads",
+      "broker_email": "mark@luminaexpressinc.com",
       "tarp": false
     },
     {
@@ -1339,6 +1385,7 @@
       "load_number": "",
       "notes": "",
       "link": "https://www.directfreight.com",
+      "broker_email": "",
       "tarp": true
     },
     {
@@ -1371,6 +1418,7 @@
       "load_number": "",
       "notes": "",
       "link": "https://www.directfreight.com",
+      "broker_email": "",
       "tarp": true
     },
     {
@@ -1403,6 +1451,7 @@
       "load_number": "",
       "notes": "",
       "link": "https://www.directfreight.com",
+      "broker_email": "",
       "tarp": true
     },
     {
@@ -1432,6 +1481,7 @@
       "load_number": "",
       "notes": "",
       "link": "https://www.directfreight.com",
+      "broker_email": "",
       "tarp": false
     },
     {
@@ -1464,6 +1514,7 @@
       "load_number": "",
       "notes": "",
       "link": "https://www.directfreight.com",
+      "broker_email": "",
       "tarp": true
     },
     {
@@ -1493,6 +1544,7 @@
       "load_number": "1107859",
       "notes": "Yale GLC040 forklift; ext 728",
       "link": "https://main.truckstop.com/app/search/loads",
+      "broker_email": "adam@ntslogistics.com",
       "tarp": false
     },
     {
@@ -1525,6 +1577,7 @@
       "load_number": "",
       "notes": "",
       "link": "https://www.directfreight.com",
+      "broker_email": "",
       "tarp": true
     },
     {
@@ -1554,6 +1607,7 @@
       "load_number": "85230992",
       "notes": "Waterproofing materials. PU Tues 12-2PM drop Weds 8AM-2PM. Tarps n straps, PPE",
       "link": "https://main.truckstop.com/app/search/loads",
+      "broker_email": "carriersales@shipwithcore.com",
       "tarp": true
     },
     {
@@ -1583,6 +1637,7 @@
       "load_number": "",
       "notes": "",
       "link": "https://www.directfreight.com",
+      "broker_email": "",
       "tarp": false
     },
     {
@@ -1614,6 +1669,7 @@
       "load_number": "",
       "notes": "Combilift CB10000 forklift 109in H, no Friday delivery in AZ",
       "link": "https://main.truckstop.com/app/search/loads",
+      "broker_email": "dkooi@triviumlogistics.com",
       "tarp": false
     },
     {
@@ -1643,6 +1699,7 @@
       "load_number": "",
       "notes": "Bobcat T62, 1 piece",
       "link": "https://main.truckstop.com/app/search/loads",
+      "broker_email": "dispatch.info@bahlogisticsusa.com",
       "tarp": false
     },
     {
@@ -1672,6 +1729,7 @@
       "load_number": "",
       "notes": "195",
       "link": "https://main.truckstop.com/app/search/loads",
+      "broker_email": "jefry.leon@sttlg.us",
       "tarp": false
     },
     {
@@ -1703,6 +1761,7 @@
       "load_number": "189722650",
       "notes": "Combilift CB10000 forklift; no Friday delivery in AZ; Brandon X195",
       "link": "https://main.truckstop.com/app/search/loads",
+      "broker_email": "bff.ops@safreight.com",
       "tarp": false
     },
     {
@@ -1732,6 +1791,7 @@
       "load_number": "",
       "notes": "Call/text; Generator 4x6 3000 lb; factoring COD/ACH/wire/zelle",
       "link": "https://main.truckstop.com/app/search/loads",
+      "broker_email": "gbravo@bluert.com",
       "tarp": false
     },
     {
@@ -1761,6 +1821,7 @@
       "load_number": "",
       "notes": "",
       "link": "https://www.directfreight.com",
+      "broker_email": "",
       "tarp": false
     },
     {
@@ -1790,6 +1851,7 @@
       "load_number": "26158957",
       "notes": "Ford F-550 cab & front-end shell; cash on delivery; call/text",
       "link": "https://main.truckstop.com/app/search/loads",
+      "broker_email": "hector@v-lionslogisticsllc.com",
       "tarp": false
     }
   ]

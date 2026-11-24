@@ -1315,6 +1315,78 @@
       '<svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="Net EST bar chart">' + bars + '</svg></div>';
   }
 
+
+  function boardFallback(row) {
+    return row && row.board === 'Direct Freight'
+      ? 'https://www.directfreight.com'
+      : 'https://main.truckstop.com/app/search/loads';
+  }
+
+  function openLoadHref(row) {
+    var href = ((row && row.link) || '').trim();
+    if (/^https?:\/\//i.test(href)) return href;
+    return boardFallback(row || {});
+  }
+
+  function pickupDateLabel(row) {
+    var w = (row && row.pickup_window) || '';
+    var dates = w.match(/\d{1,2}\/\d{1,2}(?:\/\d{2,4})?/g);
+    if (!dates || !dates.length) return 'date not listed';
+    if (dates.length > 1 && dates[0] !== dates[dates.length - 1]) {
+      return dates[0] + '-' + dates[dates.length - 1];
+    }
+    return dates[0];
+  }
+
+  function loadNumberLabel(row) {
+    var n = row && row.load_number && String(row.load_number).trim();
+    return n || 'not listed';
+  }
+
+  function postedRateLabel(row) {
+    var n = row && row.posted_rate;
+    if (n == null || !isFinite(Number(n))) return 'not listed';
+    return '$' + Number(n).toLocaleString('en-US', { maximumFractionDigits: 2, minimumFractionDigits: 0 });
+  }
+
+  function brokerMailto(row) {
+    var email = ((row && row.broker_email) || '').trim();
+    if (!email || email.indexOf('@') < 0) return '';
+    var loadNo = loadNumberLabel(row);
+    var origin = (row.origin || 'Origin');
+    var dest = (row.destination || 'Destination');
+    var subject = 'Load # ' + loadNo + ' - ' + origin + ' to ' + dest + ' - Totni Enterprise MC 1122113';
+    var body = [
+      'Hello,',
+      '',
+      'I am interested in load # ' + loadNo + ', ' + origin + ' to ' + dest + ', pickup ' + pickupDateLabel(row) + '.',
+      '',
+      'Carrier: Totni Enterprise LLC MC 1122113 / USDOT 3448727.',
+      '',
+      'Equipment: 2026 Ram 3500 dually + 40 ft Big Tex gooseneck flatbed with tarps and straps.',
+      '',
+      'Please confirm the rate is ' + postedRateLabel(row) + ' and send a rate confirmation.',
+      '',
+      'Claudio Dias',
+      'Sand Lily Pad LLC (leased to Totni)'
+    ].join('\r\n');
+    var addr = encodeURIComponent(email).replace(/%40/g, '@');
+    return 'mailto:' + addr + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+  }
+
+  function searchActions(row) {
+    var href = openLoadHref(row);
+    var html = '<div class="search-actions">' +
+      '<a class="search-link" href="' + esc(href) + '" target="_blank" rel="noopener noreferrer">Open load</a>';
+    var mail = brokerMailto(row);
+    if (mail) {
+      html += '<a class="email-broker" href="' + esc(mail) + '">Email broker</a>';
+    } else {
+      html += '<span class="no-email">No email listed</span>';
+    }
+    return html + '</div>';
+  }
+
   function renderSearchCard(row) {
     var verd = String(row.verdict || 'PASS').toLowerCase();
     var origin = row.origin || 'Origin';
@@ -1337,7 +1409,6 @@
     if (row.load_number) bits.push('Load # ' + row.load_number);
     if (row.notes) bits.push(row.notes);
     var flags = (row.fit_flags && row.fit_flags.length) ? row.fit_flags.join('. ') + '.' : '';
-    var link = row.link ? '<a class="search-link" href="' + esc(row.link) + '" target="_blank" rel="noopener noreferrer">Open on ' + esc(row.board || 'the board') + '</a>' : '';
     return '<article class="search-card ' + esc(verd) + '">' +
       '<div class="search-top"><div>' +
       '<div class="lane">' + esc(origin) + dh + ' -> ' + esc(dest) + '</div>' +
@@ -1347,7 +1418,7 @@
       (flags ? '<p class="search-flags">' + esc(flags) + '</p>' : '') +
       (row.tarp ? '<p class="search-fit">Tarps, straps</p>' : '') +
       '<p class="search-meta">' + esc(bits.filter(Boolean).join(' | ')) + '</p>' +
-      link + '</article>';
+      searchActions(row) + '</article>';
   }
 
   function renderComboCard(combo) {
@@ -1364,7 +1435,9 @@
       if (row.length_ft != null) bits.push(plainNum(row.length_ft, 1) + ' ft');
       else bits.push('length n/a');
       if (row.board) bits.push(row.board);
-      return '<li>' + esc(bits.join(' · ')) + '</li>';
+      if (row.load_number) bits.push('Load # ' + row.load_number);
+      return '<li class="combo-leg"><div>' + esc(bits.join(' · ')) + '</div>' +
+        searchActions(row) + '</li>';
     }).join('');
     var wt = combo.combined_weight_lb != null ? plainNum(combo.combined_weight_lb, 0) + ' lb' : 'n/a';
     if (combo.weight_unknown) wt += ' (some not listed)';
