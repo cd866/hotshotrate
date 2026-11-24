@@ -557,6 +557,8 @@ html.splash-seen #about:not(.open) { display: none; }
 .pay-paid_short { background: var(--gold-hi); color: var(--bg); }
 .pay-unpaid { background: var(--pass); color: var(--cream); }
 .pay-in_transit { background: #7EB6FF; color: #0E0E10; }
+.pay-booked { background: #7EB6FF; color: #0E0E10; }
+.pay-delivered { background: #3D8B6E; color: #F4F0E6; }
 .load h3 .pay { vertical-align: 4px; }
 .seg.stops-corridor { margin-top: 10px; grid-template-columns: 1fr 1fr 1fr; }
 #stops-go { margin-top: 10px; }

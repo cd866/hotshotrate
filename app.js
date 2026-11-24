@@ -517,13 +517,167 @@
     return da < db ? 1 : -1;
   }
 
+  function chicagoNowParts(date) {
+    var d = date || new Date();
+    var fmt = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Chicago',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hourCycle: 'h23'
+    });
+    var parts = { year: 0, month: 0, day: 0, hour: 0, minute: 0, second: 0 };
+    fmt.formatToParts(d).forEach(function (part) {
+      if (part.type !== 'literal') parts[part.type] = Number(part.value);
+    });
+    return parts;
+  }
+
+  function chicagoDayNum(parts) {
+    return parts.year * 10000 + parts.month * 100 + parts.day;
+  }
+
+  function parseYmd(value) {
+    if (value == null || value === '') return null;
+    var text = String(value);
+    var m = text.match(/(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?)?/);
+    if (!m) return null;
+    return {
+      year: Number(m[1]),
+      month: Number(m[2]),
+      day: Number(m[3]),
+      hour: m[4] != null ? Number(m[4]) : null,
+      minute: m[5] != null ? Number(m[5]) : 0,
+      second: m[6] != null ? Number(m[6]) : 0
+    };
+  }
+
+  function parseClock(text) {
+    if (!text) return null;
+    var m = String(text).trim().match(/^(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)?$/i);
+    if (!m) return null;
+    var hh = Number(m[1]);
+    var mm = Number(m[2] || 0);
+    var ap = (m[3] || '').replace(/\./g, '').toLowerCase();
+    if (ap === 'pm' && hh < 12) hh += 12;
+    if (ap === 'am' && hh === 12) hh = 0;
+    if (hh > 23 || mm > 59) return null;
+    return { hour: hh, minute: mm, second: 0 };
+  }
+
+  function windowEndClock(window) {
+    if (!window) return null;
+    var text = String(window).trim();
+    var parts = text.split(/\s*(?:[-–—]|to)\s*/i);
+    var end = (parts[parts.length - 1] || text).trim();
+    var parsed = parseClock(end);
+    if (parsed) return parsed;
+    var ampm = text.match(/(a\.?m\.?|p\.?m\.?)\s*$/i);
+    if (ampm && !/(a\.?m\.?|p\.?m\.?)/i.test(end)) return parseClock(end + ' ' + ampm[1]);
+    return null;
+  }
+
+  function hasPayment(load, nowParts) {
+    var recDates = ['received_date', 'paid_date', 'payout_date'].map(function (key) {
+      return parseYmd(load && load[key]);
+    }).filter(Boolean);
+    var asOf = nowParts ? chicagoDayNum(nowParts) : null;
+    var datedFuture = false;
+    if (recDates.length && asOf != null) {
+      datedFuture = recDates.every(function (rd) {
+        return (rd.year * 10000 + rd.month * 100 + rd.day) > asOf;
+      });
+      if (!datedFuture) return true;
+    }
+    var rec = load && load.net_received != null && load.net_received !== '' ? Number(load.net_received) : 0;
+    if (isFinite(rec) && rec > 0 && !datedFuture) return true;
+    var payout = load && (load.totni_payout || load.totni_paid || load.payout);
+    if (payout && payout !== true && !datedFuture) {
+      if (typeof payout === 'number') return payout > 0;
+      return true;
+    }
+    return false;
+  }
+
+  function isCancelledLoad(load) {
+    return String((load && load.status) || '').trim().toLowerCase().indexOf('cancel') === 0;
+  }
+
+  function pastDelivery(load, nowParts) {
+    nowParts = nowParts || chicagoNowParts();
+    var nowNum = chicagoDayNum(nowParts);
+    var nowClock = nowParts.hour * 3600 + nowParts.minute * 60 + nowParts.second;
+    var conf = parseYmd(load && load.delivered_date);
+    if (conf && nowNum >= (conf.year * 10000 + conf.month * 100 + conf.day)) return true;
+    var raw = (load && (load.delivery_date || load.delivered_date || load.delivery_due)) || '';
+    var parsed = parseYmd(raw);
+    if (!parsed) return false;
+    var dayNum = parsed.year * 10000 + parsed.month * 100 + parsed.day;
+    var clock = windowEndClock((load && (load.delivery_window || load.delivery_time)) || '');
+    if (!clock && parsed.hour != null) clock = { hour: parsed.hour, minute: parsed.minute, second: parsed.second };
+    if (clock) {
+      var cut = clock.hour * 3600 + clock.minute * 60 + (clock.second || 0);
+      if (nowNum > dayNum) return true;
+      if (nowNum < dayNum) return false;
+      return nowClock >= cut;
+    }
+    // Date only: past the end of that day (start of the next day).
+    var next = new Date(Date.UTC(parsed.year, parsed.month - 1, parsed.day + 1));
+    var nextNum = next.getUTCFullYear() * 10000 + (next.getUTCMonth() + 1) * 100 + next.getUTCDate();
+    return nowNum >= nextNum;
+  }
+
+  function resolveRunStatus(load, nowParts) {
+    nowParts = nowParts || chicagoNowParts();
+    if (isCancelledLoad(load)) return 'cancelled';
+    if (hasPayment(load, nowParts) || pastDelivery(load, nowParts)) return 'delivered';
+    var pickup = parseYmd((load && (load.pickup_date || load.date)) || '');
+    if (pickup) {
+      var pu = pickup.year * 10000 + pickup.month * 100 + pickup.day;
+      if (chicagoDayNum(nowParts) >= pu) return 'in_transit';
+      return 'booked';
+    }
+    var st = String((load && load.status) || '').trim().toUpperCase();
+    if (st === 'BOOKED') return 'booked';
+    return 'in_transit';
+  }
+
+  function resolvePayStatus(load, runStatus, nowParts) {
+    runStatus = runStatus || resolveRunStatus(load, nowParts);
+    if (runStatus === 'cancelled') return '';
+    var rec = load && load.net_received != null && load.net_received !== '' ? Number(load.net_received) : 0;
+    var due = load && load.net_due != null && load.net_due !== '' ? Number(load.net_due) : null;
+    if (isFinite(rec) && rec > 0) {
+      if (due != null && isFinite(due) && rec + 0.004 < due) return 'paid_short';
+      return 'paid';
+    }
+    if (runStatus === 'in_transit' || runStatus === 'booked') return 'in_transit';
+    return 'unpaid';
+  }
+
+  function withResolvedStatus(load) {
+    var nowParts = chicagoNowParts();
+    var run = resolveRunStatus(load, nowParts);
+    var pay = resolvePayStatus(load, run, nowParts);
+    var out = {};
+    Object.keys(load || {}).forEach(function (key) { out[key] = load[key]; });
+    out.status = run;
+    out.pay_status = pay;
+    return out;
+  }
+
   function paySummary(loads) {
     var receivedC = 0;
     var owedC = 0;
     var owedEst = false;
-    var counts = { paid: 0, paid_short: 0, unpaid: 0, in_transit: 0 };
+    var counts = { paid: 0, paid_short: 0, unpaid: 0, in_transit: 0, delivered: 0, booked: 0 };
     loads.forEach(function (load) {
+      load = withResolvedStatus(load);
       if (counts[load.pay_status] != null) counts[load.pay_status] += 1;
+      if (counts[load.status] != null) counts[load.status] += 1;
       var hasDue = load.net_due != null && load.net_due !== '' && isFinite(Number(load.net_due));
       var hasGot = load.net_received != null && load.net_received !== '' && isFinite(Number(load.net_received));
       if (!hasDue) return;
@@ -539,6 +693,7 @@
     if (counts.unpaid) bits.push(counts.unpaid + ' unpaid');
     if (counts.paid_short) bits.push(counts.paid_short + ' paid short');
     if (counts.in_transit) bits.push(counts.in_transit + ' in transit');
+    if (counts.booked) bits.push(counts.booked + ' booked');
     if (counts.paid) bits.push(counts.paid + ' paid');
     return {
       received: receivedC / 100,
@@ -760,15 +915,25 @@
   }
 
   function payBadge(load) {
-    var labels = {
+    load = withResolvedStatus(load);
+    var html = '';
+    var runLabels = {
+      delivered: 'Delivered',
+      in_transit: 'In transit',
+      booked: 'Booked'
+    };
+    if (runLabels[load.status]) {
+      html += ' <span class="pay pay-' + load.status + '">' + runLabels[load.status] + '</span>';
+    }
+    var payLabels = {
       paid: 'Paid',
       paid_short: 'Paid short',
-      unpaid: 'Unpaid',
-      in_transit: 'In transit'
+      unpaid: 'Unpaid'
     };
-    var key = load && load.pay_status;
-    if (!labels[key]) return '';
-    return ' <span class="pay pay-' + key + '">' + labels[key] + '</span>';
+    if (payLabels[load.pay_status]) {
+      html += ' <span class="pay pay-' + load.pay_status + '">' + payLabels[load.pay_status] + '</span>';
+    }
+    return html;
   }
 
   function payLine(load) {
