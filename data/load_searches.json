@@ -1,6 +1,6 @@
 {
   "schema": 2,
-  "as_of": "2026-11-24 02:14 CT",
+  "as_of": "2026-11-24 02:27 CT",
   "scanned_at": "2026-11-23 23:00 CT",
   "origin": "Jacksonville, FL",
   "origin_coord": {
@@ -29,7 +29,8 @@
     "per_hour_formula": "$/hr EST = net EST / hours. Hours = (loaded mi + deadhead mi) / 50 mph + 2 h load/unload per load.",
     "per_hour_mph": 50.0,
     "load_unload_hours": 2.0,
-    "net_per_mile_formula": "Net $/mi EST = net EST / (loaded mi + deadhead mi).",
+    "net_per_mile_formula": "Net $/mi EST = net EST / (loaded mi + empty miles).",
+    "gross_per_mile_formula": "Gross $/mi = posted rate / (loaded mi + empty miles). Rate/mi is posted rate / loaded miles only.",
     "quality_bar": "Single load >= $500 net EST, or >= $300 for a same-day run under 250 total miles. A chain needs >= $1,000 total with no losing leg. Length over 40 ft or weight over 16,000 lb is an automatic PASS. No overhang. Tarp-required, F+T, and FT loads are a fit; the rig has tarps and straps.",
     "combo_bar": "A 2- or 3-load combo needs >= $1,000 total net EST, must beat the best single load in it by at least $200, and no leg may lose money. Shared-deck combos keep combined weight <= 16,000 lb and combined length <= 40 ft for whatever is on the deck at the same time. Extra pickups must stay within about 100 mi of detour and extra drops within about 150 mi. Sequential chains deliver one load, then pick up the next within about 100 mi of the drop. Windows are checked at 550 mi/day. Route miles use the posted trip when the lane matches, otherwise haversine x 1.2. Unknown weight or length is flagged."
   },
@@ -52,6 +53,8 @@
       "hours": 31.07,
       "per_hour": 47.6,
       "net_per_mile": 1.09,
+      "gross_per_mile": 2.44,
+      "posted_rate": 3300.0,
       "days": 2.46,
       "beats_best_single_by": 294.75,
       "best_single_net": 1184.1,
@@ -118,6 +121,7 @@
           "hours": 6.28,
           "per_hour": 41.12,
           "net_per_mile": 1.21,
+          "gross_per_mile": 2.34,
           "reason": "Net EST is under the $300 same-day bar.",
           "trip_mi": 134,
           "origin_dh_mi": 80,
@@ -360,6 +364,7 @@
           "hours": 27.22,
           "per_hour": 43.5,
           "net_per_mile": 0.94,
+          "gross_per_mile": 2.22,
           "reason": "Clears the net bar and fits the deck.",
           "trip_mi": 1040,
           "origin_dh_mi": 221,
@@ -1180,6 +1185,7 @@
       "hours": 27.22,
       "per_hour": 43.5,
       "net_per_mile": 0.94,
+      "gross_per_mile": 2.22,
       "reason": "Clears the net bar and fits the deck.",
       "truck_coord": {
         "lat": 30.3163,
@@ -1474,6 +1480,7 @@
       "hours": 28.46,
       "per_hour": 21.19,
       "net_per_mile": 0.46,
+      "gross_per_mile": 1.66,
       "reason": "Clears the net bar and fits the deck.",
       "truck_coord": {
         "lat": 30.3163,
@@ -1780,6 +1787,7 @@
       "hours": 28.92,
       "per_hour": 18.29,
       "net_per_mile": 0.39,
+      "gross_per_mile": 1.63,
       "reason": "Clears the net bar and fits the deck.",
       "truck_coord": {
         "lat": 30.3163,
@@ -2012,6 +2020,7 @@
       "hours": 29.38,
       "per_hour": 47.33,
       "net_per_mile": 1.02,
+      "gross_per_mile": 2.34,
       "reason": "Clears the net bar, but weight is at the 16,000 lb payload.",
       "truck_coord": {
         "lat": 30.3163,
@@ -2268,6 +2277,7 @@
       "hours": 24.62,
       "per_hour": 54.91,
       "net_per_mile": 1.2,
+      "gross_per_mile": 2.39,
       "reason": "Clears the net bar, but weight is not listed.",
       "truck_coord": {
         "lat": 30.3163,
@@ -2572,6 +2582,7 @@
       "hours": 20.44,
       "per_hour": 39.28,
       "net_per_mile": 0.87,
+      "gross_per_mile": 1.98,
       "reason": "Clears the net bar, but weight is not listed.",
       "truck_coord": {
         "lat": 30.3163,
@@ -2808,6 +2819,7 @@
       "hours": 20.86,
       "per_hour": 36.51,
       "net_per_mile": 0.81,
+      "gross_per_mile": 1.88,
       "reason": "Clears the net bar, but weight is not listed.",
       "truck_coord": {
         "lat": 30.3163,
@@ -3080,6 +3092,7 @@
       "hours": 38.3,
       "per_hour": 99.5,
       "net_per_mile": 2.1,
+      "gross_per_mile": 3.58,
       "reason": "Over 16,000 lb payload - cannot haul.",
       "truck_coord": {
         "lat": 30.3163,
@@ -3320,6 +3333,7 @@
       "hours": 30.62,
       "per_hour": 85.08,
       "net_per_mile": 1.82,
+      "gross_per_mile": 3.2,
       "reason": "Over 40 ft deck - cannot haul.",
       "truck_coord": {
         "lat": 30.3163,
@@ -3625,6 +3639,7 @@
       "hours": 23.06,
       "per_hour": 82.7,
       "net_per_mile": 1.81,
+      "gross_per_mile": 3.23,
       "reason": "Over 16,000 lb payload - cannot haul.",
       "truck_coord": {
         "lat": 30.3163,
@@ -3961,6 +3976,7 @@
       "hours": 23.46,
       "per_hour": 56.9,
       "net_per_mile": 1.24,
+      "gross_per_mile": 2.52,
       "reason": "Over 16,000 lb payload - cannot haul.",
       "truck_coord": {
         "lat": 30.3163,
@@ -4202,6 +4218,7 @@
       "hours": 28.44,
       "per_hour": 41.87,
       "net_per_mile": 0.9,
+      "gross_per_mile": 2.11,
       "reason": "Over 16,000 lb payload - cannot haul.",
       "truck_coord": {
         "lat": 30.3163,
@@ -4571,6 +4588,7 @@
       "hours": 24.96,
       "per_hour": 41.35,
       "net_per_mile": 0.9,
+      "gross_per_mile": 2.09,
       "reason": "Over 16,000 lb payload - cannot haul.",
       "truck_coord": {
         "lat": 30.3163,
@@ -4923,6 +4941,7 @@
       "hours": 20.48,
       "per_hour": 48.89,
       "net_per_mile": 1.08,
+      "gross_per_mile": 2.27,
       "reason": "Over 16,000 lb payload - cannot haul.",
       "truck_coord": {
         "lat": 30.3163,
@@ -5219,6 +5238,7 @@
       "hours": 12.0,
       "per_hour": 78.51,
       "net_per_mile": 1.88,
+      "gross_per_mile": 3.2,
       "reason": "Over 16,000 lb payload - cannot haul.",
       "truck_coord": {
         "lat": 30.3163,
@@ -5459,6 +5479,7 @@
       "hours": 21.02,
       "per_hour": 44.04,
       "net_per_mile": 0.97,
+      "gross_per_mile": 2.31,
       "reason": "Over 16,000 lb payload - cannot haul.",
       "truck_coord": {
         "lat": 30.3163,
@@ -5756,6 +5777,7 @@
       "hours": 17.56,
       "per_hour": 50.85,
       "net_per_mile": 1.15,
+      "gross_per_mile": 2.44,
       "reason": "Over 16,000 lb payload - cannot haul.",
       "truck_coord": {
         "lat": 30.3163,
@@ -6093,6 +6115,7 @@
       "hours": 19.76,
       "per_hour": 39.91,
       "net_per_mile": 0.89,
+      "gross_per_mile": 2.08,
       "reason": "Over 16,000 lb payload - cannot haul.",
       "truck_coord": {
         "lat": 30.3163,
@@ -6414,6 +6437,7 @@
       "hours": 11.4,
       "per_hour": 64.37,
       "net_per_mile": 1.56,
+      "gross_per_mile": 2.77,
       "reason": "Over 16,000 lb payload - cannot haul.",
       "truck_coord": {
         "lat": 30.3163,
@@ -6683,6 +6707,7 @@
       "hours": 15.98,
       "per_hour": 45.76,
       "net_per_mile": 1.05,
+      "gross_per_mile": 2.29,
       "reason": "Over 16,000 lb payload - cannot haul.",
       "truck_coord": {
         "lat": 30.3163,
@@ -7015,6 +7040,7 @@
       "hours": 10.38,
       "per_hour": 70.32,
       "net_per_mile": 1.74,
+      "gross_per_mile": 2.98,
       "reason": "Over 16,000 lb payload - cannot haul.",
       "truck_coord": {
         "lat": 30.3163,
@@ -7299,6 +7325,7 @@
       "hours": 11.82,
       "per_hour": 60.02,
       "net_per_mile": 1.44,
+      "gross_per_mile": 2.44,
       "reason": "Over 16,000 lb payload - cannot haul.",
       "truck_coord": {
         "lat": 30.3163,
@@ -7588,6 +7615,7 @@
       "hours": 16.8,
       "per_hour": 40.98,
       "net_per_mile": 0.93,
+      "gross_per_mile": 1.96,
       "reason": "Over 16,000 lb payload - cannot haul.",
       "truck_coord": {
         "lat": 30.3163,
@@ -7912,6 +7940,7 @@
       "hours": 12.48,
       "per_hour": 54.37,
       "net_per_mile": 1.29,
+      "gross_per_mile": 2.29,
       "reason": "Over 16,000 lb payload - cannot haul.",
       "truck_coord": {
         "lat": 30.3163,
@@ -8189,6 +8218,7 @@
       "hours": 13.32,
       "per_hour": 50.9,
       "net_per_mile": 1.2,
+      "gross_per_mile": 2.39,
       "reason": "Over 16,000 lb payload - cannot haul.",
       "truck_coord": {
         "lat": 30.3163,
@@ -8454,6 +8484,7 @@
       "hours": 15.02,
       "per_hour": 43.65,
       "net_per_mile": 1.01,
+      "gross_per_mile": 2.15,
       "reason": "Over 16,000 lb payload - cannot haul.",
       "truck_coord": {
         "lat": 30.3163,
@@ -8750,6 +8781,7 @@
       "hours": 33.22,
       "per_hour": 19.36,
       "net_per_mile": 0.41,
+      "gross_per_mile": 1.6,
       "reason": "Over 16,000 lb payload - cannot haul.",
       "truck_coord": {
         "lat": 30.3163,
@@ -9063,6 +9095,7 @@
       "hours": 18.88,
       "per_hour": 33.78,
       "net_per_mile": 0.76,
+      "gross_per_mile": 1.81,
       "reason": "Over 16,000 lb payload - cannot haul.",
       "truck_coord": {
         "lat": 30.3163,
@@ -9360,6 +9393,7 @@
       "hours": 11.74,
       "per_hour": 51.26,
       "net_per_mile": 1.24,
+      "gross_per_mile": 2.26,
       "reason": "Over 16,000 lb payload - cannot haul.",
       "truck_coord": {
         "lat": 30.3163,
@@ -9640,6 +9674,7 @@
       "hours": 13.42,
       "per_hour": 44.78,
       "net_per_mile": 1.05,
+      "gross_per_mile": 1.93,
       "reason": "Over 16,000 lb payload - cannot haul.",
       "truck_coord": {
         "lat": 30.3163,
@@ -9877,6 +9912,7 @@
       "hours": 11.26,
       "per_hour": 52.53,
       "net_per_mile": 1.28,
+      "gross_per_mile": 2.27,
       "reason": "Over 16,000 lb payload - cannot haul.",
       "truck_coord": {
         "lat": 30.3163,
@@ -10141,6 +10177,7 @@
       "hours": 13.22,
       "per_hour": 44.19,
       "net_per_mile": 1.04,
+      "gross_per_mile": 2.14,
       "reason": "Over 16,000 lb payload - cannot haul.",
       "truck_coord": {
         "lat": 30.3163,
@@ -10485,6 +10522,7 @@
       "hours": 11.08,
       "per_hour": 49.72,
       "net_per_mile": 1.21,
+      "gross_per_mile": 2.09,
       "reason": "Over 16,000 lb payload - cannot haul.",
       "truck_coord": {
         "lat": 30.3163,
@@ -10795,6 +10833,7 @@
       "hours": 26.52,
       "per_hour": 17.34,
       "net_per_mile": 0.38,
+      "gross_per_mile": 1.63,
       "reason": "Net EST is under the $500 bar.",
       "truck_coord": {
         "lat": 30.3163,
@@ -11084,6 +11123,7 @@
       "hours": 9.28,
       "per_hour": 49.03,
       "net_per_mile": 1.25,
+      "gross_per_mile": 2.75,
       "reason": "Over 16,000 lb payload - cannot haul.",
       "truck_coord": {
         "lat": 30.3163,
@@ -11254,6 +11294,7 @@
       "hours": 61.44,
       "per_hour": 7.3,
       "net_per_mile": 0.15,
+      "gross_per_mile": 1.48,
       "reason": "Net EST is under the $500 bar.",
       "truck_coord": {
         "lat": 30.3163,
@@ -11555,6 +11596,7 @@
       "hours": 8.68,
       "per_hour": 46.11,
       "net_per_mile": 1.2,
+      "gross_per_mile": 2.25,
       "reason": "Over 16,000 lb payload - cannot haul.",
       "truck_coord": {
         "lat": 30.3163,
@@ -11819,6 +11861,7 @@
       "hours": 34.78,
       "per_hour": 10.65,
       "net_per_mile": 0.23,
+      "gross_per_mile": 1.4,
       "reason": "Net EST is under the $500 bar.",
       "truck_coord": {
         "lat": 30.3163,
@@ -12108,6 +12151,7 @@
       "hours": 9.7,
       "per_hour": 36.83,
       "net_per_mile": 0.93,
+      "gross_per_mile": 1.95,
       "reason": "Over 16,000 lb payload - cannot haul.",
       "truck_coord": {
         "lat": 30.3163,
@@ -12417,6 +12461,7 @@
       "hours": 11.52,
       "per_hour": 28.58,
       "net_per_mile": 0.69,
+      "gross_per_mile": 1.47,
       "reason": "Over 16,000 lb payload - cannot haul.",
       "truck_coord": {
         "lat": 30.3163,
@@ -12650,6 +12695,7 @@
       "hours": 11.2,
       "per_hour": 28.31,
       "net_per_mile": 0.69,
+      "gross_per_mile": 1.63,
       "reason": "Over 16,000 lb payload - cannot haul.",
       "truck_coord": {
         "lat": 30.3163,
@@ -12944,6 +12990,7 @@
       "hours": 6.28,
       "per_hour": 41.12,
       "net_per_mile": 1.21,
+      "gross_per_mile": 2.34,
       "reason": "Net EST is under the $300 same-day bar.",
       "truck_coord": {
         "lat": 30.3163,
@@ -13197,6 +13244,7 @@
       "hours": 13.44,
       "per_hour": 16.61,
       "net_per_mile": 0.39,
+      "gross_per_mile": 1.22,
       "reason": "Over 16,000 lb payload - cannot haul.",
       "truck_coord": {
         "lat": 30.3163,
@@ -13387,6 +13435,7 @@
       "hours": 38.38,
       "per_hour": 5.77,
       "net_per_mile": 0.12,
+      "gross_per_mile": 1.37,
       "reason": "Net EST is under the $500 bar.",
       "truck_coord": {
         "lat": 30.3163,
@@ -13644,6 +13693,7 @@
       "hours": 10.64,
       "per_hour": 20.54,
       "net_per_mile": 0.51,
+      "gross_per_mile": 1.39,
       "reason": "Over 16,000 lb payload - cannot haul.",
       "truck_coord": {
         "lat": 30.3163,
@@ -13966,6 +14016,7 @@
       "hours": 16.76,
       "per_hour": 11.36,
       "net_per_mile": 0.26,
+      "gross_per_mile": 1.22,
       "reason": "Net EST is under the $500 bar.",
       "truck_coord": {
         "lat": 30.3163,
@@ -14352,6 +14403,7 @@
       "hours": 22.76,
       "per_hour": 6.83,
       "net_per_mile": 0.15,
+      "gross_per_mile": 1.16,
       "reason": "Net EST is under the $500 bar.",
       "truck_coord": {
         "lat": 30.3163,
@@ -14680,6 +14732,7 @@
       "hours": 49.16,
       "per_hour": -4.34,
       "net_per_mile": -0.09,
+      "gross_per_mile": 1.1,
       "reason": "Over 16,000 lb payload - cannot haul.",
       "truck_coord": {
         "lat": 30.3163,
@@ -15022,6 +15075,7 @@
       "hours": 49.2,
       "per_hour": -4.73,
       "net_per_mile": -0.1,
+      "gross_per_mile": 1.12,
       "reason": "Net EST is under the $500 bar.",
       "truck_coord": {
         "lat": 30.3163,
@@ -15312,6 +15366,7 @@
       "hours": 52.66,
       "per_hour": -5.4,
       "net_per_mile": -0.11,
+      "gross_per_mile": 1.11,
       "reason": "Net EST is under the $500 bar.",
       "truck_coord": {
         "lat": 30.3163,
@@ -15660,6 +15715,7 @@
       "hours": 49.28,
       "per_hour": -8.0,
       "net_per_mile": -0.17,
+      "gross_per_mile": 1.02,
       "reason": "Over 16,000 lb payload - cannot haul.",
       "truck_coord": {
         "lat": 30.3163,
@@ -16002,6 +16058,7 @@
       "hours": 27.76,
       "per_hour": -25.57,
       "net_per_mile": -0.55,
+      "gross_per_mile": 0.54,
       "reason": "Net EST is under the $500 bar.",
       "truck_coord": {
         "lat": 30.3163,
@@ -16268,6 +16325,7 @@
       "hours": 53.32,
       "per_hour": -16.59,
       "net_per_mile": -0.34,
+      "gross_per_mile": 0.86,
       "reason": "Net EST is under the $500 bar.",
       "truck_coord": {
         "lat": 30.3163,
@@ -16594,6 +16652,7 @@
       "hours": 67.52,
       "per_hour": -27.91,
       "net_per_mile": -0.58,
+      "gross_per_mile": 0.61,
       "reason": "Net EST is under the $500 bar.",
       "truck_coord": {
         "lat": 30.3163,

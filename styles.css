@@ -815,12 +815,15 @@ select:focus {
 .search-card.take { border-left-color: var(--gold); }
 .search-card.maybe { border-left-color: var(--purple-hi); }
 .search-card.pass { border-left-color: var(--pass); }
-.search-card .lane {
+.search-card .lane,
+.combo-card .lane,
+.combo-leg .lane {
   font-family: var(--display);
   font-weight: 600;
   font-size: 18px;
   line-height: 1.15;
   letter-spacing: 0.2px;
+  color: var(--cream);
 }
 .search-top,
 .search-head {
@@ -850,10 +853,10 @@ select:focus {
 }
 .stat-row span {
   display: block;
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 0.6px;
   text-transform: uppercase;
-  color: var(--quiet);
+  color: #E7E1D4;
   margin-bottom: 2px;
 }
 .stat-row b {
@@ -864,12 +867,54 @@ select:focus {
   color: var(--cream);
   letter-spacing: 0.2px;
 }
-.rate-pills {
+.rate-compare {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+  white-space: normal;
 }
+.rate-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.rate-tile {
+  border-radius: 10px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-height: 64px;
+}
+.rate-tile .rate-label {
+  font-family: var(--body);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: inherit;
+}
+.rate-tile .rate-value {
+  font-family: var(--display);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: 0.2px;
+  color: inherit;
+}
+.rate-tile .rate-sub {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: inherit;
+  opacity: 0.88;
+}
+.rate-tile.good { background: #D1FAE5; color: #064E3B; }
+.rate-tile.ok { background: #FEF3C7; color: #78350F; }
+.rate-tile.low { background: #FECACA; color: #7F1D1D; }
+.rate-tile.neutral { background: #F5F1E6; color: #0E0E10; }
 .rate-pill {
   display: inline-flex;
   align-items: center;
@@ -878,33 +923,35 @@ select:focus {
   padding: 2px 8px;
   border-radius: 999px;
   font-family: var(--display);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.2px;
   line-height: 1.2;
   text-transform: none;
   white-space: nowrap;
 }
-.rate-pill.good { background: #166534; color: #ECFDF3; }
-.rate-pill.ok { background: #CA8A04; color: #1A1403; }
-.rate-pill.low { background: #B91C1C; color: #FEF2F2; }
+.rate-pill.good { background: #D1FAE5; color: #064E3B; }
+.rate-pill.ok { background: #FEF3C7; color: #78350F; }
+.rate-pill.low { background: #FECACA; color: #7F1D1D; }
+.rate-pill.neutral { background: #F5F1E6; color: #0E0E10; }
 .rate-legend {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 6px 8px;
   margin: 12px 0 0;
-  font-size: 12px;
-  color: var(--quiet);
+  font-size: 13px;
+  color: #E7E1D4;
 }
 .rate-legend-label {
   margin-left: 4px;
   letter-spacing: 0.4px;
   text-transform: uppercase;
   font-weight: 700;
+  color: var(--cream);
 }
 .rate-legend-label:first-child { margin-left: 0; }
-.rate-legend .rate-pill { font-size: 11px; min-height: 22px; }
+.rate-legend .rate-pill { font-size: 12px; min-height: 24px; }
 .search-net {
   font-family: var(--display);
   font-weight: 700;
@@ -918,18 +965,14 @@ select:focus {
 .search-net .unit {
   display: block;
   margin-top: 4px;
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 1px;
   text-transform: uppercase;
-  color: var(--quiet);
+  color: #E7E1D4;
   font-weight: 600;
 }
-.search-net .rate-pill.per-hour,
-.search-net .rate-pill.per-mile {
-  margin-top: 0;
-  font-size: 13px;
-}
-.combo-leg .search-net .rate-pill { font-size: 12px; }
+.search-net .rate-compare { font-weight: 400; }
+.combo-leg .rate-tile .rate-value { font-size: 18px; }
 .combo-leg-top {
   display: flex;
   justify-content: space-between;
@@ -963,8 +1006,8 @@ select:focus {
 .verdict-pill.pass { background: var(--pass); color: var(--cream); }
 .search-math, .search-meta, .search-flags {
   margin: 10px 0 0;
-  font-size: 13px;
-  color: var(--muted);
+  font-size: 14px;
+  color: #E7E1D4;
   line-height: 1.4;
 }
 .search-flags { color: var(--gold-hi); font-weight: 700; }
@@ -975,45 +1018,41 @@ select:focus {
   gap: 10px 12px;
   margin-top: 14px;
 }
-.search-link, .email-broker, .call-broker, .open-maps {
+.search-link, .email-broker, .call-broker, .open-maps, .load-toggle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-height: 44px;
   min-width: 44px;
   padding: 0 14px;
-  color: var(--purple-hi);
+  color: #0E0E10;
+  background: #F5F1E6;
   font-weight: 700;
   text-decoration: none;
   font-family: var(--display);
   letter-spacing: 0.4px;
   border-radius: 999px;
-  border: 1px solid var(--purple);
+  border: 1px solid #F5F1E6;
   box-sizing: border-box;
 }
-.email-broker, .call-broker {
-  color: var(--gold-hi);
-  border-color: var(--gold);
-}
-.call-broker { color: var(--cream); border-color: var(--purple-hi); }
-.open-maps {
-  color: var(--gold-hi);
-  border-color: var(--gold);
-  margin-top: 0;
+.email-broker, .call-broker, .open-maps, .load-toggle {
+  color: #0E0E10;
+  background: var(--gold);
+  border-color: var(--gold-hi);
 }
 .looked-up {
   display: inline-block;
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 0.8px;
   text-transform: uppercase;
-  color: var(--quiet);
-  border: 1px solid var(--quiet);
+  color: var(--cream);
+  border: 1px solid #E7E1D4;
   border-radius: 999px;
   padding: 3px 8px;
 }
 .no-email {
-  color: var(--quiet);
-  font-size: 13px;
+  color: #E7E1D4;
+  font-size: 14px;
 }
 .combo-card { padding: 16px; margin: 0 0 16px; }
 .combo-leg { margin: 0 0 14px; padding-top: 8px; }
@@ -1033,9 +1072,9 @@ select:focus {
 .combo-leg .route-map { height: 170px; }
 .route-legend {
   margin: 6px 0 0;
-  font-size: 11px;
+  font-size: 13px;
   letter-spacing: 0.4px;
-  color: var(--quiet);
+  color: #E7E1D4;
 }
 .route-legend .swatch {
   display: inline-block;
@@ -1053,8 +1092,8 @@ select:focus {
 .route-wrap .open-maps { margin-top: 10px; }
 .route-missing {
   margin: 8px 0 0;
-  font-size: 13px;
-  color: var(--quiet);
+  font-size: 14px;
+  color: #E7E1D4;
 }
 .route-pin-wrap { background: transparent; border: 0; }
 .route-pin {

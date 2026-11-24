@@ -988,18 +988,84 @@
     var rateCell = miles ? rpm(load.rate_per_mi != null && isFinite(Number(load.rate_per_mi)) ? Number(load.rate_per_mi) : gross / miles) : '—';
     if (miles && load.miles_estimate) rateCell += ' <span class="est">EST</span>';
     var who = [load.broker, load.load_no].filter(Boolean).join(' | ');
-    return '<article class="load"><h3>' + esc(load.desc || 'Load') + payBadge(load) + '</h3>' +
+    var canMap = hasRouteToDraw(routePayload(load));
+    var mapsHref = pastLoadMapsUrl(load);
+    var emptyNote = '';
+    if (load.empty_mi_est != null && isFinite(Number(load.empty_mi_est))) {
+      var from = load.empty_inferred_from === 'home' ? 'home' : 'the previous drop';
+      if (load.empty_from) from += ' (' + load.empty_from + ')';
+      emptyNote = '<p class="load-empty-note">Empty miles ' + esc(plainNum(load.empty_mi_est, 0)) +
+        ' mi EST from ' + esc(from) + '.</p>';
+    }
+    var routePane = '<div class="load-route" hidden>' +
+      rateCompare(load) +
+      emptyNote +
+      routeBlock(routePayload(load), mapsHref, (load.pickup_place || 'Pickup') + ' to ' + (load.drop_place || 'Drop') + ' route map') +
+      '</div>';
+    var toggle = '<button type="button" class="load-toggle" aria-expanded="false">' +
+      (canMap ? 'Show route' : 'Show $/mi') + '</button>';
+    return '<article class="load has-route">' +
+      '<h3>' + esc(load.desc || 'Load') + payBadge(load) + '</h3>' +
       '<p class="lane">' + esc(when) + (load.lane ? ' · ' + esc(load.lane) : '') + '</p>' +
       '<div class="kv">' +
       '<div><span>Gross</span><b>' + money(gross) + '</b></div>' +
       '<div><span>Miles</span><b>' + mileCell + '</b></div>' +
-      '<div><span>Rate/mi</span><b>' + rateCell + '</b></div>' +
+      '<div><span>Loaded $/mi</span><b>' + rateCell + '</b></div>' +
       '<div><span>Net</span><b>' + money(roundMoney(gross - fee)) + '</b></div>' +
       '</div>' + payLine(load) +
       '<p class="notes">Fee ' + money(fee) +
       (who ? ' · ' + esc(who) : '') +
       (typeof load.weight_lb === 'number' ? ' · ' + plainNum(load.weight_lb, 0) + ' lb' : '') +
-      (load.notes ? '<br>' + esc(load.notes) : '') + '</p></article>';
+      (load.notes ? '<br>' + esc(load.notes) : '') + '</p>' +
+      toggle + routePane + '</article>';
+  }
+
+  function pastLoadMapsUrl(load) {
+    if (!load) return '';
+    var origin = coordKey(load.empty_from_coord) || load.empty_from || 'Jacksonville, FL';
+    var waypoint = coordKey(load.pickup_coord) || load.pickup_place || '';
+    var dest = coordKey(load.drop_coord) || load.drop_place || '';
+    if (!dest) return '';
+    if (waypoint) return mapsDirUrl(origin, [waypoint], dest);
+    return mapsDirUrl(origin, [], dest);
+  }
+
+  function bindLoadRoutes(root) {
+    var scope = root || document;
+    scope.querySelectorAll('article.load.has-route').forEach(function (card) {
+      var btn = card.querySelector('.load-toggle');
+      var pane = card.querySelector('.load-route');
+      if (!pane) return;
+      function toggle(force) {
+        var open = force != null ? force : pane.hidden;
+        pane.hidden = !open;
+        card.classList.toggle('open', open);
+        if (btn) {
+          btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+          var canMap = pane.querySelector('.route-map');
+          btn.textContent = open ? 'Hide route' : (canMap ? 'Show route' : 'Show $/mi');
+        }
+        if (open) observeRouteMaps(pane);
+      }
+      if (btn) {
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          toggle();
+        });
+      }
+      card.addEventListener('click', function (e) {
+        if (e.target.closest('a, button, .load-route')) return;
+        toggle();
+      });
+      card.setAttribute('tabindex', '0');
+      card.addEventListener('keydown', function (e) {
+        if (e.target !== card) return;
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          toggle();
+        }
+      });
+    });
   }
 
   function expenseRows(rows) {
@@ -1014,6 +1080,7 @@
 
   function renderReports() {
     var root = $('reports-root');
+    if (root) destroyRouteMaps();
     var feed = state.feed;
     var months = feed ? sortedMonths(feed) : [];
     var head = '<div id="pull" class="pull">Pull to refresh</div>' +
@@ -1088,6 +1155,7 @@
       '<details class="expenses"><summary>Expense lines</summary>' + expenseRows(expenseList) + '</details>';
     bindRefresh();
     bindMonthSwitch(root);
+    bindLoadRoutes(root);
   }
 
   function bindRefresh() {
@@ -1450,8 +1518,8 @@
   function perHourValue(row, nLoads) {
     if (!row) return null;
     if (row.per_hour != null && isFinite(Number(row.per_hour))) return Number(row.per_hour);
-    var loaded = row.trip_mi != null ? row.trip_mi : row.loaded_mi;
-    var dead = row.origin_dh_mi != null ? row.origin_dh_mi : row.deadhead_mi;
+    var loaded = rowLoadedMiles(row);
+    var dead = rowEmptyMiles(row);
     var hours = row.hours != null && isFinite(Number(row.hours))
       ? Number(row.hours)
       : hoursEst(loaded, dead, nLoads || 1);
@@ -1474,8 +1542,8 @@
   function netPerMileValue(row) {
     if (!row) return null;
     if (row.net_per_mile != null && isFinite(Number(row.net_per_mile))) return Number(row.net_per_mile);
-    var loaded = row.trip_mi != null ? row.trip_mi : row.loaded_mi;
-    var dead = row.origin_dh_mi != null ? row.origin_dh_mi : row.deadhead_mi;
+    var loaded = rowLoadedMiles(row);
+    var dead = rowEmptyMiles(row);
     var miles = (Number(loaded) || 0) + (Number(dead) || 0);
     if (row.net_est == null || miles <= 0) return null;
     return row.net_est / miles;
@@ -1485,6 +1553,44 @@
     var n = netPerMileValue(row);
     if (n == null) return 'n/a/mi EST';
     return moneyPerMile(n) + '/mi EST';
+  }
+
+  function rowLoadedMiles(row) {
+    if (!row) return 0;
+    if (row.trip_mi != null && isFinite(Number(row.trip_mi))) return Number(row.trip_mi);
+    if (row.loaded_mi != null && isFinite(Number(row.loaded_mi))) return Number(row.loaded_mi);
+    return 0;
+  }
+
+  function rowEmptyMiles(row) {
+    if (!row) return 0;
+    if (row.origin_dh_mi != null && isFinite(Number(row.origin_dh_mi))) return Number(row.origin_dh_mi);
+    if (row.empty_mi_est != null && isFinite(Number(row.empty_mi_est))) return Number(row.empty_mi_est);
+    if (row.deadhead_mi != null && isFinite(Number(row.deadhead_mi))) return Number(row.deadhead_mi);
+    return 0;
+  }
+
+  function rowTotalMiles(row) {
+    var total = rowLoadedMiles(row) + rowEmptyMiles(row);
+    return total > 0 ? total : null;
+  }
+
+  function grossPerMileValue(row) {
+    if (!row) return null;
+    if (row.gross_per_mile != null && isFinite(Number(row.gross_per_mile))) return Number(row.gross_per_mile);
+    var rate = row.posted_rate != null ? row.posted_rate : row.gross;
+    var miles = rowTotalMiles(row);
+    if (rate == null || !isFinite(Number(rate)) || miles == null) return null;
+    return Number(rate) / miles;
+  }
+
+  function rateLoadedValue(row) {
+    if (!row) return null;
+    if (row.rate_per_mi != null && isFinite(Number(row.rate_per_mi))) return Number(row.rate_per_mi);
+    var rate = row.posted_rate != null ? row.posted_rate : row.gross;
+    var loaded = rowLoadedMiles(row);
+    if (rate == null || !isFinite(Number(rate)) || loaded <= 0) return null;
+    return Number(rate) / loaded;
   }
 
   function hourTone(n) {
@@ -1512,19 +1618,54 @@
     });
   }
 
-  function netBlock(net, perHour, netPerMile, unitExtra) {
-    var pills = '';
-    if (perHour != null && isFinite(Number(perHour))) {
-      pills += '<span class="rate-pill per-hour ' + hourTone(perHour) + '">' +
-        esc(searchMoney(perHour)) + '/hr EST</span>';
+  function rateTile(label, valueHtml, tone, subHtml) {
+    var cls = 'rate-tile ' + (tone || 'neutral');
+    return '<div class="' + cls + '">' +
+      '<span class="rate-label">' + esc(label) + '</span>' +
+      '<b class="rate-value">' + valueHtml + '</b>' +
+      (subHtml ? '<span class="rate-sub">' + subHtml + '</span>' : '') +
+      '</div>';
+  }
+
+  function rateCompare(row, nLoads) {
+    if (!row) return '';
+    var perHour = perHourValue(row, nLoads);
+    var netMi = netPerMileValue(row);
+    var grossMi = grossPerMileValue(row);
+    var loadedMi = rateLoadedValue(row);
+    var hour = (perHour != null && isFinite(Number(perHour)))
+      ? rateTile('$/hr EST', esc(searchMoney(perHour)), hourTone(perHour))
+      : '';
+    var grossSub = '';
+    if (loadedMi != null && isFinite(Number(loadedMi))) {
+      grossSub = esc(rateMoney(loadedMi, 2)) + ' on loaded mi';
     }
-    if (netPerMile != null && isFinite(Number(netPerMile))) {
-      pills += '<span class="rate-pill per-mile ' + mileTone(netPerMile) + '">' +
-        esc(rateMoney(netPerMile, 2)) + '/mi EST</span>';
+    var gross = (grossMi != null && isFinite(Number(grossMi)))
+      ? rateTile('Gross $/mi', esc(rateMoney(grossMi, 2)), 'neutral', grossSub)
+      : '';
+    var netmi = (netMi != null && isFinite(Number(netMi)))
+      ? rateTile('Net $/mi', esc(rateMoney(netMi, 2)), mileTone(netMi))
+      : '';
+    if (!hour && !gross && !netmi) return '';
+    return '<div class="rate-compare">' +
+      hour +
+      ((gross || netmi) ? '<div class="rate-pair">' + gross + netmi + '</div>' : '') +
+      '</div>';
+  }
+
+  function netBlock(net, perHour, netPerMile, unitExtra, row, nLoads) {
+    var compare = row ? rateCompare(row, nLoads) : '';
+    if (!compare) {
+      // Fallback if a caller has no row object
+      compare = rateCompare({
+        net_est: net,
+        per_hour: perHour,
+        net_per_mile: netPerMile
+      }, nLoads);
     }
     return '<div class="search-net">' + esc(searchMoney(net)) +
       '<span class="unit">Net EST' + (unitExtra || '') + '</span>' +
-      (pills ? '<span class="rate-pills">' + pills + '</span>' : '') + '</div>';
+      compare + '</div>';
   }
 
   function verdictReason(row) {
@@ -1569,20 +1710,16 @@
     else cells.push(statCell('Weight', 'n/a'));
     if (row.length_ft != null) cells.push(statCell('Length', esc(plainNum(row.length_ft, 1)) + ' ft'));
     if (row.posted_rate != null) cells.push(statCell('Posted', esc(money(row.posted_rate))));
-    if (row.rate_per_mi != null) cells.push(statCell('Rate/mi', esc(rateMoney(row.rate_per_mi, 2))));
     return cells.length ? '<div class="stat-row">' + cells.join('') + '</div>' : '';
   }
 
   function rateLegend() {
     return '<p class="rate-legend" aria-label="Dollar per hour and per mile color key">' +
-      '<span class="rate-legend-label">$/hr</span>' +
-      '<span class="rate-pill good">$35+</span>' +
-      '<span class="rate-pill ok">$20-34</span>' +
-      '<span class="rate-pill low">under $20</span>' +
-      '<span class="rate-legend-label">$/mi</span>' +
-      '<span class="rate-pill good">$0.80+</span>' +
-      '<span class="rate-pill ok">$0.40-0.79</span>' +
-      '<span class="rate-pill low">under $0.40</span></p>';
+      '<span class="rate-legend-label">$/hr and Net $/mi</span>' +
+      '<span class="rate-pill good">Green $35+/hr or $0.80+/mi</span>' +
+      '<span class="rate-pill ok">Yellow $20-34/hr or $0.40-0.79/mi</span>' +
+      '<span class="rate-pill low">Red under $20/hr or $0.40/mi</span>' +
+      '<span class="rate-pill neutral">Gross $/mi is posted / all miles, including empty miles</span></p>';
   }
 
   function filteredSearches(data) {
@@ -1638,7 +1775,8 @@
       if (lane.length > 28) lane = lane.slice(0, 26) + '...';
       var tip = (row.origin || '') + ' -> ' + (row.destination || '') +
         ' · ' + searchMoney(row.net_est) + ' net EST · ' + perHourLabel(row) +
-        ' · ' + netPerMileLabel(row);
+        ' · Gross ' + (grossPerMileValue(row) != null ? rateMoney(grossPerMileValue(row), 2) : 'n/a') +
+        '/mi · Net ' + netPerMileLabel(row);
       return '<g>' +
         '<title>' + esc(tip) + '</title>' +
         '<text class="chart-label" x="0" y="' + (y + 14) + '">' + esc(lane) + '</text>' +
@@ -1917,7 +2055,7 @@
     var reason = verdictReason(row);
     return '<article class="search-card ' + esc(verd) + '">' +
       '<div class="search-head">' +
-        netBlock(row.net_est, perHourValue(row), netPerMileValue(row)) +
+        netBlock(row.net_est, perHourValue(row), netPerMileValue(row), '', row) +
         '<span class="verdict-pill ' + esc(verd) + '">' + esc(row.verdict || 'PASS') + '</span>' +
       '</div>' +
       (reason ? '<p class="search-reason">' + esc(reason) + '</p>' : '') +
@@ -1944,7 +2082,7 @@
       var reason = verdictReason(row);
       return '<li class="combo-leg">' +
         '<div class="search-head">' +
-          netBlock(row.net_est, perHourValue(row), netPerMileValue(row)) +
+          netBlock(row.net_est, perHourValue(row), netPerMileValue(row), '', row) +
           (row.verdict ? '<span class="verdict-pill ' + esc(String(row.verdict).toLowerCase()) + '">' + esc(row.verdict) + '</span>' : '') +
         '</div>' +
         (reason ? '<p class="search-reason">' + esc(reason) + '</p>' : '') +
@@ -1963,7 +2101,8 @@
       '<div class="search-head">' +
         netBlock(combo.net_est, perHourValue(combo, (combo.loads || []).length),
           netPerMileValue(combo),
-          ' · ' + esc(searchMoney(combo.net_per_day)) + '/day') +
+          ' · ' + esc(searchMoney(combo.net_per_day)) + '/day',
+          combo, (combo.loads || []).length) +
         '<span class="verdict-pill ' + esc(verd) + '">' + esc(combo.verdict || 'MAYBE') + '</span>' +
       '</div>' +
       (reason ? '<p class="search-reason">' + esc(reason) + '</p>' : '') +
