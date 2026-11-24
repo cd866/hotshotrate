@@ -103,6 +103,37 @@ button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
 }
 .rig-card {
   margin: 8px 0 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--on-header);
+}
+.rig-card > .rig-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 36px;
+  padding: 6px 12px;
+  cursor: pointer;
+  list-style: none;
+}
+.rig-card > .rig-head::-webkit-details-marker,
+.rig-card > .rig-head::marker { display: none; }
+.rig-card > .rig-head::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid var(--gold);
+  border-bottom: 2px solid var(--gold);
+  transform: rotate(45deg);
+  transition: transform 0.15s ease;
+  flex: 0 0 auto;
+  margin-top: -4px;
+}
+.rig-card[open] > .rig-head::after {
+  transform: rotate(225deg);
+  margin-top: 2px;
 }
 .rig-kicker {
   margin: 0;
@@ -114,7 +145,8 @@ button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
   color: var(--gold);
 }
 .rig {
-  margin: 2px 0 0;
+  margin: 0;
+  padding: 0 12px;
   color: var(--muted);
   font-size: 13px;
 }
@@ -999,6 +1031,7 @@ select:focus {
 }
 .rig-note {
   margin: 4px 0 0;
+  padding: 0 12px 8px;
   font-size: 13px;
   line-height: 1.35;
   color: var(--quiet);
@@ -1265,6 +1298,11 @@ select:focus {
 }
 .rig-kicker { color: var(--gold); font-size: 13px; }
 .rig, .rig-note { color: var(--on-header-muted); font-size: 14px; line-height: 1.45; }
+.rig-card {
+  border-color: var(--line);
+  background: var(--surface);
+}
+.rig-card > .rig-head::after { border-color: var(--gold); }
 .top-row .btn, .top a.btn, #about-btn {
   background: transparent;
   color: var(--on-header);

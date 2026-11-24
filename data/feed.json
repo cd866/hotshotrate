@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-24T07:49:33Z",
+  "generated_at": "2026-11-24T15:17:10Z",
   "company": "Sand Lily Pad LLC",
   "dba": "Black Ram Towing",
   "authority": "Leased onto Totni Enterprise",
@@ -1522,7 +1522,7 @@
     },
     {
       "month": "2026-11",
-      "as_of": "2026-11-16",
+      "as_of": "2026-11-24",
       "fee_pct": 13,
       "loads": [
         {
@@ -2715,6 +2715,332 @@
               }
             ]
           }
+        },
+        {
+          "date": "2026-11-24",
+          "desc": "2 x 20 ft empty containers",
+          "lane": "Con Global, 321 Grange Rd, Port Wentworth GA 31407 to Battle's Containers, 4102 Hwy 77, Graceville FL 32440",
+          "weight_lb": 8500,
+          "loaded_mi": 330,
+          "gross": 750.0,
+          "delivery_date": "2026-11-25",
+          "deadhead_mi": 143,
+          "miles_estimate": true,
+          "broker": "Rich Logistics LLC",
+          "load_no": "168481",
+          "notes": "Rate con: $750.00 line haul, 2 x 20 ft empty containers, 8,500 lb, hot shot. PU Port Wentworth GA 11/24 11:00 AM, DEL Graceville FL 11/25. About 330 loaded mi EST plus about 143 deadhead mi EST from the Jacksonville home base (not on rate con), about $2.27/mi loaded and $1.59/mi all-in EST. Totni 13% fee $97.50, expected net $652.50; payment not received. In transit (pickup 11/24). Needs 4 sticks of dunnage and PPE (closed-toe shoes and a safety vest). Container number photos required before leaving the shipper or $500 off; tracking required or $250 off; 4% quickpay available; signed BOL within 24 hours. Call the consignee ahead of arrival; GPS does not work.",
+          "pickup_date": "2026-11-24",
+          "pay_status": "in_transit",
+          "net_due": 652.5,
+          "net_received": 0.0,
+          "pay_note": "In transit; pickup 11/24 11:00 AM at Port Wentworth GA, delivery 11/25 at Graceville FL. $652.50 = $750 less 13% ($97.50). About 330 loaded mi EST plus about 143 deadhead mi EST from the Jacksonville home base, about $2.27/mi loaded and $1.59/mi all-in EST. Container number photos required before leaving the shipper or $500 off; tracking required or $250 off; 4% quickpay available; signed BOL within 24 hours",
+          "status": "in_transit",
+          "rate_per_mi": 2.27,
+          "pickup_place": "Con Global, 321 Grange Rd, Port Wentworth GA 31407",
+          "drop_place": "Battle's Containers, 4102 Hwy 77, Graceville FL 32440",
+          "pickup_coord": {
+            "lat": 32.18573,
+            "lon": -81.23543
+          },
+          "drop_coord": {
+            "lat": 30.94046,
+            "lon": -85.52001
+          },
+          "empty_from": "Home base (Jacksonville)",
+          "empty_from_coord": {
+            "lat": 30.33,
+            "lon": -81.58
+          },
+          "empty_inferred_from": "home",
+          "empty_mi_est": 142.3,
+          "total_mi_est": 472.3,
+          "gross_per_mile": 1.59,
+          "net_est": 233.61,
+          "net_per_mile": 0.49,
+          "hours": 11.45,
+          "per_hour": 20.4,
+          "route": {
+            "legs": [
+              {
+                "kind": "deadhead",
+                "path": [
+                  [
+                    30.33,
+                    -81.58
+                  ],
+                  [
+                    30.32745,
+                    -81.63561
+                  ],
+                  [
+                    30.35504,
+                    -81.63734
+                  ],
+                  [
+                    30.35656,
+                    -81.66692
+                  ],
+                  [
+                    30.37958,
+                    -81.67346
+                  ],
+                  [
+                    30.51,
+                    -81.63423
+                  ],
+                  [
+                    30.6957,
+                    -81.6763
+                  ],
+                  [
+                    30.75284,
+                    -81.65097
+                  ],
+                  [
+                    30.94663,
+                    -81.68615
+                  ],
+                  [
+                    31.04473,
+                    -81.65029
+                  ],
+                  [
+                    31.24355,
+                    -81.50124
+                  ],
+                  [
+                    31.34368,
+                    -81.46325
+                  ],
+                  [
+                    31.55585,
+                    -81.44238
+                  ],
+                  [
+                    31.6576,
+                    -81.39314
+                  ],
+                  [
+                    31.78979,
+                    -81.37557
+                  ],
+                  [
+                    31.89731,
+                    -81.3234
+                  ],
+                  [
+                    31.95162,
+                    -81.33499
+                  ],
+                  [
+                    32.0924,
+                    -81.2369
+                  ],
+                  [
+                    32.14731,
+                    -81.24012
+                  ],
+                  [
+                    32.16514,
+                    -81.21399
+                  ],
+                  [
+                    32.18428,
+                    -81.23695
+                  ]
+                ],
+                "source": "osrm"
+              },
+              {
+                "kind": "loaded",
+                "path": [
+                  [
+                    32.18428,
+                    -81.23695
+                  ],
+                  [
+                    32.16388,
+                    -81.23318
+                  ],
+                  [
+                    32.1448,
+                    -81.30687
+                  ],
+                  [
+                    32.1009,
+                    -81.32587
+                  ],
+                  [
+                    32.2102,
+                    -81.50021
+                  ],
+                  [
+                    32.23966,
+                    -81.67832
+                  ],
+                  [
+                    32.37238,
+                    -82.02466
+                  ],
+                  [
+                    32.39047,
+                    -82.28648
+                  ],
+                  [
+                    32.43538,
+                    -82.50081
+                  ],
+                  [
+                    32.43386,
+                    -82.69887
+                  ],
+                  [
+                    32.49801,
+                    -82.97779
+                  ],
+                  [
+                    32.452,
+                    -83.01622
+                  ],
+                  [
+                    32.42293,
+                    -83.12858
+                  ],
+                  [
+                    32.37221,
+                    -83.19255
+                  ],
+                  [
+                    32.28156,
+                    -83.4733
+                  ],
+                  [
+                    32.09496,
+                    -83.58597
+                  ],
+                  [
+                    32.01477,
+                    -83.73408
+                  ],
+                  [
+                    31.97497,
+                    -83.75545
+                  ],
+                  [
+                    31.93386,
+                    -83.74872
+                  ],
+                  [
+                    31.92356,
+                    -83.84288
+                  ],
+                  [
+                    31.88697,
+                    -83.89132
+                  ],
+                  [
+                    31.75152,
+                    -83.98736
+                  ],
+                  [
+                    31.63602,
+                    -84.01418
+                  ],
+                  [
+                    31.57998,
+                    -84.08783
+                  ],
+                  [
+                    31.58137,
+                    -84.11361
+                  ],
+                  [
+                    31.54841,
+                    -84.11619
+                  ],
+                  [
+                    31.54825,
+                    -84.17564
+                  ],
+                  [
+                    31.43439,
+                    -84.27643
+                  ],
+                  [
+                    31.34953,
+                    -84.30325
+                  ],
+                  [
+                    31.2142,
+                    -84.454
+                  ],
+                  [
+                    31.18342,
+                    -84.54095
+                  ],
+                  [
+                    31.18719,
+                    -84.68706
+                  ],
+                  [
+                    31.16535,
+                    -84.76913
+                  ],
+                  [
+                    31.08812,
+                    -84.87411
+                  ],
+                  [
+                    31.03089,
+                    -84.8809
+                  ],
+                  [
+                    30.98557,
+                    -84.95548
+                  ],
+                  [
+                    30.96019,
+                    -85.20925
+                  ],
+                  [
+                    30.93447,
+                    -85.30072
+                  ],
+                  [
+                    30.95722,
+                    -85.50574
+                  ],
+                  [
+                    30.93888,
+                    -85.5184
+                  ]
+                ],
+                "source": "osrm"
+              }
+            ],
+            "points": [
+              {
+                "kind": "truck",
+                "label": "Home base (Jacksonville)",
+                "lat": 30.33,
+                "lon": -81.58
+              },
+              {
+                "kind": "pickup",
+                "label": "Con Global, 321 Grange Rd, Port Wentworth GA 31407",
+                "lat": 32.18573,
+                "lon": -81.23543,
+                "n": 1
+              },
+              {
+                "kind": "drop",
+                "label": "Battle's Containers, 4102 Hwy 77, Graceville FL 32440",
+                "lat": 30.94046,
+                "lon": -85.52001,
+                "n": 2
+              }
+            ]
+          }
         }
       ],
       "expenses": [
@@ -2845,7 +3171,7 @@
       "day_notes": [
         {
           "date": "2026-11-02",
-          "text": "No loads; Big Tex trailer titled and registered in Galveston County (Texas Token Trailer plate Z09-246) (done); title address fixed to 2312 Sand Lily Dr, county system update within 48 hrs"
+          "text": "No loads; Big Tex trailer titled and registered in Galveston County (Texas Token Trailer plate Z09-246) (done); title address updated, county system update within 48 hrs"
         },
         {
           "date": "2026-11-03",
@@ -2870,6 +3196,10 @@
         {
           "date": "2026-11-17",
           "text": "Balance stays about $537.47 EST. Group renamed Black Ram Logistics 11/17. No new expenses found in saved files."
+        },
+        {
+          "date": "2026-11-24",
+          "text": "Rich Logistics load 168481 in transit: 2 x 20 ft empty containers, Port Wentworth GA to Graceville FL, $750.00 gross, $652.50 net after the 13% fee, pickup 11/24 11:00 AM, delivery due 11/25, payment not received. About 330 loaded mi EST plus about 143 deadhead mi EST from the Jacksonville home base; about 258 mi back to Jacksonville."
         }
       ]
     }
