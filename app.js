@@ -1,9 +1,10 @@
 (function () {
   'use strict';
 
-  var SETTINGS_KEY = 'blackram_settings_v3';
+  var SETTINGS_KEY = 'blackram_settings_v4';
   var SETTINGS_KEY_V1 = 'blackram_settings_v1';
   var SETTINGS_KEY_V2 = 'blackram_settings_v2';
+  var SETTINGS_KEY_V3 = 'blackram_settings_v3';
   var FEED_CACHE_KEY = 'blackram_feed_cache_v1';
   var SEARCH_CACHE_KEY = 'blackram_search_cache_v1';
   var PERIOD_KEY = 'blackram_period_v1';
@@ -83,7 +84,7 @@
       return v == null ? fallback : v;
     }
     var mph = n('assumedMph', 50);
-    var loadedCost = n('loadedCost', 1.64);
+    var loadedCost = n('loadedCost', 1.14);
     var deadheadCost = n('deadheadCost', 0.30);
     var minNet = n('minNet', 500);
     var minNetSameDay = n('minNetSameDay', 300);
@@ -93,7 +94,7 @@
     var deckFt = n('deckFt', 40);
     return {
       feePct: n('feePct', 13),
-      loadedCost: loadedCost != null && loadedCost >= 0 ? loadedCost : 1.64,
+      loadedCost: loadedCost != null && loadedCost >= 0 ? loadedCost : 1.14,
       deadheadCost: deadheadCost != null && deadheadCost >= 0 ? deadheadCost : 0.30,
       minNet: minNet != null ? minNet : 500,
       minNetSameDay: minNetSameDay != null ? minNetSameDay : 300,
@@ -120,25 +121,33 @@
   function loadSettings() {
     try {
       var raw = localStorage.getItem(SETTINGS_KEY);
+      var fromV3 = false;
       var fromOld = false;
       if (!raw) {
-        raw = localStorage.getItem(SETTINGS_KEY_V2) || localStorage.getItem(SETTINGS_KEY_V1);
-        fromOld = !!raw;
+        raw = localStorage.getItem(SETTINGS_KEY_V3);
+        if (raw) fromV3 = true;
+        else {
+          raw = localStorage.getItem(SETTINGS_KEY_V2) || localStorage.getItem(SETTINGS_KEY_V1);
+          fromOld = !!raw;
+        }
       }
       if (!raw) return;
       var data = JSON.parse(raw);
-      // Older phones stored $/mi floors (2.82 / 3.00) and a 15,000 lb deck.
-      // Keep fee and monthly costs; use the new net-EST defaults for the rest.
+      // v3 phones saved loaded cost at $1.64/mi (included $0.50 driver pay).
+      // Meshach is paid from profits, so the default is now $1.14 fuel and DEF only.
+      // Older phones also stored $/mi floors and a 15,000 lb deck.
       var resetOld = {
         floor: 1, takeAt: 1, loadedCost: 1, deadheadCost: 1,
         minNet: 1, minNetSameDay: 1, sameDayMiles: 1, chainMin: 1,
         capacity: 1, deckFt: 1
       };
+      var resetV3 = { loadedCost: 1 };
       Object.keys(data).forEach(function (id) {
+        if (fromV3 && resetV3[id]) return;
         if (fromOld && resetOld[id]) return;
         if ($(id) && data[id] != null && data[id] !== '') $(id).value = data[id];
       });
-      if (fromOld) saveSettings();
+      if (fromV3 || fromOld) saveSettings();
     } catch (err) { /* ignore bad storage */ }
   }
 
@@ -1360,7 +1369,7 @@
     var counts = data.counts || {};
     var rules = data.rules || {};
     var scanStamp = data.scanned_at || data.as_of || '';
-    var formula = rules.formula || 'net EST = rate x 0.87 - $1.64 per loaded mile - $0.30 per deadhead mile';
+    var formula = rules.formula || 'net EST = rate x 0.87 - $1.14 per loaded mile (fuel and DEF) - $0.30 per deadhead mile';
     var bar = rules.quality_bar || '';
     var rows = filteredSearches(data);
     var filters = [

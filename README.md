@@ -8,7 +8,7 @@ Static HTML, CSS, and JavaScript. No build step. GitHub Pages serves the reposit
 
 ## Tabs
 
-1. **Load check.** Enter a rate, loaded miles, deadhead miles, weight, optional length, optional cities, tarp, and optional hours. Net EST is the rate times 0.87, minus $1.64 per loaded mile and $0.30 per deadhead mile. The verdict is TAKE, MAYBE, or PASS against a $500 net EST bar ($300 for a same-day run under 250 total miles).
+1. **Load check.** Enter a rate, loaded miles, deadhead miles, weight, optional length, optional cities, tarp, and optional hours. Net EST is the rate times 0.87, minus $1.14 per loaded mile (fuel and DEF) and $0.30 per deadhead mile. Driver pay is not in the per-load estimate; Meshach is paid out of profits. The verdict is TAKE, MAYBE, or PASS against a $500 net EST bar ($300 for a same-day run under 250 total miles).
 2. **Searches.** The latest Truckstop and Direct Freight scan from Jacksonville, sorted by net EST, with a chart first. Each load shows board, lane, miles, windows, equipment, weight, length, posted rate, rate per mile, net EST, the math, fit flags, verdict, broker (company, MC, DOT), load number, and a link to the board. The public file has no contact names, phone numbers, or emails. Data is `data/load_searches.json`, refreshed with the box script `/workspace/bigtex/dashboard/update_load_searches.py`. On the phone, swipe down to pull to refresh, or tap Refresh on desktop. That reloads the newest saved scan (cache-busted fetch of the data file). It does not start a new board search.
 3. **Stops.** Love's and TA, TA Express, and Petro on an OpenStreetMap map. Filter by brand. Near me sorts the closest stops by miles using the phone's location. Along a route takes a pickup and delivery (typed, copied from Load check, or a saved load on the feed), routes it, and lists stops within 5, 10, or 25 miles of the road in order. Tap a stop for the address, a call button, tire care / truck service when the locator lists it, and Apple Maps and Google Maps. The list is `data/stops.json`, so it still opens when the map tiles are slow.
 4. **Reports.** Month numbers from `data/feed.json`: gross, Totni fees, fuel, other expenses, net, $/loaded mile, loads, cancelled loads, and day notes. Each load shows paid, paid short, unpaid, or in transit, and an EST mark when the miles or the amount still owed is an estimate. A chip row lists every month in the feed plus All time. All time adds the months together and lists every load, newest first, with what has been collected and what is still owed. The choice is remembered on the phone. Fresh fetch on open, pull to refresh, last-updated time, and an offline copy.
@@ -21,7 +21,7 @@ Saved on the phone (localStorage):
 | Setting | Default |
 |---|---|
 | Totni fee | 13% |
-| Loaded cost | $1.64 / mi (fuel+DEF $1.14 + driver $0.50) |
+| Fuel + DEF | $1.14 / loaded mi (driver pay is not in the per-load estimate) |
 | Deadhead cost | $0.30 / mi |
 | Min net EST | $500 ($300 for a same-day run under 250 total miles) |
 | Chain min | $1,000 total, no losing leg |
@@ -32,7 +32,7 @@ Saved on the phone (localStorage):
 | MPG | 9, estimate, badged **EST** (shown as a fuel check only) |
 | Diesel | $6.04 / gal, estimate, badged **EST** |
 
-Net EST = rate x 0.87 - $1.64 per loaded mile - $0.30 per deadhead mile. TAKE if it clears the bar and fits the deck. MAYBE if it clears the bar but weight is not listed or is exactly at the 16,000 lb payload. PASS if it is under the bar, or if length is over 40 ft or weight is over 16,000 lb. No overhang.
+Net EST = rate x 0.87 - $1.14 per loaded mile (fuel and DEF) - $0.30 per deadhead mile. TAKE if it clears the bar and fits the deck. MAYBE if it clears the bar but weight is not listed or is exactly at the 16,000 lb payload. PASS if it is under the bar, or if length is over 40 ft or weight is over 16,000 lb. No overhang.
 
 ## How the feed gets updated
 
