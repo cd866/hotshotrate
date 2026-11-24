@@ -32,7 +32,7 @@ Saved on the phone (localStorage):
 | MPG | 9, estimate, badged **EST** (shown as a fuel check only) |
 | Diesel | $6.04 / gal, estimate, badged **EST** |
 
-Net EST = rate x 0.87 - $1.64 per loaded mile - $0.30 per deadhead mile. TAKE if it clears the bar and fits the deck. MAYBE if it clears the bar but weight or length is tight. PASS if it is under the bar, or will not fit (18,000 lb or more, or longer than 48 ft).
+Net EST = rate x 0.87 - $1.64 per loaded mile - $0.30 per deadhead mile. TAKE if it clears the bar and fits the deck. MAYBE if it clears the bar but weight is not listed or is exactly at the 16,000 lb payload. PASS if it is under the bar, or if length is over 40 ft or weight is over 16,000 lb. No overhang.
 
 ## How the feed gets updated
 

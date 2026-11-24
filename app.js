@@ -175,14 +175,14 @@
     var loadedRpm = loadedMi > 0 ? rate / loadedMi : null;
     var sameDay = totalMi > 0 && totalMi < s.sameDayMiles;
     var bar = sameDay ? s.minNetSameDay : s.minNet;
-    var overWeight = weight != null && weight >= s.capacity;
+    var overWeight = weight != null && weight > s.capacity;
+    var atWeight = weight != null && weight === s.capacity;
     var overLength = lengthFt != null && lengthFt > s.deckFt;
-    var hardFail = (weight != null && weight >= 18000) || (lengthFt != null && lengthFt > 48);
+    var hardFail = overWeight || overLength;
     var flags = [];
-    if (weight != null && weight >= 18000) flags.push('over payload, will not fit');
-    else if (overWeight) flags.push('at or over payload (~' + plainNum(s.capacity, 0) + ' lb)');
-    if (lengthFt != null && lengthFt > 48) flags.push('over ' + plainNum(s.deckFt, 0) + ' ft deck, will not fit');
-    else if (overLength) flags.push('over ' + plainNum(s.deckFt, 0) + ' ft deck');
+    if (overWeight) flags.push('Over ' + plainNum(s.capacity, 0) + ' lb payload - cannot haul');
+    else if (atWeight) flags.push('at payload (~' + plainNum(s.capacity, 0) + ' lb)');
+    if (overLength) flags.push('Over ' + plainNum(s.deckFt, 0) + ' ft deck - cannot haul');
     var verdict = 'idle';
     if (ready && loadedMi > 0) {
       if (hardFail || netEst < bar) verdict = 'pass';
