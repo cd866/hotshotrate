@@ -1,9 +1,11 @@
 (function () {
   'use strict';
 
-  var SETTINGS_KEY = 'blackram_settings_v2';
+  var SETTINGS_KEY = 'blackram_settings_v3';
   var SETTINGS_KEY_V1 = 'blackram_settings_v1';
+  var SETTINGS_KEY_V2 = 'blackram_settings_v2';
   var FEED_CACHE_KEY = 'blackram_feed_cache_v1';
+  var SEARCH_CACHE_KEY = 'blackram_search_cache_v1';
   var PERIOD_KEY = 'blackram_period_v1';
   var SPLASH_KEY = 'blackram_splash_seen';
   var ALL_TIME = 'all';
@@ -15,6 +17,12 @@
     tab: 'check',
     tarp: false,
     feed: null,
+    searches: null,
+    searchFilter: 'all',
+    searchOffline: false,
+    searchSavedAt: null,
+    searchError: '',
+    searchInflight: null,
     viewMonth: null,
     offline: false,
     savedAt: null,
@@ -74,22 +82,35 @@
       return v == null ? fallback : v;
     }
     var mph = n('assumedMph', 50);
+    var loadedCost = n('loadedCost', 1.64);
+    var deadheadCost = n('deadheadCost', 0.30);
+    var minNet = n('minNet', 500);
+    var minNetSameDay = n('minNetSameDay', 300);
+    var sameDayMiles = n('sameDayMiles', 250);
+    var chainMin = n('chainMin', 1000);
+    var capacity = n('capacity', 16000);
+    var deckFt = n('deckFt', 40);
     return {
       feePct: n('feePct', 13),
-      floor: n('floor', 2.82),
-      takeAt: n('takeAt', 3),
+      loadedCost: loadedCost != null && loadedCost >= 0 ? loadedCost : 1.64,
+      deadheadCost: deadheadCost != null && deadheadCost >= 0 ? deadheadCost : 0.30,
+      minNet: minNet != null ? minNet : 500,
+      minNetSameDay: minNetSameDay != null ? minNetSameDay : 300,
+      sameDayMiles: sameDayMiles > 0 ? sameDayMiles : 250,
+      chainMin: chainMin != null ? chainMin : 1000,
       trailer: n('trailer', 434.84),
       insurance: n('insurance', 1221.62),
       otherFixed: n('otherFixed', 1573.04),
       mpg: n('mpg', 9),
       diesel: n('diesel', 6.04),
-      capacity: n('capacity', 15000),
+      capacity: capacity != null ? capacity : 16000,
+      deckFt: deckFt != null ? deckFt : 40,
       assumedMph: mph > 0 ? mph : 50
     };
   }
 
   function saveSettings() {
-    var ids = ['feePct', 'floor', 'takeAt', 'trailer', 'insurance', 'otherFixed', 'mpg', 'diesel', 'capacity', 'assumedMph'];
+    var ids = ['feePct', 'loadedCost', 'deadheadCost', 'minNet', 'minNetSameDay', 'sameDayMiles', 'chainMin', 'trailer', 'insurance', 'otherFixed', 'mpg', 'diesel', 'capacity', 'deckFt', 'assumedMph'];
     var data = {};
     ids.forEach(function (id) { data[id] = $(id).value; });
     try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(data)); } catch (err) { /* private mode */ }
@@ -98,21 +119,25 @@
   function loadSettings() {
     try {
       var raw = localStorage.getItem(SETTINGS_KEY);
-      var fromV1 = false;
+      var fromOld = false;
       if (!raw) {
-        raw = localStorage.getItem(SETTINGS_KEY_V1);
-        fromV1 = !!raw;
+        raw = localStorage.getItem(SETTINGS_KEY_V2) || localStorage.getItem(SETTINGS_KEY_V1);
+        fromOld = !!raw;
       }
       if (!raw) return;
       var data = JSON.parse(raw);
-      // v1 phones saved insurance and the truck note at $0. Keep their
-      // non-cost prefs and let the new cost defaults land.
-      var resetCosts = { floor: 1, insurance: 1, otherFixed: 1, diesel: 1 };
+      // Older phones stored $/mi floors (2.82 / 3.00) and a 15,000 lb deck.
+      // Keep fee and monthly costs; use the new net-EST defaults for the rest.
+      var resetOld = {
+        floor: 1, takeAt: 1, loadedCost: 1, deadheadCost: 1,
+        minNet: 1, minNetSameDay: 1, sameDayMiles: 1, chainMin: 1,
+        capacity: 1, deckFt: 1
+      };
       Object.keys(data).forEach(function (id) {
-        if (fromV1 && resetCosts[id]) return;
+        if (fromOld && resetOld[id]) return;
         if ($(id) && data[id] != null && data[id] !== '') $(id).value = data[id];
       });
-      if (fromV1) saveSettings();
+      if (fromOld) saveSettings();
     } catch (err) { /* ignore bad storage */ }
   }
 
@@ -126,30 +151,45 @@
     var loadedIn = fieldNum('loaded');
     var deadIn = fieldNum('deadhead');
     var weight = fieldNum('weight');
+    var lengthFt = fieldNum('lengthFt');
     var hoursIn = fieldNum('hours');
     var loadedMi = loadedIn == null ? 0 : Math.max(0, loadedIn);
     var deadMi = deadIn == null ? 0 : Math.max(0, deadIn);
     var totalMi = loadedMi + deadMi;
     var rate = rateIn == null ? 0 : Math.max(0, rateIn);
-    var ready = rateIn != null && totalMi > 0;
+    var ready = rateIn != null && (loadedMi > 0 || deadMi > 0);
     var fee = roundMoney(rate * s.feePct / 100);
+    var afterFee = roundMoney(rate - fee);
+    var loadedCostAmt = roundMoney(s.loadedCost * loadedMi);
+    var deadCostAmt = roundMoney(s.deadheadCost * deadMi);
+    var netEst = roundMoney(afterFee - loadedCostAmt - deadCostAmt);
     var mpg = s.mpg;
     var fuelKnown = mpg > 0;
     var gallons = fuelKnown ? totalMi / mpg : null;
     var fuel = fuelKnown ? roundMoney(gallons * s.diesel) : null;
-    var net = fuel == null ? null : roundMoney(rate - fee - fuel);
     var hoursEst = !(hoursIn != null && hoursIn > 0);
     var hours = hoursEst ? (s.assumedMph > 0 ? totalMi / s.assumedMph : null) : hoursIn;
-    var netHour = net != null && hours ? net / hours : null;
+    var netHour = hours ? netEst / hours : null;
     var allRpm = totalMi > 0 ? rate / totalMi : null;
     var loadedRpm = loadedMi > 0 ? rate / loadedMi : null;
+    var sameDay = totalMi > 0 && totalMi < s.sameDayMiles;
+    var bar = sameDay ? s.minNetSameDay : s.minNet;
+    var overWeight = weight != null && weight >= s.capacity;
+    var overLength = lengthFt != null && lengthFt > s.deckFt;
+    var hardFail = (weight != null && weight >= 18000) || (lengthFt != null && lengthFt > 48);
+    var flags = [];
+    if (weight != null && weight >= 18000) flags.push('over payload, will not fit');
+    else if (overWeight) flags.push('at or over payload (~' + plainNum(s.capacity, 0) + ' lb)');
+    if (lengthFt != null && lengthFt > 48) flags.push('over ' + plainNum(s.deckFt, 0) + ' ft deck, will not fit');
+    else if (overLength) flags.push('over ' + plainNum(s.deckFt, 0) + ' ft deck');
     var verdict = 'idle';
-    if (ready && allRpm != null) {
-      if (allRpm < s.floor) verdict = 'pass';
-      else if (allRpm < s.takeAt) verdict = 'negotiate';
+    if (ready && loadedMi > 0) {
+      if (hardFail || netEst < bar) verdict = 'pass';
+      else if (flags.length) verdict = 'maybe';
       else verdict = 'take';
+    } else if (ready && loadedMi <= 0) {
+      verdict = 'pass';
     }
-    var over = weight != null && weight > s.capacity;
     return {
       ready: ready,
       rate: rate,
@@ -157,18 +197,27 @@
       deadMi: deadMi,
       totalMi: totalMi,
       weight: weight,
+      lengthFt: lengthFt,
       fee: fee,
+      afterFee: afterFee,
+      loadedCostAmt: loadedCostAmt,
+      deadCostAmt: deadCostAmt,
       gallons: gallons,
       fuel: fuel,
       fuelKnown: fuelKnown,
-      net: net,
+      net: netEst,
+      netEst: netEst,
       hours: hours,
       hoursEst: hoursEst,
       netHour: netHour,
       allRpm: allRpm,
       loadedRpm: loadedRpm,
+      sameDay: sameDay,
+      bar: bar,
       verdict: verdict,
-      over: over,
+      over: overWeight || overLength,
+      hardFail: hardFail,
+      flags: flags,
       settings: s,
       pickup: fieldText('pickup'),
       delivery: fieldText('delivery')
@@ -177,32 +226,34 @@
 
   function verdictCopy(result) {
     var s = result.settings;
-    var floor = '$' + s.floor.toFixed(2);
-    var take = '$' + s.takeAt.toFixed(2);
     if (!result.ready) {
       return {
         label: 'READY',
         msg: 'Enter the rate plus loaded miles, deadhead, or both.',
-        meta: 'Under ' + floor + '/mi all-miles is PASS. Up to the ' + take + ' take line is NEGOTIATE.'
+        meta: 'Net EST = rate x 0.87 minus $' + s.loadedCost.toFixed(2) + ' per loaded mile minus $' + s.deadheadCost.toFixed(2) + ' per deadhead mile. Bar $' + plainNum(s.minNet, 0) + ' net EST, or $' + plainNum(s.minNetSameDay, 0) + ' for a same-day run under ' + plainNum(s.sameDayMiles, 0) + ' total miles.'
       };
     }
-    var rpmText = rpm(result.allRpm);
     var msg;
-    if (result.verdict === 'pass') {
-      msg = 'All-miles ' + rpmText + ' is under the ' + floor + ' floor.';
-    } else if (result.verdict === 'negotiate') {
-      msg = 'All-miles ' + rpmText + ' clears the ' + floor + ' floor and sits under the ' + take + ' take line.';
+    var netText = money(result.netEst);
+    if (result.loadedMi <= 0) {
+      msg = 'Enter loaded miles to score this offer.';
+    } else if (result.verdict === 'pass' && result.hardFail) {
+      msg = 'Net EST ' + netText + ', but this freight will not fit the deck.';
+    } else if (result.verdict === 'pass') {
+      msg = 'Net EST ' + netText + ' is under the $' + plainNum(result.bar, 0) + ' bar' + (result.sameDay ? ' for a same-day run.' : '.');
+    } else if (result.verdict === 'maybe') {
+      msg = 'Net EST ' + netText + ' clears the $' + plainNum(result.bar, 0) + ' bar, but check fit before you book.';
     } else {
-      msg = 'All-miles ' + rpmText + ' clears the ' + take + ' take line.';
+      msg = 'Net EST ' + netText + ' clears the $' + plainNum(result.bar, 0) + ' bar and fits the deck.';
     }
     var bits = [];
     if (result.pickup || result.delivery) {
-      bits.push((result.pickup || 'Pickup') + ' → ' + (result.delivery || 'Delivery'));
+      bits.push((result.pickup || 'Pickup') + ' -> ' + (result.delivery || 'Delivery'));
     }
+    if (result.flags && result.flags.length) bits.push(result.flags.join('. ') + '.');
     if (state.tarp) bits.push('Tarp required.');
-    if (!result.fuelKnown) bits.push('Set MPG to estimate fuel.');
     return {
-      label: result.verdict === 'take' ? 'TAKE IT' : (result.verdict === 'negotiate' ? 'NEGOTIATE' : 'PASS'),
+      label: result.verdict === 'take' ? 'TAKE' : (result.verdict === 'maybe' ? 'MAYBE' : (result.verdict === 'idle' ? 'READY' : 'PASS')),
       msg: msg,
       meta: bits.join(' ')
     };
@@ -224,10 +275,11 @@
     $('verdict-meta').textContent = copy.meta;
 
     var warn = $('weight-warn');
-    if (result.over) {
+    if (result.over || result.hardFail) {
       warn.hidden = false;
-      warn.textContent = 'Over deck capacity. This gooseneck is about ' +
-        plainNum(result.settings.capacity, 0) + ' lb. Confirm before you haul it.';
+      warn.textContent = (result.flags && result.flags.length)
+        ? result.flags.join('. ') + '. Confirm before you haul it.'
+        : 'This may not fit the 40 ft deck or the about ' + plainNum(result.settings.capacity, 0) + ' lb payload.';
     } else {
       warn.hidden = true;
       warn.textContent = '';
@@ -244,18 +296,22 @@
         ? '<span class="est">EST</span> ' + result.hours.toFixed(1) + ' h at ' + plainNum(s.assumedMph, 0) + ' mph'
         : plainNum(result.hours, 1) + ' h entered');
 
+    var mathSub = result.ready
+      ? ('Rate x 0.87 = ' + money(result.afterFee) + '. Loaded $' + s.loadedCost.toFixed(2) + ' x ' + plainNum(result.loadedMi, 0) + ' = ' + money(result.loadedCostAmt) + '. DH $' + s.deadheadCost.toFixed(2) + ' x ' + plainNum(result.deadMi, 0) + ' = ' + money(result.deadCostAmt) + '.')
+      : 'rate x 0.87 - $' + s.loadedCost.toFixed(2) + '/loaded mi - $' + s.deadheadCost.toFixed(2) + '/deadhead mi';
+
     $('metrics').innerHTML =
-      metric(result.ready ? rpm(result.allRpm) : '—', 'All-miles', 'Deadhead counts toward the floor') +
-      metric(result.ready && result.loadedMi > 0 ? rpm(result.loadedRpm) : '—', 'Loaded', result.loadedMi > 0 ? plainNum(result.loadedMi, 2) + ' loaded mi' : 'No loaded miles yet') +
+      metric(result.ready ? money(result.netEst) : '—', 'Net EST', mathSub) +
       metric(result.ready ? money(result.fee) : '—', 'Totni fee', plainNum(s.feePct, 2).replace(/\.00$/, '') + '% of the rate') +
-      metric(fuelValue, 'Fuel', fuelSub) +
-      metric(result.ready && result.net != null ? money(result.net) : '—', 'Net kept', 'Rate minus fee and est. fuel') +
-      metric(result.ready && result.netHour != null ? money(result.netHour) : '—', 'Net per hour', hourSub);
+      metric(result.ready && result.loadedMi > 0 ? rpm(result.loadedRpm) : '—', 'Posted / loaded mi', result.loadedMi > 0 ? plainNum(result.loadedMi, 0) + ' loaded mi' : 'No loaded miles yet') +
+      metric(result.ready && result.totalMi > 0 ? rpm(result.allRpm) : '—', 'Posted / all-mi', result.totalMi > 0 ? plainNum(result.totalMi, 0) + ' total mi' : 'No miles yet') +
+      metric(fuelValue, 'Fuel (MPG check)', fuelSub) +
+      metric(result.ready && result.netHour != null ? money(result.netHour) : '—', 'Net EST per hour', hourSub);
 
     var insFlag = $('ins-flag');
     insFlag.hidden = s.insurance > 0;
-    var brief = plainNum(s.feePct, 2).replace(/\.00$/, '') + '% · floor $' + s.floor.toFixed(2);
-    if (s.insurance <= 0) brief += ' · insurance not set';
+    var brief = plainNum(s.feePct, 2).replace(/\.00$/, '') + '% / net bar $' + plainNum(s.minNet, 0);
+    if (s.insurance <= 0) brief += ' / insurance not set';
     $('settings-brief').textContent = brief;
 
     if (state.tab === 'kpis' && state.feed) renderKpis();
@@ -269,7 +325,7 @@
   }
 
   function clearOffer() {
-    ['rate', 'loaded', 'deadhead', 'weight', 'pickup', 'delivery', 'hours'].forEach(function (id) {
+    ['rate', 'loaded', 'deadhead', 'weight', 'lengthFt', 'pickup', 'delivery', 'hours'].forEach(function (id) {
       $(id).value = '';
     });
     setTarp(false);
@@ -478,7 +534,7 @@
       received: receivedC / 100,
       owed: owedC / 100,
       owedEst: owedEst,
-      detail: bits.join(' · ') || 'No pay status on these loads'
+      detail: bits.join(' | ') || 'No pay status on these loads'
     };
   }
 
@@ -673,7 +729,7 @@
   function statusLine(feed) {
     var when = feed && feed.generated_at ? formatStamp(feed.generated_at) : (state.savedAt ? formatStamp(state.savedAt) : '');
     var text = when ? 'Last updated ' + when : 'Last updated —';
-    if (state.offline) text += ' · offline copy';
+    if (state.offline) text += ' / offline copy';
     return text;
   }
 
@@ -717,7 +773,7 @@
     }
     if (load.pay_note) bits.push(esc(load.pay_note));
     if (!bits.length) return '';
-    return '<p class="notes">' + bits.join(' · ') + '</p>';
+    return '<p class="notes">' + bits.join(' | ') + '</p>';
   }
 
   function fixedCostNote(feed) {
@@ -741,7 +797,7 @@
     var mileCell = miles == null ? '—' : plainNum(miles, 2) + (load.miles_estimate ? ' <span class="est">EST</span>' : '');
     var rateCell = miles ? rpm(load.rate_per_mi != null && isFinite(Number(load.rate_per_mi)) ? Number(load.rate_per_mi) : gross / miles) : '—';
     if (miles && load.miles_estimate) rateCell += ' <span class="est">EST</span>';
-    var who = [load.broker, load.load_no].filter(Boolean).join(' · ');
+    var who = [load.broker, load.load_no].filter(Boolean).join(' | ');
     return '<article class="load"><h3>' + esc(load.desc || 'Load') + payBadge(load) + '</h3>' +
       '<p class="lane">' + esc(when) + (load.lane ? ' · ' + esc(load.lane) : '') + '</p>' +
       '<div class="kv">' +
@@ -798,13 +854,13 @@
     cats.sort(function (a, b) { return fig.byCat[b] - fig.byCat[a]; });
     var breakout = cats.map(function (cat) {
       return esc(catName(cat)) + ' ' + money(fig.byCat[cat]);
-    }).join(' · ');
+    }).join(' | ');
     var loads = entries.map(function (entry) { return loadCard(entry.load, entry.pct); }).join('');
     var loadCount = entries.length;
     var cancelled = cancelledRows.map(function (row) {
       return '<article class="note cancel"><time>' + esc(formatDay(row.date)) + '</time>' +
         '<h3>' + esc(row.status || 'Cancelled') + '</h3>' +
-        '<p>' + esc([row.broker, row.load_no].filter(Boolean).join(' · ')) +
+        '<p>' + esc([row.broker, row.load_no].filter(Boolean).join(' | ')) +
         (row.tonu ? ' ' + esc(row.tonu) : '') +
         (row.deadhead_fuel ? ' Deadhead fuel ' + money(row.deadhead_fuel) + ' is already in the fuel total.' : '') +
         (row.notes ? ' ' + esc(row.notes) : '') + '</p></article>';
@@ -1092,9 +1148,203 @@
     bindMonthSwitch(root);
   }
 
+
+  function rememberSearches(data) {
+    var savedAt = Date.now();
+    try {
+      localStorage.setItem(SEARCH_CACHE_KEY, JSON.stringify({ savedAt: savedAt, data: data }));
+    } catch (err) { /* private mode */ }
+    return savedAt;
+  }
+
+  function recallSearches() {
+    try {
+      var raw = localStorage.getItem(SEARCH_CACHE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function applySearches(data, meta) {
+    state.searches = data;
+    state.searchOffline = !!(meta && meta.offline);
+    state.searchSavedAt = (meta && meta.savedAt) || null;
+    state.searchError = '';
+    if (state.tab === 'searches') renderSearches();
+  }
+
+  function refreshSearches() {
+    if (state.searchInflight) return state.searchInflight;
+    state.searchInflight = fetch('data/load_searches.json', { cache: 'no-cache' }).then(function (res) {
+      if (!res.ok) throw new Error('Searches responded ' + res.status);
+      var fromCache = res.headers.get('X-Feed-Cache') === '1';
+      return res.json().then(function (data) {
+        return { data: data, fromCache: fromCache };
+      });
+    }).then(function (pack) {
+      if (!pack.data || !pack.data.loads) throw new Error('Searches feed has no loads');
+      if (pack.fromCache) {
+        var prev = recallSearches();
+        applySearches(pack.data, { offline: true, savedAt: prev && prev.savedAt });
+      } else {
+        applySearches(pack.data, { offline: false, savedAt: rememberSearches(pack.data) });
+      }
+    }).catch(function () {
+      var cached = recallSearches();
+      if (cached && cached.data) {
+        applySearches(cached.data, { offline: true, savedAt: cached.savedAt });
+      } else {
+        state.searchError = 'Could not load the latest scan.';
+        if (state.tab === 'searches') renderSearches();
+      }
+    }).then(function () {
+      state.searchInflight = null;
+    });
+    return state.searchInflight;
+  }
+
+  function searchMoney(n) {
+    if (n == null || !isFinite(n)) return 'n/a';
+    var neg = n < -0.004;
+    var abs = Math.abs(n);
+    var body = abs.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    return (neg ? '-$' : '$') + body;
+  }
+
+  function filteredSearches(data) {
+    var rows = (data && data.loads) ? data.loads.slice() : [];
+    var f = state.searchFilter || 'all';
+    if (f === 'take' || f === 'maybe' || f === 'pass') {
+      rows = rows.filter(function (row) { return String(row.verdict).toLowerCase() === f; });
+    } else if (f === 'truckstop') {
+      rows = rows.filter(function (row) { return row.board === 'Truckstop'; });
+    } else if (f === 'df') {
+      rows = rows.filter(function (row) { return row.board === 'Direct Freight'; });
+    }
+    return rows;
+  }
+
+  function renderSearchChart(rows) {
+    var top = rows.filter(function (row) { return row.net_est != null; }).slice(0, 12);
+    if (!top.length) return '';
+    var width = 440;
+    var rowH = 26;
+    var left = 150;
+    var right = 54;
+    var height = top.length * rowH + 8;
+    var maxAbs = 1;
+    top.forEach(function (row) {
+      var a = Math.abs(row.net_est);
+      if (a > maxAbs) maxAbs = a;
+    });
+    var barW = width - left - right;
+    var bars = top.map(function (row, i) {
+      var y = 4 + i * rowH;
+      var w = Math.max(2, Math.round(Math.abs(row.net_est) / maxAbs * barW));
+      var color = row.verdict === 'TAKE' ? '#D4A62A' : (row.verdict === 'MAYBE' ? '#C4B5FD' : '#8C1C13');
+      if (row.net_est < 0) color = '#8C1C13';
+      var lane = (row.origin || '') + ' -> ' + (row.destination || '');
+      if (lane.length > 28) lane = lane.slice(0, 26) + '...';
+      return '<text class="chart-label" x="0" y="' + (y + 14) + '">' + esc(lane) + '</text>' +
+        '<rect x="' + left + '" y="' + (y + 4) + '" width="' + w + '" height="14" rx="3" fill="' + color + '"></rect>' +
+        '<text class="chart-val" x="' + (left + w + 6) + '" y="' + (y + 15) + '">' + esc(searchMoney(row.net_est)) + '</text>';
+    }).join('');
+    return '<div class="net-chart"><h3>Net EST, best first</h3>' +
+      '<svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="Net EST bar chart">' + bars + '</svg></div>';
+  }
+
+  function renderSearchCard(row) {
+    var verd = String(row.verdict || 'PASS').toLowerCase();
+    var origin = row.origin || 'Origin';
+    var dh = row.origin_dh_mi != null ? ' (' + plainNum(row.origin_dh_mi, 0) + ' mi deadhead)' : '';
+    var dest = row.destination || 'Destination';
+    var bits = [];
+    bits.push(row.board || '');
+    if (row.trip_mi != null) bits.push(plainNum(row.trip_mi, 0) + ' trip mi');
+    if (row.equipment) bits.push(row.equipment);
+    if (row.weight_lb != null) bits.push(plainNum(row.weight_lb, 0) + ' lb');
+    if (row.length_ft != null) bits.push(plainNum(row.length_ft, 1) + ' ft');
+    if (row.posted_rate != null) bits.push('posted ' + money(row.posted_rate));
+    if (row.rate_per_mi != null) bits.push('$' + Number(row.rate_per_mi).toFixed(2) + '/mi');
+    if (row.pickup_window) bits.push('PU ' + row.pickup_window);
+    if (row.drop_window) bits.push('DEL ' + row.drop_window);
+    var broker = row.broker || (row.board === 'Direct Freight' ? 'Broker not listed on the free list' : '');
+    if (broker) bits.push(broker);
+    if (row.broker_mc) bits.push('MC ' + row.broker_mc);
+    if (row.broker_dot) bits.push('DOT ' + row.broker_dot);
+    if (row.load_number) bits.push('Load # ' + row.load_number);
+    if (row.notes) bits.push(row.notes);
+    var flags = (row.fit_flags && row.fit_flags.length) ? row.fit_flags.join('. ') + '.' : '';
+    var link = row.link ? '<a class="search-link" href="' + esc(row.link) + '" target="_blank" rel="noopener noreferrer">Open on ' + esc(row.board || 'the board') + '</a>' : '';
+    return '<article class="search-card ' + esc(verd) + '">' +
+      '<div class="search-top"><div>' +
+      '<div class="lane">' + esc(origin) + dh + ' -> ' + esc(dest) + '</div>' +
+      '<span class="verdict-pill ' + esc(verd) + '">' + esc(row.verdict || 'PASS') + '</span>' +
+      '</div><div class="search-net">' + esc(searchMoney(row.net_est)) + '<span class="unit">Net EST</span></div></div>' +
+      (row.math ? '<p class="search-math">' + esc(row.math) + '</p>' : '') +
+      (flags ? '<p class="search-flags">' + esc(flags) + '</p>' : '') +
+      '<p class="search-meta">' + esc(bits.filter(Boolean).join(' | ')) + '</p>' +
+      link + '</article>';
+  }
+
+  function renderSearches() {
+    var root = $('searches-root');
+    if (!root) return;
+    var data = state.searches;
+    if (state.searchError && !data) {
+      root.innerHTML = '<p class="warn">' + esc(state.searchError) + '</p>';
+      return;
+    }
+    if (!data) {
+      root.innerHTML = '<p class="fine">Loading the latest load board scan...</p>';
+      return;
+    }
+    var counts = data.counts || {};
+    var rules = data.rules || {};
+    var stamp = (data.scanned_at || data.as_of || '') +
+      (state.searchOffline ? ' / offline copy' : '');
+    var formula = rules.formula || 'net EST = rate x 0.87 - $1.64 per loaded mile - $0.30 per deadhead mile';
+    var bar = rules.quality_bar || '';
+    var rows = filteredSearches(data);
+    var filters = [
+      ['all', 'All'],
+      ['take', 'TAKE'],
+      ['maybe', 'MAYBE'],
+      ['pass', 'PASS'],
+      ['truckstop', 'Truckstop'],
+      ['df', 'Direct Freight']
+    ].map(function (pair) {
+      var on = (state.searchFilter || 'all') === pair[0];
+      return '<button type="button" data-filter="' + pair[0] + '" aria-pressed="' + (on ? 'true' : 'false') + '">' + pair[1] + '</button>';
+    }).join('');
+    var cards = rows.map(renderSearchCard).join('') || '<p class="fine">No loads in this filter.</p>';
+    root.innerHTML =
+      '<div class="searches-hero">' +
+        '<h2>Load Searches</h2>' +
+        '<p class="fine">' + esc(stamp) + (data.origin ? ' / from ' + data.origin : '') + '</p>' +
+        '<p class="fine">' + esc(formula) + '. ' + esc(bar) + '</p>' +
+        '<div class="search-counts">' +
+          '<div class="search-count"><div class="n">' + esc(String(counts.total || 0)) + '</div><div class="l">Loads</div></div>' +
+          '<div class="search-count"><div class="n">' + esc(String(counts.take || 0)) + '</div><div class="l">TAKE</div></div>' +
+          '<div class="search-count"><div class="n">' + esc(String(counts.maybe || 0)) + '</div><div class="l">MAYBE</div></div>' +
+          '<div class="search-count"><div class="n">' + esc(String(counts.pass || 0)) + '</div><div class="l">PASS</div></div>' +
+        '</div>' +
+      '</div>' +
+      renderSearchChart(data.loads || []) +
+      '<div class="search-filters" role="group" aria-label="Filter loads">' + filters + '</div>' +
+      cards;
+    root.querySelectorAll('.search-filters button').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        state.searchFilter = btn.getAttribute('data-filter') || 'all';
+        renderSearches();
+      });
+    });
+  }
+
   function showTab(name) {
     state.tab = name;
-    ['check', 'reports', 'kpis', 'stops'].forEach(function (id) {
+    ['check', 'searches', 'reports', 'kpis', 'stops'].forEach(function (id) {
       var on = id === name;
       $('tab-' + id).setAttribute('aria-selected', on ? 'true' : 'false');
       $('panel-' + id).hidden = !on;
@@ -1106,6 +1356,9 @@
     } else if (name === 'kpis') {
       renderKpis();
       refreshFeed();
+    } else if (name === 'searches') {
+      renderSearches();
+      refreshSearches();
     } else if (name === 'stops' && window.BlackRamStops) {
       window.BlackRamStops.show();
     }
@@ -1155,7 +1408,8 @@
     }, { passive: true });
 
     document.addEventListener('touchend', function () {
-      if (pulling && dy > 70 && state.tab === 'reports') refreshFeed();
+      if (pulling && dy > 70 && (state.tab === 'reports' || state.tab === 'kpis')) refreshFeed();
+      if (pulling && dy > 70 && state.tab === 'searches') refreshSearches();
       pulling = false;
       dy = 0;
       indicator(0);
@@ -1183,16 +1437,19 @@
     setupPull();
     renderCheck();
     refreshFeed();
+    refreshSearches();
   }
 
   window.BlackRam = {
     compute: compute,
     settings: settings,
     refreshFeed: refreshFeed,
+    refreshSearches: refreshSearches,
     monthFigures: monthFigures,
     latestMonth: latestMonth,
     showTab: showTab,
-    getFeed: function () { return state.feed; }
+    getFeed: function () { return state.feed; },
+    getSearches: function () { return state.searches; }
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
