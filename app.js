@@ -239,8 +239,8 @@
     if (!result.ready) {
       return {
         label: 'READY',
-        msg: 'Enter the rate plus loaded miles, deadhead, or both.',
-        meta: 'Net EST = rate x 0.87 minus $' + s.loadedCost.toFixed(2) + ' per loaded mile minus $' + s.deadheadCost.toFixed(2) + ' per deadhead mile. Bar $' + plainNum(s.minNet, 0) + ' net EST, or $' + plainNum(s.minNetSameDay, 0) + ' for a same-day run under ' + plainNum(s.sameDayMiles, 0) + ' total miles.'
+        msg: 'Enter the rate plus loaded miles, empty miles, or both.',
+        meta: 'Net EST = rate x 0.87 minus $' + s.loadedCost.toFixed(2) + ' per loaded mile minus $' + s.deadheadCost.toFixed(2) + ' per empty mile. Bar $' + plainNum(s.minNet, 0) + ' net EST, or $' + plainNum(s.minNetSameDay, 0) + ' for a same-day run under ' + plainNum(s.sameDayMiles, 0) + ' total miles.'
       };
     }
     var msg;
@@ -307,8 +307,8 @@
         : plainNum(result.hours, 1) + ' h entered');
 
     var mathSub = result.ready
-      ? ('Rate x 0.87 = ' + money(result.afterFee) + '. Loaded $' + s.loadedCost.toFixed(2) + ' x ' + plainNum(result.loadedMi, 0) + ' = ' + money(result.loadedCostAmt) + '. DH $' + s.deadheadCost.toFixed(2) + ' x ' + plainNum(result.deadMi, 0) + ' = ' + money(result.deadCostAmt) + '.')
-      : 'rate x 0.87 - $' + s.loadedCost.toFixed(2) + '/loaded mi - $' + s.deadheadCost.toFixed(2) + '/deadhead mi';
+      ? ('Rate x 0.87 = ' + money(result.afterFee) + '. Loaded $' + s.loadedCost.toFixed(2) + ' x ' + plainNum(result.loadedMi, 0) + ' = ' + money(result.loadedCostAmt) + '. Empty miles $' + s.deadheadCost.toFixed(2) + ' x ' + plainNum(result.deadMi, 0) + ' = ' + money(result.deadCostAmt) + '.')
+      : 'rate x 0.87 - $' + s.loadedCost.toFixed(2) + '/loaded mi - $' + s.deadheadCost.toFixed(2) + '/empty mi';
 
     $('metrics').innerHTML =
       metric(result.ready ? money(result.netEst) : '—', 'Net EST', mathSub) +
@@ -1487,16 +1487,102 @@
     return moneyPerMile(n) + '/mi EST';
   }
 
+  function hourTone(n) {
+    if (n == null || !isFinite(Number(n))) return '';
+    n = Number(n);
+    if (n >= 35) return 'good';
+    if (n >= 20) return 'ok';
+    return 'low';
+  }
+
+  function mileTone(n) {
+    if (n == null || !isFinite(Number(n))) return '';
+    n = Number(n);
+    if (n >= 0.8) return 'good';
+    if (n >= 0.4) return 'ok';
+    return 'low';
+  }
+
+  function rateMoney(n, digits) {
+    if (n == null || !isFinite(Number(n))) return 'n/a';
+    var neg = Number(n) < 0;
+    return (neg ? '-$' : '$') + Math.abs(Number(n)).toLocaleString('en-US', {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits
+    });
+  }
+
   function netBlock(net, perHour, netPerMile, unitExtra) {
-    var hourly = (perHour != null && isFinite(Number(perHour)))
-      ? '<span class="per-hour">' + esc(searchMoney(perHour)) + '/hr EST</span>'
-      : '';
-    var perMi = (netPerMile != null && isFinite(Number(netPerMile)))
-      ? '<span class="per-mile">' + esc(moneyPerMile(netPerMile)) + '/mi EST</span>'
-      : '';
+    var pills = '';
+    if (perHour != null && isFinite(Number(perHour))) {
+      pills += '<span class="rate-pill per-hour ' + hourTone(perHour) + '">' +
+        esc(searchMoney(perHour)) + '/hr EST</span>';
+    }
+    if (netPerMile != null && isFinite(Number(netPerMile))) {
+      pills += '<span class="rate-pill per-mile ' + mileTone(netPerMile) + '">' +
+        esc(rateMoney(netPerMile, 2)) + '/mi EST</span>';
+    }
     return '<div class="search-net">' + esc(searchMoney(net)) +
       '<span class="unit">Net EST' + (unitExtra || '') + '</span>' +
-      hourly + perMi + '</div>';
+      (pills ? '<span class="rate-pills">' + pills + '</span>' : '') + '</div>';
+  }
+
+  function verdictReason(row) {
+    if (!row) return '';
+    if (row.reason) return String(row.reason);
+    var verd = String(row.verdict || '').toUpperCase();
+    var flags = row.fit_flags || row.flags || [];
+    var hard = flags.filter(function (f) { return String(f).indexOf('cannot haul') !== -1; });
+    if (verd === 'TAKE') return 'Clears the net bar and fits the deck.';
+    if (verd === 'MAYBE') {
+      if (flags.some(function (f) { return String(f).indexOf('weight not listed') !== -1; })) {
+        return 'Clears the net bar, but weight is not listed.';
+      }
+      if (flags.some(function (f) { return String(f).indexOf('at payload') !== -1; })) {
+        return 'Clears the net bar, but weight is at the 16,000 lb payload.';
+      }
+      return 'Clears the net bar, but check fit before you book.';
+    }
+    if (hard.length) {
+      var text = String(hard[0]);
+      return /[.]$/.test(text) ? text : text + '.';
+    }
+    if (row.net_est == null) return 'No posted rate or miles, so net cannot be figured.';
+    var bar = row.same_day ? 300 : 500;
+    if (row.bar != null && isFinite(Number(row.bar))) bar = Math.round(Number(row.bar));
+    var barText = '$' + Number(bar).toLocaleString('en-US');
+    return row.same_day
+      ? 'Net EST is under the ' + barText + ' same-day bar.'
+      : 'Net EST is under the ' + barText + ' bar.';
+  }
+
+  function statCell(label, value) {
+    if (value == null || value === '') return '';
+    return '<div><span>' + esc(label) + '</span><b>' + value + '</b></div>';
+  }
+
+  function loadStatRow(row) {
+    var cells = [];
+    if (row.trip_mi != null) cells.push(statCell('Loaded', esc(plainNum(row.trip_mi, 0)) + ' mi'));
+    if (row.origin_dh_mi != null) cells.push(statCell('Empty miles', esc(plainNum(row.origin_dh_mi, 0)) + ' mi'));
+    if (row.weight_lb != null) cells.push(statCell('Weight', esc(plainNum(row.weight_lb, 0)) + ' lb'));
+    else cells.push(statCell('Weight', 'n/a'));
+    if (row.length_ft != null) cells.push(statCell('Length', esc(plainNum(row.length_ft, 1)) + ' ft'));
+    if (row.posted_rate != null) cells.push(statCell('Posted', esc(money(row.posted_rate))));
+    if (row.rate_per_mi != null) cells.push(statCell('Rate/mi', esc(rateMoney(row.rate_per_mi, 2))));
+    return cells.length ? '<div class="stat-row">' + cells.join('') + '</div>' : '';
+  }
+
+  function rateLegend() {
+    return '<p class="rate-legend" aria-label="Dollar per hour and per mile color key">' +
+      '<span class="rate-legend-label">$/hr</span>' +
+      '<span class="rate-pill good">$35+</span>' +
+      '<span class="rate-pill ok">$20-34</span>' +
+      '<span class="rate-pill low">under $20</span>' +
+      '<span class="rate-legend-label">$/mi</span>' +
+      '<span class="rate-pill good">$0.80+</span>' +
+      '<span class="rate-pill ok">$0.40-0.79</span>' +
+      '<span class="rate-pill low">under $0.40</span></p>';
   }
 
   function filteredSearches(data) {
@@ -1630,6 +1716,167 @@
     return 'tel:+1' + d;
   }
 
+  function coordKey(c) {
+    if (!c || c.lat == null || c.lon == null || !isFinite(Number(c.lat)) || !isFinite(Number(c.lon))) return '';
+    return Number(c.lat) + ',' + Number(c.lon);
+  }
+
+  function mapsDirUrl(origin, waypoints, destination) {
+    if (!origin || !destination) return '';
+    var url = 'https://www.google.com/maps/dir/?api=1&origin=' + encodeURIComponent(origin) +
+      '&destination=' + encodeURIComponent(destination);
+    if (waypoints && waypoints.length) {
+      url += '&waypoints=' + encodeURIComponent(waypoints.filter(Boolean).join('|'));
+    }
+    return url;
+  }
+
+  function loadMapsUrl(row) {
+    if (!row) return '';
+    var home = state.searches || {};
+    var origin = coordKey(row.truck_coord) || coordKey(home.origin_coord) || home.origin || 'Jacksonville, FL';
+    var waypoint = coordKey(row.origin_coord) || row.origin || '';
+    var dest = coordKey(row.destination_coord) || row.destination || '';
+    if (!waypoint || !dest) return '';
+    return mapsDirUrl(origin, [waypoint], dest);
+  }
+
+  function comboMapsUrl(combo) {
+    if (!combo) return '';
+    var home = state.searches || {};
+    var origin = coordKey(combo.truck_coord) || coordKey(home.origin_coord) || home.origin || 'Jacksonville, FL';
+    var stops = [];
+    (combo.stop_order || []).forEach(function (stop) {
+      var key = coordKey(stop.coord) || stop.place || '';
+      if (key) stops.push(key);
+    });
+    if (!stops.length) return '';
+    var dest = stops.pop();
+    return mapsDirUrl(origin, stops, dest);
+  }
+
+  function routePayload(row) {
+    return row && row.route ? row.route : null;
+  }
+
+  function hasRouteToDraw(route) {
+    if (!route) return false;
+    var legs = route.legs || [];
+    var points = route.points || [];
+    if (legs.some(function (leg) { return leg && leg.path && leg.path.length >= 2; })) return true;
+    return points.some(function (pt) { return pt && pt.lat != null && pt.lon != null; });
+  }
+
+  function routeBlock(route, mapsHref, label) {
+    state.routeMapSeq = (state.routeMapSeq || 0) + 1;
+    var id = 'rmap-' + state.routeMapSeq;
+    state.routePayloads = state.routePayloads || {};
+    var canDraw = hasRouteToDraw(route);
+    if (canDraw) state.routePayloads[id] = route;
+    var maps = mapsHref
+      ? '<a class="open-maps" href="' + esc(mapsHref) + '" target="_blank" rel="noopener noreferrer">Open in Google Maps</a>'
+      : '';
+    if (!canDraw && !maps) {
+      return '<p class="route-missing">Map unavailable for this load.</p>';
+    }
+    var map = canDraw
+      ? '<div class="route-map" id="' + id + '" data-route-id="' + id + '" role="img" aria-label="' + esc(label || 'Route map') + '"></div>'
+      : '<p class="route-missing">Map unavailable for this load.</p>';
+    return '<div class="route-wrap">' + map + maps +
+      (canDraw ? '<p class="route-legend"><span class="swatch deadhead"></span> Empty miles <span class="swatch loaded"></span> Loaded</p>' : '') +
+      '</div>';
+  }
+
+  function destroyRouteMaps() {
+    (state.liveMaps || []).forEach(function (map) {
+      try { map.remove(); } catch (err) { /* ignore */ }
+    });
+    state.liveMaps = [];
+    if (state.routeObserver) {
+      try { state.routeObserver.disconnect(); } catch (err) { /* ignore */ }
+      state.routeObserver = null;
+    }
+    state.routePayloads = {};
+  }
+
+  function mountRouteMap(el) {
+    if (!el || el.getAttribute('data-mounted') || !window.L) return;
+    var payload = state.routePayloads && state.routePayloads[el.getAttribute('data-route-id')];
+    if (!payload) return;
+    el.setAttribute('data-mounted', '1');
+    var map = L.map(el, {
+      scrollWheelZoom: false,
+      attributionControl: true,
+      zoomControl: true
+    });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+    var bounds = [];
+    (payload.legs || []).forEach(function (leg) {
+      if (!leg || !leg.path || leg.path.length < 2) return;
+      var isDead = leg.kind === 'deadhead';
+      var line = L.polyline(leg.path, {
+        color: isDead ? '#9A9488' : '#6E3CBC',
+        weight: isDead ? 3 : 4,
+        opacity: isDead ? 0.95 : 0.95,
+        dashArray: isDead ? '7 7' : null
+      }).addTo(map);
+      line.getLatLngs().forEach(function (ll) { bounds.push(ll); });
+    });
+    (payload.points || []).forEach(function (pt) {
+      if (!pt || pt.lat == null || pt.lon == null) return;
+      bounds.push([pt.lat, pt.lon]);
+      var label = pt.kind === 'truck' ? 'T' : (pt.n != null ? String(pt.n) : '');
+      var title = (pt.kind === 'truck' ? 'Truck · ' : (pt.kind === 'pickup' ? 'Pickup · ' : (pt.kind === 'drop' ? 'Drop · ' : ''))) + (pt.label || '');
+      var icon = L.divIcon({
+        className: 'route-pin-wrap',
+        html: '<div class="route-pin ' + esc(pt.kind || '') + '">' + esc(label) + '</div>',
+        iconSize: [26, 26],
+        iconAnchor: [13, 13]
+      });
+      L.marker([pt.lat, pt.lon], { icon: icon, keyboard: false, title: title })
+        .addTo(map)
+        .bindTooltip(title, { direction: 'top', opacity: 0.95 });
+    });
+    if (bounds.length) {
+      map.fitBounds(bounds, { padding: [22, 22], maxZoom: 10 });
+    } else {
+      map.setView([30.3, -82], 5);
+    }
+    requestAnimationFrame(function () { map.invalidateSize(); });
+    state.liveMaps = state.liveMaps || [];
+    state.liveMaps.push(map);
+  }
+
+  function observeRouteMaps(root) {
+    var scope = root || document;
+    if (!window.IntersectionObserver || !window.L) {
+      scope.querySelectorAll('.route-map').forEach(mountRouteMap);
+      return;
+    }
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        mountRouteMap(entry.target);
+        observer.unobserve(entry.target);
+      });
+    }, { root: null, rootMargin: '120px 0px', threshold: 0.01 });
+    state.routeObserver = observer;
+    scope.querySelectorAll('.route-map').forEach(function (el) {
+      observer.observe(el);
+    });
+    scope.querySelectorAll('details.pass-group').forEach(function (details) {
+      details.addEventListener('toggle', function () {
+        if (!details.open) return;
+        details.querySelectorAll('.route-map').forEach(function (el) {
+          if (!el.getAttribute('data-mounted')) observer.observe(el);
+        });
+      });
+    });
+  }
+
   function searchActions(row) {
     var href = openLoadHref(row);
     var html = '<div class="search-actions">' +
@@ -1655,34 +1902,31 @@
   function renderSearchCard(row) {
     var verd = String(row.verdict || 'PASS').toLowerCase();
     var origin = row.origin || 'Origin';
-    var dh = row.origin_dh_mi != null ? ' (' + plainNum(row.origin_dh_mi, 0) + ' mi deadhead)' : '';
     var dest = row.destination || 'Destination';
     var bits = [];
     bits.push(row.board || '');
-    if (row.trip_mi != null) bits.push(plainNum(row.trip_mi, 0) + ' trip mi');
     if (row.equipment) bits.push(row.equipment);
-    if (row.weight_lb != null) bits.push(plainNum(row.weight_lb, 0) + ' lb');
-    if (row.length_ft != null) bits.push(plainNum(row.length_ft, 1) + ' ft');
-    if (row.posted_rate != null) bits.push('posted ' + money(row.posted_rate));
-    if (row.rate_per_mi != null) bits.push('Rate/mi $' + Number(row.rate_per_mi).toFixed(2));
-    if (row.pickup_window) bits.push('PU ' + row.pickup_window);
-    if (row.drop_window) bits.push('DEL ' + row.drop_window);
+    if (row.pickup_window) bits.push('Pickup ' + row.pickup_window);
+    if (row.drop_window) bits.push('Drop ' + row.drop_window);
     var broker = row.broker || (row.board === 'Direct Freight' ? 'Broker not listed on the free list' : '');
     if (broker) bits.push(broker);
     if (row.broker_mc) bits.push('MC ' + row.broker_mc);
     if (row.broker_dot) bits.push('DOT ' + row.broker_dot);
     if (row.load_number) bits.push('Load # ' + row.load_number);
     if (row.notes) bits.push(row.notes);
-    var flags = (row.fit_flags && row.fit_flags.length) ? row.fit_flags.join('. ') + '.' : '';
+    var reason = verdictReason(row);
     return '<article class="search-card ' + esc(verd) + '">' +
-      '<div class="search-top"><div>' +
-      '<div class="lane">' + esc(origin) + dh + ' -> ' + esc(dest) + '</div>' +
-      '<span class="verdict-pill ' + esc(verd) + '">' + esc(row.verdict || 'PASS') + '</span>' +
-      '</div>' + netBlock(row.net_est, perHourValue(row), netPerMileValue(row)) + '</div>' +
+      '<div class="search-head">' +
+        netBlock(row.net_est, perHourValue(row), netPerMileValue(row)) +
+        '<span class="verdict-pill ' + esc(verd) + '">' + esc(row.verdict || 'PASS') + '</span>' +
+      '</div>' +
+      (reason ? '<p class="search-reason">' + esc(reason) + '</p>' : '') +
+      '<div class="lane">' + esc(origin) + ' to ' + esc(dest) + '</div>' +
+      loadStatRow(row) +
       (row.math ? '<p class="search-math">' + esc(row.math) + '</p>' : '') +
-      (flags ? '<p class="search-flags">' + esc(flags) + '</p>' : '') +
       (row.tarp ? '<p class="search-fit">Tarps, straps</p>' : '') +
       '<p class="search-meta">' + esc(bits.filter(Boolean).join(' | ')) + '</p>' +
+      routeBlock(routePayload(row), loadMapsUrl(row), (origin + ' to ' + dest + ' route map')) +
       searchActions(row) + '</article>';
   }
 
@@ -1694,15 +1938,19 @@
         (stop.window ? ' · ' + esc(stop.window) : '') + '</li>';
     }).join('');
     var legs = (combo.loads || []).map(function (row) {
-      var bits = [row.origin + ' -> ' + row.destination];
-      if (row.weight_lb != null) bits.push(plainNum(row.weight_lb, 0) + ' lb');
-      else bits.push('weight n/a');
-      if (row.length_ft != null) bits.push(plainNum(row.length_ft, 1) + ' ft');
-      else bits.push('length n/a');
+      var bits = [(row.origin || '') + ' to ' + (row.destination || '')];
       if (row.board) bits.push(row.board);
       if (row.load_number) bits.push('Load # ' + row.load_number);
-      return '<li class="combo-leg"><div class="combo-leg-top"><div>' + esc(bits.join(' · ')) + '</div>' +
-        netBlock(row.net_est, perHourValue(row), netPerMileValue(row)) + '</div>' +
+      var reason = verdictReason(row);
+      return '<li class="combo-leg">' +
+        '<div class="search-head">' +
+          netBlock(row.net_est, perHourValue(row), netPerMileValue(row)) +
+          (row.verdict ? '<span class="verdict-pill ' + esc(String(row.verdict).toLowerCase()) + '">' + esc(row.verdict) + '</span>' : '') +
+        '</div>' +
+        (reason ? '<p class="search-reason">' + esc(reason) + '</p>' : '') +
+        '<div class="lane">' + esc(bits.join(' · ')) + '</div>' +
+        loadStatRow(row) +
+        routeBlock(routePayload(row), loadMapsUrl(row), (row.origin || '') + ' to ' + (row.destination || '') + ' route map') +
         searchActions(row) + '</li>';
     }).join('');
     var wt = combo.combined_weight_lb != null ? plainNum(combo.combined_weight_lb, 0) + ' lb' : 'n/a';
@@ -1710,16 +1958,23 @@
     var len = combo.combined_length_ft != null ? plainNum(combo.combined_length_ft, 1) + ' ft' : 'n/a';
     if (combo.length_unknown) len += ' (some not listed)';
     var kind = combo.kind === 'shared' ? 'Shared deck' : 'Sequential chain';
+    var reason = verdictReason(combo);
     return '<article class="combo-card ' + esc(verd) + '">' +
-      '<div class="search-top"><div>' +
+      '<div class="search-head">' +
+        netBlock(combo.net_est, perHourValue(combo, (combo.loads || []).length),
+          netPerMileValue(combo),
+          ' · ' + esc(searchMoney(combo.net_per_day)) + '/day') +
+        '<span class="verdict-pill ' + esc(verd) + '">' + esc(combo.verdict || 'MAYBE') + '</span>' +
+      '</div>' +
+      (reason ? '<p class="search-reason">' + esc(reason) + '</p>' : '') +
       '<div class="lane">' + esc(kind) + '</div>' +
-      '<span class="verdict-pill ' + esc(verd) + '">' + esc(combo.verdict || 'MAYBE') + '</span>' +
-      '</div>' + netBlock(combo.net_est, perHourValue(combo, (combo.loads || []).length),
-        netPerMileValue(combo),
-        ' · ' + esc(searchMoney(combo.net_per_day)) + '/day') + '</div>' +
       (combo.math ? '<p class="search-math">' + esc(combo.math) + '</p>' : '') +
-      '<p class="search-meta">On deck at once: ' + esc(wt) + ' · ' + esc(len) +
-      (combo.timing_note ? ' · ' + esc(combo.timing_note) : '') + '</p>' +
+      '<div class="stat-row">' +
+        statCell('On deck', esc(wt)) +
+        statCell('Length', esc(len)) +
+        (combo.timing_note ? statCell('Timing', esc(combo.timing_note)) : '') +
+      '</div>' +
+      routeBlock(routePayload(combo), comboMapsUrl(combo), kind + ' route map') +
       '<p class="combo-label">Stop order</p><ol class="combo-stops">' + stops + '</ol>' +
       '<p class="combo-label">Loads</p><ul class="combo-loads">' + legs + '</ul>' +
       ((combo.flags && combo.flags.length) ? '<p class="search-flags">' + esc(combo.flags.join(' ')) + '</p>' : '') +
@@ -1790,6 +2045,7 @@
   function renderSearches() {
     var root = $('searches-root');
     if (!root) return;
+    destroyRouteMaps();
     var data = state.searches;
     var head = searchToolbar();
     if (state.searchError && !data) {
@@ -1834,6 +2090,7 @@
           '<div class="search-count"><div class="n">' + esc(String(counts.maybe || 0)) + '</div><div class="l">MAYBE</div></div>' +
           '<div class="search-count"><div class="n">' + esc(String(counts.pass || 0)) + '</div><div class="l">PASS</div></div>' +
         '</div>' +
+        rateLegend() +
       '</div>' +
       renderCombos(data) +
       renderSearchChart(rows) +
@@ -1846,6 +2103,7 @@
         renderSearches();
       });
     });
+    observeRouteMaps(root);
   }
 
   function showTab(name) {

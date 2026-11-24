@@ -39,8 +39,8 @@
 <path d="M92,150 L100,160 L108,150" fill="none" stroke="#D4A62A" stroke-width="4"/></g><text x="250" y="285" text-anchor="middle" style="font-family:Oswald,'Antonio',sans-serif;font-weight:700;font-size:64px;letter-spacing:6px" fill="#F5F1E6">BLACK RAM</text><text x="250" y="335" text-anchor="middle" style="font-family:Oswald,'Antonio',sans-serif;font-weight:500;font-size:34px;letter-spacing:18px" fill="#D4A62A">TOWING</text><text x="250" y="372" text-anchor="middle" style="font-family:Oswald,'Antonio',sans-serif;font-size:16px;letter-spacing:4px" fill="#aaa">TEXAS CITY, TX · HOTSHOT</text></svg></div>
         <h2 id="about-title" class="sr-only">Black Ram Towing</h2>
         <p>Black Ram Towing is the hotshot DBA of Sand Lily Pad LLC, leased onto Totni Enterprise’s MC authority.</p>
-        <p>Our rig: 2026 Ram 3500 dually and a 40 ft Big Tex gooseneck. Deck capacity is about 16,000 lb. Tarps, straps. $/hr EST = net EST / hours. Hours = (loaded mi + deadhead mi) / 50 mph + 2 h load/unload per load. Net $/mi EST = net EST / (loaded mi + deadhead mi).</p>
-        <p>Load Searches shows the latest Truckstop and Direct Freight scan. Net EST is the posted rate times 0.87, minus $1.14 per loaded mile (fuel and DEF) and $0.30 per deadhead mile. Driver pay is not in the per-load estimate; Meshach is paid out of profits. A single load needs at least $500 net EST, or $300 for a same-day run under 250 total miles. A chain or a 2- or 3-load combo needs at least $1,000 total with no losing leg. Searches lists TAKE loads first, then MAYBE, then PASS. Tarp-required and F+T loads are a fit; the rig has tarps and straps. If a company email is listed, Email broker opens a draft in your mail app and does not send it. If there is no email, Call broker uses a company phone, or a looked-up company line marked Looked up. Direct Freight rows with no broker identity link to the board detail. The public list does not include contact person names, personal cell numbers, card numbers, or other confidential details.</p>
+        <p>Our rig: 2026 Ram 3500 dually and a 40 ft Big Tex gooseneck. Deck capacity is about 16,000 lb. Tarps, straps. $/hr EST = net EST / hours. Hours = (loaded mi + empty miles) / 50 mph + 2 h load/unload per load. Net $/mi EST = net EST / (loaded mi + empty miles).</p>
+        <p>Load Searches shows the latest Truckstop and Direct Freight scan. Net EST is the posted rate times 0.87, minus $1.14 per loaded mile (fuel and DEF) and $0.30 per empty mile. Driver pay is not in the per-load estimate; Meshach is paid out of profits. A single load needs at least $500 net EST, or $300 for a same-day run under 250 total miles. A chain or a 2- or 3-load combo needs at least $1,000 total with no losing leg. Searches lists TAKE loads first, then MAYBE, then PASS. Tarp-required and F+T loads are a fit; the rig has tarps and straps. If a company email is listed, Email broker opens a draft in your mail app and does not send it. If there is no email, Call broker uses a company phone, or a looked-up company line marked Looked up. Direct Freight rows with no broker identity link to the board detail. Each load and combo shows a route map (grey dashed empty miles to pickup, solid purple loaded) and an Open in Google Maps directions link. Maps use OpenStreetMap and only load when they scroll into view. The public list does not include contact person names, personal cell numbers, card numbers, or other confidential details.</p>
         <h2>Add to your iPhone</h2>
         <ol>
           <li>Open this site in Safari.</li>
@@ -64,14 +64,14 @@
 <polygon points="78,100 94,106 80,112" fill="#F2C94C"/><polygon points="122,100 106,106 120,112" fill="#F2C94C"/>
 <path d="M92,150 L100,160 L108,150" fill="none" stroke="#D4A62A" stroke-width="4"/></g><text x="205" y="105" style="font-family:Oswald,'Antonio',sans-serif;font-weight:700;font-size:78px;letter-spacing:5px" fill="#F5F1E6">BLACK RAM</text><text x="208" y="152" style="font-family:Oswald,'Antonio',sans-serif;font-weight:500;font-size:36px;letter-spacing:21px" fill="#D4A62A">TOWING</text></svg></div>
       <p class="tag">Sand Lily Pad LLC</p>
-      <div class="rig-card" aria-label="Our rig"><p class="rig-kicker">Our rig</p><p class="rig">2026 Ram 3500 dually · 40 ft Big Tex · Tarps, straps · Totni 13%</p><p class="rig-note">$/hr EST = net EST / hours. Hours = (loaded mi + deadhead mi) / 50 mph + 2 h load/unload per load. Net $/mi EST = net EST / (loaded mi + deadhead mi).</p></div>
+      <div class="rig-card" aria-label="Our rig"><p class="rig-kicker">Our rig</p><p class="rig">2026 Ram 3500 dually · 40 ft Big Tex · Tarps, straps · Totni 13%</p><p class="rig-note">$/hr EST = net EST / hours. Hours = (loaded mi + empty miles) / 50 mph + 2 h load/unload per load. Net $/mi EST = net EST / (loaded mi + empty miles).</p></div>
     </header>
 
     <main>
       <section id="panel-check" class="panel" role="tabpanel" aria-labelledby="tab-check">
         <div id="verdict" class="verdict idle" role="status" aria-live="polite">
           <div class="verdict-label" id="verdict-label">Ready</div>
-          <p class="verdict-msg" id="verdict-msg">Enter the rate plus loaded miles, deadhead, or both.</p>
+          <p class="verdict-msg" id="verdict-msg">Enter the rate plus loaded miles, empty miles, or both.</p>
           <p class="verdict-meta" id="verdict-meta"></p>
         </div>
         <p id="weight-warn" class="warn" hidden></p>
@@ -88,7 +88,7 @@
               <input id="loaded" name="loaded" type="number" inputmode="decimal" min="0" step="1" placeholder="0" />
             </label>
             <label class="field">
-              <span class="lbl">Deadhead miles</span>
+              <span class="lbl">Empty miles</span>
               <input id="deadhead" name="deadhead" type="number" inputmode="decimal" min="0" step="1" placeholder="0" />
             </label>
             <label class="field">
@@ -129,7 +129,7 @@
             <span>Settings</span>
             <span class="brief" id="settings-brief"></span>
           </summary>
-          <p class="hint">Saved on this phone. Net EST = rate x 0.87 minus $1.14 per loaded mile (fuel and DEF) minus $0.30 per deadhead mile. Driver pay is not in this estimate. A single load needs at least $500 net EST, or $300 for a same-day run under 250 total miles. A chain needs at least $1,000 total with no losing leg. TAKE if it clears the bar and fits. MAYBE if it clears the bar but weight is not listed or is exactly at the 16,000 lb payload. PASS if it is under the bar, or if length is over 40 ft or weight is over 16,000 lb. No overhang. Tarp-required, F+T, and FT loads are a fit; the rig has tarps and straps. $/hr EST = net EST / hours. Hours = (loaded mi + deadhead mi) / 50 mph + 2 h load/unload per load. Net $/mi EST = net EST / (loaded mi + deadhead mi).</p>
+          <p class="hint">Saved on this phone. Net EST = rate x 0.87 minus $1.14 per loaded mile (fuel and DEF) minus $0.30 per empty mile. Driver pay is not in this estimate. A single load needs at least $500 net EST, or $300 for a same-day run under 250 total miles. A chain needs at least $1,000 total with no losing leg. TAKE if it clears the bar and fits. MAYBE if it clears the bar but weight is not listed or is exactly at the 16,000 lb payload. PASS if it is under the bar, or if length is over 40 ft or weight is over 16,000 lb. No overhang. Tarp-required, F+T, and FT loads are a fit; the rig has tarps and straps. $/hr EST = net EST / hours. Hours = (loaded mi + empty miles) / 50 mph + 2 h load/unload per load. Net $/mi EST = net EST / (loaded mi + empty miles).</p>
           <div class="fields">
             <label class="field">
               <span class="lbl">Totni fee %</span>
@@ -140,7 +140,7 @@
               <input id="loadedCost" type="number" inputmode="decimal" min="0" step="0.01" value="1.14" />
             </label>
             <label class="field">
-              <span class="lbl">Deadhead cost $/mi</span>
+              <span class="lbl">Empty miles cost $/mi</span>
               <input id="deadheadCost" type="number" inputmode="decimal" min="0" step="0.01" value="0.30" />
             </label>
             <label class="field">

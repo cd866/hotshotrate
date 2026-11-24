@@ -783,18 +783,20 @@ select:focus {
 .search-filters {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin: 8px 0 12px;
+  gap: 8px;
+  margin: 12px 0 16px;
 }
 .search-filters button {
   border: 1px solid var(--purple);
   background: transparent;
   color: var(--cream);
   border-radius: 999px;
-  padding: 5px 10px;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 14px;
   font-family: var(--display);
   font-weight: 600;
-  font-size: 12px;
+  font-size: 13px;
   letter-spacing: 0.4px;
   text-transform: uppercase;
 }
@@ -807,8 +809,8 @@ select:focus {
   background: #1C1428;
   border-left: 4px solid var(--purple);
   border-radius: 10px;
-  padding: 12px 14px;
-  margin: 0 0 10px;
+  padding: 16px;
+  margin: 0 0 14px;
 }
 .search-card.take { border-left-color: var(--gold); }
 .search-card.maybe { border-left-color: var(--purple-hi); }
@@ -820,12 +822,89 @@ select:focus {
   line-height: 1.15;
   letter-spacing: 0.2px;
 }
-.search-top {
+.search-top,
+.search-head {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 10px;
+  gap: 12px;
 }
+.search-head .verdict-pill { margin-top: 2px; flex: 0 0 auto; }
+.search-reason {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 1.35;
+  color: var(--cream);
+}
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 8px 10px;
+  margin: 12px 0 0;
+}
+.stat-row div {
+  background: rgba(14, 14, 16, 0.45);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.stat-row span {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--quiet);
+  margin-bottom: 2px;
+}
+.stat-row b {
+  display: block;
+  font-family: var(--display);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--cream);
+  letter-spacing: 0.2px;
+}
+.rate-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.rate-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-family: var(--display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  line-height: 1.2;
+  text-transform: none;
+  white-space: nowrap;
+}
+.rate-pill.good { background: #166534; color: #ECFDF3; }
+.rate-pill.ok { background: #CA8A04; color: #1A1403; }
+.rate-pill.low { background: #B91C1C; color: #FEF2F2; }
+.rate-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: var(--quiet);
+}
+.rate-legend-label {
+  margin-left: 4px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+.rate-legend-label:first-child { margin-left: 0; }
+.rate-legend .rate-pill { font-size: 11px; min-height: 22px; }
 .search-net {
   font-family: var(--display);
   font-weight: 700;
@@ -845,17 +924,12 @@ select:focus {
   color: var(--quiet);
   font-weight: 600;
 }
-.search-net .per-hour,
-.search-net .per-mile {
-  display: block;
-  margin-top: 4px;
-  font-size: 16px;
-  letter-spacing: 0.2px;
-  font-weight: 700;
-  color: var(--cream);
-  text-transform: none;
+.search-net .rate-pill.per-hour,
+.search-net .rate-pill.per-mile {
+  margin-top: 0;
+  font-size: 13px;
 }
-.search-net .per-mile { margin-top: 2px; }
+.combo-leg .search-net .rate-pill { font-size: 12px; }
 .combo-leg-top {
   display: flex;
   justify-content: space-between;
@@ -865,8 +939,6 @@ select:focus {
 .combo-leg .search-net {
   font-size: 22px;
 }
-.combo-leg .search-net .per-hour,
-.combo-leg .search-net .per-mile { font-size: 14px; }
 .rig-note {
   margin: 4px 0 0;
   font-size: 11px;
@@ -874,49 +946,61 @@ select:focus {
   color: var(--quiet);
 }
 .verdict-pill {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-family: var(--display);
   font-weight: 700;
-  font-size: 12px;
+  font-size: 13px;
   letter-spacing: 0.8px;
   text-transform: uppercase;
   border-radius: 999px;
-  padding: 3px 8px;
-  margin-top: 6px;
+  min-height: 28px;
+  padding: 4px 10px;
 }
 .verdict-pill.take { background: var(--gold); color: var(--bg); }
 .verdict-pill.maybe { background: var(--maybe); color: var(--cream); }
 .verdict-pill.pass { background: var(--pass); color: var(--cream); }
 .search-math, .search-meta, .search-flags {
-  margin: 8px 0 0;
+  margin: 10px 0 0;
   font-size: 13px;
   color: var(--muted);
-  line-height: 1.35;
+  line-height: 1.4;
 }
 .search-flags { color: var(--gold-hi); font-weight: 700; }
 .search-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px 14px;
-  margin-top: 10px;
+  gap: 10px 12px;
+  margin-top: 14px;
 }
-.search-link, .email-broker {
-  display: inline-block;
+.search-link, .email-broker, .call-broker, .open-maps {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 14px;
   color: var(--purple-hi);
   font-weight: 700;
-  text-decoration: underline;
+  text-decoration: none;
   font-family: var(--display);
   letter-spacing: 0.4px;
+  border-radius: 999px;
+  border: 1px solid var(--purple);
+  box-sizing: border-box;
 }
 .email-broker, .call-broker {
   color: var(--gold-hi);
-  border: 1px solid var(--gold);
-  border-radius: 999px;
-  padding: 4px 10px;
-  text-decoration: none;
+  border-color: var(--gold);
 }
 .call-broker { color: var(--cream); border-color: var(--purple-hi); }
+.open-maps {
+  color: var(--gold-hi);
+  border-color: var(--gold);
+  margin-top: 0;
+}
 .looked-up {
   display: inline-block;
   font-size: 11px;
@@ -931,10 +1015,66 @@ select:focus {
   color: var(--quiet);
   font-size: 13px;
 }
-.combo-leg {
-  margin: 0 0 10px;
+.combo-card { padding: 16px; margin: 0 0 16px; }
+.combo-leg { margin: 0 0 14px; padding-top: 8px; }
+.combo-leg .search-actions { margin-top: 12px; }
+
+.route-wrap {
+  margin-top: 10px;
 }
-.combo-leg .search-actions { margin-top: 6px; }
+.route-map {
+  height: 200px;
+  border-radius: 12px;
+  border: 1px solid rgba(212, 166, 42, 0.45);
+  overflow: hidden;
+  background: #1a1a1e;
+}
+.combo-card > .route-wrap .route-map { height: 240px; }
+.combo-leg .route-map { height: 170px; }
+.route-legend {
+  margin: 6px 0 0;
+  font-size: 11px;
+  letter-spacing: 0.4px;
+  color: var(--quiet);
+}
+.route-legend .swatch {
+  display: inline-block;
+  width: 18px;
+  height: 3px;
+  margin: 0 6px 2px 0;
+  vertical-align: middle;
+  background: #6E3CBC;
+}
+.route-legend .swatch.deadhead {
+  background: repeating-linear-gradient(90deg, #9A9488 0 7px, transparent 7px 11px);
+  margin-left: 0;
+}
+.route-legend .swatch.loaded { margin-left: 12px; }
+.route-wrap .open-maps { margin-top: 10px; }
+.route-missing {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--quiet);
+}
+.route-pin-wrap { background: transparent; border: 0; }
+.route-pin {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--display);
+  font-size: 12px;
+  font-weight: 700;
+  color: #0E0E10;
+  background: var(--gold);
+  border: 2px solid var(--gold-hi);
+  box-shadow: 0 0 0 2px rgba(14, 14, 16, 0.55);
+}
+.route-pin.pickup { background: var(--purple); color: #F5F1E6; border-color: var(--purple-hi); }
+.route-pin.drop { background: var(--cream); color: #0E0E10; border-color: var(--gold); }
+.route-pin.truck { background: var(--gold-hi); }
 
 .search-toolbar {
   display: flex;
