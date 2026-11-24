@@ -21,51 +21,41 @@
 }
 
 :root {
-  --bg: #F3EEE4;
-  --surface: #FFFcf7;
-  --ink: #161221;
-  --header: #2A1148;
-  --gold: #D4A62A;
-  --gold-hi: #C49214;
-  --gold-ink: #161221;
-  --cream: #F5F1E6;
+  --bg: #0f0d17;
+  --surface: #1a1726;
+  --ink: #f2f0f7;
+  --header: #a78bfa;
+  --chrome: #14111f;
+  --gold: #F2C94C;
+  --gold-hi: #F5D76A;
+  --gold-ink: #0f0d17;
+  --cream: #f2f0f7;
   --pass: #9F1239;
-  --purple: #5B2AA8;
-  --purple-hi: #6E3CBC;
-  --purple-deep: #2A1148;
-  --maybe: #A16207;
-  --muted: #3F3A4A;
-  --quiet: #4A4558;
-  --line: rgba(22, 18, 33, 0.14);
-  --good-bg: #D1FAE5;
-  --good-ink: #064E3B;
-  --ok-bg: #FEF3C7;
-  --ok-ink: #78350F;
-  --bad-bg: #FECACA;
-  --bad-ink: #7F1D1D;
-  --on-header: #F5F1E6;
-  --on-header-muted: #E7E1D4;
+  --purple: #a78bfa;
+  --purple-hi: #c4b5fd;
+  --purple-deep: #14111f;
+  --maybe: #92400E;
+  --muted: #b9b3cc;
+  --quiet: #b9b3cc;
+  --line: #2e2940;
+  --good-bg: #065F46;
+  --good-ink: #A7F3D0;
+  --ok-bg: #92400E;
+  --ok-ink: #FDE68A;
+  --bad-bg: #9F1239;
+  --bad-ink: #FECACA;
+  --on-header: #f2f0f7;
+  --on-header-muted: #b9b3cc;
+  --stripe-take: #34D399;
+  --stripe-maybe: #FBBF24;
+  --stripe-pass: #F87171;
   --display: Oswald, "Arial Narrow", Impact, sans-serif;
   --body: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #1A1028;
-    --surface: #FFFCF7;
-    --ink: #161221;
-    --header: #160A28;
-    --on-header: #F5F1E6;
-    --on-header-muted: #E7E1D4;
-    --muted: #3F3A4A;
-    --quiet: #4A4558;
-    --line: rgba(22, 18, 33, 0.16);
-  }
-}
-
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-html { color-scheme: light dark; }
+html { color-scheme: dark; }
 html:not(.splash-seen),
 html.sheet-open { overflow: hidden; }
 body {
@@ -1263,7 +1253,7 @@ select:focus {
 
 /* v20 type, color, and contrast */
 .top {
-  background: var(--header);
+  background: var(--chrome);
   color: var(--on-header);
   padding: calc(10px + env(safe-area-inset-top)) 16px 14px;
   margin: 0;
@@ -1284,8 +1274,8 @@ select:focus {
 .app { background: var(--bg); }
 
 .tabbar {
-  background: var(--header);
-  border-top: 2px solid var(--gold);
+  background: var(--chrome);
+  border-top: 2px solid var(--purple);
 }
 .tabbar button {
   color: var(--on-header);
@@ -1297,12 +1287,12 @@ select:focus {
   .tabbar button { font-size: 13px; }
 }
 .tabbar button[aria-selected="true"] {
-  background: var(--gold);
+  background: var(--purple);
   color: var(--gold-ink);
 }
 
 .panel, main { color: var(--ink); }
-.sheet { background: var(--header); color: var(--on-header); }
+.sheet { background: var(--chrome); color: var(--on-header); }
 .sheet p, .sheet li { color: var(--on-header); font-size: 16px; line-height: 1.5; }
 
 .search-card,
@@ -1671,3 +1661,155 @@ article.load.load-pay-paid-short {
   line-height: 1.15;
   padding: 4px 2px;
 }
+
+/* v21 dark default theme — colors only; sizes, spacing, and layout stay as v20 */
+.top-row .btn, .top a.btn, #about-btn {
+  background: transparent;
+  color: var(--on-header);
+  border: 2px solid var(--purple);
+}
+.top .tag {
+  background: var(--purple);
+  color: var(--gold-ink);
+}
+.stat-row div {
+  background: #221e30;
+  border: 1px solid var(--line);
+}
+.rate-tile.neutral, .rate-pill.neutral {
+  background: #2a2540;
+  color: var(--ink);
+}
+.search-card,
+.combo-card,
+.combo-leg,
+article.load,
+article.note,
+.need,
+.chart,
+.big,
+.stop-card,
+.kpi-card {
+  border: 1px solid var(--line);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+}
+.search-card,
+.combo-card,
+.combo-leg,
+article.load {
+  border: 1px solid var(--line);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+}
+.search-card.take,
+.combo-card.take,
+.combo-leg.take,
+article.load.load-delivered,
+article.load.load-pay-paid {
+  border-left-color: var(--stripe-take);
+}
+.search-card.maybe,
+.combo-card.maybe,
+.combo-leg.maybe,
+article.load.load-booked,
+article.load.load-in-transit,
+article.load.load-pay-in-transit {
+  border-left-color: var(--stripe-maybe);
+}
+.search-card.pass,
+.combo-card.pass,
+.combo-leg.pass,
+article.load.load-cancelled,
+article.load.load-pay-unpaid,
+article.load.load-pay-paid-short {
+  border-left-color: var(--stripe-pass);
+}
+.search-card.take { border-left-color: var(--stripe-take); }
+.search-card.maybe { border-left-color: var(--stripe-maybe); }
+.search-card.pass { border-left-color: var(--stripe-pass); }
+.search-card.take,
+.combo-card.take,
+.combo-leg.take {
+  border-left: 5px solid var(--stripe-take);
+}
+.search-card.maybe,
+.combo-card.maybe,
+.combo-leg.maybe {
+  border-left: 5px solid var(--stripe-maybe);
+}
+.search-card.pass,
+.combo-card.pass,
+.combo-leg.pass {
+  border-left: 5px solid var(--stripe-pass);
+}
+article.load { border-left: 5px solid var(--purple); }
+article.load.load-delivered,
+article.load.load-pay-paid {
+  border-left-color: var(--stripe-take);
+}
+article.load.load-booked,
+article.load.load-in-transit,
+article.load.load-pay-in-transit {
+  border-left-color: var(--stripe-maybe);
+}
+article.load.load-cancelled,
+article.load.load-pay-unpaid,
+article.load.load-pay-paid-short {
+  border-left-color: var(--stripe-pass);
+}
+
+.load-toggle, .search-link, .call-broker {
+  color: var(--purple);
+  background: transparent;
+  border: 2px solid var(--purple);
+}
+.open-maps, .email-broker, .load-toggle[aria-expanded="true"] {
+  background: var(--purple);
+  color: var(--gold-ink);
+  border-color: var(--purple);
+}
+.search-filters button {
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+.search-filters button[aria-pressed="true"] {
+  background: var(--purple);
+  color: var(--gold-ink);
+  border-color: var(--purple);
+}
+.btn.primary, button.btn.primary {
+  background: var(--purple);
+  color: var(--gold-ink);
+}
+.route-map,
+.route-map .leaflet-container,
+.leaflet-container {
+  background: #0f0d17;
+}
+.route-legend {
+  color: var(--muted);
+}
+.route-legend .swatch.loaded,
+.route-legend .swatch {
+  background: #c4b5fd;
+}
+.route-legend .swatch.deadhead {
+  background: repeating-linear-gradient(90deg, #E8E0C8 0 7px, transparent 7px 11px);
+}
+.route-pin.drop { background: var(--gold); color: var(--gold-ink); border-color: var(--gold-hi); }
+.route-pin.pickup, .route-pin.truck { background: var(--purple); color: var(--gold-ink); }
+input::placeholder { color: var(--muted); }
+.net-chart .chart-label { fill: var(--ink); }
+.net-chart .chart-val { fill: var(--header); }
+
+/* v21 leaflet attribution on a dark map */
+.leaflet-control-attribution,
+.leaflet-bar,
+.leaflet-control-zoom a {
+  background: rgba(15, 13, 23, 0.88) !important;
+  color: #b9b3cc !important;
+  box-shadow: none;
+}
+.leaflet-control-zoom a { border-color: #2e2940 !important; color: #f2f0f7 !important; }
+.leaflet-control-zoom a:hover { background: #2a2540 !important; color: #a78bfa !important; }
+.leaflet-control-attribution a { color: #c4b5fd !important; }

@@ -1195,7 +1195,7 @@
         '" text-anchor="middle" fill="' + labelFill + '" font-size="11" font-family="Oswald, Arial Narrow, sans-serif">' +
         esc(row.text) + '</text>' +
         '<text x="' + (x + barW / 2).toFixed(1) + '" y="' + (h - 14) +
-        '" text-anchor="middle" fill="#E7E1D4" font-size="11" font-family="Oswald, Arial Narrow, sans-serif">' +
+        '" text-anchor="middle" fill="#b9b3cc" font-size="11" font-family="Oswald, Arial Narrow, sans-serif">' +
         esc(row.label) + '</text>';
     }).join('');
     return '<svg viewBox="0 0 ' + w + ' ' + h + '" role="img" aria-label="' + esc(label) + '">' +
@@ -1772,8 +1772,8 @@
     var bars = top.map(function (row, i) {
       var y = 4 + i * rowH;
       var w = Math.max(2, Math.round(Math.abs(row.net_est) / maxAbs * barW));
-      var color = row.verdict === 'TAKE' ? '#D4A62A' : (row.verdict === 'MAYBE' ? '#C4B5FD' : '#8C1C13');
-      if (row.net_est < 0) color = '#8C1C13';
+      var color = row.verdict === 'TAKE' ? '#F2C94C' : (row.verdict === 'MAYBE' ? '#C4B5FD' : '#F87171');
+      if (row.net_est < 0) color = '#F87171';
       var lane = (row.origin || '') + ' -> ' + (row.destination || '');
       if (lane.length > 28) lane = lane.slice(0, 26) + '...';
       var tip = (row.origin || '') + ' -> ' + (row.destination || '') +
@@ -1991,16 +1991,16 @@
       zoomControl: true
     });
     bindMapGestures(map, el);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 18,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 16,
+      attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a> &mdash; Esri, TomTom, Garmin, FAO, NOAA, USGS'
     }).addTo(map);
     var bounds = [];
     (payload.legs || []).forEach(function (leg) {
       if (!leg || !leg.path || leg.path.length < 2) return;
       var isDead = leg.kind === 'deadhead';
       var line = L.polyline(leg.path, {
-        color: isDead ? '#9A9488' : '#6E3CBC',
+        color: isDead ? '#E8E0C8' : '#C4B5FD',
         weight: isDead ? 3 : 4,
         opacity: isDead ? 0.95 : 0.95,
         dashArray: isDead ? '7 7' : null
