@@ -86,8 +86,20 @@ button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
   font-size: 12px;
   text-transform: uppercase;
 }
+.rig-card {
+  margin: 8px 0 0;
+}
+.rig-kicker {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--gold);
+}
 .rig {
-  margin: 6px 0 0;
+  margin: 2px 0 0;
   color: var(--muted);
   font-size: 13px;
 }
@@ -493,7 +505,7 @@ html.splash-seen #about:not(.open) { display: none; }
 }
 
 .app.tab-stops .logo-wrap svg { width: min(100%, 220px); }
-.app.tab-stops .rig { display: none; }
+.app.tab-stops .rig-card, .app.tab-stops .rig { display: none; }
 .app.tab-stops .tag { margin-top: 2px; }
 
 .chips {
@@ -897,3 +909,86 @@ select:focus {
 .search-spinner[hidden] { display: none !important; }
 @keyframes search-spin { to { transform: rotate(360deg); } }
 .searches-panel .pull { color: var(--purple-hi); }
+
+.search-group { margin: 8px 0 14px; }
+.search-group-head {
+  margin: 0 0 8px;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: var(--purple-hi);
+}
+.search-group-head.take { color: var(--gold-hi); }
+.search-group-head.maybe { color: var(--purple-hi); }
+.search-group-head.pass, .pass-group summary.search-group-head {
+  color: #E7A5A0;
+  cursor: pointer;
+  list-style: none;
+}
+.pass-group summary.search-group-head::-webkit-details-marker { display: none; }
+.pass-group summary.search-group-head::after {
+  content: " (tap to expand)";
+  font-weight: 500;
+  letter-spacing: 0.4px;
+  text-transform: none;
+  color: var(--quiet);
+}
+.pass-group[open] summary.search-group-head::after { content: " (tap to hide)"; }
+.search-fit {
+  margin: 4px 0 0;
+  color: var(--gold);
+  font-size: 13px;
+  font-weight: 600;
+}
+.combos {
+  background: var(--purple-deep);
+  border-left: 4px solid var(--gold);
+  border-radius: 10px;
+  padding: 12px 12px 8px;
+  margin: 10px 0 14px;
+}
+.combos h3 {
+  margin: 0 0 6px;
+  font-family: var(--display);
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-size: 13px;
+}
+.combo-card {
+  background: #1C1428;
+  border-left: 4px solid var(--purple-hi);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin: 10px 0;
+}
+.combo-card.take { border-left-color: var(--gold); }
+.combo-card.maybe { border-left-color: var(--purple-hi); }
+.combo-card .search-net { color: var(--gold-hi); }
+.combo-label {
+  margin: 10px 0 4px;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.combo-stops, .combo-loads {
+  margin: 0 0 6px;
+  padding-left: 18px;
+  color: var(--cream);
+  font-size: 14px;
+}
+.combo-stops .act {
+  font-family: var(--display);
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--purple-hi);
+  font-size: 11px;
+}
+.combo-stops .lane-mini { color: var(--quiet); font-size: 12px; }

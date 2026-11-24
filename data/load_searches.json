@@ -1,6 +1,6 @@
 {
-  "schema": 1,
-  "as_of": "2026-11-24 00:17 CT",
+  "schema": 2,
+  "as_of": "2026-11-24 00:33 CT",
   "scanned_at": "2026-11-23 23:00 CT",
   "origin": "Jacksonville, FL",
   "rules": {
@@ -14,7 +14,8 @@
     "payload_lb": 16000,
     "deck_ft": 40,
     "formula": "net EST = rate x 0.87 - $1.14 per loaded mile (fuel and DEF) - $0.30 per deadhead mile",
-    "quality_bar": "Single load >= $500 net EST, or >= $300 for a same-day run under 250 total miles. A chain needs >= $1,000 total with no losing leg. Length over 40 ft or weight over 16,000 lb is an automatic PASS. No overhang."
+    "quality_bar": "Single load >= $500 net EST, or >= $300 for a same-day run under 250 total miles. A chain needs >= $1,000 total with no losing leg. Length over 40 ft or weight over 16,000 lb is an automatic PASS. No overhang. Tarp-required, F+T, and FT loads are a fit; the rig has tarps and straps.",
+    "combo_bar": "A 2- or 3-load combo needs >= $1,000 total net EST, must beat the best single load in it by at least $200, and no leg may lose money. Shared-deck combos keep combined weight <= 16,000 lb and combined length <= 40 ft for whatever is on the deck at the same time. Extra pickups must stay within about 100 mi of detour and extra drops within about 150 mi. Sequential chains deliver one load, then pick up the next within about 100 mi of the drop. Windows are checked at 550 mi/day. Route miles use the posted trip when the lane matches, otherwise haversine x 1.2. Unknown weight or length is flagged."
   },
   "counts": {
     "total": 54,
@@ -22,6 +23,96 @@
     "maybe": 4,
     "pass": 47
   },
+  "combo_counts": {
+    "total": 1
+  },
+  "combos": [
+    {
+      "kind": "chain",
+      "verdict": "MAYBE",
+      "net_est": 1478.85,
+      "net_per_day": 601.16,
+      "days": 2.46,
+      "beats_best_single_by": 294.75,
+      "best_single_net": 1184.1,
+      "after_fee": 2871.0,
+      "loaded_mi": 1174.0,
+      "deadhead_mi": 179.3,
+      "total_mi": 1353.3,
+      "math": "Rates after the 13% Totni fee $2,871.00. Fuel and DEF $1.14 x 1,174 mi = $1,338.36. Deadhead $0.30 x 179 mi = $53.79. Net EST $1,478.85.",
+      "combined_weight_lb": 15000,
+      "combined_length_ft": 24.0,
+      "weight_unknown": false,
+      "length_unknown": true,
+      "timing_ok": null,
+      "timing_note": "Some windows are not listed; timing not fully confirmed at 550 mi/day.",
+      "stop_order": [
+        {
+          "action": "pickup",
+          "place": "Brunswick, GA",
+          "lane": "Brunswick, GA -> Tifton, GA",
+          "window": "Ships 11/24"
+        },
+        {
+          "action": "drop",
+          "place": "Tifton, GA",
+          "lane": "Brunswick, GA -> Tifton, GA",
+          "window": ""
+        },
+        {
+          "action": "pickup",
+          "place": "Iron City, GA",
+          "lane": "Iron City, GA -> Pharr, TX",
+          "window": "11/24 12:00AM-11/24 11:59PM"
+        },
+        {
+          "action": "drop",
+          "place": "Pharr, TX",
+          "lane": "Iron City, GA -> Pharr, TX",
+          "window": ""
+        }
+      ],
+      "loads": [
+        {
+          "board": "Direct Freight",
+          "origin": "Brunswick, GA",
+          "destination": "Tifton, GA",
+          "posted_rate": 500.0,
+          "net_est": 258.24,
+          "weight_lb": 12125,
+          "length_ft": null,
+          "pickup_window": "Ships 11/24",
+          "drop_window": "",
+          "load_number": "",
+          "equipment": "HS",
+          "mode": "FULL",
+          "tarp": false,
+          "link": "https://www.directfreight.com"
+        },
+        {
+          "board": "Truckstop",
+          "origin": "Iron City, GA",
+          "destination": "Pharr, TX",
+          "posted_rate": 2800.0,
+          "net_est": 1184.1,
+          "weight_lb": 15000,
+          "length_ft": 24.0,
+          "pickup_window": "11/24 12:00AM-11/24 11:59PM",
+          "drop_window": "",
+          "load_number": "",
+          "equipment": "HS",
+          "mode": "PTL",
+          "tarp": false,
+          "link": "https://main.truckstop.com/app/search/loads"
+        }
+      ],
+      "flags": [
+        "Sequential chain: deliver one, then pick up the next near the drop.",
+        "length not listed on at least one load",
+        "Some windows are not listed; timing not fully confirmed at 550 mi/day."
+      ]
+    }
+  ],
   "sources": [
     {
       "board": "Truckstop",
@@ -35,6 +126,217 @@
     }
   ],
   "loads": [
+    {
+      "board": "Truckstop",
+      "origin": "Iron City, GA",
+      "origin_dh_mi": 221,
+      "destination": "Pharr, TX",
+      "trip_mi": 1040,
+      "pickup_window": "11/24 12:00AM-11/24 11:59PM",
+      "drop_window": "",
+      "equipment": "HS",
+      "mode": "PTL",
+      "weight_lb": 15000,
+      "length_ft": 24.0,
+      "posted_rate": 2800.0,
+      "rate_per_mi": 2.69,
+      "net_est": 1184.1,
+      "math": "Rate $2,800.00 x 0.87 = $2,436.00 after the 13% Totni fee ($364.00). Fuel and DEF $1.14 x 1,040 mi = $1,185.60. Deadhead $0.30 x 221 mi = $66.30. Net EST $1,184.10.",
+      "fit_flags": [],
+      "verdict": "TAKE",
+      "same_day": false,
+      "bar": 500.0,
+      "total_mi": 1261.0,
+      "broker": "BLUE COMET LOGISTICS LLC",
+      "broker_mc": "1069009",
+      "broker_dot": "3346353",
+      "load_number": "",
+      "notes": "1997 CAT 416C",
+      "link": "https://main.truckstop.com/app/search/loads",
+      "tarp": false
+    },
+    {
+      "board": "Truckstop",
+      "origin": "Smithville, GA",
+      "origin_dh_mi": 235,
+      "destination": "Hollis, OK",
+      "trip_mi": 1088,
+      "pickup_window": "11/18 12:00AM-11/30 11:59PM",
+      "drop_window": "11/20 12:00AM-12/1 11:59PM",
+      "equipment": "HS",
+      "mode": "TL",
+      "weight_lb": 13000,
+      "length_ft": null,
+      "posted_rate": 2200.0,
+      "rate_per_mi": 2.02,
+      "net_est": 603.18,
+      "math": "Rate $2,200.00 x 0.87 = $1,914.00 after the 13% Totni fee ($286.00). Fuel and DEF $1.14 x 1,088 mi = $1,240.32. Deadhead $0.30 x 235 mi = $70.50. Net EST $603.18.",
+      "fit_flags": [],
+      "verdict": "TAKE",
+      "same_day": false,
+      "bar": 500.0,
+      "total_mi": 1323.0,
+      "broker": "IFT-SAFEWAY INC / IFT-SAFEWAY LLC",
+      "broker_mc": "769263",
+      "broker_dot": "2262405",
+      "load_number": "",
+      "notes": "Flatbed hotshot, no tarps, round bales of hay, 1 pick/1 drop, live load/unload, quickpay",
+      "link": "https://main.truckstop.com/app/search/loads",
+      "tarp": false
+    },
+    {
+      "board": "Truckstop",
+      "origin": "Davenport, FL",
+      "origin_dh_mi": 178,
+      "destination": "Meshoppen, PA",
+      "trip_mi": 1168,
+      "pickup_window": "11/24 12:00AM-11/24 11:59PM",
+      "drop_window": "",
+      "equipment": "HS",
+      "mode": "TL",
+      "weight_lb": 14500,
+      "length_ft": 31.0,
+      "posted_rate": 2200.0,
+      "rate_per_mi": 1.88,
+      "net_est": 529.08,
+      "math": "Rate $2,200.00 x 0.87 = $1,914.00 after the 13% Totni fee ($286.00). Fuel and DEF $1.14 x 1,168 mi = $1,331.52. Deadhead $0.30 x 178 mi = $53.40. Net EST $529.08.",
+      "fit_flags": [],
+      "verdict": "TAKE",
+      "same_day": false,
+      "bar": 500.0,
+      "total_mi": 1346.0,
+      "broker": "Advanced Transports Inc",
+      "broker_mc": "1270839",
+      "broker_dot": "3668079",
+      "load_number": "",
+      "notes": "2015 Chevy 3500 crew cab w/ flatbed; excavator machinery",
+      "link": "https://main.truckstop.com/app/search/loads",
+      "tarp": false
+    },
+    {
+      "board": "Truckstop",
+      "origin": "Thonotosassa, FL",
+      "origin_dh_mi": 199,
+      "destination": "Blue Island, IL",
+      "trip_mi": 1170,
+      "pickup_window": "11/23 12:00AM-11/27 4:00PM",
+      "drop_window": "",
+      "equipment": "HS",
+      "mode": "LTL",
+      "weight_lb": 16000,
+      "length_ft": 22.0,
+      "posted_rate": 3200.0,
+      "rate_per_mi": 2.74,
+      "net_est": 1390.5,
+      "math": "Rate $3,200.00 x 0.87 = $2,784.00 after the 13% Totni fee ($416.00). Fuel and DEF $1.14 x 1,170 mi = $1,333.80. Deadhead $0.30 x 199 mi = $59.70. Net EST $1,390.50.",
+      "fit_flags": [
+        "at payload (~16,000 lb)"
+      ],
+      "verdict": "MAYBE",
+      "same_day": false,
+      "bar": 500.0,
+      "total_mi": 1369.0,
+      "broker": "LIMITLESS PRO LLC",
+      "broker_mc": "1532052",
+      "broker_dot": "4045921",
+      "load_number": "",
+      "notes": "Used Freightliner Cascadia day cab; COD",
+      "link": "https://main.truckstop.com/app/search/loads",
+      "tarp": false
+    },
+    {
+      "board": "Direct Freight",
+      "origin": "Conway, SC",
+      "origin_dh_mi": 348,
+      "destination": "Randolph, NY",
+      "trip_mi": 783,
+      "pickup_window": "Ships 11/24",
+      "drop_window": "",
+      "equipment": "F+T",
+      "mode": "FULL",
+      "weight_lb": null,
+      "length_ft": null,
+      "posted_rate": 2700.0,
+      "rate_per_mi": 3.45,
+      "net_est": 1351.98,
+      "math": "Rate $2,700.00 x 0.87 = $2,349.00 after the 13% Totni fee ($351.00). Fuel and DEF $1.14 x 783 mi = $892.62. Deadhead $0.30 x 348 mi = $104.40. Net EST $1,351.98.",
+      "fit_flags": [
+        "weight not listed"
+      ],
+      "verdict": "MAYBE",
+      "same_day": false,
+      "bar": 500.0,
+      "total_mi": 1131.0,
+      "broker": "",
+      "broker_mc": "",
+      "broker_dot": "",
+      "load_number": "",
+      "notes": "",
+      "link": "https://www.directfreight.com",
+      "tarp": true
+    },
+    {
+      "board": "Direct Freight",
+      "origin": "Camden, SC",
+      "origin_dh_mi": 317,
+      "destination": "Schuylkill Haven, PA",
+      "trip_mi": 605,
+      "pickup_window": "Ships 11/24",
+      "drop_window": "",
+      "equipment": "F+T",
+      "mode": "FULL",
+      "weight_lb": null,
+      "length_ft": null,
+      "posted_rate": 1825.0,
+      "rate_per_mi": 3.02,
+      "net_est": 802.95,
+      "math": "Rate $1,825.00 x 0.87 = $1,587.75 after the 13% Totni fee ($237.25). Fuel and DEF $1.14 x 605 mi = $689.70. Deadhead $0.30 x 317 mi = $95.10. Net EST $802.95.",
+      "fit_flags": [
+        "weight not listed"
+      ],
+      "verdict": "MAYBE",
+      "same_day": false,
+      "bar": 500.0,
+      "total_mi": 922.0,
+      "broker": "",
+      "broker_mc": "",
+      "broker_dot": "",
+      "load_number": "",
+      "notes": "",
+      "link": "https://www.directfreight.com",
+      "tarp": true
+    },
+    {
+      "board": "Direct Freight",
+      "origin": "Conway, SC",
+      "origin_dh_mi": 348,
+      "destination": "Schuylkill Haven, PA",
+      "trip_mi": 595,
+      "pickup_window": "Ships 11/24",
+      "drop_window": "",
+      "equipment": "F+T",
+      "mode": "FULL",
+      "weight_lb": null,
+      "length_ft": null,
+      "posted_rate": 1775.0,
+      "rate_per_mi": 2.98,
+      "net_est": 761.55,
+      "math": "Rate $1,775.00 x 0.87 = $1,544.25 after the 13% Totni fee ($230.75). Fuel and DEF $1.14 x 595 mi = $678.30. Deadhead $0.30 x 348 mi = $104.40. Net EST $761.55.",
+      "fit_flags": [
+        "weight not listed"
+      ],
+      "verdict": "MAYBE",
+      "same_day": false,
+      "bar": 500.0,
+      "total_mi": 943.0,
+      "broker": "",
+      "broker_mc": "",
+      "broker_dot": "",
+      "load_number": "",
+      "notes": "",
+      "link": "https://www.directfreight.com",
+      "tarp": true
+    },
     {
       "board": "Direct Freight",
       "origin": "Augusta, GA",
@@ -63,7 +365,8 @@
       "broker_dot": "",
       "load_number": "",
       "notes": "",
-      "link": "https://www.directfreight.com"
+      "link": "https://www.directfreight.com",
+      "tarp": true
     },
     {
       "board": "Truckstop",
@@ -93,7 +396,8 @@
       "broker_dot": "2241484",
       "load_number": "G5537010-7553540",
       "notes": "LENGTH 48, OVERDIMENSIONAL",
-      "link": "https://main.truckstop.com/app/search/loads"
+      "link": "https://main.truckstop.com/app/search/loads",
+      "tarp": false
     },
     {
       "board": "Truckstop",
@@ -124,67 +428,8 @@
       "broker_dot": "165420",
       "load_number": "1773396",
       "notes": "Straps & tarps required; zero trailer damage; tracking required; 1 additional stop; LENGTH 53",
-      "link": "https://main.truckstop.com/app/search/loads"
-    },
-    {
-      "board": "Truckstop",
-      "origin": "Thonotosassa, FL",
-      "origin_dh_mi": 199,
-      "destination": "Blue Island, IL",
-      "trip_mi": 1170,
-      "pickup_window": "11/23 12:00AM-11/27 4:00PM",
-      "drop_window": "",
-      "equipment": "HS",
-      "mode": "LTL",
-      "weight_lb": 16000,
-      "length_ft": 22.0,
-      "posted_rate": 3200.0,
-      "rate_per_mi": 2.74,
-      "net_est": 1390.5,
-      "math": "Rate $3,200.00 x 0.87 = $2,784.00 after the 13% Totni fee ($416.00). Fuel and DEF $1.14 x 1,170 mi = $1,333.80. Deadhead $0.30 x 199 mi = $59.70. Net EST $1,390.50.",
-      "fit_flags": [
-        "at payload (~16,000 lb)"
-      ],
-      "verdict": "MAYBE",
-      "same_day": false,
-      "bar": 500.0,
-      "total_mi": 1369.0,
-      "broker": "LIMITLESS PRO LLC",
-      "broker_mc": "1532052",
-      "broker_dot": "4045921",
-      "load_number": "",
-      "notes": "Used Freightliner Cascadia day cab; COD",
-      "link": "https://main.truckstop.com/app/search/loads"
-    },
-    {
-      "board": "Direct Freight",
-      "origin": "Conway, SC",
-      "origin_dh_mi": 348,
-      "destination": "Randolph, NY",
-      "trip_mi": 783,
-      "pickup_window": "Ships 11/24",
-      "drop_window": "",
-      "equipment": "F+T",
-      "mode": "FULL",
-      "weight_lb": null,
-      "length_ft": null,
-      "posted_rate": 2700.0,
-      "rate_per_mi": 3.45,
-      "net_est": 1351.98,
-      "math": "Rate $2,700.00 x 0.87 = $2,349.00 after the 13% Totni fee ($351.00). Fuel and DEF $1.14 x 783 mi = $892.62. Deadhead $0.30 x 348 mi = $104.40. Net EST $1,351.98.",
-      "fit_flags": [
-        "weight not listed"
-      ],
-      "verdict": "MAYBE",
-      "same_day": false,
-      "bar": 500.0,
-      "total_mi": 1131.0,
-      "broker": "",
-      "broker_mc": "",
-      "broker_dot": "",
-      "load_number": "",
-      "notes": "",
-      "link": "https://www.directfreight.com"
+      "link": "https://main.truckstop.com/app/search/loads",
+      "tarp": true
     },
     {
       "board": "Truckstop",
@@ -214,7 +459,8 @@
       "broker_dot": "190799",
       "load_number": "",
       "notes": "NEED RAMPS",
-      "link": "https://main.truckstop.com/app/search/loads"
+      "link": "https://main.truckstop.com/app/search/loads",
+      "tarp": false
     },
     {
       "board": "Direct Freight",
@@ -245,35 +491,8 @@
       "broker_dot": "",
       "load_number": "",
       "notes": "",
-      "link": "https://www.directfreight.com"
-    },
-    {
-      "board": "Truckstop",
-      "origin": "Iron City, GA",
-      "origin_dh_mi": 221,
-      "destination": "Pharr, TX",
-      "trip_mi": 1040,
-      "pickup_window": "11/24 12:00AM-11/24 11:59PM",
-      "drop_window": "",
-      "equipment": "HS",
-      "mode": "PTL",
-      "weight_lb": 15000,
-      "length_ft": 24.0,
-      "posted_rate": 2800.0,
-      "rate_per_mi": 2.69,
-      "net_est": 1184.1,
-      "math": "Rate $2,800.00 x 0.87 = $2,436.00 after the 13% Totni fee ($364.00). Fuel and DEF $1.14 x 1,040 mi = $1,185.60. Deadhead $0.30 x 221 mi = $66.30. Net EST $1,184.10.",
-      "fit_flags": [],
-      "verdict": "TAKE",
-      "same_day": false,
-      "bar": 500.0,
-      "total_mi": 1261.0,
-      "broker": "BLUE COMET LOGISTICS LLC",
-      "broker_mc": "1069009",
-      "broker_dot": "3346353",
-      "load_number": "",
-      "notes": "1997 CAT 416C",
-      "link": "https://main.truckstop.com/app/search/loads"
+      "link": "https://www.directfreight.com",
+      "tarp": true
     },
     {
       "board": "Direct Freight",
@@ -304,7 +523,8 @@
       "broker_dot": "",
       "load_number": "",
       "notes": "",
-      "link": "https://www.directfreight.com"
+      "link": "https://www.directfreight.com",
+      "tarp": true
     },
     {
       "board": "Truckstop",
@@ -334,7 +554,8 @@
       "broker_dot": "4503886",
       "load_number": "",
       "notes": "Isuzu NRR; 111 ask Josue; Zelle/ACH/wire on delivery",
-      "link": "https://main.truckstop.com/app/search/loads"
+      "link": "https://main.truckstop.com/app/search/loads",
+      "tarp": false
     },
     {
       "board": "Direct Freight",
@@ -364,7 +585,8 @@
       "broker_dot": "",
       "load_number": "",
       "notes": "",
-      "link": "https://www.directfreight.com"
+      "link": "https://www.directfreight.com",
+      "tarp": true
     },
     {
       "board": "Truckstop",
@@ -394,7 +616,8 @@
       "broker_dot": "3492901",
       "load_number": "",
       "notes": "Building products; no tarp, no conestoga; 2 stops Biloxi and Houston",
-      "link": "https://main.truckstop.com/app/search/loads"
+      "link": "https://main.truckstop.com/app/search/loads",
+      "tarp": false
     },
     {
       "board": "Direct Freight",
@@ -425,37 +648,8 @@
       "broker_dot": "",
       "load_number": "",
       "notes": "",
-      "link": "https://www.directfreight.com"
-    },
-    {
-      "board": "Direct Freight",
-      "origin": "Camden, SC",
-      "origin_dh_mi": 317,
-      "destination": "Schuylkill Haven, PA",
-      "trip_mi": 605,
-      "pickup_window": "Ships 11/24",
-      "drop_window": "",
-      "equipment": "F+T",
-      "mode": "FULL",
-      "weight_lb": null,
-      "length_ft": null,
-      "posted_rate": 1825.0,
-      "rate_per_mi": 3.02,
-      "net_est": 802.95,
-      "math": "Rate $1,825.00 x 0.87 = $1,587.75 after the 13% Totni fee ($237.25). Fuel and DEF $1.14 x 605 mi = $689.70. Deadhead $0.30 x 317 mi = $95.10. Net EST $802.95.",
-      "fit_flags": [
-        "weight not listed"
-      ],
-      "verdict": "MAYBE",
-      "same_day": false,
-      "bar": 500.0,
-      "total_mi": 922.0,
-      "broker": "",
-      "broker_mc": "",
-      "broker_dot": "",
-      "load_number": "",
-      "notes": "",
-      "link": "https://www.directfreight.com"
+      "link": "https://www.directfreight.com",
+      "tarp": true
     },
     {
       "board": "Direct Freight",
@@ -486,37 +680,8 @@
       "broker_dot": "",
       "load_number": "",
       "notes": "",
-      "link": "https://www.directfreight.com"
-    },
-    {
-      "board": "Direct Freight",
-      "origin": "Conway, SC",
-      "origin_dh_mi": 348,
-      "destination": "Schuylkill Haven, PA",
-      "trip_mi": 595,
-      "pickup_window": "Ships 11/24",
-      "drop_window": "",
-      "equipment": "F+T",
-      "mode": "FULL",
-      "weight_lb": null,
-      "length_ft": null,
-      "posted_rate": 1775.0,
-      "rate_per_mi": 2.98,
-      "net_est": 761.55,
-      "math": "Rate $1,775.00 x 0.87 = $1,544.25 after the 13% Totni fee ($230.75). Fuel and DEF $1.14 x 595 mi = $678.30. Deadhead $0.30 x 348 mi = $104.40. Net EST $761.55.",
-      "fit_flags": [
-        "weight not listed"
-      ],
-      "verdict": "MAYBE",
-      "same_day": false,
-      "bar": 500.0,
-      "total_mi": 943.0,
-      "broker": "",
-      "broker_mc": "",
-      "broker_dot": "",
-      "load_number": "",
-      "notes": "",
-      "link": "https://www.directfreight.com"
+      "link": "https://www.directfreight.com",
+      "tarp": true
     },
     {
       "board": "Direct Freight",
@@ -547,7 +712,8 @@
       "broker_dot": "",
       "load_number": "",
       "notes": "",
-      "link": "https://www.directfreight.com"
+      "link": "https://www.directfreight.com",
+      "tarp": true
     },
     {
       "board": "Direct Freight",
@@ -578,7 +744,8 @@
       "broker_dot": "",
       "load_number": "",
       "notes": "",
-      "link": "https://www.directfreight.com"
+      "link": "https://www.directfreight.com",
+      "tarp": true
     },
     {
       "board": "Direct Freight",
@@ -608,7 +775,8 @@
       "broker_dot": "",
       "load_number": "",
       "notes": "",
-      "link": "https://www.directfreight.com"
+      "link": "https://www.directfreight.com",
+      "tarp": true
     },
     {
       "board": "Direct Freight",
@@ -638,7 +806,8 @@
       "broker_dot": "",
       "load_number": "",
       "notes": "",
-      "link": "https://www.directfreight.com"
+      "link": "https://www.directfreight.com",
+      "tarp": true
     },
     {
       "board": "Direct Freight",
@@ -669,7 +838,8 @@
       "broker_dot": "",
       "load_number": "",
       "notes": "",
-      "link": "https://www.directfreight.com"
+      "link": "https://www.directfreight.com",
+      "tarp": true
     },
     {
       "board": "Direct Freight",
@@ -699,7 +869,8 @@
       "broker_dot": "",
       "load_number": "",
       "notes": "",
-      "link": "https://www.directfreight.com"
+      "link": "https://www.directfreight.com",
+      "tarp": true
     },
     {
       "board": "Direct Freight",
@@ -730,7 +901,8 @@
       "broker_dot": "",
       "load_number": "",
       "notes": "",
-      "link": "https://www.directfreight.com"
+      "link": "https://www.directfreight.com",
+      "tarp": true
     },
     {
       "board": "Direct Freight",
@@ -761,7 +933,8 @@
       "broker_dot": "",
       "load_number": "",
       "notes": "",
-      "link": "https://www.directfreight.com"
+      "link": "https://www.directfreight.com",
+      "tarp": true
     },
     {
       "board": "Truckstop",
@@ -791,7 +964,8 @@
       "broker_dot": "4158856",
       "load_number": "",
       "notes": "COD; hot patch truck;; 1 piece",
-      "link": "https://main.truckstop.com/app/search/loads"
+      "link": "https://main.truckstop.com/app/search/loads",
+      "tarp": false
     },
     {
       "board": "Direct Freight",
@@ -822,35 +996,8 @@
       "broker_dot": "",
       "load_number": "",
       "notes": "",
-      "link": "https://www.directfreight.com"
-    },
-    {
-      "board": "Truckstop",
-      "origin": "Smithville, GA",
-      "origin_dh_mi": 235,
-      "destination": "Hollis, OK",
-      "trip_mi": 1088,
-      "pickup_window": "11/18 12:00AM-11/30 11:59PM",
-      "drop_window": "11/20 12:00AM-12/1 11:59PM",
-      "equipment": "HS",
-      "mode": "TL",
-      "weight_lb": 13000,
-      "length_ft": null,
-      "posted_rate": 2200.0,
-      "rate_per_mi": 2.02,
-      "net_est": 603.18,
-      "math": "Rate $2,200.00 x 0.87 = $1,914.00 after the 13% Totni fee ($286.00). Fuel and DEF $1.14 x 1,088 mi = $1,240.32. Deadhead $0.30 x 235 mi = $70.50. Net EST $603.18.",
-      "fit_flags": [],
-      "verdict": "TAKE",
-      "same_day": false,
-      "bar": 500.0,
-      "total_mi": 1323.0,
-      "broker": "IFT-SAFEWAY INC / IFT-SAFEWAY LLC",
-      "broker_mc": "769263",
-      "broker_dot": "2262405",
-      "load_number": "",
-      "notes": "Flatbed hotshot, no tarps, round bales of hay, 1 pick/1 drop, live load/unload, quickpay",
-      "link": "https://main.truckstop.com/app/search/loads"
+      "link": "https://www.directfreight.com",
+      "tarp": true
     },
     {
       "board": "Direct Freight",
@@ -881,7 +1028,8 @@
       "broker_dot": "",
       "load_number": "",
       "notes": "",
-      "link": "https://www.directfreight.com"
+      "link": "https://www.directfreight.com",
+      "tarp": true
     },
     {
       "board": "Direct Freight",
@@ -911,7 +1059,8 @@
       "broker_dot": "",
       "load_number": "",
       "notes": "",
-      "link": "https://www.directfreight.com"
+      "link": "https://www.directfreight.com",
+      "tarp": true
     },
     {
       "board": "Direct Freight",
@@ -942,7 +1091,8 @@
       "broker_dot": "",
       "load_number": "",
       "notes": "",
-      "link": "https://www.directfreight.com"
+      "link": "https://www.directfreight.com",
+      "tarp": true
     },
     {
       "board": "Direct Freight",
@@ -972,7 +1122,8 @@
       "broker_dot": "",
       "load_number": "",
       "notes": "",
-      "link": "https://www.directfreight.com"
+      "link": "https://www.directfreight.com",
+      "tarp": true
     },
     {
       "board": "Direct Freight",
@@ -1002,35 +1153,8 @@
       "broker_dot": "",
       "load_number": "",
       "notes": "",
-      "link": "https://www.directfreight.com"
-    },
-    {
-      "board": "Truckstop",
-      "origin": "Davenport, FL",
-      "origin_dh_mi": 178,
-      "destination": "Meshoppen, PA",
-      "trip_mi": 1168,
-      "pickup_window": "11/24 12:00AM-11/24 11:59PM",
-      "drop_window": "",
-      "equipment": "HS",
-      "mode": "TL",
-      "weight_lb": 14500,
-      "length_ft": 31.0,
-      "posted_rate": 2200.0,
-      "rate_per_mi": 1.88,
-      "net_est": 529.08,
-      "math": "Rate $2,200.00 x 0.87 = $1,914.00 after the 13% Totni fee ($286.00). Fuel and DEF $1.14 x 1,168 mi = $1,331.52. Deadhead $0.30 x 178 mi = $53.40. Net EST $529.08.",
-      "fit_flags": [],
-      "verdict": "TAKE",
-      "same_day": false,
-      "bar": 500.0,
-      "total_mi": 1346.0,
-      "broker": "Advanced Transports Inc",
-      "broker_mc": "1270839",
-      "broker_dot": "3668079",
-      "load_number": "",
-      "notes": "2015 Chevy 3500 crew cab w/ flatbed; excavator machinery",
-      "link": "https://main.truckstop.com/app/search/loads"
+      "link": "https://www.directfreight.com",
+      "tarp": true
     },
     {
       "board": "Truckstop",
@@ -1058,7 +1182,8 @@
       "broker_dot": "3928512",
       "load_number": "",
       "notes": "TeleSkid Steer JCB 3TS-8T 17x6.1x6.5ft; factor or same day pay; 15 day standard",
-      "link": "https://main.truckstop.com/app/search/loads"
+      "link": "https://main.truckstop.com/app/search/loads",
+      "tarp": false
     },
     {
       "board": "Direct Freight",
@@ -1089,7 +1214,8 @@
       "broker_dot": "",
       "load_number": "",
       "notes": "",
-      "link": "https://www.directfreight.com"
+      "link": "https://www.directfreight.com",
+      "tarp": true
     },
     {
       "board": "Truckstop",
@@ -1117,7 +1243,8 @@
       "broker_dot": "4385886",
       "load_number": "",
       "notes": "2015 Ford F550 truck box; 3105825529 (already in Saved loads before scan)",
-      "link": "https://main.truckstop.com/app/search/loads"
+      "link": "https://main.truckstop.com/app/search/loads",
+      "tarp": false
     },
     {
       "board": "Direct Freight",
@@ -1148,7 +1275,8 @@
       "broker_dot": "",
       "load_number": "",
       "notes": "",
-      "link": "https://www.directfreight.com"
+      "link": "https://www.directfreight.com",
+      "tarp": true
     },
     {
       "board": "Truckstop",
@@ -1178,7 +1306,8 @@
       "broker_dot": "4488054",
       "load_number": "",
       "notes": "Weight not posted; 2006 Ford E-450 cutaway",
-      "link": "https://main.truckstop.com/app/search/loads"
+      "link": "https://main.truckstop.com/app/search/loads",
+      "tarp": false
     },
     {
       "board": "Direct Freight",
@@ -1209,7 +1338,8 @@
       "broker_dot": "",
       "load_number": "",
       "notes": "",
-      "link": "https://www.directfreight.com"
+      "link": "https://www.directfreight.com",
+      "tarp": true
     },
     {
       "board": "Direct Freight",
@@ -1240,7 +1370,8 @@
       "broker_dot": "",
       "load_number": "",
       "notes": "",
-      "link": "https://www.directfreight.com"
+      "link": "https://www.directfreight.com",
+      "tarp": true
     },
     {
       "board": "Direct Freight",
@@ -1271,7 +1402,8 @@
       "broker_dot": "",
       "load_number": "",
       "notes": "",
-      "link": "https://www.directfreight.com"
+      "link": "https://www.directfreight.com",
+      "tarp": true
     },
     {
       "board": "Direct Freight",
@@ -1299,7 +1431,8 @@
       "broker_dot": "",
       "load_number": "",
       "notes": "",
-      "link": "https://www.directfreight.com"
+      "link": "https://www.directfreight.com",
+      "tarp": false
     },
     {
       "board": "Direct Freight",
@@ -1330,7 +1463,8 @@
       "broker_dot": "",
       "load_number": "",
       "notes": "",
-      "link": "https://www.directfreight.com"
+      "link": "https://www.directfreight.com",
+      "tarp": true
     },
     {
       "board": "Truckstop",
@@ -1358,7 +1492,8 @@
       "broker_dot": "2245458",
       "load_number": "1107859",
       "notes": "Yale GLC040 forklift; ext 728",
-      "link": "https://main.truckstop.com/app/search/loads"
+      "link": "https://main.truckstop.com/app/search/loads",
+      "tarp": false
     },
     {
       "board": "Direct Freight",
@@ -1389,7 +1524,8 @@
       "broker_dot": "",
       "load_number": "",
       "notes": "",
-      "link": "https://www.directfreight.com"
+      "link": "https://www.directfreight.com",
+      "tarp": true
     },
     {
       "board": "Truckstop",
@@ -1417,7 +1553,8 @@
       "broker_dot": "2317142",
       "load_number": "85230992",
       "notes": "Waterproofing materials. PU Tues 12-2PM drop Weds 8AM-2PM. Tarps n straps, PPE",
-      "link": "https://main.truckstop.com/app/search/loads"
+      "link": "https://main.truckstop.com/app/search/loads",
+      "tarp": true
     },
     {
       "board": "Direct Freight",
@@ -1445,7 +1582,8 @@
       "broker_dot": "",
       "load_number": "",
       "notes": "",
-      "link": "https://www.directfreight.com"
+      "link": "https://www.directfreight.com",
+      "tarp": false
     },
     {
       "board": "Truckstop",
@@ -1475,7 +1613,8 @@
       "broker_dot": "2248181",
       "load_number": "",
       "notes": "Combilift CB10000 forklift 109in H, no Friday delivery in AZ",
-      "link": "https://main.truckstop.com/app/search/loads"
+      "link": "https://main.truckstop.com/app/search/loads",
+      "tarp": false
     },
     {
       "board": "Truckstop",
@@ -1503,7 +1642,8 @@
       "broker_dot": "3895194",
       "load_number": "",
       "notes": "Bobcat T62, 1 piece",
-      "link": "https://main.truckstop.com/app/search/loads"
+      "link": "https://main.truckstop.com/app/search/loads",
+      "tarp": false
     },
     {
       "board": "Truckstop",
@@ -1531,7 +1671,8 @@
       "broker_dot": "2795535",
       "load_number": "",
       "notes": "195",
-      "link": "https://main.truckstop.com/app/search/loads"
+      "link": "https://main.truckstop.com/app/search/loads",
+      "tarp": false
     },
     {
       "board": "Truckstop",
@@ -1561,7 +1702,8 @@
       "broker_dot": "2212928",
       "load_number": "189722650",
       "notes": "Combilift CB10000 forklift; no Friday delivery in AZ; Brandon X195",
-      "link": "https://main.truckstop.com/app/search/loads"
+      "link": "https://main.truckstop.com/app/search/loads",
+      "tarp": false
     },
     {
       "board": "Truckstop",
@@ -1589,7 +1731,8 @@
       "broker_dot": "4169765",
       "load_number": "",
       "notes": "Call/text; Generator 4x6 3000 lb; factoring COD/ACH/wire/zelle",
-      "link": "https://main.truckstop.com/app/search/loads"
+      "link": "https://main.truckstop.com/app/search/loads",
+      "tarp": false
     },
     {
       "board": "Direct Freight",
@@ -1617,7 +1760,8 @@
       "broker_dot": "",
       "load_number": "",
       "notes": "",
-      "link": "https://www.directfreight.com"
+      "link": "https://www.directfreight.com",
+      "tarp": false
     },
     {
       "board": "Truckstop",
@@ -1645,7 +1789,8 @@
       "broker_dot": "3954493",
       "load_number": "26158957",
       "notes": "Ford F-550 cab & front-end shell; cash on delivery; call/text",
-      "link": "https://main.truckstop.com/app/search/loads"
+      "link": "https://main.truckstop.com/app/search/loads",
+      "tarp": false
     }
   ]
 }

@@ -261,7 +261,7 @@
       bits.push((result.pickup || 'Pickup') + ' -> ' + (result.delivery || 'Delivery'));
     }
     if (result.flags && result.flags.length) bits.push(result.flags.join('. ') + '.');
-    if (state.tarp) bits.push('Tarp required.');
+    if (state.tarp) bits.push('Tarp required. We have tarps and straps.');
     return {
       label: result.verdict === 'take' ? 'TAKE' : (result.verdict === 'maybe' ? 'MAYBE' : (result.verdict === 'idle' ? 'READY' : 'PASS')),
       msg: msg,
@@ -1266,7 +1266,24 @@
     } else if (f === 'df') {
       rows = rows.filter(function (row) { return row.board === 'Direct Freight'; });
     }
-    return rows;
+    return sortSearches(rows);
+  }
+
+  function sortSearches(rows) {
+    var order = { TAKE: 0, MAYBE: 1, PASS: 2 };
+    return (rows || []).slice().sort(function (a, b) {
+      var ra = order[String(a.verdict || '').toUpperCase()];
+      var rb = order[String(b.verdict || '').toUpperCase()];
+      if (ra == null) ra = 9;
+      if (rb == null) rb = 9;
+      if (ra !== rb) return ra - rb;
+      var na = a.net_est;
+      var nb = b.net_est;
+      if (na == null && nb == null) return 0;
+      if (na == null) return 1;
+      if (nb == null) return -1;
+      return nb - na;
+    });
   }
 
   function renderSearchChart(rows) {
@@ -1294,7 +1311,7 @@
         '<rect x="' + left + '" y="' + (y + 4) + '" width="' + w + '" height="14" rx="3" fill="' + color + '"></rect>' +
         '<text class="chart-val" x="' + (left + w + 6) + '" y="' + (y + 15) + '">' + esc(searchMoney(row.net_est)) + '</text>';
     }).join('');
-    return '<div class="net-chart"><h3>Net EST, best first</h3>' +
+    return '<div class="net-chart"><h3>Best to take first</h3>' +
       '<svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="Net EST bar chart">' + bars + '</svg></div>';
   }
 
@@ -1328,8 +1345,87 @@
       '</div><div class="search-net">' + esc(searchMoney(row.net_est)) + '<span class="unit">Net EST</span></div></div>' +
       (row.math ? '<p class="search-math">' + esc(row.math) + '</p>' : '') +
       (flags ? '<p class="search-flags">' + esc(flags) + '</p>' : '') +
+      (row.tarp ? '<p class="search-fit">Tarps, straps</p>' : '') +
       '<p class="search-meta">' + esc(bits.filter(Boolean).join(' | ')) + '</p>' +
       link + '</article>';
+  }
+
+  function renderComboCard(combo) {
+    var verd = String(combo.verdict || 'MAYBE').toLowerCase();
+    var stops = (combo.stop_order || []).map(function (stop) {
+      return '<li><span class="act">' + esc(stop.action) + '</span> ' + esc(stop.place) +
+        (stop.lane ? ' <span class="lane-mini">(' + esc(stop.lane) + ')</span>' : '') +
+        (stop.window ? ' · ' + esc(stop.window) : '') + '</li>';
+    }).join('');
+    var legs = (combo.loads || []).map(function (row) {
+      var bits = [row.origin + ' -> ' + row.destination, searchMoney(row.net_est) + ' alone'];
+      if (row.weight_lb != null) bits.push(plainNum(row.weight_lb, 0) + ' lb');
+      else bits.push('weight n/a');
+      if (row.length_ft != null) bits.push(plainNum(row.length_ft, 1) + ' ft');
+      else bits.push('length n/a');
+      if (row.board) bits.push(row.board);
+      return '<li>' + esc(bits.join(' · ')) + '</li>';
+    }).join('');
+    var wt = combo.combined_weight_lb != null ? plainNum(combo.combined_weight_lb, 0) + ' lb' : 'n/a';
+    if (combo.weight_unknown) wt += ' (some not listed)';
+    var len = combo.combined_length_ft != null ? plainNum(combo.combined_length_ft, 1) + ' ft' : 'n/a';
+    if (combo.length_unknown) len += ' (some not listed)';
+    var kind = combo.kind === 'shared' ? 'Shared deck' : 'Sequential chain';
+    return '<article class="combo-card ' + esc(verd) + '">' +
+      '<div class="search-top"><div>' +
+      '<div class="lane">' + esc(kind) + '</div>' +
+      '<span class="verdict-pill ' + esc(verd) + '">' + esc(combo.verdict || 'MAYBE') + '</span>' +
+      '</div><div class="search-net">' + esc(searchMoney(combo.net_est)) +
+      '<span class="unit">Net EST · ' + esc(searchMoney(combo.net_per_day)) + '/day</span></div></div>' +
+      (combo.math ? '<p class="search-math">' + esc(combo.math) + '</p>' : '') +
+      '<p class="search-meta">On deck at once: ' + esc(wt) + ' · ' + esc(len) +
+      (combo.timing_note ? ' · ' + esc(combo.timing_note) : '') + '</p>' +
+      '<p class="combo-label">Stop order</p><ol class="combo-stops">' + stops + '</ol>' +
+      '<p class="combo-label">Loads</p><ul class="combo-loads">' + legs + '</ul>' +
+      ((combo.flags && combo.flags.length) ? '<p class="search-flags">' + esc(combo.flags.join(' ')) + '</p>' : '') +
+      '</article>';
+  }
+
+  function renderCombos(data) {
+    var list = (data && data.combos) ? data.combos.slice() : [];
+    var body;
+    if (!list.length) {
+      body = '<p class="fine">No 2- or 3-load combos in this scan cleared the $1,000 net bar with a feasible route. Many postings were full TL, over the 16,000 lb or 40 ft limit, or did not line up for a shared deck or a sequential chain.</p>';
+    } else {
+      body = list.map(renderComboCard).join('');
+    }
+    return '<div class="combos">' +
+      '<h3>Combos</h3>' +
+      '<p class="fine">Shared-deck and sequential chains, ranked by total net EST and net per day. A combo needs at least $1,000 net EST and must beat its best single load by $200, with no losing leg.</p>' +
+      body + '</div>';
+  }
+
+  function renderSearchGroups(rows) {
+    var groups = { TAKE: [], MAYBE: [], PASS: [] };
+    rows.forEach(function (row) {
+      var key = String(row.verdict || 'PASS').toUpperCase();
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(row);
+    });
+    var labels = { TAKE: 'Take', MAYBE: 'Maybe', PASS: 'Pass' };
+    var html = '';
+    ['TAKE', 'MAYBE', 'PASS'].forEach(function (key) {
+      var list = groups[key] || [];
+      if (!list.length) return;
+      var cards = list.map(renderSearchCard).join('');
+      var title = labels[key] + ' (' + list.length + ')';
+      if (key === 'PASS') {
+        var onlyPass = !groups.TAKE.length && !groups.MAYBE.length;
+        html += '<details class="search-group pass-group"' + (onlyPass ? ' open' : '') + '>' +
+          '<summary class="search-group-head pass">' + esc(title) + '</summary>' +
+          cards + '</details>';
+      } else {
+        html += '<section class="search-group">' +
+          '<h3 class="search-group-head ' + key.toLowerCase() + '">' + esc(title) + '</h3>' +
+          cards + '</section>';
+      }
+    });
+    return html || '<p class="fine">No loads in this filter.</p>';
   }
 
   function searchToolbar() {
@@ -1383,7 +1479,7 @@
       var on = (state.searchFilter || 'all') === pair[0];
       return '<button type="button" data-filter="' + pair[0] + '" aria-pressed="' + (on ? 'true' : 'false') + '">' + pair[1] + '</button>';
     }).join('');
-    var cards = rows.map(renderSearchCard).join('') || '<p class="fine">No loads in this filter.</p>';
+    var cards = renderSearchGroups(rows);
     root.innerHTML =
       head +
       '<div class="searches-hero">' +
@@ -1399,7 +1495,8 @@
           '<div class="search-count"><div class="n">' + esc(String(counts.pass || 0)) + '</div><div class="l">PASS</div></div>' +
         '</div>' +
       '</div>' +
-      renderSearchChart(data.loads || []) +
+      renderCombos(data) +
+      renderSearchChart(rows) +
       '<div class="search-filters" role="group" aria-label="Filter loads">' + filters + '</div>' +
       cards;
     bindSearchRefresh();
