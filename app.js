@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v33';
+  var APP_VERSION = 'v34';
   var SETTINGS_KEY = 'blackram_settings_v4';
   var SETTINGS_KEY_V1 = 'blackram_settings_v1';
   var SETTINGS_KEY_V2 = 'blackram_settings_v2';
@@ -11,6 +11,10 @@
   var PERIOD_KEY = 'blackram_period_v1';
   var DELIVERED_KEY = 'blackram_delivered_v1';
   var DELIVERED_OUTBOX_KEY = 'blackram_delivered_outbox_v1';
+  var SAVED_LOADS_KEY = 'blackram_saved_loads_v1';
+  var SEEN_LOADS_KEY = 'blackram_seen_loads_v1';
+  var COMPARE_KEY = 'blackram_compare_v1';
+  var SEARCH_PREFS_KEY = 'blackram_search_prefs_v1';
   var SPLASH_KEY = 'blackram_splash_seen';
   var ALL_TIME = 'all';
 
@@ -23,6 +27,13 @@
     feed: null,
     searches: null,
     searchFilter: 'all',
+    searchSort: 'default',
+    hidePass: false,
+    fitsOnly: false,
+    savedLoads: null,
+    compareKeys: null,
+    seenLoads: null,
+    reportChartMode: 'weekly',
     searchOffline: false,
     searchSavedAt: null,
     searchError: '',
@@ -1064,13 +1075,57 @@
     return savedAt;
   }
 
+  function bookedAverages(feed) {
+    if (!feed || !feed.months) return null;
+    var count = 0;
+    var totNet = 0;
+    var totDays = 0;
+    var totHours = 0;
+    var totMiles = 0;
+    feed.months.forEach(function (m) {
+      var pct = isFinite(Number(m.fee_pct)) ? Number(m.fee_pct) : 13;
+      (m.loads || []).forEach(function (load) {
+        if (String(load.status || '').toLowerCase() === 'cancelled') return;
+        var scored = scoreLedgerLoad(load, pct);
+        if (scored.netVal == null || !isFinite(scored.netVal)) return;
+        count += 1;
+        totNet += scored.netVal;
+        if (scored.days > 0) totDays += scored.days;
+        if (scored.hours > 0) totHours += scored.hours;
+        if (scored.allMi > 0) totMiles += scored.allMi;
+      });
+    });
+    if (!count) return null;
+    return {
+      count: count,
+      avgNetEst: totNet / count,
+      avgNetPerDay: totDays > 0 ? totNet / totDays : null,
+      avgPerHour: totHours > 0 ? totNet / totHours : null,
+      avgNetPerMile: totMiles > 0 ? totNet / totMiles : null
+    };
+  }
+
+  function renderAvgBanner(avgs) {
+    if (!avgs || !avgs.count) return '';
+    return '<section class="avg-banner" aria-label="Historical booked load averages">' +
+      '<div class="avg-banner-head">Your ' + avgs.count + '-load avg (booked &amp; delivered)</div>' +
+      '<div class="avg-banner-grid">' +
+        '<div class="avg-cell"><span>Avg Net / day</span><b>' + (avgs.avgNetPerDay != null ? esc(searchMoney(avgs.avgNetPerDay)) + '/d' : 'n/a') + '</b></div>' +
+        '<div class="avg-cell"><span>Avg $/hr EST</span><b>' + (avgs.avgPerHour != null ? esc(searchMoney(avgs.avgPerHour)) + '/hr' : 'n/a') + '</b></div>' +
+        '<div class="avg-cell"><span>Avg Net $/mi</span><b>' + (avgs.avgNetPerMile != null ? esc(rateMoney(avgs.avgNetPerMile, 2)) + '/mi' : 'n/a') + '</b></div>' +
+      '</div>' +
+      '</section>';
+  }
+
   function applyFeed(feed, meta) {
     state.feed = feed;
     state.offline = !!meta.offline;
     state.savedAt = meta.savedAt || null;
     state.error = '';
+    state.historyAvgs = bookedAverages(feed);
     if (state.tab === 'reports') renderReports();
     if (state.tab === 'kpis') renderKpis();
+    if (state.tab === 'searches' && state.searches) renderSearches();
     if (window.BlackRamStops && BlackRamStops.onFeed) BlackRamStops.onFeed(feed);
   }
 
@@ -1190,9 +1245,85 @@
       '/mo. Break-even uses the trailer, insurance, and truck note on Load check.</p>';
   }
 
-  function loadCard(load, pct) {
+  function scoreLedgerLoad(load, pct) {
     var gross = isFinite(Number(load.gross)) ? Number(load.gross) : 0;
     var fee = loadFee(load, pct);
+    var afterFee = roundMoney(gross - fee);
+    var miles = isFinite(Number(load.loaded_mi)) ? Number(load.loaded_mi) : 0;
+    var emp = ledgerEmpty(load);
+    var emptyMi = emp.mi != null && isFinite(Number(emp.mi)) ? Number(emp.mi) : 0;
+    var allMi = miles + emptyMi;
+    var actualPaid = (load.net_received != null && load.net_received !== '' && isFinite(Number(load.net_received)) && Number(load.net_received) > 0)
+      ? Number(load.net_received) : null;
+    var actualFuel = null;
+    if (load.fuel_actual != null && isFinite(Number(load.fuel_actual))) actualFuel = Number(load.fuel_actual);
+    else if (load.fuel != null && isFinite(Number(load.fuel))) actualFuel = Number(load.fuel);
+
+    var netVal = null;
+    var usedActualFuel = false;
+    if (actualFuel != null) {
+      usedActualFuel = true;
+      var basePay = actualPaid != null ? actualPaid : afterFee;
+      netVal = roundMoney(basePay - actualFuel);
+    } else if (load.net_est != null && isFinite(Number(load.net_est))) {
+      netVal = Number(load.net_est);
+    } else {
+      var fuelObj = currentFuel({ origin: load.pickup_place || load.lane || '' });
+      var scoredFuel = applyFuelNet(gross, miles, emptyMi, fuelObj);
+      netVal = roundMoney(afterFee - (scoredFuel.after - scoredFuel.net));
+    }
+
+    var days = rowDays({
+      pickup_date: load.pickup_date || load.date,
+      delivery_date: load.delivery_date,
+      date: load.date,
+      days: load.days
+    }, 1);
+    if (!days || days < 1) days = 1;
+    var hours = (load.hours != null && isFinite(Number(load.hours)) && Number(load.hours) > 0)
+      ? Number(load.hours)
+      : hoursEst(miles, emptyMi, 1);
+    var perHour = (!usedActualFuel && load.per_hour != null && isFinite(Number(load.per_hour)))
+      ? Number(load.per_hour)
+      : (hours > 0 ? netVal / hours : null);
+    var netPerDay = (!usedActualFuel && load.net_per_day != null && isFinite(Number(load.net_per_day)))
+      ? Number(load.net_per_day)
+      : (days > 0 ? netVal / days : null);
+    var netPerMile = (!usedActualFuel && load.net_per_mile != null && isFinite(Number(load.net_per_mile)))
+      ? Number(load.net_per_mile)
+      : (allMi > 0 ? netVal / allMi : null);
+    var grossPerMile = (load.gross_per_mile != null && isFinite(Number(load.gross_per_mile)))
+      ? Number(load.gross_per_mile)
+      : (allMi > 0 ? gross / allMi : null);
+    var ratePerMi = (load.rate_per_mi != null && isFinite(Number(load.rate_per_mi)))
+      ? Number(load.rate_per_mi)
+      : (miles > 0 ? gross / miles : null);
+
+    return {
+      gross: gross,
+      fee: fee,
+      afterFee: afterFee,
+      actualPaid: actualPaid,
+      actualFuel: actualFuel,
+      usedActualFuel: usedActualFuel,
+      miles: miles,
+      emp: emp,
+      allMi: allMi,
+      days: days,
+      hours: hours,
+      netVal: netVal,
+      perHour: perHour,
+      netPerDay: netPerDay,
+      netPerMile: netPerMile,
+      grossPerMile: grossPerMile,
+      ratePerMi: ratePerMi
+    };
+  }
+
+  function loadCard(load, pct) {
+    var sc = scoreLedgerLoad(load, pct);
+    var gross = sc.gross;
+    var fee = sc.fee;
     var miles = isFinite(Number(load.loaded_mi)) ? Number(load.loaded_mi) : null;
     var when = formatDay(load.date);
     if (load.delivery_date && load.delivery_date !== load.date) {
@@ -1201,12 +1332,8 @@
         ? formatDay(load.date) + '–' + end.split(' ')[1]
         : formatDay(load.date) + ' – ' + end;
     }
-    var emp = ledgerEmpty(load);
-    var allMi = (miles || 0) + (emp.mi || 0);
-    var allRate = allMi > 0 && gross ? rpm(gross / allMi) : '—';
-    var rateCell = miles ? rpm(load.rate_per_mi != null && isFinite(Number(load.rate_per_mi)) ? Number(load.rate_per_mi) : gross / miles) : '—';
-    if (miles && load.miles_estimate) rateCell += ' <span class="est">EST</span>';
-    var who = [load.broker, load.load_no].filter(Boolean).join(' | ');
+    var emp = sc.emp;
+    var who = [load.broker, load.load_no].filter(Boolean).join(' · ');
     var canMap = hasRouteToDraw(routePayload(load));
     var mapsHref = pastLoadMapsUrl(load);
     var emptyNote = '';
@@ -1216,13 +1343,38 @@
       emptyNote = '<p class="load-empty-note">Empty miles ' + esc(plainNum(load.empty_mi_est, 0)) +
         ' mi EST from ' + esc(from) + '.</p>';
     }
+    var ledgerRow = {
+      loaded_mi: miles,
+      deadhead_mi: emp.mi,
+      empty_mi_est: emp.mi,
+      pickup_date: load.pickup_date || load.date,
+      delivery_date: load.delivery_date,
+      date: load.date,
+      days: sc.days,
+      gross: gross,
+      posted_rate: gross,
+      rate_per_mi: sc.ratePerMi,
+      gross_per_mile: sc.grossPerMile,
+      net_est: sc.netVal,
+      net_per_day: sc.netPerDay,
+      net_per_mile: sc.netPerMile,
+      hours: sc.hours,
+      per_hour: sc.perHour,
+      same_day: sc.days === 1
+    };
+    var gridOpts = {
+      afterFeeNet: sc.afterFee,
+      actualPaid: sc.actualPaid,
+      usedActualFuel: sc.usedActualFuel
+    };
     var routePane = '<div class="load-route" hidden>' +
-      rateCompare(load) +
+      payLine(load) +
+      (load.notes ? '<p class="notes">' + esc(load.notes) + '</p>' : '') +
       emptyNote +
       routeBlock(routePayload(load), mapsHref, (load.pickup_place || 'Pickup') + ' to ' + (load.drop_place || 'Drop') + ' route map') +
       '</div>';
-    var toggle = '<button type="button" class="load-toggle" aria-expanded="false">' +
-      (canMap ? 'Show route' : 'Show $/mi') + '</button>';
+    var toggle = '<button type="button" class="details-toggle-btn load-toggle" aria-expanded="false">' +
+      (canMap ? 'Details &amp; route' : 'Details &amp; notes') + '</button>';
     var id = loadId(load);
     var local = localDelivery(load);
     var markable = canMarkDelivered(load);
@@ -1240,33 +1392,25 @@
       deliverBits += '<button type="button" class="btn primary mark-delivered-btn" data-load-id="' +
         esc(id) + '">Mark delivered</button>';
     }
+    var badges = payBadge(load) +
+      '<span class="pu-chip">' + esc(when) + '</span>' +
+      (load.broker ? '<span class="board-chip">' + esc(load.broker) + '</span>' : '') +
+      (load.load_no ? '<span class="board-chip">#' + esc(load.load_no) + '</span>' : '');
+    var fitRow = '<div class="fit-row">' +
+      weightFitBadge(load.weight_lb) +
+      '<span class="fit-badge neutral">' + esc(formatDays(sc.days)) + (sc.days === 1 ? ' day' : ' days') + '</span>' +
+      '<span class="fit-badge neutral">Rate ' + money(gross) + '</span>' +
+      '<span class="fit-badge neutral">Fee ' + money(fee) + '</span>' +
+      '</div>';
     return '<article class="load has-route ' + esc(statusCls) + esc(payCls) + '" data-load-id="' + esc(id) + '">' +
-      '<h3>' + esc(load.desc || 'Load') + payBadge(load) + '</h3>' +
-      '<p class="lane">' + esc(when) + (load.lane ? ' · ' + esc(load.lane) : '') + '</p>' +
+      '<div class="card-top-bar"><div class="card-badges">' + badges + '</div></div>' +
+      '<h3>' + esc(load.desc || 'Load') + '</h3>' +
+      '<p class="lane">' + esc(load.lane || ((load.pickup_place || '') + ' to ' + (load.drop_place || ''))) + '</p>' +
+      keyMetricsGrid(ledgerRow, gridOpts) +
       milesStrip(miles, emp.mi, { loadedEst: !!load.miles_estimate, emptyEst: true, emptyFrom: emp.from }) +
-      tripDaysBlock({
-        loaded_mi: miles,
-        deadhead_mi: emp.mi,
-        empty_mi_est: emp.mi,
-        pickup_date: load.pickup_date || load.date,
-        delivery_date: load.delivery_date,
-        date: load.date,
-        net_est: (load.net_est != null ? load.net_est : (gross - fee)),
-        days: load.days,
-        net_per_day: load.net_per_day
-      }) +
-      '<div class="kv">' +
-      '<div><span>Gross</span><b>' + money(gross) + '</b></div>' +
-      '<div><span>Loaded $/mi</span><b>' + rateCell + '</b></div>' +
-      '<div><span>All-mi $/mi</span><b>' + allRate + '</b></div>' +
-      '<div><span>Net</span><b>' + money(roundMoney(gross - fee)) + '</b></div>' +
-      '</div>' + payLine(load) +
-      deliverBits +
-      '<p class="notes">Fee ' + money(fee) +
-      (who ? ' · ' + esc(who) : '') +
-      (typeof load.weight_lb === 'number' ? ' · ' + plainNum(load.weight_lb, 0) + ' lb' : '') +
-      (load.notes ? '<br>' + esc(load.notes) : '') + '</p>' +
-      toggle + routePane + '</article>';
+      fitRow +
+      '<div class="search-actions">' + deliverBits + toggle + '</div>' +
+      routePane + '</article>';
   }
 
   function pastLoadMapsUrl(load) {
@@ -1292,7 +1436,7 @@
         if (btn) {
           btn.setAttribute('aria-expanded', open ? 'true' : 'false');
           var canMap = pane.querySelector('.route-map');
-          btn.textContent = open ? 'Hide route' : (canMap ? 'Show route' : 'Show $/mi');
+          btn.textContent = open ? 'Hide details' : (canMap ? 'Details & route' : 'Details & notes');
         }
         if (open) observeRouteMaps(pane);
       }
@@ -1378,7 +1522,10 @@
     var owedValue = pay ? ((pay.owedEst ? '<span class="est">EST</span> ' : '') + money(pay.owed)) : '';
     var feeSub = fig.feePct == null ? 'Rates differ by month' : (plainNum(fig.feePct, 2).replace(/\.00$/, '') + '% of gross');
 
+    var avgs = state.historyAvgs || bookedAverages(feed);
+    var chartsHtml = renderReportsCharts(feed, month, months, all, fig);
     root.innerHTML = head +
+      renderAvgBanner(avgs) +
       '<section class="big"><div class="kicker">' + esc(kicker) + '</div>' +
       '<span class="n">' + money(fig.gross) + '</span>' +
       '<p class="sub">' + esc(span) + ' · ' + loadCount +
@@ -1393,8 +1540,8 @@
       (pay ? metric(money(pay.received), 'Collected', 'Settlements received') : '') +
       (pay ? metric(owedValue, 'Still owed', pay.detail) : '') +
       '</div>' +
-      '<p class="fine">Load net below is after the Totni fee only. Fuel is totaled ' +
-      (all ? 'across every month' : 'for the month') + ', not split onto each load.</p>' +
+      chartsHtml +
+      '<p class="fine">Load net below shows EST after fuel alongside gross after Totni fee.</p>' +
       '<h2 class="sec">Loads</h2>' +
       (loads || '<p class="fine">No loads' + (all ? '.' : ' this month.') + '</p>') +
       '<h2 class="sec">Cancelled</h2>' +
@@ -1404,6 +1551,7 @@
       '<details class="expenses"><summary>Expense lines</summary>' + expenseRows(expenseList) + '</details>';
     bindRefresh();
     bindMonthSwitch(root);
+    bindReportChartToggle(root);
     bindLoadRoutes(root);
     bindDeliveredActions(root);
     refreshDeliverUndoToast();
@@ -1612,6 +1760,89 @@
     return Object.keys(used).length;
   }
 
+  function signedBarChart(rows, label) {
+    if (!rows || !rows.length) return '';
+    var w = 360;
+    var h = 186;
+    var padT = 22;
+    var padB = 34;
+    var gap = 10;
+    var maxPos = 0;
+    var minNeg = 0;
+    rows.forEach(function (row) {
+      var v = Number(row.value) || 0;
+      if (v > maxPos) maxPos = v;
+      if (v < minNeg) minNeg = v;
+    });
+    var span = (maxPos - minNeg) || 1;
+    if (maxPos === 0 && minNeg === 0) { maxPos = 1; span = 1; }
+    var innerW = w - 12;
+    var barW = (innerW - gap * (rows.length - 1)) / rows.length;
+    var innerH = h - padT - padB;
+    var zeroY = padT + (maxPos / span) * innerH;
+    var parts = '<line x1="4" y1="' + zeroY.toFixed(1) + '" x2="' + (w - 4) + '" y2="' + zeroY.toFixed(1) + '" stroke="#3b3556" stroke-width="1"></line>';
+    parts += rows.map(function (row, i) {
+      var v = Number(row.value) || 0;
+      var x = 6 + i * (barW + gap);
+      var bh = Math.max(v === 0 ? 0 : 3, Math.abs(v) / span * innerH);
+      var y = v >= 0 ? zeroY - bh : zeroY;
+      var fill = v > 0 ? '#34D399' : (v < 0 ? '#F87171' : '#585173');
+      var txtY = v >= 0 ? Math.max(13, y - 5) : Math.min(h - padB + 12, y + bh + 12);
+      var txtFill = v > 0 ? '#6EE7B7' : (v < 0 ? '#FCA5A5' : '#b9b3cc');
+      return '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + barW.toFixed(1) +
+        '" height="' + bh.toFixed(1) + '" rx="4" fill="' + fill + '" fill-opacity="0.88"></rect>' +
+        '<text x="' + (x + barW / 2).toFixed(1) + '" y="' + txtY.toFixed(1) +
+        '" text-anchor="middle" fill="' + txtFill + '" font-size="10.5" font-weight="600">' +
+        esc(row.text) + '</text>' +
+        '<text x="' + (x + barW / 2).toFixed(1) + '" y="' + (h - 10) +
+        '" text-anchor="middle" fill="#b9b3cc" font-size="10.5">' +
+        esc(row.label) + '</text>';
+    }).join('');
+    return '<svg viewBox="0 0 ' + w + ' ' + h + '" role="img" aria-label="' + esc(label) + '">' +
+      '<title>' + esc(label) + '</title>' + parts + '</svg>';
+  }
+
+  function dualBarChart(rows, label, colorA, colorB) {
+    if (!rows || !rows.length) return '';
+    var w = 360;
+    var h = 180;
+    var padT = 22;
+    var padB = 34;
+    var groupGap = 12;
+    var innerGap = 3;
+    var max = 0;
+    rows.forEach(function (r) {
+      if ((r.a || 0) > max) max = r.a;
+      if ((r.b || 0) > max) max = r.b;
+    });
+    if (max <= 0) max = 1;
+    var innerW = w - 12;
+    var groupW = (innerW - groupGap * (rows.length - 1)) / rows.length;
+    var barW = Math.max(6, (groupW - innerGap) / 2);
+    var innerH = h - padT - padB;
+    var parts = rows.map(function (r, i) {
+      var gx = 6 + i * (groupW + groupGap);
+      var a = Number(r.a) || 0;
+      var b = Number(r.b) || 0;
+      var ah = a > 0 ? Math.max(3, (a / max) * innerH) : 0;
+      var bh = b > 0 ? Math.max(3, (b / max) * innerH) : 0;
+      var ay = padT + innerH - ah;
+      var by = padT + innerH - bh;
+      return '<rect x="' + gx.toFixed(1) + '" y="' + ay.toFixed(1) + '" width="' + barW.toFixed(1) +
+        '" height="' + ah.toFixed(1) + '" rx="3" fill="' + colorA + '"></rect>' +
+        (r.textA ? '<text x="' + (gx + barW / 2).toFixed(1) + '" y="' + Math.max(12, ay - 4).toFixed(1) +
+        '" text-anchor="middle" fill="' + colorA + '" font-size="9.5" font-weight="600">' + esc(r.textA) + '</text>' : '') +
+        '<rect x="' + (gx + barW + innerGap).toFixed(1) + '" y="' + by.toFixed(1) + '" width="' + barW.toFixed(1) +
+        '" height="' + bh.toFixed(1) + '" rx="3" fill="' + colorB + '"></rect>' +
+        (r.textB ? '<text x="' + (gx + barW + innerGap + barW / 2).toFixed(1) + '" y="' + Math.max(12, by - 4).toFixed(1) +
+        '" text-anchor="middle" fill="' + colorB + '" font-size="9.5" font-weight="600">' + esc(r.textB) + '</text>' : '') +
+        '<text x="' + (gx + groupW / 2).toFixed(1) + '" y="' + (h - 10) +
+        '" text-anchor="middle" fill="#b9b3cc" font-size="10.5">' + esc(r.label) + '</text>';
+    }).join('');
+    return '<svg viewBox="0 0 ' + w + ' ' + h + '" role="img" aria-label="' + esc(label) + '">' +
+      '<title>' + esc(label) + '</title>' + parts + '</svg>';
+  }
+
   function weekRows(month) {
     var start = month.month + '-01';
     var end = month.as_of || monthEnd(month.month);
@@ -1620,23 +1851,44 @@
     var weeks = weeksCovering(start, end);
     var pct = isFinite(Number(month.fee_pct)) ? Number(month.fee_pct) : 13;
     return weeks.map(function (week) {
-      var gross = 0;
+      var grossC = 0;
+      var feeC = 0;
+      var fuelC = 0;
+      var otherC = 0;
       var miles = 0;
+      var dead = 0;
       var count = 0;
       (month.loads || []).forEach(function (load) {
         if (!load.date || load.date < week.start || load.date > week.end) return;
-        gross += isFinite(Number(load.gross)) ? Number(load.gross) : 0;
+        var g = isFinite(Number(load.gross)) ? Number(load.gross) : 0;
+        grossC += cents(g);
+        feeC += cents(roundMoney(g * pct / 100));
         miles += isFinite(Number(load.loaded_mi)) ? Number(load.loaded_mi) : 0;
+        var em = ledgerEmpty(load).mi;
+        if (em != null) dead += em;
         count += 1;
       });
+      (month.expenses || []).forEach(function (exp) {
+        if (!exp.date || exp.date < week.start || exp.date > week.end) return;
+        var amt = isFinite(Number(exp.amount)) ? Number(exp.amount) : 0;
+        if (exp.category === 'fuel') fuelC += cents(amt);
+        else otherC += cents(amt);
+      });
+      var gross = grossC / 100;
+      var net = (grossC - feeC - fuelC - otherC) / 100;
+      var allMi = miles + dead;
       return {
         label: rangeLabel(week.start, week.end),
         start: week.start,
         end: week.end,
         gross: gross,
+        net: net,
         miles: miles,
+        deadMi: dead,
+        allMi: allMi,
         count: count,
         rpm: miles > 0 ? gross / miles : null,
+        allRpm: allMi > 0 ? gross / allMi : null,
         text: money(gross),
         value: gross,
         feePct: pct
@@ -1644,29 +1896,162 @@
     });
   }
 
-  function weeksForLoads(loads, start, end) {
+  function weeksForLoads(loads, start, end, expenses, feePct) {
     var weeks = weeksCovering(start, end);
+    var pct = feePct != null ? feePct : 13;
     return weeks.map(function (week) {
-      var gross = 0;
+      var grossC = 0;
+      var feeC = 0;
+      var fuelC = 0;
+      var otherC = 0;
       var miles = 0;
+      var dead = 0;
       var count = 0;
       loads.forEach(function (load) {
         if (!load.date || load.date < week.start || load.date > week.end) return;
-        gross += isFinite(Number(load.gross)) ? Number(load.gross) : 0;
+        var g = isFinite(Number(load.gross)) ? Number(load.gross) : 0;
+        grossC += cents(g);
+        feeC += cents(roundMoney(g * pct / 100));
         miles += isFinite(Number(load.loaded_mi)) ? Number(load.loaded_mi) : 0;
+        var em = ledgerEmpty(load).mi;
+        if (em != null) dead += em;
         count += 1;
       });
+      (expenses || []).forEach(function (exp) {
+        if (!exp.date || exp.date < week.start || exp.date > week.end) return;
+        var amt = isFinite(Number(exp.amount)) ? Number(exp.amount) : 0;
+        if (exp.category === 'fuel') fuelC += cents(amt);
+        else otherC += cents(amt);
+      });
+      var gross = grossC / 100;
+      var net = (grossC - feeC - fuelC - otherC) / 100;
+      var allMi = miles + dead;
       return {
         label: rangeLabel(week.start, week.end),
         start: week.start,
         end: week.end,
         gross: gross,
+        net: net,
         miles: miles,
+        deadMi: dead,
+        allMi: allMi,
         count: count,
         rpm: miles > 0 ? gross / miles : null,
+        allRpm: allMi > 0 ? gross / allMi : null,
         text: money(gross),
         value: gross
       };
+    });
+  }
+
+  function renderReportsCharts(feed, month, months, all, fig) {
+    var canWeekly = !all && !!month;
+    var canMonthly = months && months.length >= 2;
+    if (!canWeekly && !canMonthly) return '';
+    var mode = all ? 'monthly' : (state.reportChartMode === 'monthly' && canMonthly ? 'monthly' : 'weekly');
+    var series = [];
+    var scopeLabel = '';
+    if (mode === 'weekly') {
+      series = weekRows(month).filter(function (w) {
+        return w.count > 0 || w.net !== 0 || w.miles > 0;
+      });
+      if (!series.length) series = weekRows(month);
+      scopeLabel = monthTitle(month.month) + ' by week';
+    } else {
+      series = months.map(function (m) {
+        var f = monthFigures(m);
+        var dead = f.deadMi || 0;
+        var allMi = f.loadedMi + dead;
+        return {
+          label: shortMonth(m.month),
+          gross: f.gross,
+          net: f.net,
+          miles: f.loadedMi,
+          deadMi: dead,
+          allMi: allMi,
+          rpm: f.loadedMi > 0 ? f.gross / f.loadedMi : null,
+          allRpm: allMi > 0 ? f.gross / allMi : null
+        };
+      });
+      scopeLabel = 'Monthly comparison';
+    }
+    if (!series.length) return '';
+
+    var netRows = series.map(function (s) {
+      return { label: s.label, value: Math.round(s.net), text: searchMoney(Math.round(s.net)) };
+    });
+    var bestNet = series.reduce(function (a, b) { return b.net > a.net ? b : a; }, series[0]);
+    var netCallout = 'Best: <strong>' + esc(bestNet.label) + '</strong> (' + money(bestNet.net) + ' net) · Period total ' + money(fig.net);
+
+    var rpmSeries = series.filter(function (s) { return s.rpm != null || s.allRpm != null; });
+    var rpmHtml = '';
+    if (rpmSeries.length) {
+      var rpmRows = rpmSeries.map(function (s) {
+        return {
+          label: s.label,
+          a: s.rpm || 0,
+          b: s.allRpm || 0,
+          textA: s.rpm != null ? '$' + s.rpm.toFixed(2) : '',
+          textB: s.allRpm != null ? '$' + s.allRpm.toFixed(2) : ''
+        };
+      });
+      var avgAllMi = fig.deadMi != null && (fig.loadedMi + fig.deadMi) > 0 ? fig.gross / (fig.loadedMi + fig.deadMi) : null;
+      rpmHtml = '<div class="chart"><h3>Per-mile rate ($/mi)</h3>' +
+        '<div class="chart-legend">' +
+          '<span><i style="background:#a78bfa"></i>Loaded $/mi</span>' +
+          '<span><i style="background:#F2C94C"></i>All-mi $/mi</span>' +
+        '</div>' +
+        dualBarChart(rpmRows, 'Loaded vs all-miles rate per mile', '#a78bfa', '#F2C94C') +
+        '<p class="chart-callout">Period avg: <strong>' + (fig.perLoaded != null ? rpm(fig.perLoaded) : 'n/a') + '</strong> loaded' +
+        (avgAllMi != null ? ' · <strong>' + rpm(avgAllMi) + '</strong> all-miles' : '') + '</p></div>';
+    }
+
+    var miRows = series.map(function (s) {
+      return {
+        label: s.label,
+        a: Math.round(s.miles),
+        b: Math.round(s.deadMi),
+        textA: s.miles > 0 ? plainNum(Math.round(s.miles), 0) : '',
+        textB: s.deadMi > 0 ? plainNum(Math.round(s.deadMi), 0) : ''
+      };
+    });
+    var totLoaded = fig.loadedMi || 0;
+    var totDead = fig.deadMi || 0;
+    var totAll = totLoaded + totDead;
+    var dhPct = totAll > 0 ? Math.round((totDead / totAll) * 100) : 0;
+    var miHtml = '<div class="chart"><h3>Miles (loaded vs deadhead)</h3>' +
+      '<div class="chart-legend">' +
+        '<span><i style="background:#a78bfa"></i>Loaded mi</span>' +
+        '<span><i style="background:#94a3b8"></i>Deadhead mi</span>' +
+      '</div>' +
+      dualBarChart(miRows, 'Loaded vs deadhead miles', '#a78bfa', '#94a3b8') +
+      '<p class="chart-callout"><strong>' + plainNum(Math.round(totLoaded), 0) + ' mi</strong> loaded · ' +
+      plainNum(Math.round(totDead), 0) + ' mi deadhead (' + dhPct + '% empty)</p></div>';
+
+    var switcher = (!all && canMonthly)
+      ? '<div class="chart-mode-btns" role="group" aria-label="Chart time grouping">' +
+          '<button type="button" data-chart-mode="weekly" aria-pressed="' + (mode === 'weekly' ? 'true' : 'false') + '">Weekly</button>' +
+          '<button type="button" data-chart-mode="monthly" aria-pressed="' + (mode === 'monthly' ? 'true' : 'false') + '">Monthly</button>' +
+        '</div>'
+      : '';
+
+    return '<div class="rep-charts">' +
+      '<div class="rep-charts-head"><h2 class="sec">Charts · ' + esc(scopeLabel) + '</h2>' + switcher + '</div>' +
+      '<div class="chart"><h3>Net kept (' + (mode === 'weekly' ? 'weekly' : 'monthly') + ')</h3>' +
+        signedBarChart(netRows, 'Net kept by ' + (mode === 'weekly' ? 'week' : 'month')) +
+        '<p class="chart-callout">' + netCallout + '</p>' +
+      '</div>' +
+      rpmHtml +
+      miHtml +
+      '</div>';
+  }
+
+  function bindReportChartToggle(root) {
+    (root || document).querySelectorAll('[data-chart-mode]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        state.reportChartMode = btn.getAttribute('data-chart-mode') || 'weekly';
+        renderReports();
+      });
     });
   }
 
@@ -1750,7 +2135,7 @@
       (all && fig.pay ? metric(money(fig.pay.received), 'Collected', 'Settlements received') : '') +
       (all && fig.pay ? metric((fig.pay.owedEst ? '<span class="est">EST</span> ' : '') + money(fig.pay.owed), 'Still owed', fig.pay.detail) : '');
 
-    var weeksData = all ? weeksForLoads(usedLoads, periodStart, asOf) : weekRows(month);
+    var weeksData = all ? weeksForLoads(usedLoads, periodStart, asOf, fig.expenses, fig.feePct) : weekRows(month);
     var wow = '';
     if (weeksData.length < 2) {
       wow = '<h2 class="sec">Week over week</h2>' + need('Not enough data', 'This month does not cover two weeks yet.');
@@ -1761,8 +2146,25 @@
       var withLoads = weeksData.filter(function (row) { return row.count > 0; });
       var grossChart = '<div class="chart"><h3>Gross by week</h3>' +
         barChart(weeksData, 'Weekly gross') +
-        '<p>' + esc(last.label) + ' ' + money(last.gross) + ' · prior week ' + esc(prev.label) + ' ' +
-        money(prev.gross) + ' · change ' + (delta >= 0 ? '+' : '-') + money(Math.abs(delta)) + '.</p></div>';
+        '<p class="chart-callout">' + esc(last.label) + ' <strong>' + money(last.gross) + '</strong> · prior ' + esc(prev.label) + ' ' +
+        money(prev.gross) + ' (' + (delta >= 0 ? '+' : '-') + money(Math.abs(delta)) + ')</p></div>';
+      var weekNetRows = weeksData.map(function (w) {
+        return { label: w.label, value: Math.round(w.net || 0), text: searchMoney(Math.round(w.net || 0)) };
+      });
+      var weekNetChart = '<div class="chart"><h3>Net kept by week</h3>' +
+        signedBarChart(weekNetRows, 'Weekly net kept') + '</div>';
+      var weekMilesRows = weeksData.map(function (w) {
+        return {
+          label: w.label,
+          a: Math.round(w.miles || 0),
+          b: Math.round(w.deadMi || 0),
+          textA: w.miles > 0 ? plainNum(Math.round(w.miles), 0) : '',
+          textB: w.deadMi > 0 ? plainNum(Math.round(w.deadMi), 0) : ''
+        };
+      });
+      var weekMilesChart = '<div class="chart"><h3>Miles by week (loaded vs deadhead)</h3>' +
+        '<div class="chart-legend"><span><i style="background:#a78bfa"></i>Loaded</span><span><i style="background:#94a3b8"></i>Deadhead</span></div>' +
+        dualBarChart(weekMilesRows, 'Weekly loaded vs deadhead miles', '#a78bfa', '#94a3b8') + '</div>';
       var rateBlock;
       if (withLoads.length < 2) {
         rateBlock = need('Not enough data', 'Only one week has loads, so revenue per mile can’t be compared week over week yet.');
@@ -1773,7 +2175,7 @@
         rateBlock = '<div class="chart"><h3>$ per loaded mile by week</h3>' +
           barChart(rateRows, 'Weekly revenue per loaded mile') + '</div>';
       }
-      wow = '<h2 class="sec">Week over week</h2>' + grossChart + rateBlock;
+      wow = '<h2 class="sec">Week over week</h2>' + grossChart + weekNetChart + rateBlock + weekMilesChart;
     }
 
     var months = sortedMonths(feed);
@@ -1784,15 +2186,25 @@
     } else {
       var rows = months.map(function (item) {
         var f = monthFigures(item);
-        return { label: shortMonth(item.month), value: f.gross, text: money(f.gross), net: f.net };
+        return { label: shortMonth(item.month), value: f.gross, text: money(f.gross), net: f.net, miles: f.loadedMi, deadMi: f.deadMi || 0 };
       });
       var a = rows[rows.length - 2];
       var b = rows[rows.length - 1];
       var netDelta = b.net - a.net;
+      var mNetRows = rows.map(function (r) {
+        return { label: r.label, value: Math.round(r.net), text: searchMoney(Math.round(r.net)) };
+      });
+      var mMiRows = rows.map(function (r) {
+        return { label: r.label, a: Math.round(r.miles), b: Math.round(r.deadMi), textA: plainNum(Math.round(r.miles), 0), textB: plainNum(Math.round(r.deadMi), 0) };
+      });
       mom = '<h2 class="sec">Month over month</h2><div class="chart"><h3>Gross by month</h3>' +
         barChart(rows, 'Monthly gross') +
-        '<p>' + esc(b.label) + ' net ' + money(b.net) + ' vs ' + esc(a.label) + ' net ' + money(a.net) +
-        ' (' + (netDelta >= 0 ? '+' : '-') + money(Math.abs(netDelta)) + ').</p></div>';
+        '<p class="chart-callout">' + esc(b.label) + ' net <strong>' + money(b.net) + '</strong> vs ' + esc(a.label) + ' ' + money(a.net) +
+        ' (' + (netDelta >= 0 ? '+' : '-') + money(Math.abs(netDelta)) + ')</p></div>' +
+        '<div class="chart"><h3>Net kept by month</h3>' + signedBarChart(mNetRows, 'Monthly net kept') + '</div>' +
+        '<div class="chart"><h3>Miles by month</h3>' +
+        '<div class="chart-legend"><span><i style="background:#a78bfa"></i>Loaded</span><span><i style="background:#94a3b8"></i>Deadhead</span></div>' +
+        dualBarChart(mMiRows, 'Monthly loaded vs deadhead miles', '#a78bfa', '#94a3b8') + '</div>';
     }
 
     var periodLabel = all
@@ -1828,6 +2240,7 @@
     state.searchOffline = !!(meta && meta.offline);
     state.searchSavedAt = (meta && meta.savedAt) || null;
     state.searchError = '';
+    syncSeenLoads(data);
     refreshDeadheads();
   }
 
@@ -2763,6 +3176,10 @@
       flags.push('Over 40 ft deck - cannot haul');
       hard = true;
     }
+    if (row.width_ft != null && Number(row.width_ft) > 8.5) {
+      flags.push('Over 8.5 ft wide - cannot haul');
+      hard = true;
+    }
     if (row.weight_lb == null) flags.push('weight not listed');
     var keepFlags = (row.fit_flags || []).filter(function (f) {
       return /infeasible|cannot haul|misses the|pickup is only/i.test(String(f));
@@ -3335,7 +3752,7 @@
   }
 
   function hourTone(n) {
-    if (n == null || !isFinite(Number(n))) return '';
+    if (n == null || !isFinite(Number(n))) return 'neutral';
     n = Number(n);
     if (n >= 35) return 'good';
     if (n >= 20) return 'ok';
@@ -3343,10 +3760,29 @@
   }
 
   function mileTone(n) {
-    if (n == null || !isFinite(Number(n))) return '';
+    if (n == null || !isFinite(Number(n))) return 'neutral';
     n = Number(n);
     if (n >= 0.8) return 'good';
     if (n >= 0.4) return 'ok';
+    return 'low';
+  }
+
+  function dayTone(n) {
+    if (n == null || !isFinite(Number(n))) return 'neutral';
+    n = Number(n);
+    if (n >= 300) return 'good';
+    if (n >= 200) return 'ok';
+    return 'low';
+  }
+
+  function netTone(net, row, nLoads) {
+    if (net == null || !isFinite(Number(net))) return 'neutral';
+    var v = Number(net);
+    var isCombo = !!(nLoads && nLoads > 1) || !!(row && row.kind);
+    var bar = isCombo ? 1000 : ((row && row.bar != null && isFinite(Number(row.bar))) ? Number(row.bar) : ((row && row.same_day) ? 300 : 500));
+    var strong = isCombo ? 1500 : ((row && row.same_day) ? 420 : 700);
+    if (v >= strong) return 'good';
+    if (v >= bar) return 'ok';
     return 'low';
   }
 
@@ -3359,56 +3795,125 @@
     });
   }
 
-  function rateTile(label, valueHtml, tone, subHtml) {
-    var cls = 'rate-tile ' + (tone || 'neutral');
+  function kmTile(label, valueHtml, tone, subHtml, primary) {
+    var cls = 'km-tile ' + (tone || 'neutral') + (primary ? ' km-primary' : '');
     return '<div class="' + cls + '">' +
-      '<span class="rate-label">' + esc(label) + '</span>' +
-      '<b class="rate-value">' + valueHtml + '</b>' +
-      (subHtml ? '<span class="rate-sub">' + subHtml + '</span>' : '') +
+      '<span class="km-label">' + esc(label) + '</span>' +
+      '<b class="km-val">' + valueHtml + '</b>' +
+      (subHtml ? '<span class="km-sub">' + subHtml + '</span>' : '') +
       '</div>';
+  }
+
+  function keyMetricsGrid(row, opts) {
+    if (!row) return '';
+    opts = opts || {};
+    var nLoads = opts.nLoads || ((row.loads && row.loads.length) ? row.loads.length : 1);
+    var isPast = !!opts.isPast;
+    var netVal = row.net_est != null && isFinite(Number(row.net_est)) ? Number(row.net_est) : opts.afterFeeNet;
+    var perHour = perHourValue(row, nLoads);
+    var days = rowDays(row, nLoads);
+    var npd = rowNetPerDay(row, nLoads);
+    if (npd == null && netVal != null && days && days > 0) npd = netVal / days;
+    var netMi = netPerMileValue(row);
+    var grossMi = grossPerMileValue(row);
+    var loadedMi = rateLoadedValue(row);
+
+    var isCombo = !!(row.kind || (row.loads && row.loads.length > 1));
+    var bar = isCombo ? 1000 : ((row.bar != null && isFinite(Number(row.bar))) ? Number(row.bar) : (row.same_day ? 300 : 500));
+    var netLabel = opts.usedActualFuel ? 'Net (actual fuel)' : 'Net EST';
+    var netSub = 'Bar $' + plainNum(bar, 0);
+    if (opts.actualPaid != null) {
+      netSub = 'Actual net ' + money(opts.actualPaid) + ' (paid)';
+    } else if (opts.afterFeeNet != null) {
+      netSub = 'After fee ' + money(opts.afterFeeNet) + ' · Bar $' + plainNum(bar, 0);
+    }
+    var netTile = kmTile(netLabel, esc(searchMoney(netVal)), netTone(netVal, row, nLoads), esc(netSub), true);
+
+    var hrs = row.hours != null && isFinite(Number(row.hours))
+      ? Number(row.hours)
+      : hoursEst(rowLoadedMiles(row), rowEmptyMiles(row), nLoads);
+    var hrSub = hrs != null && isFinite(hrs) ? (hrs.toFixed(1) + 'h est') : '';
+    var hrTile = kmTile('$/hr EST', perHour != null ? esc(searchMoney(perHour)) + '/hr' : 'n/a', hourTone(perHour), esc(hrSub), false);
+
+    var dayLabel = days != null ? (formatDays(days) + (Number(days) === 1 ? ' day' : ' days')) : 'Days n/a';
+    var dayTile = kmTile('Net / day', npd != null ? esc(searchMoney(npd)) + '/d' : 'n/a', dayTone(npd), esc(dayLabel), false);
+
+    var miSub = '';
+    if (grossMi != null && isFinite(Number(grossMi))) {
+      miSub = 'Gross ' + rateMoney(grossMi, 2);
+      if (loadedMi != null && isFinite(Number(loadedMi))) {
+        miSub += ' (' + rateMoney(loadedMi, 2) + ' ld)';
+      }
+    }
+    var miTile = kmTile('Net $/mi', netMi != null ? esc(rateMoney(netMi, 2)) + '/mi' : 'n/a', mileTone(netMi), esc(miSub), false);
+
+    return '<div class="key-grid">' + netTile + hrTile + dayTile + miTile + '</div>';
   }
 
   function rateCompare(row, nLoads) {
     if (!row) return '';
-    var perHour = perHourValue(row, nLoads);
-    var netMi = netPerMileValue(row);
-    var grossMi = grossPerMileValue(row);
-    var loadedMi = rateLoadedValue(row);
-    var hour = (perHour != null && isFinite(Number(perHour)))
-      ? rateTile('$/hr EST', esc(searchMoney(perHour)), hourTone(perHour))
-      : '';
-    var grossSub = '';
-    if (loadedMi != null && isFinite(Number(loadedMi))) {
-      grossSub = esc(rateMoney(loadedMi, 2)) + ' on loaded mi';
-    }
-    var gross = (grossMi != null && isFinite(Number(grossMi)))
-      ? rateTile('Gross $/mi', esc(rateMoney(grossMi, 2)), 'neutral', grossSub)
-      : '';
-    var netmi = (netMi != null && isFinite(Number(netMi)))
-      ? rateTile('Net $/mi', esc(rateMoney(netMi, 2)), mileTone(netMi))
-      : '';
-    if (!hour && !gross && !netmi) return '';
-    return '<div class="rate-compare">' +
-      hour +
-      ((gross || netmi) ? '<div class="rate-pair">' + gross + netmi + '</div>' : '') +
-      '</div>';
+    return keyMetricsGrid(row, { nLoads: nLoads, isPast: true });
   }
 
   function netBlock(net, perHour, netPerMile, unitExtra, row, nLoads) {
-    var compare = row ? rateCompare(row, nLoads) : '';
-    if (!compare) {
-      // Fallback if a caller has no row object
-      compare = rateCompare({
-        net_est: net,
-        per_hour: perHour,
-        net_per_mile: netPerMile
-      }, nLoads);
+    var target = row || { net_est: net, per_hour: perHour, net_per_mile: netPerMile };
+    return keyMetricsGrid(target, { nLoads: nLoads });
+  }
+
+  function weightFitBadge(wt) {
+    if (wt == null || !isFinite(Number(wt))) {
+      return '<span class="fit-badge ok">Weight n/a (verify)</span>';
     }
-    return '<div class="search-net">' + esc(searchMoney(net)) +
-      '<span class="unit">Net EST' + (unitExtra || '') + '</span>' +
-      compare +
-      (row ? tripDaysBlock(row, nLoads) : '') +
-      '</div>';
+    var w = Number(wt);
+    if (w <= 12500) return '<span class="fit-badge good">' + esc(plainNum(w, 0)) + ' lb OK</span>';
+    if (w <= 15300) return '<span class="fit-badge ok">' + esc(plainNum(w, 0)) + ' lb MAYBE (scale check)</span>';
+    return '<span class="fit-badge low">' + esc(plainNum(w, 0)) + ' lb PASS (&gt;15.3k)</span>';
+  }
+
+  function avgHintBadge(row, nLoads) {
+    var avg = state.historyAvgs;
+    if (!avg || !row) return '';
+    var npd = rowNetPerDay(row, nLoads || 1);
+    var hr = perHourValue(row, nLoads || 1);
+    if (npd == null || avg.avgNetPerDay == null) return '';
+    if (npd >= avg.avgNetPerDay && hr != null && avg.avgPerHour != null && hr >= avg.avgPerHour) {
+      return '<span class="fit-badge good">Above your avg (' + esc(searchMoney(avg.avgNetPerDay)) + '/d · ' + esc(searchMoney(avg.avgPerHour)) + '/hr)</span>';
+    }
+    if (npd >= avg.avgNetPerDay) {
+      return '<span class="fit-badge good">Net/day above your ' + esc(searchMoney(avg.avgNetPerDay)) + '/d avg</span>';
+    }
+    if (npd < avg.avgNetPerDay * 0.85) {
+      return '<span class="fit-badge neutral">Below your ' + esc(searchMoney(avg.avgNetPerDay)) + '/d avg</span>';
+    }
+    return '';
+  }
+
+  function fitBadgesHtml(row) {
+    var badges = [];
+    badges.push(weightFitBadge(row.weight_lb));
+    var len = row.length_ft != null && isFinite(Number(row.length_ft)) ? Number(row.length_ft) : null;
+    var wid = row.width_ft != null && isFinite(Number(row.width_ft)) ? Number(row.width_ft) : null;
+    if (len != null && len > 40) {
+      badges.push('<span class="fit-badge low">' + esc(plainNum(len, 1)) + ' ft PASS (&gt;40 ft)</span>');
+    } else if (wid != null && wid > 8.5) {
+      badges.push('<span class="fit-badge low">' + esc(plainNum(wid, 1)) + ' ft wide PASS (&gt;8.5 ft)</span>');
+    } else if (len != null || wid != null) {
+      var dim = (len != null ? plainNum(len, 1) + ' ft' : '') + (len != null && wid != null ? ' x ' : '') + (wid != null ? plainNum(wid, 1) + ' ft' : '');
+      badges.push('<span class="fit-badge neutral">' + esc(dim) + ' OK</span>');
+    }
+    if (row.tarp) {
+      badges.push('<span class="fit-badge good">Tarps OK</span>');
+    }
+    if (row.posted_rate != null) {
+      badges.push('<span class="fit-badge neutral">Posted ' + esc(money(row.posted_rate)) + '</span>');
+    }
+    var days = rowDays(row, 1);
+    if (days != null) {
+      badges.push('<span class="fit-badge neutral">' + esc(formatDays(days)) + (Number(days) === 1 ? ' day' : ' days') + '</span>');
+    }
+    var avgBadge = avgHintBadge(row, 1);
+    if (avgBadge) badges.push(avgBadge);
+    return '<div class="fit-row">' + badges.join('') + '</div>';
   }
 
   function verdictReason(row) {
@@ -3467,12 +3972,182 @@
   }
 
   function rateLegend() {
-    return '<p class="rate-legend" aria-label="Dollar per hour and per mile color key">' +
-      '<span class="rate-legend-label">$/hr and Net $/mi</span>' +
-      '<span class="rate-pill good">Green $35+/hr or $0.80+/mi</span>' +
-      '<span class="rate-pill ok">Yellow $20-34/hr or $0.40-0.79/mi</span>' +
-      '<span class="rate-pill low">Red under $20/hr or $0.40/mi</span>' +
-      '<span class="rate-pill neutral">Gross $/mi is posted / all miles, including empty miles</span></p>';
+    return '<p class="rate-legend" aria-label="Color key for net, per hour, per day, and per mile">' +
+      '<span class="rate-legend-label">Key metrics color guide</span>' +
+      '<span class="rate-pill good">Green: $35+/hr · $300+/day · $0.80+/mi</span>' +
+      '<span class="rate-pill ok">Amber: $20-34/hr · $200-299/day · $0.40-0.79/mi</span>' +
+      '<span class="rate-pill low">Red: under $20/hr, $200/day, $0.40/mi, or bar</span></p>';
+  }
+
+  function loadJsonPrefs(key, fallback) {
+    try {
+      var raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch (err) { return fallback; }
+  }
+
+  function saveJsonPrefs(key, val) {
+    try { localStorage.setItem(key, JSON.stringify(val)); } catch (err) { /* ignore */ }
+  }
+
+  function savedLoadsMap() {
+    if (!state.savedLoads) state.savedLoads = loadJsonPrefs(SAVED_LOADS_KEY, {});
+    return state.savedLoads;
+  }
+
+  function isSavedLoad(row) {
+    var k = loadKey(row);
+    return !!(k && savedLoadsMap()[k]);
+  }
+
+  function toggleSavedLoad(row) {
+    var k = loadKey(row);
+    if (!k) return;
+    var map = savedLoadsMap();
+    if (map[k]) delete map[k];
+    else map[k] = true;
+    saveJsonPrefs(SAVED_LOADS_KEY, map);
+  }
+
+  function savedCountInData(data) {
+    var map = savedLoadsMap();
+    var loads = (data && data.loads) || [];
+    var n = 0;
+    loads.forEach(function (r) { if (map[loadKey(r)]) n += 1; });
+    return n;
+  }
+
+  function compareKeyList() {
+    if (!state.compareKeys) {
+      try {
+        var raw = sessionStorage.getItem(COMPARE_KEY);
+        state.compareKeys = raw ? JSON.parse(raw) : [];
+      } catch (err) { state.compareKeys = []; }
+    }
+    return state.compareKeys;
+  }
+
+  function saveCompareKeys() {
+    try { sessionStorage.setItem(COMPARE_KEY, JSON.stringify(state.compareKeys || [])); } catch (err) { /* ignore */ }
+  }
+
+  function isComparedLoad(row) {
+    var k = loadKey(row);
+    return !!(k && compareKeyList().indexOf(k) !== -1);
+  }
+
+  function toggleCompareLoad(row) {
+    var k = loadKey(row);
+    if (!k) return;
+    var list = compareKeyList();
+    var idx = list.indexOf(k);
+    if (idx !== -1) {
+      list.splice(idx, 1);
+    } else {
+      if (list.length >= 3) list.shift();
+      list.push(k);
+    }
+    saveCompareKeys();
+  }
+
+  function seenStore() {
+    if (!state.seenLoads) state.seenLoads = loadJsonPrefs(SEEN_LOADS_KEY, null);
+    return state.seenLoads;
+  }
+
+  function syncSeenLoads(data) {
+    if (!data || !data.loads) return;
+    var scan = String(data.scanned_at || data.as_of || '');
+    var keys = {};
+    data.loads.forEach(function (r) {
+      var k = loadKey(r);
+      if (k) keys[k] = true;
+    });
+    var store = seenStore();
+    if (!store || !store.curr) {
+      store = { scan: scan, prev: keys, curr: keys };
+      state.seenLoads = store;
+      saveJsonPrefs(SEEN_LOADS_KEY, store);
+    } else if (scan && store.scan !== scan) {
+      store = { scan: scan, prev: store.curr || {}, curr: keys };
+      state.seenLoads = store;
+      saveJsonPrefs(SEEN_LOADS_KEY, store);
+    }
+  }
+
+  function isNewLoad(row) {
+    if (row && row.is_new) return true;
+    var k = loadKey(row);
+    var store = seenStore();
+    if (!k || !store || !store.prev) return false;
+    return !store.prev[k];
+  }
+
+  function markAllLoadsSeen(data) {
+    var scan = String((data && (data.scanned_at || data.as_of)) || '');
+    var keys = {};
+    ((data && data.loads) || []).forEach(function (r) {
+      var k = loadKey(r);
+      if (k) keys[k] = true;
+    });
+    state.seenLoads = { scan: scan, prev: keys, curr: keys };
+    saveJsonPrefs(SEEN_LOADS_KEY, state.seenLoads);
+  }
+
+  function parseScanStamp(stamp) {
+    if (!stamp) return null;
+    var m = String(stamp).match(/(\d{4})-(\d{2})-(\d{2})[ T](\d{1,2}):(\d{2})(?:\s*(CT|CDT|CST|UTC|Z))?/i);
+    if (!m) return null;
+    var yr = Number(m[1]), mo = Number(m[2]) - 1, dy = Number(m[3]), hr = Number(m[4]), mn = Number(m[5]);
+    var tz = (m[6] || 'CT').toUpperCase();
+    if (tz === 'UTC' || tz === 'Z') return new Date(Date.UTC(yr, mo, dy, hr, mn));
+    // America/Chicago UTC-6 (CST) / UTC-5 (CDT)
+    var off = tz === 'CDT' ? 5 : 6;
+    return new Date(Date.UTC(yr, mo, dy, hr + off, mn));
+  }
+
+  function formatRelAge(ms) {
+    if (ms == null || !isFinite(ms) || ms < 0) return '';
+    var mins = Math.floor(ms / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return mins + 'm ago';
+    var hrs = Math.floor(mins / 60);
+    var remM = mins % 60;
+    if (hrs < 24) return hrs + 'h ' + (remM ? remM + 'm ' : '') + 'ago';
+    var days = Math.floor(hrs / 24);
+    return days + 'd ' + (hrs % 24) + 'h ago';
+  }
+
+  function rowPickupDateMs(row) {
+    var pu = parseWindow(row && row.pickup_window, scanYear());
+    if (pu && pu[0]) return pu[0].getTime();
+    return Number.MAX_SAFE_INTEGER;
+  }
+
+  function rowFitsDeck(row) {
+    if (!row) return false;
+    if (row.weight_lb != null && Number(row.weight_lb) > 15300) return false;
+    if (row.length_ft != null && Number(row.length_ft) > 40) return false;
+    if (row.width_ft != null && Number(row.width_ft) > 8.5) return false;
+    var flags = row.fit_flags || row.flags || [];
+    if (flags.some(function (f) { return /cannot haul|infeasible/i.test(String(f)); })) return false;
+    return true;
+  }
+
+  function saveSearchPrefs() {
+    saveJsonPrefs(SEARCH_PREFS_KEY, {
+      sort: state.searchSort || 'default',
+      hidePass: !!state.hidePass,
+      fitsOnly: !!state.fitsOnly
+    });
+  }
+
+  function loadSearchPrefs() {
+    var p = loadJsonPrefs(SEARCH_PREFS_KEY, null);
+    if (!p) return;
+    if (p.sort) state.searchSort = p.sort;
+    state.hidePass = !!p.hidePass;
+    state.fitsOnly = !!p.fitsOnly;
   }
 
   function filteredSearches(data) {
@@ -3484,6 +4159,12 @@
         return dh == null || dh <= cap;
       });
     }
+    if (state.hidePass) {
+      rows = rows.filter(function (row) { return String(row.verdict).toUpperCase() !== 'PASS'; });
+    }
+    if (state.fitsOnly) {
+      rows = rows.filter(rowFitsDeck);
+    }
     var f = state.searchFilter || 'all';
     if (f === 'take' || f === 'maybe' || f === 'pass') {
       rows = rows.filter(function (row) { return String(row.verdict).toLowerCase() === f; });
@@ -3491,28 +4172,67 @@
       rows = rows.filter(function (row) { return row.board === 'Truckstop'; });
     } else if (f === 'df') {
       rows = rows.filter(function (row) { return row.board === 'Direct Freight'; });
+    } else if (f === 'saved') {
+      var saved = savedLoadsMap();
+      rows = rows.filter(function (row) { return !!saved[loadKey(row)]; });
     }
     return sortSearches(rows);
   }
 
   function sortSearches(rows) {
+    var mode = state.searchSort || 'default';
     var order = { TAKE: 0, MAYBE: 1, PASS: 2 };
     return (rows || []).slice().sort(function (a, b) {
+      if (mode === 'net_day') {
+        var da = rowNetPerDay(a, 1), db = rowNetPerDay(b, 1);
+        if (da == null && db == null) return 0;
+        if (da == null) return 1;
+        if (db == null) return -1;
+        return db - da;
+      }
+      if (mode === 'net') {
+        var na = a.net_est, nb = b.net_est;
+        if (na == null && nb == null) return 0;
+        if (na == null) return 1;
+        if (nb == null) return -1;
+        return nb - na;
+      }
+      if (mode === 'net_mi') {
+        var ma = netPerMileValue(a), mb = netPerMileValue(b);
+        if (ma == null && mb == null) return 0;
+        if (ma == null) return 1;
+        if (mb == null) return -1;
+        return mb - ma;
+      }
+      if (mode === 'per_hr') {
+        var ha = perHourValue(a), hb = perHourValue(b);
+        if (ha == null && hb == null) return 0;
+        if (ha == null) return 1;
+        if (hb == null) return -1;
+        return hb - ha;
+      }
+      if (mode === 'deadhead') {
+        var dha = rowEmptyMiles(a), dhb = rowEmptyMiles(b);
+        return (dha != null ? dha : 99999) - (dhb != null ? dhb : 99999);
+      }
+      if (mode === 'pickup') {
+        return rowPickupDateMs(a) - rowPickupDateMs(b);
+      }
       var ra = order[String(a.verdict || '').toUpperCase()];
       var rb = order[String(b.verdict || '').toUpperCase()];
       if (ra == null) ra = 9;
       if (rb == null) rb = 9;
       if (ra !== rb) return ra - rb;
-      var na = a.net_est;
-      var nb = b.net_est;
-      var da = a.net_per_day, db = b.net_per_day;
-      if (da == null && db != null) return 1;
-      if (db == null && da != null) return -1;
-      if (da != null && db != null && db !== da) return db - da;
-      if (na == null && nb == null) return 0;
-      if (na == null) return 1;
-      if (nb == null) return -1;
-      return nb - na;
+      var na2 = a.net_est;
+      var nb2 = b.net_est;
+      var da2 = a.net_per_day, db2 = b.net_per_day;
+      if (da2 == null && db2 != null) return 1;
+      if (db2 == null && da2 != null) return -1;
+      if (da2 != null && db2 != null && db2 !== da2) return db2 - da2;
+      if (na2 == null && nb2 == null) return 0;
+      if (na2 == null) return 1;
+      if (nb2 == null) return -1;
+      return nb2 - na2;
     });
   }
 
@@ -3821,24 +4541,31 @@
     });
   }
 
-  function searchActions(row) {
+  function searchActions(row, detailsToggle) {
     var href = openLoadHref(row);
     var html = '<div class="search-actions">' +
       '<a class="search-link" href="' + esc(href) + '" target="_blank" rel="noopener noreferrer">Open load</a>';
     var mail = brokerMailto(row);
     var tel = brokerTel(row);
     var hiddenDf = row && row.board === 'Direct Freight' && !row.broker && !row.broker_mc;
+    if (tel) {
+      html += '<a class="call-broker" href="' + esc(tel) + '">Call broker</a>';
+    }
     if (mail) {
       html += '<a class="email-broker" href="' + esc(mail) + '">Email broker</a>';
-    } else if (tel) {
-      html += '<a class="call-broker" href="' + esc(tel) + '">Call broker</a>';
-    } else if (hiddenDf) {
-      html += '<a class="search-link" href="' + esc(href) + '" target="_blank" rel="noopener noreferrer">Broker on Direct Freight detail</a>';
-    } else {
-      html += '<span class="no-email">No company contact listed</span>';
+    }
+    if (!tel && !mail) {
+      if (hiddenDf) {
+        html += '<a class="search-link" href="' + esc(href) + '" target="_blank" rel="noopener noreferrer">Broker on DF</a>';
+      } else {
+        html += '<span class="no-email">No contact</span>';
+      }
     }
     if (row && row.looked_up) {
       html += '<span class="looked-up">Looked up</span>';
+    }
+    if (detailsToggle) {
+      html += '<button type="button" class="details-toggle-btn" aria-expanded="false">Details &amp; map</button>';
     }
     return html + '</div>';
   }
@@ -3936,6 +4663,12 @@
     var verd = String(row.verdict || 'PASS').toLowerCase();
     var origin = row.origin || 'Origin';
     var dest = row.destination || 'Destination';
+    var key = loadKey(row);
+    var saved = isSavedLoad(row);
+    var cmp = isComparedLoad(row);
+    var isNew = isNewLoad(row);
+    var pu = pickupDateLabel(row);
+    var postedAge = row.posted_age || row.age || '';
     var bits = [];
     bits.push(row.board || '');
     if (row.equipment) bits.push(row.equipment);
@@ -3949,23 +4682,42 @@
     if (row.notes) bits.push(row.notes);
     var reason = verdictReason(row);
     var also = alsoInLabels(row, data);
-    var alsoHtml = also.length ? '<p class="also-in">also in ' + esc(also.join(', ')) + '</p>' : '';
-    return '<article class="search-card ' + esc(verd) + '">' +
-      '<div class="type-badge-row">' + typeBadgeHtml('single', 'Single') + '</div>' +
-      '<div class="search-head">' +
-        netBlock(row.net_est, perHourValue(row), netPerMileValue(row), '', row) +
-        '<span class="verdict-pill ' + esc(verd) + '">' + esc(displayVerdict(row.verdict || 'PASS')) + '</span>' +
-      '</div>' +
-      alsoHtml +
-      (reason ? '<p class="search-reason">' + esc(reason) + '</p>' : '') +
-      '<div class="lane">' + esc(origin) + ' to ' + esc(dest) + '</div>' +
-      loadStatRow(row, searchOriginLabel()) +
+    var alsoHtml = also.length ? '<p class="also-in">Also in ' + esc(also.join(', ')) + '</p>' : '';
+
+    var badges = typeBadgeHtml('single', 'Single') +
+      (row.board ? '<span class="board-chip">' + esc(row.board) + '</span>' : '') +
+      (pu && pu !== 'date not listed' ? '<span class="pu-chip">PU ' + esc(pu) + '</span>' : '') +
+      (postedAge ? '<span class="board-chip">Posted ' + esc(postedAge) + '</span>' : '') +
+      (isNew ? '<span class="new-badge">New</span>' : '');
+
+    var tools = '<button type="button" class="star-btn" data-save-key="' + esc(key) + '" aria-pressed="' + (saved ? 'true' : 'false') + '" aria-label="' + (saved ? 'Remove from shortlist' : 'Save to shortlist') + '">' + (saved ? '&#9733;' : '&#9734;') + '</button>' +
+      '<button type="button" class="cmp-btn" data-cmp-key="' + esc(key) + '" aria-pressed="' + (cmp ? 'true' : 'false') + '">' + (cmp ? '&#10003; Compare' : '+ Compare') + '</button>';
+
+    var detailsHtml = '<div class="search-details" hidden>' +
       fuelLine(currentFuel(row)) +
       (row.math ? '<p class="search-math">' + esc(row.math) + '</p>' : '') +
-      (row.tarp ? '<p class="search-fit">Tarps, straps</p>' : '') +
       '<p class="search-meta">' + esc(bits.filter(Boolean).join(' | ')) + '</p>' +
       routeBlock(routePayload(row), loadMapsUrl(row), (origin + ' to ' + dest + ' route map')) +
-      searchActions(row) + '</article>';
+      '</div>';
+
+    return '<article class="search-card ' + esc(verd) + (isNew ? ' is-new' : '') + '" data-load-key="' + esc(key) + '">' +
+      '<div class="card-top-bar">' +
+        '<div class="card-badges">' + badges + '</div>' +
+        '<div class="card-tools">' + tools + '</div>' +
+      '</div>' +
+      '<div class="verdict-row">' +
+        '<div class="lane">' + esc(origin) + ' to ' + esc(dest) + '</div>' +
+        '<span class="verdict-pill ' + esc(verd) + '">' + esc(displayVerdict(row.verdict || 'PASS')) + '</span>' +
+      '</div>' +
+      netBlock(row.net_est, perHourValue(row), netPerMileValue(row), '', row) +
+      milesStrip(rowLoadedMiles(row) || null, row.origin_dh_mi != null ? row.origin_dh_mi : null,
+        { emptyFrom: searchOriginLabel() }) +
+      fitBadgesHtml(row) +
+      alsoHtml +
+      (reason ? '<p class="search-reason">' + esc(reason) + '</p>' : '') +
+      searchActions(row, true) +
+      detailsHtml +
+      '</article>';
   }
 
   function renderComboCard(combo, pkg) {
@@ -4005,33 +4757,39 @@
     var kind = combo.kind === 'shared' ? 'Shared deck' : 'Sequential chain';
     var reason = verdictReason(combo);
     var nameHtml = (pkg && pkg.label) ? '<span class="combo-name">' + esc(pkg.label) + '</span>' : '';
-    return '<article class="combo-card ' + esc(verd) + '">' +
-      '<div class="type-badge-row">' + packageTypeBadge(combo) + nameHtml + '</div>' +
-      '<div class="search-head">' +
-        netBlock(combo.net_est, perHourValue(combo, (combo.loads || []).length),
-          netPerMileValue(combo),
-          '',
-          combo, (combo.loads || []).length) +
-        '<span class="verdict-pill ' + esc(verd) + '">' + esc(displayVerdict(combo.verdict || 'MAYBE')) + '</span>' +
-      '</div>' +
-      (reason ? '<p class="search-reason">' + esc(reason) + '</p>' : '') +
-      '<div class="lane">' + esc(kind) + '</div>' +
-      milesStrip(combo.loaded_mi, combo.deadhead_mi, { emptyFrom: searchOriginLabel() + ', all legs' }) +
+    var cDays = rowDays(combo, nLegs);
+    var fitRow = '<div class="fit-row">' +
+      weightFitBadge(combo.combined_weight_lb) +
+      '<span class="fit-badge neutral">' + esc(len) + '</span>' +
+      (cDays != null ? '<span class="fit-badge neutral">' + esc(formatDays(cDays)) + ' days</span>' : '') +
+      avgHintBadge(combo, nLegs) +
+      '</div>';
+    var detailsHtml = '<div class="search-details" hidden>' +
       fuelLine(currentFuel(combo.loads && combo.loads[0] ? combo.loads[0] : combo)) +
       (combo.math ? '<p class="search-math">' + esc(combo.math) + '</p>' : '') +
-      '<div class="stat-row">' +
-        statCell('On deck', esc(wt)) +
-        statCell('Length', esc(len)) +
-        (combo.timing_note ? statCell('Timing', esc(combo.timing_note)) : '') +
-      '</div>' +
+      (combo.timing_note ? '<p class="search-meta">Timing: ' + esc(combo.timing_note) + '</p>' : '') +
       routeBlock(routePayload(combo), comboMapsUrl(combo), kind + ' route map') +
       '<p class="combo-label">Stop order</p><ol class="combo-stops">' + stops + '</ol>' +
       '<div class="combo-legs">' + legs + totalLine + '</div>' +
       ((combo.flags && combo.flags.length) ? '<p class="search-flags">' + esc(combo.flags.join(' ')) + '</p>' : '') +
+      '</div>';
+    return '<article class="combo-card ' + esc(verd) + '">' +
+      '<div class="type-badge-row">' + packageTypeBadge(combo) + nameHtml + '</div>' +
+      '<div class="verdict-row">' +
+        '<div class="lane">' + esc(kind) + ' (' + nLegs + ' legs)</div>' +
+        '<span class="verdict-pill ' + esc(verd) + '">' + esc(displayVerdict(combo.verdict || 'MAYBE')) + '</span>' +
+      '</div>' +
+      netBlock(combo.net_est, perHourValue(combo, nLegs), netPerMileValue(combo), '', combo, nLegs) +
+      milesStrip(combo.loaded_mi, combo.deadhead_mi, { emptyFrom: searchOriginLabel() + ', all legs' }) +
+      fitRow +
+      (reason ? '<p class="search-reason">' + esc(reason) + '</p>' : '') +
+      '<div class="search-actions"><button type="button" class="details-toggle-btn" aria-expanded="false">Legs, stops &amp; map</button></div>' +
+      detailsHtml +
       '</article>';
   }
 
   function renderCombos(data) {
+    if (state.searchFilter === 'saved') return '';
     var packages = comboPackages(data);
     var cap = Number(state.maxDeadhead) || 0;
     if (cap > 0) {
@@ -4040,6 +4798,11 @@
         var first = (combo.loads || [])[0];
         var dh = first ? rowEmptyMiles(first) : combo.deadhead_mi;
         return dh == null || dh <= cap;
+      });
+    }
+    if (state.hidePass) {
+      packages = packages.filter(function (pkg) {
+        return String(pkg.combo.verdict || '').toUpperCase() !== 'PASS';
       });
     }
     var f = state.searchFilter || 'all';
@@ -4053,7 +4816,7 @@
     var body;
     if (!packages.length) {
       if (f === 'all') {
-        body = '<p class="fine">No 2- or 3-load combos in this scan cleared the $1,000 net bar with a feasible route. Many postings were full TL, over the 15,300 lb or 40 ft limit, or did not line up for a shared deck or a sequential chain.</p>';
+        body = '<p class="fine">No 2- or 3-load combos in this scan cleared the $1,000 net bar with a feasible route.</p>';
       } else {
         body = '';
       }
@@ -4063,11 +4826,18 @@
     if (!body) return '';
     return '<div class="combos">' +
       '<h3>Combos</h3>' +
-      '<p class="fine">Shared-deck and sequential chains, ranked by total net EST and net per day. A combo needs at least $1,000 net EST and must beat its best single load by $200, with no losing leg.</p>' +
+      '<p class="fine">Shared-deck and sequential chains (&gt;= $1,000 net EST, beats single by $200).</p>' +
       body + '</div>';
   }
 
   function renderSearchGroups(rows, data) {
+    if (state.searchSort && state.searchSort !== 'default') {
+      if (!rows.length) return '<p class="fine">No loads match these filters.</p>';
+      return '<section class="search-group" id="search-group-sorted">' +
+        '<h3 class="search-group-head">' + esc(rows.length + ' loads sorted') + '</h3>' +
+        rows.map(function (row) { return renderSearchCard(row, data); }).join('') +
+        '</section>';
+    }
     var groups = { TAKE: [], MAYBE: [], PASS: [] };
     rows.forEach(function (row) {
       var key = String(row.verdict || 'PASS').toUpperCase();
@@ -4083,7 +4853,7 @@
       var cards = list.map(function (row) { return renderSearchCard(row, data); }).join('');
       var title = labels[key] + ' (' + list.length + ')';
       var gid = 'search-group-' + key.toLowerCase();
-      if (key === 'PASS' && filter !== 'pass') {
+      if (key === 'PASS' && filter !== 'pass' && filter !== 'saved') {
         var onlyPass = !groups.TAKE.length && !groups.MAYBE.length;
         html += '<details class="search-group pass-group" id="' + gid + '"' + (onlyPass ? ' open' : '') + '>' +
           '<summary class="search-group-head pass">' + esc(title) + '</summary>' +
@@ -4119,6 +4889,133 @@
     bindFreshPull();
   }
 
+  function findRowByKey(key, data) {
+    var loads = (data && data.loads) || [];
+    for (var i = 0; i < loads.length; i++) {
+      if (loadKey(loads[i]) === key) return loads[i];
+    }
+    return null;
+  }
+
+  function updateCompareBar() {
+    var bar = $('compare-bar');
+    if (!bar) return;
+    var data = viewSearches();
+    var keys = compareKeyList().filter(function (k) { return !data || !!findRowByKey(k, data); });
+    if (!keys.length || state.tab !== 'searches') {
+      bar.hidden = true;
+      return;
+    }
+    bar.hidden = false;
+    var title = $('compare-bar-title');
+    var sub = $('compare-bar-sub');
+    var openBtn = $('compare-open-btn');
+    if (title) title.textContent = 'Compare (' + keys.length + '/3)';
+    if (sub && data) {
+      var names = keys.map(function (k) {
+        var r = findRowByKey(k, data);
+        return r ? ((r.origin || '').split(',')[0] + '->' + (r.destination || '').split(',')[0]) : '';
+      }).filter(Boolean);
+      sub.textContent = names.join(' | ');
+    }
+    if (openBtn) openBtn.disabled = keys.length < 2;
+  }
+
+  function closeCompareSheet() {
+    var sheet = $('compare-sheet');
+    if (!sheet) return;
+    sheet.classList.remove('open');
+    sheet.setAttribute('hidden', '');
+    document.documentElement.classList.remove('sheet-open');
+  }
+
+  function openCompareSheet() {
+    var sheet = $('compare-sheet');
+    var body = $('compare-sheet-body');
+    var data = viewSearches();
+    if (!sheet || !body || !data) return;
+    var rows = compareKeyList().map(function (k) { return findRowByKey(k, data); }).filter(Boolean);
+    if (rows.length < 2) return;
+
+    function maxIdx(vals, lowerBetter) {
+      var best = -1, bestVal = null;
+      vals.forEach(function (v, i) {
+        if (v == null || !isFinite(Number(v))) return;
+        var n = Number(v);
+        if (bestVal == null || (lowerBetter ? n < bestVal : n > bestVal)) {
+          bestVal = n;
+          best = i;
+        }
+      });
+      return best;
+    }
+
+    var netBest = maxIdx(rows.map(function (r) { return r.net_est; }), false);
+    var npdBest = maxIdx(rows.map(function (r) { return rowNetPerDay(r, 1); }), false);
+    var hrBest = maxIdx(rows.map(function (r) { return perHourValue(r, 1); }), false);
+    var nmiBest = maxIdx(rows.map(function (r) { return netPerMileValue(r); }), false);
+    var dhBest = maxIdx(rows.map(function (r) { return rowEmptyMiles(r); }), true);
+
+    function tr(label, cells, bestI) {
+      return '<tr><th>' + esc(label) + '</th>' + cells.map(function (c, i) {
+        return '<td' + (bestI === i ? ' class="cmp-best"' : '') + '>' + c + '</td>';
+      }).join('') + '</tr>';
+    }
+
+    var heads = '<tr><th>Load</th>' + rows.map(function (r) {
+      return '<td class="compare-col-head">' + esc((r.origin || '').split(',')[0] + ' -> ' + (r.destination || '').split(',')[0]) +
+        '<br><span class="verdict-pill ' + esc(String(r.verdict || 'PASS').toLowerCase()) + '">' + esc(displayVerdict(r.verdict || 'PASS')) + '</span></td>';
+    }).join('') + '</tr>';
+
+    var table = '<div class="compare-table-wrap"><table class="compare-table"><tbody>' +
+      heads +
+      tr('Net EST', rows.map(function (r) { return esc(searchMoney(r.net_est)); }), netBest) +
+      tr('Net / day', rows.map(function (r) { return esc(searchMoney(rowNetPerDay(r, 1))) + '/d'; }), npdBest) +
+      tr('$/hr EST', rows.map(function (r) { return esc(searchMoney(perHourValue(r, 1))) + '/hr'; }), hrBest) +
+      tr('Net $/mi', rows.map(function (r) { return esc(rateMoney(netPerMileValue(r), 2)) + '/mi'; }), nmiBest) +
+      tr('Gross $/mi', rows.map(function (r) { return esc(rateMoney(grossPerMileValue(r), 2)) + '/mi'; }), -1) +
+      tr('Loaded mi', rows.map(function (r) { return esc(plainNum(rowLoadedMiles(r), 0)) + ' mi'; }), -1) +
+      tr('Deadhead', rows.map(function (r) { return esc(plainNum(rowEmptyMiles(r), 0)) + ' mi'; }), dhBest) +
+      tr('Days', rows.map(function (r) { return esc(formatDays(rowDays(r, 1))) + ' d'; }), -1) +
+      tr('Weight', rows.map(function (r) { return r.weight_lb != null ? esc(plainNum(r.weight_lb, 0)) + ' lb' : 'n/a'; }), -1) +
+      tr('Pickup', rows.map(function (r) { return esc(pickupDateLabel(r)); }), -1) +
+      tr('Board', rows.map(function (r) { return esc(r.board || ''); }), -1) +
+      tr('Actions', rows.map(function (r) {
+        var mail = brokerMailto(r);
+        var tel = brokerTel(r);
+        return '<div class="compare-mini-actions">' +
+          '<a href="' + esc(openLoadHref(r)) + '" target="_blank" rel="noopener noreferrer">Open</a>' +
+          (tel ? '<a href="' + esc(tel) + '">Call</a>' : '') +
+          (mail ? '<a href="' + esc(mail) + '">Email</a>' : '') +
+          '</div>';
+      }), -1) +
+      '</tbody></table></div>';
+
+    body.innerHTML = table;
+    sheet.removeAttribute('hidden');
+    sheet.classList.add('open');
+    document.documentElement.classList.add('sheet-open');
+  }
+
+  function bindCompareSheet() {
+    var close = $('compare-sheet-close');
+    var openBtn = $('compare-open-btn');
+    var clearBtn = $('compare-clear-btn');
+    if (close) close.addEventListener('click', closeCompareSheet);
+    if (openBtn) openBtn.addEventListener('click', openCompareSheet);
+    if (clearBtn) clearBtn.addEventListener('click', function () {
+      state.compareKeys = [];
+      saveCompareKeys();
+      if (state.tab === 'searches') renderSearches();
+      else updateCompareBar();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && $('compare-sheet') && $('compare-sheet').classList.contains('open')) {
+        closeCompareSheet();
+      }
+    });
+  }
+
   function renderSearches() {
     var root = $('searches-root');
     if (!root) return;
@@ -4128,17 +5025,26 @@
     if (state.searchError && !state.searches) {
       root.innerHTML = head + '<p class="warn">' + esc(state.searchError) + '</p>';
       bindSearchRefresh();
+      updateCompareBar();
       return;
     }
     if (!data) {
       root.innerHTML = head + '<p class="fine">Loading the latest saved scan...</p>';
       bindSearchRefresh();
+      updateCompareBar();
       return;
     }
     var counts = data.counts || {};
     var rules = data.rules || {};
     var scanStamp = data.scanned_at || data.as_of || '';
-    var formula = rules.formula || 'net EST = rate x 0.87 - $1.14 per loaded mile (fuel and DEF) - $0.30 per deadhead mile';
+    var scanDt = parseScanStamp(scanStamp);
+    var ageMs = scanDt ? (Date.now() - scanDt.getTime()) : null;
+    var ageText = ageMs != null ? formatRelAge(ageMs) : '';
+    var isStale = ageMs != null && ageMs > 6 * 3600000;
+    var newCount = (data.loads || []).filter(isNewLoad).length;
+    var savedCount = savedCountInData(data);
+
+    var formula = rules.formula || 'net EST = rate x 0.87 - (EIA diesel / 8.0 mpg + $0.034 DEF) x total mi';
     var bar = rules.quality_bar || '';
     var rows = filteredSearches(data);
     var filter = state.searchFilter || 'all';
@@ -4151,13 +5057,45 @@
         '<div class="n">' + esc(String(value || 0)) + '</div>' +
         '<div class="l">' + label + '</div></button>';
     }
-    var filters = [
+
+    var filterRow = [
+      ['all', 'All'],
       ['truckstop', 'Truckstop'],
-      ['df', 'Direct Freight']
+      ['df', 'Direct Freight'],
+      ['saved', 'Saved (' + savedCount + ')']
     ].map(function (pair) {
       var on = filter === pair[0];
-      return '<button type="button" data-filter="' + pair[0] + '" aria-pressed="' + (on ? 'true' : 'false') + '">' + pair[1] + '</button>';
+      return '<button type="button" data-filter="' + pair[0] + '" aria-pressed="' + (on ? 'true' : 'false') + '">' + esc(pair[1]) + '</button>';
     }).join('');
+
+    var sortOpts = [
+      ['default', 'Verdict + Net/day'],
+      ['net_day', 'Net / day (high-low)'],
+      ['net', 'Net EST (high-low)'],
+      ['net_mi', 'Net $/mi (high-low)'],
+      ['per_hr', '$/hr EST (high-low)'],
+      ['deadhead', 'Deadhead (low-high)'],
+      ['pickup', 'Pickup date (soonest)']
+    ].map(function (pair) {
+      return '<option value="' + pair[0] + '"' + ((state.searchSort || 'default') === pair[0] ? ' selected' : '') + '>' + esc(pair[1]) + '</option>';
+    }).join('');
+
+    var controlsHtml = '<div class="search-controls">' +
+      '<div class="search-filter-row" role="group" aria-label="Filter loads">' +
+        filterRow +
+        '<button type="button" id="toggle-hide-pass" aria-pressed="' + (state.hidePass ? 'true' : 'false') + '">Hide PASS</button>' +
+        '<button type="button" id="toggle-fits-only" aria-pressed="' + (state.fitsOnly ? 'true' : 'false') + '">Fits only</button>' +
+      '</div>' +
+      '<div class="search-sort-row">' +
+        '<label class="search-sort-label">Sort <select id="search-sort-select">' + sortOpts + '</select></label>' +
+      '</div>' +
+      '</div>';
+
+    var freshnessBar = '<div class="freshness-bar">' +
+      (ageText ? '<span class="fresh-pill' + (isStale ? ' stale' : '') + '">Updated ' + esc(ageText) + '</span>' : '') +
+      (newCount > 0 ? '<span class="new-badge">' + newCount + ' new since last scan</span><button type="button" class="mark-seen-btn" id="mark-seen-btn">Mark all seen</button>' : '') +
+      '</div>';
+
     var cards = renderSearchGroups(rows, data);
     var combosHtml = renderCombos(data);
     root.innerHTML =
@@ -4167,6 +5105,7 @@
         '<p class="fine">' + (scanStamp ? 'Scan ' + esc(scanStamp) : 'Latest saved scan') +
           (data.origin ? ' / from ' + esc(data.origin) : '') +
           (state.searchOffline ? ' / offline copy' : '') + '</p>' +
+        freshnessBar +
         '<p class="fine">' + esc(formula) + '. ' + esc(bar) + '</p>' +
         '<div class="search-counts" role="group" aria-label="Filter load boards by verdict">' +
           countTile('all', 'Loads', counts.total || 0) +
@@ -4177,14 +5116,15 @@
         rateLegend() +
         renderFreshPull() +
       '</div>' +
+      controlsHtml +
       '<div id="search-list">' +
       combosHtml +
       renderSearchChart(rows) +
-      '<div class="search-filters" role="group" aria-label="Filter load boards by board">' + filters + '</div>' +
       cards +
       '</div>';
     bindSearchRefresh();
-    root.querySelectorAll('[data-filter]').forEach(function (btn) {
+
+    root.querySelectorAll('.search-counts [data-filter]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         state.searchFilter = btn.getAttribute('data-filter') || 'all';
         renderSearches();
@@ -4193,7 +5133,67 @@
         });
       });
     });
-    observeRouteMaps(root);
+    root.querySelectorAll('.search-filter-row [data-filter]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        state.searchFilter = btn.getAttribute('data-filter') || 'all';
+        renderSearches();
+      });
+    });
+    var hp = $('toggle-hide-pass');
+    if (hp) hp.addEventListener('click', function () {
+      state.hidePass = !state.hidePass;
+      saveSearchPrefs();
+      renderSearches();
+    });
+    var fo = $('toggle-fits-only');
+    if (fo) fo.addEventListener('click', function () {
+      state.fitsOnly = !state.fitsOnly;
+      saveSearchPrefs();
+      renderSearches();
+    });
+    var sortSel = $('search-sort-select');
+    if (sortSel) sortSel.addEventListener('change', function () {
+      state.searchSort = sortSel.value || 'default';
+      saveSearchPrefs();
+      renderSearches();
+    });
+    var markSeen = $('mark-seen-btn');
+    if (markSeen) markSeen.addEventListener('click', function () {
+      markAllLoadsSeen(state.searches);
+      renderSearches();
+    });
+
+    root.querySelectorAll('[data-save-key]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var k = btn.getAttribute('data-save-key');
+        var r = findRowByKey(k, data);
+        if (!r) return;
+        toggleSavedLoad(r);
+        renderSearches();
+      });
+    });
+    root.querySelectorAll('[data-cmp-key]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var k = btn.getAttribute('data-cmp-key');
+        var r = findRowByKey(k, data);
+        if (!r) return;
+        toggleCompareLoad(r);
+        renderSearches();
+      });
+    });
+    root.querySelectorAll('.details-toggle-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var card = btn.closest('.search-card, .combo-card');
+        var pane = card ? card.querySelector('.search-details') : null;
+        if (!pane) return;
+        var open = pane.hidden;
+        pane.hidden = !open;
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        btn.textContent = open ? 'Hide details' : (card.classList.contains('combo-card') ? 'Legs, stops & map' : 'Details & map');
+        if (open) observeRouteMaps(pane);
+      });
+    });
+    updateCompareBar();
   }
 
   function showTab(name) {
@@ -4216,6 +5216,7 @@
     } else if (name === 'stops' && window.BlackRamStops) {
       window.BlackRamStops.show();
     }
+    updateCompareBar();
     window.scrollTo(0, 0);
   }
 
@@ -4273,6 +5274,7 @@
   function init() {
     loadSettings();
     loadView();
+    loadSearchPrefs();
     $('offer').addEventListener('submit', function (event) { event.preventDefault(); });
     $('offer').addEventListener('input', renderCheck);
     $('settings').addEventListener('input', function () {
@@ -4290,6 +5292,7 @@
     });
     setupPull();
     bindDeliverSheet();
+    bindCompareSheet();
     recallTruckAt();
     watchTabbar();
     bindRigPhoto();

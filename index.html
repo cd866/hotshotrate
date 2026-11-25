@@ -18,7 +18,7 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=3" sizes="180x180" />
   <link rel="preload" href="fonts/nunito-sans-variable.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="fonts/oswald-700.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="styles.css?v=33" />
+  <link rel="stylesheet" href="styles.css?v=34" />
   <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
   <script>
     try {
@@ -283,7 +283,7 @@
       <footer class="footer">
         <p><strong>Black Ram Logistics</strong> · DBA of Sand Lily Pad LLC</p>
         <p>Estimates are marked EST. Not a quote and not tax advice.</p>
-        <p class="app-version" id="app-version">v33</p>
+        <p class="app-version" id="app-version">v34</p>
       </footer>
       <div class="pad" aria-hidden="true"></div>
     </main>
@@ -313,6 +313,26 @@
       </form>
     </div>
   </div>
+  <div id="compare-bar" class="compare-bar" hidden>
+    <div class="compare-bar-info">
+      <strong id="compare-bar-title">Compare loads</strong>
+      <span id="compare-bar-sub" class="fine">Select 2-3 loads</span>
+    </div>
+    <div class="compare-bar-actions">
+      <button type="button" class="btn" id="compare-clear-btn">Clear</button>
+      <button type="button" class="btn primary" id="compare-open-btn">Compare</button>
+    </div>
+  </div>
+  <div id="compare-sheet" class="sheet compare-sheet" role="dialog" aria-modal="true" aria-labelledby="compare-sheet-title" hidden>
+    <div class="sheet-inner">
+      <div class="sheet-top">
+        <button type="button" class="about-btn" id="compare-sheet-close">Close</button>
+      </div>
+      <h2 id="compare-sheet-title">Quick compare</h2>
+      <p class="fine" id="compare-sheet-sub">Side-by-side metrics for shortlisted loads.</p>
+      <div id="compare-sheet-body"></div>
+    </div>
+  </div>
   <div id="deliver-undo-toast" class="deliver-undo-toast" hidden>
     <span id="deliver-undo-text">Marked delivered.</span>
     <button type="button" class="btn" id="deliver-undo-now">Undo</button>
@@ -328,8 +348,8 @@
   </div>
   <noscript><p class="noscript">Black Ram Logistics needs JavaScript for the load check, stops, and reports.</p></noscript>
   <script src="vendor/leaflet/leaflet.js"></script>
-  <script src="app.js?v=33"></script>
-  <script src="stops.js?v=33"></script>
+  <script src="app.js?v=34"></script>
+  <script src="stops.js?v=34"></script>
   <script>
     (function () {
       if (!('serviceWorker' in navigator)) return;
