@@ -1,6 +1,7 @@
 (function () {
   'use strict';
 
+  var APP_VERSION = 'v26';
   var SETTINGS_KEY = 'blackram_settings_v4';
   var SETTINGS_KEY_V1 = 'blackram_settings_v1';
   var SETTINGS_KEY_V2 = 'blackram_settings_v2';
@@ -1532,6 +1533,7 @@
     if (!when) return 'Last scan: --';
     var text = 'Last scan: ' + when;
     if (state.searchOffline) text += ' / offline copy';
+    text += ' · ' + APP_VERSION;
     return text;
   }
 
@@ -1925,16 +1927,121 @@
 
   function placeLabelFromPhoton(props, fallback) {
     if (!props) return fallback || '';
-    var city = props.city || props.town || props.village || props.name || '';
-    var state = props.state || props.county || '';
-    if (city && state) {
-      var st = String(state);
-      if (st.length > 2 && props.countrycode === 'US') {
-        /* keep full name if no abbrev */
+    var num = props.housenumber ? String(props.housenumber) : '';
+    var street = props.street || '';
+    var name = props.name || '';
+    var city = props.city || props.town || props.village || props.hamlet || '';
+    var state = props.state || '';
+    var zip = props.postcode || '';
+    var line = '';
+    if (num && street) line = num + ' ' + street;
+    else if (street) line = street;
+    else if (name && name !== city && name !== state) line = name;
+    var tail = [];
+    if (city) tail.push(city);
+    if (state) tail.push(state);
+    if (zip) tail.push(zip);
+    var out = line;
+    if (tail.length) out = out ? (out + ', ' + tail.join(', ')) : tail.join(', ');
+    return out || name || fallback || '';
+  }
+
+  function placeLabelFromNominatim(hit, fallback) {
+    if (!hit) return fallback || '';
+    var a = hit.address || {};
+    var num = a.house_number || '';
+    var street = a.road || a.pedestrian || a.residential || '';
+    var city = a.city || a.town || a.village || a.hamlet || a.county || '';
+    var state = a.state || '';
+    var zip = a.postcode || '';
+    var line = (num && street) ? (num + ' ' + street) : (street || '');
+    var tail = [];
+    if (city) tail.push(city);
+    if (state) tail.push(state);
+    if (zip) tail.push(zip);
+    if (line && tail.length) return line + ', ' + tail.join(', ');
+    if (line) return line;
+    if (tail.length) return tail.join(', ');
+    var raw = hit.display_name || fallback || '';
+    return String(raw).split(',').slice(0, 4).join(',').trim();
+  }
+
+  function isUsPlace(props, lon, lat) {
+    var cc = String((props && (props.countrycode || props.country_code || props.country)) || '').toLowerCase();
+    if (cc === 'us' || cc === 'usa' || cc === 'united states' || cc === 'united states of america') return true;
+    if (cc === 'pr' || cc === 'vi' || cc === 'gu' || cc === 'mp' || cc === 'as') return true;
+    if (cc) return false;
+    if (lon == null || lat == null || !isFinite(Number(lon)) || !isFinite(Number(lat))) return false;
+    lon = Number(lon); lat = Number(lat);
+    if (lat >= 24 && lat <= 50 && lon >= -125 && lon <= -66) return true;
+    if (lat >= 51 && lat <= 72 && lon >= -170 && lon <= -129) return true;
+    if (lat >= 18.5 && lat <= 22.5 && lon >= -161 && lon <= -154) return true;
+    if (lat >= 17.5 && lat <= 18.6 && lon >= -68 && lon <= -64.5) return true;
+    return false;
+  }
+
+  var US_BBOX = '-124.9,24.3,-66.8,49.6';
+  var suggestTimer = null;
+  var suggestGen = 0;
+  var lastNominatimAt = 0;
+  var truckMap = null;
+
+  function suggestNominatim(q) {
+    var wait = Math.max(0, 1100 - (Date.now() - lastNominatimAt));
+    return new Promise(function (resolve) { setTimeout(resolve, wait); }).then(function () {
+      lastNominatimAt = Date.now();
+      var url = NOMINATIM_URL + '?format=jsonv2&addressdetails=1&limit=5&countrycodes=us&q=' + encodeURIComponent(q);
+      return fetchTimed(url, { headers: { Accept: 'application/json' } }, 8000);
+    }).then(function (res) {
+      if (!res.ok) return [];
+      return res.json();
+    }).then(function (list) {
+      var out = [];
+      (list || []).forEach(function (hit) {
+        if (!hit || hit.lat == null || hit.lon == null) return;
+        var lat = Number(hit.lat), lon = Number(hit.lon);
+        if (!isUsPlace(hit.address, lon, lat) && (hit.address && hit.address.country_code && String(hit.address.country_code).toLowerCase() !== 'us')) return;
+        out.push({ lat: lat, lon: lon, label: placeLabelFromNominatim(hit, q) });
+      });
+      return out;
+    }).catch(function () { return []; });
+  }
+
+  function suggestPlaces(q) {
+    q = String(q || '').trim();
+    if (q.length < 3) return Promise.resolve([]);
+    var cache = state.suggestCache || (state.suggestCache = {});
+    var key = q.toLowerCase();
+    if (cache[key]) return Promise.resolve(cache[key]);
+    var url = PHOTON_URL + '?q=' + encodeURIComponent(q) + '&limit=6&lang=en&bbox=' + US_BBOX;
+    return fetchTimed(url, {}, 8000).then(function (res) {
+      if (!res.ok) throw new Error('photon');
+      return res.json();
+    }).then(function (data) {
+      var out = [];
+      ((data && data.features) || []).forEach(function (feat) {
+        if (!feat || !feat.geometry || !feat.geometry.coordinates) return;
+        var lon = feat.geometry.coordinates[0];
+        var lat = feat.geometry.coordinates[1];
+        if (!isUsPlace(feat.properties, lon, lat)) return;
+        out.push({ lat: lat, lon: lon, label: placeLabelFromPhoton(feat.properties, q) });
+      });
+      return out;
+    }).then(function (items) {
+      if (items && items.length) {
+        cache[key] = items;
+        return items;
       }
-      return city + ', ' + st;
-    }
-    return props.name || fallback || '';
+      return suggestNominatim(q).then(function (list) {
+        cache[key] = list || [];
+        return cache[key];
+      });
+    }).catch(function () {
+      return suggestNominatim(q).then(function (list) {
+        cache[key] = list || [];
+        return cache[key];
+      });
+    });
   }
 
   function geocodeQuery(q) {
@@ -1943,23 +2050,26 @@
     var cache = state.geoCache || (state.geoCache = loadJsonStore(GEO_CACHE_KEY));
     var key = q.toLowerCase();
     if (cache[key] && cache[key].lat != null) return Promise.resolve(cache[key]);
-    var url = PHOTON_URL + '?q=' + encodeURIComponent(q) + '&limit=1&lang=en';
+    var url = PHOTON_URL + '?q=' + encodeURIComponent(q) + '&limit=1&lang=en&bbox=' + US_BBOX;
     return fetchTimed(url, {}, 8000).then(function (res) {
       if (!res.ok) throw new Error('photon');
       return res.json();
     }).then(function (data) {
       var feat = data && data.features && data.features[0];
       if (!feat || !feat.geometry || !feat.geometry.coordinates) throw new Error('photon');
+      var lon = feat.geometry.coordinates[0];
+      var lat = feat.geometry.coordinates[1];
+      if (!isUsPlace(feat.properties, lon, lat)) throw new Error('photon');
       var rec = {
-        lon: feat.geometry.coordinates[0],
-        lat: feat.geometry.coordinates[1],
+        lon: lon,
+        lat: lat,
         label: placeLabelFromPhoton(feat.properties, q)
       };
       cache[key] = rec;
       saveJsonStore(GEO_CACHE_KEY, cache);
       return rec;
     }).catch(function () {
-      var url2 = NOMINATIM_URL + '?format=jsonv2&limit=1&q=' + encodeURIComponent(q);
+      var url2 = NOMINATIM_URL + '?format=jsonv2&addressdetails=1&limit=1&countrycodes=us&q=' + encodeURIComponent(q);
       return fetchTimed(url2, { headers: { Accept: 'application/json' } }, 8000).then(function (res) {
         if (!res.ok) throw new Error('nominatim');
         return res.json();
@@ -1969,7 +2079,7 @@
         var rec = {
           lat: Number(hit.lat),
           lon: Number(hit.lon),
-          label: (hit.display_name || q).split(',').slice(0, 2).join(',').trim()
+          label: placeLabelFromNominatim(hit, q)
         };
         cache[key] = rec;
         saveJsonStore(GEO_CACHE_KEY, cache);
@@ -2188,19 +2298,139 @@
     return text;
   }
 
+  function hideTruckSuggests() {
+    var box = $('truck-at-suggests');
+    if (!box) return;
+    box.hidden = true;
+    box.innerHTML = '';
+    box._items = null;
+  }
+
+  function placeSuggestList(box) {
+    if (!box || box.hidden) return;
+    box.classList.remove('is-above');
+    var wrap = box.parentNode;
+    if (!wrap || !wrap.getBoundingClientRect) return;
+    var rect = wrap.getBoundingClientRect();
+    var vv = window.visualViewport;
+    var viewBottom = vv ? (vv.offsetTop + vv.height) : window.innerHeight;
+    var roomBelow = viewBottom - rect.bottom;
+    var roomAbove = rect.top - (vv ? vv.offsetTop : 0);
+    var need = Math.min(240, box.scrollHeight || 240);
+    if (roomBelow < need && roomAbove > roomBelow) box.classList.add('is-above');
+    try { wrap.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (err) {
+      try { wrap.scrollIntoView(true); } catch (e2) { /* ignore */ }
+    }
+  }
+
+  function renderTruckSuggests(items) {
+    var box = $('truck-at-suggests');
+    var input = $('truck-at-input');
+    if (!box) return;
+    if (!items || !items.length) {
+      hideTruckSuggests();
+      if (input) input.setAttribute('aria-expanded', 'false');
+      return;
+    }
+    box.innerHTML = items.map(function (it, i) {
+      return '<li role="option"><button type="button" class="truck-at-suggest" data-idx="' + i + '">' + esc(it.label) + '</button></li>';
+    }).join('');
+    box._items = items;
+    box.hidden = false;
+    if (input) input.setAttribute('aria-expanded', 'true');
+    placeSuggestList(box);
+  }
+
+  function nearbyPickupPins(origin) {
+    var data = viewSearches();
+    var loads = (data && data.loads) || [];
+    var seen = {};
+    var pins = [];
+    loads.forEach(function (row) {
+      var c = row.origin_coord;
+      if (!c || c.lat == null || c.lon == null) return;
+      var key = Number(c.lat).toFixed(3) + ',' + Number(c.lon).toFixed(3);
+      if (seen[key]) return;
+      seen[key] = true;
+      var dlat = (Number(c.lat) - origin.lat) * 69;
+      var dlng = (Number(c.lon) - origin.lon) * 69 * Math.cos(origin.lat * Math.PI / 180);
+      var mi = Math.sqrt(dlat * dlat + dlng * dlng);
+      pins.push({
+        lat: Number(c.lat),
+        lon: Number(c.lon),
+        label: row.origin || row.pickup || 'Pickup',
+        mi: mi
+      });
+    });
+    pins.sort(function (a, b) { return a.mi - b.mi; });
+    return pins.slice(0, 12);
+  }
+
+  function renderTruckMap() {
+    var el = $('truck-at-map');
+    if (truckMap) {
+      try { truckMap.remove(); } catch (err) { /* ignore */ }
+      truckMap = null;
+    }
+    if (!el) return;
+    var p = state.truckAt;
+    if (!p || p.lat == null || p.lon == null || typeof L === 'undefined') {
+      el.hidden = true;
+      el.innerHTML = '';
+      return;
+    }
+    el.hidden = false;
+    el.innerHTML = '';
+    truckMap = L.map(el, {
+      scrollWheelZoom: false,
+      attributionControl: true,
+      tap: true
+    });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(truckMap);
+    var truckPin = L.circleMarker([p.lat, p.lon], {
+      radius: 9,
+      color: '#D4A62A',
+      weight: 2,
+      fillColor: '#6B3FA0',
+      fillOpacity: 1
+    }).addTo(truckMap).bindPopup(p.label || 'Truck');
+    nearbyPickupPins(p).forEach(function (pin) {
+      if (pin.mi > 150) return;
+      var m = L.circleMarker([pin.lat, pin.lon], {
+        radius: 6,
+        color: '#c9c4d6',
+        weight: 1,
+        fillColor: '#c9c4d6',
+        fillOpacity: 0.85
+      }).addTo(truckMap);
+      m.bindPopup(pin.label + (pin.mi != null ? ' · ' + Math.round(pin.mi) + ' mi' : ''));
+    });
+    // Stay zoomed on the truck so a street or city pin is readable. Nearby
+    // pickup dots remain on the map if he zooms out.
+    truckMap.setView([p.lat, p.lon], 13);
+    setTimeout(function () { if (truckMap) truckMap.invalidateSize(); }, 0);
+  }
+
   function renderTruckAt() {
-    var p = currentTruckPoint();
     var value = (state.truckAt && state.truckAt.label) || '';
     var maxv = String(state.maxDeadhead || 0);
+    var showMap = !!(state.truckAt && state.truckAt.lat != null);
     return '<div class="truck-at" id="truck-at">' +
       '<h3>Truck is at</h3>' +
       '<form id="truck-at-form" action="#" class="truck-at-row">' +
-        '<input type="text" id="truck-at-input" placeholder="City, ST or address" value="' + esc(value) + '" autocomplete="off" autocapitalize="words">' +
+        '<div class="truck-at-lookup">' +
+          '<input type="text" id="truck-at-input" placeholder="City, address, or ZIP" value="' + esc(value) + '" autocomplete="off" autocapitalize="words" autocorrect="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="truck-at-suggests" enterkeyhint="search">' +
+          '<ul class="truck-at-suggests" id="truck-at-suggests" role="listbox" hidden></ul>' +
+        '</div>' +
         '<button type="submit" class="primary" id="truck-at-set">Set</button>' +
         '<button type="button" id="truck-at-geo">Use my location</button>' +
         '<button type="button" id="truck-at-reset">Reset to scan origin</button>' +
       '</form>' +
       '<p class="truck-at-status" id="truck-at-status">' + truckAtStatusText() + '</p>' +
+      '<div id="truck-at-map" class="truck-at-map"' + (showMap ? '' : ' hidden') + '></div>' +
       '<p class="truck-at-filter"><label>Max deadhead ' +
         '<select id="max-deadhead">' +
           '<option value="0"' + (maxv === '0' ? ' selected' : '') + '>Any</option>' +
@@ -2215,7 +2445,54 @@
     var form = $('truck-at-form');
     if (form) form.addEventListener('submit', function (e) {
       e.preventDefault();
+      hideTruckSuggests();
       setTruckFromQuery($('truck-at-input') && $('truck-at-input').value);
+    });
+    var input = $('truck-at-input');
+    if (input) {
+      input.addEventListener('input', function () {
+        var q = input.value || '';
+        if (suggestTimer) clearTimeout(suggestTimer);
+        if (q.trim().length < 3) {
+          hideTruckSuggests();
+          return;
+        }
+        var gen = ++suggestGen;
+        suggestTimer = setTimeout(function () {
+          suggestPlaces(q).then(function (items) {
+            if (gen !== suggestGen) return;
+            if (input.value.trim() !== q.trim() && input.value.trim().toLowerCase() !== q.trim().toLowerCase()) return;
+            renderTruckSuggests(items);
+          }).catch(function () {
+            if (gen !== suggestGen) return;
+            hideTruckSuggests();
+          });
+        }, 300);
+      });
+      input.addEventListener('focus', function () {
+        setTimeout(function () {
+          var wrap = input.parentNode;
+          if (wrap && wrap.scrollIntoView) {
+            try { wrap.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (err) { wrap.scrollIntoView(true); }
+          }
+          placeSuggestList($('truck-at-suggests'));
+        }, 350);
+      });
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') hideTruckSuggests();
+      });
+    }
+    var box = $('truck-at-suggests');
+    if (box) box.addEventListener('click', function (e) {
+      var btn = e.target && e.target.closest ? e.target.closest('.truck-at-suggest') : null;
+      if (!btn) return;
+      e.preventDefault();
+      var items = box._items || [];
+      var rec = items[Number(btn.getAttribute('data-idx'))];
+      if (!rec) return;
+      if (input) input.value = rec.label;
+      hideTruckSuggests();
+      setTruckFromRecord(rec, 'typed');
     });
     var geo = $('truck-at-geo');
     if (geo) geo.addEventListener('click', setTruckFromGeo);
@@ -2226,6 +2503,15 @@
       state.maxDeadhead = Number(sel.value) || 0;
       if (state.tab === 'searches') renderSearches();
     });
+    renderTruckMap();
+  }
+
+  function setTruckFromRecord(rec, source) {
+    if (!rec || rec.lat == null || rec.lon == null) return Promise.reject(new Error('Could not find that place.'));
+    rememberTruckAt({ lat: rec.lat, lon: rec.lon, label: rec.label || '', source: source || 'typed' });
+    state.truckAtError = '';
+    state.truckAtBusy = false;
+    return refreshDeadheads();
   }
 
   function setTruckFromQuery(q) {
@@ -2236,9 +2522,8 @@
       if (st) st.innerHTML = truckAtStatusText();
     }
     return geocodeQuery(q).then(function (rec) {
-      rememberTruckAt({ lat: rec.lat, lon: rec.lon, label: rec.label || q, source: 'typed' });
-      state.truckAtBusy = false;
-      return refreshDeadheads();
+      rec.label = rec.label || q;
+      return setTruckFromRecord(rec, 'typed');
     }).catch(function (err) {
       state.truckAtBusy = false;
       state.truckAtError = (err && err.message) ? err.message : 'Could not find that place.';
@@ -3271,6 +3556,8 @@
     recallTruckAt();
     watchTabbar();
     bindRigPhoto();
+    var ver = $('app-version');
+    if (ver) ver.textContent = APP_VERSION;
     renderCheck();
     refreshFeed();
     refreshSearches();

@@ -39,7 +39,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUT = ROOT / "data" / "stops.json"
 
 USER_AGENT = (
-    "BlackRamTowing/1.0 (hotshot stop refresh; +https://github.com/cd866/hotshotrate)"
+    "BlackRamLogistics/1.0 (hotshot stop refresh; +https://github.com/cd866/hotshotrate)"
 )
 LOVES_URL = "https://www.loves.com/api/fetch_stores"
 LOVES_PAGE = "https://www.loves.com/en/location-and-fuel-price-search"

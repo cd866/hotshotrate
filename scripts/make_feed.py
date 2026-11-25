@@ -268,7 +268,7 @@ def build_feed(months):
         "schema": SCHEMA,
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "company": "Sand Lily Pad LLC",
-        "dba": "Black Ram Towing",
+        "dba": "Black Ram Logistics",
         "authority": "Leased onto Totni Enterprise",
         "fee_pct": latest_fee,
         "rig": {

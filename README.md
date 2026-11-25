@@ -1,6 +1,6 @@
-# Black Ram Towing
+# Black Ram Logistics
 
-Installable phone app for Sand Lily Pad LLC’s hotshot business, doing business as **Black Ram Towing**, leased onto Totni Enterprise’s MC authority. Our rig: 2026 Ram 3500 dually and a 40 ft Big Tex gooseneck. Deck about 16,000 lb. Tarps, straps.
+Installable phone app for Sand Lily Pad LLC’s hotshot business, doing business as **Black Ram Logistics**, leased onto Totni Enterprise’s MC authority. Our rig: 2026 Ram 3500 dually and a 40 ft Big Tex gooseneck. Deck about 16,000 lb. Tarps, straps.
 
 **Live:** https://cd866.github.io/hotshotrate/
 
