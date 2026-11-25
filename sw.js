@@ -8,16 +8,16 @@
    data/load_searches.json is always fetched with cache: 'no-store' and is
    not precached. A cached copy is used only when the network request fails,
    so a new scan shows on the next open or refresh without a version bump. */
-var CACHE = 'blackram-v31';
+var CACHE = 'blackram-v32';
 var ASSETS = [
   './',
   './index.html',
   './styles.css',
-  './styles.css?v=31',
+  './styles.css?v=32',
   './app.js',
-  './app.js?v=31',
+  './app.js?v=32',
   './stops.js',
-  './stops.js?v=31',
+  './stops.js?v=32',
   './manifest.json',
   './manifest.json?v=3',
   './manifest.webmanifest',
@@ -39,6 +39,7 @@ var ASSETS = [
   './icons/icon-192-maskable.png?v=3',
   './icons/icon-512-maskable.png',
   './icons/icon-512-maskable.png?v=3',
+  './fonts/inter-variable.woff2',
   './fonts/oswald-500.woff2',
   './fonts/oswald-600.woff2',
   './fonts/oswald-700.woff2',
