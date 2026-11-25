@@ -1901,3 +1901,192 @@ input::placeholder { color: var(--muted); }
 .miles-strip .mi-dead { border-left: 3px dashed #8b8799; }
 .miles-strip .mi-loaded { border-left: 3px solid var(--purple); }
 .miles-strip .mi-total { border-left: 3px solid var(--gold); }
+
+.pad { height: calc(16px + env(safe-area-inset-bottom)); }
+
+/* v24 layout: tab bar under the header, sticky at the top while scrolling.
+   Safe-area padding is added when the bar is stuck under the notch. */
+.top {
+  position: relative;
+  top: auto;
+}
+.tabbar {
+  position: sticky;
+  top: 0;
+  left: auto;
+  bottom: auto;
+  transform: none;
+  width: 100%;
+  z-index: 2100;
+  margin: 0;
+  padding-bottom: 0;
+  border-top: 2px solid var(--purple);
+  border-bottom: 2px solid var(--purple);
+  box-shadow: none;
+  background: var(--chrome);
+}
+.tabbar.is-stuck {
+  padding-top: env(safe-area-inset-top);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+}
+.tabbar-sentinel { height: 0; width: 100%; pointer-events: none; }
+
+/* Our rig side-view graphic */
+.rig-figure { margin: 8px 0 4px; }
+.rig-graphic {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: 200px;
+  border-radius: 8px;
+  background: #0c0a14;
+  border: 1px solid var(--line);
+}
+.rig-specs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 8px 0 6px;
+  padding: 0;
+}
+.rig-specs li {
+  margin: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(14, 14, 16, 0.5);
+  color: var(--cream);
+  font-size: 12px;
+  letter-spacing: 0.2px;
+}
+
+/* Trip days + net/day, next to net */
+.search-head { align-items: flex-start; }
+.trip-days {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 6px 8px;
+  align-items: start;
+  margin: 8px 0 0;
+  width: 100%;
+}
+.trip-days .td-cell {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 8px;
+  background: rgba(14, 14, 16, 0.45);
+  min-width: 0;
+}
+.trip-days .td-cell span {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #E7E1D4;
+}
+.trip-days .td-cell b {
+  display: block;
+  font-family: var(--display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--cream);
+}
+.days-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--purple);
+  color: var(--gold-ink);
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.trip-days.low-day .td-cell:nth-child(2) {
+  border-color: var(--pass);
+}
+.trip-days.low-day .td-cell:nth-child(2) b { color: #FECACA; }
+.day-warn {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #FECACA;
+  font-size: 13px;
+}
+
+/* Truck is at */
+.truck-at {
+  margin: 10px 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.truck-at h3 {
+  margin: 0 0 8px;
+  font-family: var(--display);
+  font-size: 15px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.truck-at-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.truck-at-row input {
+  flex: 1 1 160px;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--ink);
+  padding: 8px 10px;
+  font-size: 15px;
+}
+.truck-at-row button {
+  border: 1px solid var(--purple);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--on-header);
+  padding: 8px 10px;
+  font-family: var(--display);
+  font-size: 13px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+.truck-at-row button.primary {
+  background: var(--purple);
+  color: var(--gold-ink);
+  border-color: var(--purple);
+}
+.truck-at-status { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
+.truck-at-status strong { color: var(--cream); }
+.truck-at-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.truck-at-filter select {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--ink);
+  padding: 6px 8px;
+  font-size: 14px;
+}
+
+.search-net { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 4px 8px; }
+.search-net .trip-days { flex: 1 1 100%; }
+article.load .trip-days { margin-top: 10px; }

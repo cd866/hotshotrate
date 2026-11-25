@@ -25,6 +25,13 @@
     searchError: '',
     searchRefreshing: false,
     searchInflight: null,
+    scoredSearches: null,
+    truckAt: null,
+    truckAtBusy: false,
+    truckAtError: '',
+    maxDeadhead: 0,
+    routeCache: null,
+    geoCache: null,
     viewMonth: null,
     offline: false,
     savedAt: null,
@@ -1080,6 +1087,17 @@
       '<h3>' + esc(load.desc || 'Load') + payBadge(load) + '</h3>' +
       '<p class="lane">' + esc(when) + (load.lane ? ' · ' + esc(load.lane) : '') + '</p>' +
       milesStrip(miles, emp.mi, { loadedEst: !!load.miles_estimate, emptyEst: true, emptyFrom: emp.from }) +
+      tripDaysBlock({
+        loaded_mi: miles,
+        deadhead_mi: emp.mi,
+        empty_mi_est: emp.mi,
+        pickup_date: load.pickup_date || load.date,
+        delivery_date: load.delivery_date,
+        date: load.date,
+        net_est: (load.net_est != null ? load.net_est : (gross - fee)),
+        days: load.days,
+        net_per_day: load.net_per_day
+      }) +
       '<div class="kv">' +
       '<div><span>Gross</span><b>' + money(gross) + '</b></div>' +
       '<div><span>Loaded $/mi</span><b>' + rateCell + '</b></div>' +
@@ -1502,18 +1520,17 @@
     state.searchOffline = !!(meta && meta.offline);
     state.searchSavedAt = (meta && meta.savedAt) || null;
     state.searchError = '';
-    if (state.tab === 'searches') renderSearches();
+    refreshDeadheads();
   }
 
   function searchUpdatedText() {
     var when = '';
-    if (state.searchSavedAt) when = formatStamp(state.searchSavedAt);
-    else if (state.searches && (state.searches.as_of || state.searches.scanned_at)) {
-      when = state.searches.as_of || state.searches.scanned_at;
-    }
+    if (state.searches && (state.searches.scanned_at || state.searches.as_of)) {
+      when = state.searches.scanned_at || state.searches.as_of;
+    } else if (state.searchSavedAt) when = formatStamp(state.searchSavedAt);
     if (state.searchRefreshing) return 'Updating...';
-    if (!when) return 'Updated --';
-    var text = 'Updated ' + when;
+    if (!when) return 'Last scan: --';
+    var text = 'Last scan: ' + when;
     if (state.searchOffline) text += ' / offline copy';
     return text;
   }
@@ -1579,6 +1596,740 @@
 
   var PER_HOUR_MPH = 50;
   var LOAD_UNLOAD_HOURS = 2;
+
+  var MILES_PER_DAY = 550;
+  var MIN_NET_PER_DAY = 300;
+  var TRUCK_AT_KEY = 'blackram_truck_at_v1';
+  var GEO_CACHE_KEY = 'blackram_geocode_cache_v1';
+  var ROUTE_CACHE_KEY = 'blackram_route_cache_v1';
+  var CIRCUITY = 1.2;
+  var EARTH_MI = 3958.7613;
+  var OSRM_URL = 'https://router.project-osrm.org/route/v1/driving/';
+  var PHOTON_URL = 'https://photon.komoot.io/api/';
+  var PHOTON_REV = 'https://photon.komoot.io/reverse';
+  var NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search';
+
+  function formatDays(n) {
+    if (n == null || !isFinite(Number(n))) return 'n/a';
+    var v = Math.round(Number(n) * 2) / 2;
+    return v.toFixed(v % 1 === 0 ? 0 : 1);
+  }
+
+  function ceilHalfDay(n) {
+    if (n == null || !isFinite(Number(n)) || Number(n) <= 0) return null;
+    return Math.round(Math.ceil(Number(n) * 2 - 1e-9) * 10 / 2) / 10;
+  }
+
+  function daysFromMiles(loaded, dead, nLoads) {
+    var total = (Number(loaded) || 0) + (Number(dead) || 0);
+    if (total <= 0) return null;
+    var n = nLoads && nLoads > 0 ? nLoads : 1;
+    return ceilHalfDay(total / MILES_PER_DAY + (LOAD_UNLOAD_HOURS * n) / 24);
+  }
+
+  function elapsedHours(miles) {
+    miles = Number(miles) || 0;
+    if (miles <= 0) return 0;
+    var full = Math.floor(miles / MILES_PER_DAY);
+    var rem = miles - full * MILES_PER_DAY;
+    return full * 24 + rem / PER_HOUR_MPH;
+  }
+
+  function scanYear() {
+    var stamp = state.searches && (state.searches.scanned_at || state.searches.as_of);
+    var m = stamp && String(stamp).match(/(20\d{2})/);
+    return m ? Number(m[1]) : 2026;
+  }
+
+  function parseOneDate(text, year, defaultHour, defaultMinute) {
+    if (!text) return null;
+    var m = String(text).match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?(?:\s*,?\s*(\d{1,2}):(\d{2})\s*(AM|PM))?/i);
+    if (!m) return null;
+    var month = Number(m[1]), day = Number(m[2]);
+    var yr = year;
+    if (m[3]) {
+      yr = Number(m[3]);
+      if (yr < 100) yr += 2000;
+    }
+    var hour = defaultHour, minute = defaultMinute;
+    if (m[4]) {
+      hour = Number(m[4]);
+      minute = Number(m[5]);
+      var ap = (m[6] || '').toUpperCase();
+      if (ap === 'PM' && hour < 12) hour += 12;
+      if (ap === 'AM' && hour === 12) hour = 0;
+    }
+    var d = new Date(yr, month - 1, day, hour, minute, 0);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  function parseWindow(text, year) {
+    var s = String(text || '').trim();
+    if (!s || /not available/i.test(s)) return null;
+    var ships = s.match(/ships\s+(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)/i);
+    if (ships) {
+      var a = parseOneDate(ships[1], year, 0, 0);
+      var b = parseOneDate(ships[1], year, 23, 59);
+      return a && b ? [a, b] : null;
+    }
+    var orParts = s.split(/\s+or\s+/i);
+    if (orParts.length >= 2) {
+      var first = parseOneDate(orParts[0], year, 0, 0);
+      var last = parseOneDate(orParts[orParts.length - 1], year, 23, 59);
+      return first && last ? [first, last] : null;
+    }
+    var parts = s.split(/\s*-\s*/);
+    if (parts.length >= 2) {
+      var start = parseOneDate(parts[0], year, 0, 0);
+      var end = parseOneDate(parts[1], year, 23, 59);
+      return start && end ? [start, end] : null;
+    }
+    var one = parseOneDate(s, year, 0, 0);
+    if (!one) return null;
+    var endOne = parseOneDate(s, year, 23, 59);
+    return [one, endOne];
+  }
+
+  function calendarSpanDays(start, end) {
+    if (!start || !end) return null;
+    var a = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate());
+    var b = Date.UTC(end.getFullYear(), end.getMonth(), end.getDate());
+    if (b < a) return null;
+    return (b - a) / 86400000 + 1;
+  }
+
+  function windowForcedDays(pickupWindow, dropWindow, year, loaded, dead, nLoads) {
+    var pu = parseWindow(pickupWindow, year);
+    var dr = parseWindow(dropWindow, year);
+    if (!pu && !dr) return null;
+    var dhH = elapsedHours(dead);
+    var ldH = elapsedHours(loaded) + LOAD_UNLOAD_HOURS * (nLoads && nLoads > 0 ? nLoads : 1);
+    var puStart = pu ? pu[0] : null, puEnd = pu ? pu[1] : null;
+    var drStart = dr ? dr[0] : null;
+    var tPickup;
+    if (puStart && drStart) {
+      var ideal = new Date(drStart.getTime() - ldH * 3600000);
+      if (ideal < puStart) tPickup = puStart;
+      else if (puEnd && ideal > puEnd) tPickup = puEnd;
+      else tPickup = ideal;
+    } else if (puEnd) tPickup = puEnd;
+    else if (puStart) tPickup = puStart;
+    else if (drStart) tPickup = new Date(drStart.getTime() - ldH * 3600000);
+    else return null;
+    var tDepart = new Date(tPickup.getTime() - dhH * 3600000);
+    var tDrop = new Date(tPickup.getTime() + ldH * 3600000);
+    if (drStart && tDrop < drStart) tDrop = drStart;
+    var raw = (tDrop - tDepart) / 86400000;
+    var occupied = calendarSpanDays(tDepart, tDrop);
+    var best = ceilHalfDay(raw);
+    if (occupied) {
+      var occ = ceilHalfDay(occupied) || occupied;
+      if (best == null || occ > best) best = occ;
+    }
+    return best;
+  }
+
+  function ledgerDate(value) {
+    if (!value) return null;
+    var s = String(value).slice(0, 10);
+    var m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return null;
+    return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  }
+
+  function tripDaysForRow(row, nLoads) {
+    if (!row) return null;
+    if (row.days != null && isFinite(Number(row.days)) && !state.truckAt) return Number(row.days);
+    var loaded = rowLoadedMiles(row);
+    var dead = rowEmptyMiles(row);
+    var n = nLoads && nLoads > 0 ? nLoads : 1;
+    var byMiles = daysFromMiles(loaded, dead, n);
+    var byWindow = windowForcedDays(row.pickup_window, row.drop_window, scanYear(), loaded, dead, n);
+    var start = ledgerDate(row.pickup_date || row.date);
+    var end = ledgerDate(row.delivery_date);
+    var byDates = start && end ? ceilHalfDay(calendarSpanDays(start, end)) : null;
+    var vals = [byMiles, byWindow, byDates].filter(function (d) { return d != null && d > 0; });
+    return vals.length ? Math.max.apply(null, vals) : null;
+  }
+
+  function efficientLoadTimes(row, year) {
+    var pu = parseWindow(row && row.pickup_window, year);
+    var dr = parseWindow(row && row.drop_window, year);
+    var dhH = elapsedHours(rowEmptyMiles(row));
+    var ldH = elapsedHours(rowLoadedMiles(row)) + LOAD_UNLOAD_HOURS;
+    var puStart = pu ? pu[0] : null, puEnd = pu ? pu[1] : null;
+    var drStart = dr ? dr[0] : null;
+    var tPickup;
+    if (puStart && drStart) {
+      var ideal = new Date(drStart.getTime() - ldH * 3600000);
+      if (ideal < puStart) tPickup = puStart;
+      else if (puEnd && ideal > puEnd) tPickup = puEnd;
+      else tPickup = ideal;
+    } else if (puEnd) tPickup = puEnd;
+    else if (puStart) tPickup = puStart;
+    else if (drStart) tPickup = new Date(drStart.getTime() - ldH * 3600000);
+    else return null;
+    var tDepart = new Date(tPickup.getTime() - dhH * 3600000);
+    var tDrop = new Date(tPickup.getTime() + ldH * 3600000);
+    if (drStart && tDrop < drStart) tDrop = drStart;
+    return { depart: tDepart, pickup: tPickup, drop: tDrop };
+  }
+
+  function comboElapsedDays(combo) {
+    var loads = (combo && combo.loads) || [];
+    if (!loads.length) return null;
+    var year = scanYear();
+    var times = efficientLoadTimes(loads[0], year);
+    var t, t0;
+    if (times) {
+      t0 = times.depart;
+      t = times.drop;
+    }
+    if (String(combo.kind || 'chain') !== 'shared') {
+      for (var i = 1; i < loads.length; i++) {
+        var row = loads[i];
+        var dhH = elapsedHours(rowEmptyMiles(row));
+        var ldH = elapsedHours(rowLoadedMiles(row)) + LOAD_UNLOAD_HOURS;
+        if (!t) break;
+        t = new Date(t.getTime() + dhH * 3600000);
+        var pu = parseWindow(row.pickup_window, year);
+        if (pu && t < pu[0]) t = pu[0];
+        t = new Date(t.getTime() + ldH * 3600000);
+        var dr = parseWindow(row.drop_window, year);
+        if (dr && t < dr[0]) t = dr[0];
+      }
+    } else if (t && combo.stop_order && combo.stop_order.length) {
+      var stops = combo.stop_order;
+      for (var j = 1; j < stops.length; j++) {
+        var a = stops[j - 1].coord;
+        var b = stops[j].coord;
+        var miles = (a && b) ? (haversineMi(a, b) * CIRCUITY) : 0;
+        t = new Date(t.getTime() + elapsedHours(miles) * 3600000);
+        var w = parseWindow(stops[j].window, year);
+        if (w && t < w[0]) t = w[0];
+        t = new Date(t.getTime() + 0.5 * 3600000);
+      }
+    }
+    if (!t0 || !t || t <= t0) return null;
+    var raw = (t - t0) / 86400000;
+    var occupied = calendarSpanDays(t0, t);
+    var best = ceilHalfDay(raw);
+    if (occupied && (best == null || occupied > best)) best = ceilHalfDay(occupied) || occupied;
+    return best;
+  }
+
+  function rowDays(row, nLoads) {
+    if (row && row.kind && (row.loads || row.stop_order)) {
+      var byMiles = daysFromMiles(row.loaded_mi, row.deadhead_mi, (row.loads || []).length || nLoads || 1);
+      var byTime = comboElapsedDays(row);
+      var vals = [byMiles, byTime].filter(function (d) { return d != null; });
+      return vals.length ? Math.max.apply(null, vals) : byMiles;
+    }
+    return tripDaysForRow(row, nLoads);
+  }
+
+  function rowNetPerDay(row, nLoads) {
+    if (!row) return null;
+    var days = rowDays(row, nLoads);
+    if (row.net_per_day != null && isFinite(Number(row.net_per_day)) && !state.truckAt && !nLoads) {
+      // Prefer live math when days were recomputed.
+    }
+    var net = row.net_est;
+    if (net == null || days == null || days <= 0) return null;
+    return Number(net) / days;
+  }
+
+  function tripDaysBlock(row, nLoads) {
+    var days = rowDays(row, nLoads);
+    var npd = rowNetPerDay(row, nLoads);
+    if (days == null && npd == null) return '';
+    var low = npd != null && npd < MIN_NET_PER_DAY;
+    var badge = (days != null && days >= 1.5)
+      ? '<span class="days-badge">' + esc(formatDays(days)) + ' DAYS</span>'
+      : '';
+    return '<div class="trip-days' + (low ? ' low-day' : '') + '">' +
+      '<div class="td-cell"><span>Trip days</span><b>' + (days == null ? 'n/a' : esc(formatDays(days))) + '</b></div>' +
+      '<div class="td-cell"><span>Net / day</span><b>' + (npd == null ? 'n/a' : esc(searchMoney(npd))) + '</b></div>' +
+      badge +
+      (low ? '<p class="day-warn">Under $300/day — this pay is spread across ' + esc(formatDays(days)) + (Number(days)===1 ? ' day.' : ' days.') + '</p>' : '') +
+      '</div>';
+  }
+
+  function haversineMi(a, b) {
+    if (!a || !b || a.lat == null || b.lat == null) return null;
+    var toR = Math.PI / 180;
+    var dLat = (b.lat - a.lat) * toR;
+    var dLon = (b.lon - a.lon) * toR;
+    var s = Math.sin(dLat / 2);
+    var t = Math.sin(dLon / 2);
+    var h = s * s + Math.cos(a.lat * toR) * Math.cos(b.lat * toR) * t * t;
+    return 2 * EARTH_MI * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+  }
+
+  function coordKey(a, b) {
+    function n(p) { return Number(p.lat).toFixed(5) + ',' + Number(p.lon).toFixed(5); }
+    return n(a) + '>' + n(b);
+  }
+
+  function loadJsonStore(key) {
+    try {
+      var raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : {};
+    } catch (err) { return {}; }
+  }
+
+  function saveJsonStore(key, obj) {
+    try { localStorage.setItem(key, JSON.stringify(obj)); } catch (err) { /* ignore */ }
+  }
+
+  function milesBetween(a, b) {
+    if (!a || !b) return Promise.resolve(null);
+    var key = coordKey(a, b);
+    var mem = (state.routeCache || (state.routeCache = loadJsonStore(ROUTE_CACHE_KEY)));
+    if (mem[key] != null && isFinite(mem[key])) return Promise.resolve(Number(mem[key]));
+    var url = OSRM_URL + a.lon + ',' + a.lat + ';' + b.lon + ',' + b.lat + '?overview=false';
+    return fetchTimed(url, {}, 8000).then(function (res) {
+      if (!res.ok) throw new Error('osrm');
+      return res.json();
+    }).then(function (data) {
+      if (!data || !data.routes || !data.routes[0]) throw new Error('osrm');
+      var mi = data.routes[0].distance / 1609.344;
+      mem[key] = Math.round(mi * 10) / 10;
+      saveJsonStore(ROUTE_CACHE_KEY, mem);
+      return mem[key];
+    }).catch(function () {
+      var hv = haversineMi(a, b);
+      if (hv == null) return null;
+      var mi = Math.round(hv * CIRCUITY * 10) / 10;
+      mem[key] = mi;
+      saveJsonStore(ROUTE_CACHE_KEY, mem);
+      return mi;
+    });
+  }
+
+  function poolMap(items, limit, fn) {
+    var i = 0;
+    var out = new Array(items.length);
+    function next() {
+      if (i >= items.length) return Promise.resolve();
+      var idx = i++;
+      return Promise.resolve(fn(items[idx], idx)).then(function (v) {
+        out[idx] = v;
+        return next();
+      });
+    }
+    var starters = [];
+    for (var k = 0; k < Math.min(limit || 3, items.length); k++) starters.push(next());
+    return Promise.all(starters).then(function () { return out; });
+  }
+
+  function placeLabelFromPhoton(props, fallback) {
+    if (!props) return fallback || '';
+    var city = props.city || props.town || props.village || props.name || '';
+    var state = props.state || props.county || '';
+    if (city && state) {
+      var st = String(state);
+      if (st.length > 2 && props.countrycode === 'US') {
+        /* keep full name if no abbrev */
+      }
+      return city + ', ' + st;
+    }
+    return props.name || fallback || '';
+  }
+
+  function geocodeQuery(q) {
+    q = String(q || '').trim();
+    if (!q) return Promise.reject(new Error('Enter a city or address.'));
+    var cache = state.geoCache || (state.geoCache = loadJsonStore(GEO_CACHE_KEY));
+    var key = q.toLowerCase();
+    if (cache[key] && cache[key].lat != null) return Promise.resolve(cache[key]);
+    var url = PHOTON_URL + '?q=' + encodeURIComponent(q) + '&limit=1&lang=en';
+    return fetchTimed(url, {}, 8000).then(function (res) {
+      if (!res.ok) throw new Error('photon');
+      return res.json();
+    }).then(function (data) {
+      var feat = data && data.features && data.features[0];
+      if (!feat || !feat.geometry || !feat.geometry.coordinates) throw new Error('photon');
+      var rec = {
+        lon: feat.geometry.coordinates[0],
+        lat: feat.geometry.coordinates[1],
+        label: placeLabelFromPhoton(feat.properties, q)
+      };
+      cache[key] = rec;
+      saveJsonStore(GEO_CACHE_KEY, cache);
+      return rec;
+    }).catch(function () {
+      var url2 = NOMINATIM_URL + '?format=jsonv2&limit=1&q=' + encodeURIComponent(q);
+      return fetchTimed(url2, { headers: { Accept: 'application/json' } }, 8000).then(function (res) {
+        if (!res.ok) throw new Error('nominatim');
+        return res.json();
+      }).then(function (list) {
+        var hit = list && list[0];
+        if (!hit) throw new Error('No match for that place.');
+        var rec = {
+          lat: Number(hit.lat),
+          lon: Number(hit.lon),
+          label: (hit.display_name || q).split(',').slice(0, 2).join(',').trim()
+        };
+        cache[key] = rec;
+        saveJsonStore(GEO_CACHE_KEY, cache);
+        return rec;
+      });
+    });
+  }
+
+  function reverseGeocode(lat, lon) {
+    var url = PHOTON_REV + '?lat=' + encodeURIComponent(lat) + '&lon=' + encodeURIComponent(lon);
+    return fetchTimed(url, {}, 8000).then(function (res) { return res.ok ? res.json() : null; }).then(function (data) {
+      var feat = data && data.features && data.features[0];
+      var label = placeLabelFromPhoton(feat && feat.properties, 'Dropped pin');
+      return { lat: lat, lon: lon, label: label || (Number(lat).toFixed(3) + ', ' + Number(lon).toFixed(3)) };
+    }).catch(function () {
+      return { lat: lat, lon: lon, label: Number(lat).toFixed(3) + ', ' + Number(lon).toFixed(3) };
+    });
+  }
+
+  function recallTruckAt() {
+    try {
+      var raw = localStorage.getItem(TRUCK_AT_KEY);
+      var rec = raw ? JSON.parse(raw) : null;
+      if (rec && isFinite(Number(rec.lat)) && isFinite(Number(rec.lon))) {
+        state.truckAt = { lat: Number(rec.lat), lon: Number(rec.lon), label: rec.label || '', source: rec.source || 'saved' };
+      }
+    } catch (err) { state.truckAt = null; }
+  }
+
+  function rememberTruckAt(rec) {
+    state.truckAt = rec;
+    try {
+      if (rec) localStorage.setItem(TRUCK_AT_KEY, JSON.stringify(rec));
+      else localStorage.removeItem(TRUCK_AT_KEY);
+    } catch (err) { /* ignore */ }
+  }
+
+  function scanOriginName() {
+    var o = state.searches && state.searches.origin;
+    o = o ? String(o).replace(/\s*\(.*\)\s*$/, '') : '';
+    return o || 'scan origin';
+  }
+
+  function scanOriginPoint() {
+    var c = state.searches && state.searches.origin_coord;
+    if (c && c.lat != null && c.lon != null) {
+      return { lat: Number(c.lat), lon: Number(c.lon), label: scanOriginName() };
+    }
+    return null;
+  }
+
+  function currentTruckPoint() {
+    if (state.truckAt && state.truckAt.lat != null) return state.truckAt;
+    return scanOriginPoint();
+  }
+
+  function scoreSearchLoad(row) {
+    var trip = rowLoadedMiles(row);
+    var dh = rowEmptyMiles(row);
+    var rate = row.posted_rate;
+    var total = trip + dh;
+    var sameDay = total > 0 && total < 250;
+    var bar = sameDay ? 300 : 500;
+    var net = null;
+    if (rate != null && isFinite(Number(rate)) && trip > 0) {
+      net = Math.round((Number(rate) * 0.87 - 1.14 * trip - 0.30 * dh) * 100) / 100;
+    }
+    var flags = [];
+    var hard = false;
+    if (row.weight_lb != null && Number(row.weight_lb) > 16000) {
+      flags.push('Over 16,000 lb payload - cannot haul');
+      hard = true;
+    } else if (row.weight_lb != null && Number(row.weight_lb) === 16000) {
+      flags.push('at payload (~16,000 lb)');
+    }
+    if (row.length_ft != null && Number(row.length_ft) > 40) {
+      flags.push('Over 40 ft deck - cannot haul');
+      hard = true;
+    }
+    if (row.weight_lb == null) flags.push('weight not listed');
+    var keepFlags = (row.fit_flags || []).filter(function (f) {
+      return /infeasible|cannot haul|misses the|pickup is only/i.test(String(f));
+    });
+    flags = flags.concat(keepFlags);
+    if (keepFlags.length) hard = true;
+    row.net_est = net;
+    if (rate != null && trip > 0) {
+      var after = Math.round(Number(rate) * 0.87 * 100) / 100;
+      var feeAmt = Math.round((Number(rate) - after) * 100) / 100;
+      var loadedCost = Math.round(1.14 * trip * 100) / 100;
+      var dhCost = Math.round(0.30 * dh * 100) / 100;
+      row.math = 'Rate $' + Number(rate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) +
+        ' x 0.87 = $' + after.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) +
+        ' after the 13% Totni fee ($' + feeAmt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) +
+        '). Fuel and DEF $1.14 x ' + Math.round(trip).toLocaleString('en-US') + ' mi = $' +
+        loadedCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) +
+        '. Empty miles $0.30 x ' + Math.round(dh).toLocaleString('en-US') + ' mi = $' +
+        dhCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) +
+        '. Net EST $' + (net == null ? 'n/a' : net.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })) + '.';
+    }
+    row.total_mi = total;
+    row.same_day = sameDay;
+    row.bar = bar;
+    row.hours = hoursEst(trip, dh, 1);
+    row.per_hour = (net != null && row.hours) ? net / row.hours : null;
+    row.net_per_mile = netPerMileValue({ net_est: net, trip_mi: trip, origin_dh_mi: dh, total_mi: total });
+    row.gross_per_mile = grossPerMileValue({ posted_rate: rate, trip_mi: trip, origin_dh_mi: dh, total_mi: total });
+    delete row.days;
+    delete row.net_per_day;
+    var days = tripDaysForRow(row, 1);
+    var npd = (net != null && days) ? net / days : null;
+    row.days = days;
+    row.net_per_day = npd == null ? null : Math.round(npd * 100) / 100;
+    var verdict;
+    if (net == null) verdict = 'PASS';
+    else if (hard || net < bar) verdict = 'PASS';
+    else if (flags.length) verdict = 'MAYBE';
+    else verdict = 'TAKE';
+    if (npd != null && npd < MIN_NET_PER_DAY) {
+      flags.push('net per day under $300');
+      if (verdict === 'TAKE') verdict = 'MAYBE';
+    }
+    row.fit_flags = flags;
+    row.verdict = verdict;
+    row.reason = verdictReason(row);
+    return row;
+  }
+
+  function rescoreCombo(combo, origCombo) {
+    var loads = combo.loads || [];
+    var origLoads = (origCombo && origCombo.loads) || [];
+    var first = loads[0];
+    var origFirst = origLoads[0];
+    var extra = 0;
+    if (first && origFirst) extra = rowEmptyMiles(first) - rowEmptyMiles(origFirst);
+    var dead = (Number(origCombo && origCombo.deadhead_mi) || 0) + extra;
+    combo.deadhead_mi = Math.round(dead * 10) / 10;
+    combo.total_mi = Math.round(((Number(combo.loaded_mi) || 0) + dead) * 10) / 10;
+    if (combo.after_fee != null && combo.loaded_mi != null) {
+      combo.net_est = Math.round((Number(combo.after_fee) - 1.14 * Number(combo.loaded_mi) - 0.30 * dead) * 100) / 100;
+    }
+    delete combo.days;
+    delete combo.net_per_day;
+    var days = rowDays(combo, loads.length);
+    var npd = (combo.net_est != null && days) ? combo.net_est / days : null;
+    combo.days = days;
+    combo.net_per_day = npd == null ? null : Math.round(npd * 100) / 100;
+    if (npd != null && npd < MIN_NET_PER_DAY) {
+      combo.flags = (combo.flags || []).concat(['net per day under $300']);
+      if (combo.verdict === 'TAKE') {
+        combo.verdict = 'MAYBE';
+        combo.reason = 'Clears the combo bar, but net per day is under $300.';
+      }
+    }
+    return combo;
+  }
+
+  function cloneData(data) {
+    try { return JSON.parse(JSON.stringify(data)); } catch (err) { return data; }
+  }
+
+  function matchScoredLoad(scored, row) {
+    var i, s;
+    for (i = 0; i < scored.length; i++) {
+      s = scored[i];
+      if (row.load_number && s.load_number && String(row.load_number) === String(s.load_number) && s.board === row.board) return s;
+    }
+    for (i = 0; i < scored.length; i++) {
+      s = scored[i];
+      if (s.origin === row.origin && s.destination === row.destination && s.board === row.board) return s;
+    }
+    return null;
+  }
+
+  function applyLocalScoring(data) {
+    var loads = data.loads || [];
+    loads.forEach(function (row) { scoreSearchLoad(row); });
+    var orig = state.searches || data;
+    (data.combos || []).forEach(function (combo, i) {
+      (combo.loads || []).forEach(function (leg) {
+        var src = matchScoredLoad(loads, leg);
+        if (src) {
+          leg.origin_dh_mi = src.origin_dh_mi;
+          leg.net_est = src.net_est;
+          leg.days = src.days;
+          leg.net_per_day = src.net_per_day;
+          leg.verdict = src.verdict;
+          leg.reason = src.reason;
+          leg.hours = src.hours;
+          leg.per_hour = src.per_hour;
+          leg.net_per_mile = src.net_per_mile;
+          leg.gross_per_mile = src.gross_per_mile;
+          leg.total_mi = src.total_mi;
+        } else {
+          scoreSearchLoad(leg);
+        }
+      });
+      rescoreCombo(combo, (orig.combos || [])[i] || combo);
+    });
+    var counts = { total: loads.length, take: 0, maybe: 0, pass: 0 };
+    loads.forEach(function (row) {
+      var v = String(row.verdict || 'PASS').toLowerCase();
+      if (counts[v] != null) counts[v] += 1;
+    });
+    data.counts = counts;
+    return data;
+  }
+
+  function truckAtStatusText() {
+    var p = currentTruckPoint();
+    var label = p && p.label ? p.label : scanOriginName();
+    var text = 'Deadhead from <strong>' + esc(label) + '</strong>';
+    if (state.truckAtBusy) text += ' · updating miles…';
+    if (state.truckAtError) text += ' · ' + esc(state.truckAtError);
+    return text;
+  }
+
+  function renderTruckAt() {
+    var p = currentTruckPoint();
+    var value = (state.truckAt && state.truckAt.label) || '';
+    var maxv = String(state.maxDeadhead || 0);
+    return '<div class="truck-at" id="truck-at">' +
+      '<h3>Truck is at</h3>' +
+      '<form id="truck-at-form" action="#" class="truck-at-row">' +
+        '<input type="text" id="truck-at-input" placeholder="City, ST or address" value="' + esc(value) + '" autocomplete="off" autocapitalize="words">' +
+        '<button type="submit" class="primary" id="truck-at-set">Set</button>' +
+        '<button type="button" id="truck-at-geo">Use my location</button>' +
+        '<button type="button" id="truck-at-reset">Reset to scan origin</button>' +
+      '</form>' +
+      '<p class="truck-at-status" id="truck-at-status">' + truckAtStatusText() + '</p>' +
+      '<p class="truck-at-filter"><label>Max deadhead ' +
+        '<select id="max-deadhead">' +
+          '<option value="0"' + (maxv === '0' ? ' selected' : '') + '>Any</option>' +
+          '<option value="150"' + (maxv === '150' ? ' selected' : '') + '>150 mi</option>' +
+          '<option value="250"' + (maxv === '250' ? ' selected' : '') + '>250 mi</option>' +
+          '<option value="300"' + (maxv === '300' ? ' selected' : '') + '>300 mi</option>' +
+        '</select></label></p>' +
+      '</div>';
+  }
+
+  function bindTruckAt() {
+    var form = $('truck-at-form');
+    if (form) form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      setTruckFromQuery($('truck-at-input') && $('truck-at-input').value);
+    });
+    var geo = $('truck-at-geo');
+    if (geo) geo.addEventListener('click', setTruckFromGeo);
+    var reset = $('truck-at-reset');
+    if (reset) reset.addEventListener('click', resetTruckAt);
+    var sel = $('max-deadhead');
+    if (sel) sel.addEventListener('change', function () {
+      state.maxDeadhead = Number(sel.value) || 0;
+      if (state.tab === 'searches') renderSearches();
+    });
+  }
+
+  function setTruckFromQuery(q) {
+    state.truckAtError = '';
+    state.truckAtBusy = true;
+    if (state.tab === 'searches') {
+      var st = $('truck-at-status');
+      if (st) st.innerHTML = truckAtStatusText();
+    }
+    return geocodeQuery(q).then(function (rec) {
+      rememberTruckAt({ lat: rec.lat, lon: rec.lon, label: rec.label || q, source: 'typed' });
+      state.truckAtBusy = false;
+      return refreshDeadheads();
+    }).catch(function (err) {
+      state.truckAtBusy = false;
+      state.truckAtError = (err && err.message) ? err.message : 'Could not find that place.';
+      if (state.tab === 'searches') renderSearches();
+    });
+  }
+
+  function setTruckFromGeo() {
+    state.truckAtError = '';
+    if (!navigator.geolocation) {
+      state.truckAtError = 'This browser cannot share a location.';
+      if (state.tab === 'searches') renderSearches();
+      return;
+    }
+    state.truckAtBusy = true;
+    if (state.tab === 'searches') {
+      var st = $('truck-at-status');
+      if (st) st.innerHTML = truckAtStatusText();
+    }
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      reverseGeocode(pos.coords.latitude, pos.coords.longitude).then(function (rec) {
+        rememberTruckAt({ lat: rec.lat, lon: rec.lon, label: rec.label, source: 'geo' });
+        state.truckAtBusy = false;
+        return refreshDeadheads();
+      });
+    }, function () {
+      state.truckAtBusy = false;
+      state.truckAtError = 'Location was not available. You can type a city instead.';
+      if (state.tab === 'searches') renderSearches();
+    }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 });
+  }
+
+  function resetTruckAt() {
+    rememberTruckAt(null);
+    state.truckAtError = '';
+    refreshDeadheads();
+  }
+
+  function refreshDeadheads() {
+    var src = state.searches;
+    if (!src) return Promise.resolve();
+    var data = cloneData(src);
+    var truck = currentTruckPoint();
+    var targets = (data.loads || []).filter(function (row) { return row.origin_coord && row.origin_coord.lat != null; });
+    if (!truck || !targets.length) {
+      state.scoredSearches = applyLocalScoring(data);
+      if (state.tab === 'searches') renderSearches();
+      return Promise.resolve();
+    }
+    var same = scanOriginPoint();
+    var close = same && Math.abs(same.lat - truck.lat) < 0.02 && Math.abs(same.lon - truck.lon) < 0.02 && !state.truckAt;
+    if (close) {
+      state.scoredSearches = applyLocalScoring(data);
+      if (state.tab === 'searches') renderSearches();
+      return Promise.resolve();
+    }
+    state.truckAtBusy = true;
+    if (state.tab === 'searches') renderSearches();
+    return poolMap(targets, 3, function (row) {
+      return milesBetween(truck, row.origin_coord).then(function (mi) {
+        if (mi != null) row.origin_dh_mi = mi;
+      });
+    }).then(function () {
+      state.truckAtBusy = false;
+      state.scoredSearches = applyLocalScoring(data);
+      if (state.tab === 'searches') renderSearches();
+    }).catch(function () {
+      state.truckAtBusy = false;
+      state.scoredSearches = applyLocalScoring(data);
+      if (state.tab === 'searches') renderSearches();
+    });
+  }
+
+  function viewSearches() {
+    return state.scoredSearches || state.searches;
+  }
+
+  function watchTabbar() {
+    var nav = document.querySelector('.tabbar');
+    if (!nav || nav._watched) return;
+    nav._watched = true;
+    var sentinel = document.createElement('div');
+    sentinel.className = 'tabbar-sentinel';
+    nav.parentNode.insertBefore(sentinel, nav);
+    if (typeof IntersectionObserver !== 'function') return;
+    var io = new IntersectionObserver(function (entries) {
+      var hit = entries[0];
+      nav.classList.toggle('is-stuck', !!(hit && !hit.isIntersecting));
+    }, { threshold: [1] });
+    io.observe(sentinel);
+  }
+
 
   function hoursEst(loadedMi, deadMi, nLoads) {
     var loaded = Number(loadedMi) || 0;
@@ -1738,7 +2489,9 @@
     }
     return '<div class="search-net">' + esc(searchMoney(net)) +
       '<span class="unit">Net EST' + (unitExtra || '') + '</span>' +
-      compare + '</div>';
+      compare +
+      (row ? tripDaysBlock(row, nLoads) : '') +
+      '</div>';
   }
 
   function verdictReason(row) {
@@ -1749,6 +2502,9 @@
     var hard = flags.filter(function (f) { return String(f).indexOf('cannot haul') !== -1; });
     if (verd === 'TAKE') return 'Clears the net bar and fits the deck.';
     if (verd === 'MAYBE') {
+      if (flags.some(function (f) { return String(f).indexOf('net per day under $300') !== -1; })) {
+        return 'Clears the net bar, but net per day is under $300.';
+      }
       if (flags.some(function (f) { return String(f).indexOf('weight not listed') !== -1; })) {
         return 'Clears the net bar, but weight is not listed.';
       }
@@ -1787,6 +2543,7 @@
   }
 
   function searchOriginLabel() {
+    if (state.truckAt && state.truckAt.label) return String(state.truckAt.label);
     var o = state.searches && state.searches.origin;
     o = o ? String(o).replace(/\s*\(.*\)\s*$/, '') : '';
     return o || 'truck';
@@ -1803,6 +2560,13 @@
 
   function filteredSearches(data) {
     var rows = (data && data.loads) ? data.loads.slice() : [];
+    var cap = Number(state.maxDeadhead) || 0;
+    if (cap > 0) {
+      rows = rows.filter(function (row) {
+        var dh = rowEmptyMiles(row);
+        return dh == null || dh <= cap;
+      });
+    }
     var f = state.searchFilter || 'all';
     if (f === 'take' || f === 'maybe' || f === 'pass') {
       rows = rows.filter(function (row) { return String(row.verdict).toLowerCase() === f; });
@@ -1824,6 +2588,10 @@
       if (ra !== rb) return ra - rb;
       var na = a.net_est;
       var nb = b.net_est;
+      var da = a.net_per_day, db = b.net_per_day;
+      if (da == null && db != null) return 1;
+      if (db == null && da != null) return -1;
+      if (da != null && db != null && db !== da) return db - da;
       if (na == null && nb == null) return 0;
       if (na == null) return 1;
       if (nb == null) return -1;
@@ -2226,7 +2994,7 @@
       '<div class="search-head">' +
         netBlock(combo.net_est, perHourValue(combo, (combo.loads || []).length),
           netPerMileValue(combo),
-          ' · ' + esc(searchMoney(combo.net_per_day)) + '/day',
+          '',
           combo, (combo.loads || []).length) +
         '<span class="verdict-pill ' + esc(verd) + '">' + esc(combo.verdict || 'MAYBE') + '</span>' +
       '</div>' +
@@ -2248,6 +3016,14 @@
 
   function renderCombos(data) {
     var list = (data && data.combos) ? data.combos.slice() : [];
+    var cap = Number(state.maxDeadhead) || 0;
+    if (cap > 0) {
+      list = list.filter(function (combo) {
+        var first = (combo.loads || [])[0];
+        var dh = first ? rowEmptyMiles(first) : combo.deadhead_mi;
+        return dh == null || dh <= cap;
+      });
+    }
     var body;
     if (!list.length) {
       body = '<p class="fine">No 2- or 3-load combos in this scan cleared the $1,000 net bar with a feasible route. Many postings were full TL, over the 16,000 lb or 40 ft limit, or did not line up for a shared deck or a sequential chain.</p>';
@@ -2299,21 +3075,23 @@
         '<button type="button" class="btn" id="search-refresh-btn"' +
           (state.searchRefreshing ? ' disabled' : '') + '>Refresh</button>' +
       '</div>' +
-      '<p class="fine">Refresh reloads the latest saved scan. It does not start a new board search.</p>';
+      '<p class="fine">Refresh reloads the latest saved scan. It does not start a new board search.</p>' +
+      renderTruckAt();
   }
 
   function bindSearchRefresh() {
     var btn = $('search-refresh-btn');
     if (btn) btn.addEventListener('click', function () { refreshSearches(); });
+    bindTruckAt();
   }
 
   function renderSearches() {
     var root = $('searches-root');
     if (!root) return;
     destroyRouteMaps();
-    var data = state.searches;
+    var data = viewSearches();
     var head = searchToolbar();
-    if (state.searchError && !data) {
+    if (state.searchError && !state.searches) {
       root.innerHTML = head + '<p class="warn">' + esc(state.searchError) + '</p>';
       bindSearchRefresh();
       return;
@@ -2464,6 +3242,8 @@
       btn.addEventListener('click', function () { showTab(btn.getAttribute('data-tab')); });
     });
     setupPull();
+    recallTruckAt();
+    watchTabbar();
     renderCheck();
     refreshFeed();
     refreshSearches();
