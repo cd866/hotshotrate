@@ -2316,6 +2316,31 @@
     return state.scoredSearches || state.searches;
   }
 
+  function bindRigPhoto() {
+    var card = document.querySelector('details.rig-card');
+    var img = $('rig-photo');
+    var reflect = $('rig-reflect');
+    function load() {
+      if (!img || img.getAttribute('src')) return;
+      var sources = img.parentNode ? img.parentNode.querySelectorAll('source[data-srcset]') : [];
+      for (var i = 0; i < sources.length; i++) {
+        sources[i].srcset = sources[i].getAttribute('data-srcset') || '';
+      }
+      if (img.getAttribute('data-srcset')) img.srcset = img.getAttribute('data-srcset');
+      img.src = img.getAttribute('data-src') || '';
+      if (reflect) {
+        if (img.getAttribute('data-srcset')) reflect.srcset = img.getAttribute('data-srcset');
+        reflect.src = img.getAttribute('data-src') || '';
+      }
+    }
+    if (card && card.open) load();
+    if (card) {
+      card.addEventListener('toggle', function () {
+        if (card.open) load();
+      });
+    }
+  }
+
   function watchTabbar() {
     var nav = document.querySelector('.tabbar');
     if (!nav || nav._watched) return;
@@ -3245,6 +3270,7 @@
     setupPull();
     recallTruckAt();
     watchTabbar();
+    bindRigPhoto();
     renderCheck();
     refreshFeed();
     refreshSearches();
