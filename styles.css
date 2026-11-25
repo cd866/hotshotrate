@@ -3348,3 +3348,129 @@ article.load {
   color: var(--cream);
   font-variant-numeric: tabular-nums;
 }
+
+
+/* v35: Connect to Grok Bot gear + PIN panel + prominent Pull fresh loads */
+.search-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+.relay-gear-btn {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.relay-gear-btn.connected {
+  border-color: var(--gold);
+  background: rgba(242, 201, 76, 0.16);
+  color: var(--gold);
+}
+.relay-connect-panel,
+.relay-settings-box {
+  margin: 10px 0 12px;
+  padding: 14px;
+  border: 1px solid var(--purple);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.relay-connect-panel h3,
+.relay-settings-title {
+  margin: 0 0 6px;
+  font-family: var(--display);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--gold);
+}
+.relay-connect-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+}
+.relay-connect-form input {
+  flex: 1 1 150px;
+  min-height: 44px;
+}
+.relay-connect-form button {
+  min-height: 44px;
+  min-width: 44px;
+  flex: 0 0 auto;
+}
+.relay-connect-status {
+  margin: 8px 0 0;
+  font-size: 15px;
+  color: var(--muted);
+}
+.relay-connect-status.ok { color: var(--stripe-take); }
+.relay-connect-status.err { color: var(--stripe-pass); }
+
+.fresh-pull-top {
+  margin: 10px 0 14px;
+  padding: 16px;
+  border: 1.5px solid var(--gold);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.fresh-pull-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.fresh-pull-top h3 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--gold);
+}
+.fresh-pull-badge {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(167, 139, 250, 0.18);
+  color: var(--purple-hi);
+}
+.fresh-pull-badge.connected {
+  background: var(--good-bg);
+  color: var(--good-ink);
+}
+.fresh-pull-go-btn {
+  flex: 1 1 100%;
+  min-height: 48px;
+  font-size: 17px;
+  font-weight: 600;
+  border-radius: 10px;
+  border: 1px solid var(--gold);
+  background: var(--gold);
+  color: var(--gold-ink);
+  padding: 0 16px;
+}
+.fresh-pull-go-btn:disabled { opacity: 0.65; }
+.fresh-pull-form .fresh-pull-gps-btn {
+  min-height: 44px;
+  padding: 0 12px;
+}
+.fresh-pull-status {
+  margin: 10px 0 0;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.fresh-pull-status.ok { color: var(--stripe-take); font-weight: 500; }
+.fresh-pull-status.err { color: var(--stripe-pass); font-weight: 500; }
+.deliver-sync-note.ok { color: var(--stripe-take); }
+.deliver-sync-note.err { color: var(--stripe-pass); }
+
+.fresh-pull-field .truck-at-lookup {
+  flex: 0 0 auto;
+  width: 100%;
+}

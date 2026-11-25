@@ -18,7 +18,7 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=3" sizes="180x180" />
   <link rel="preload" href="fonts/nunito-sans-variable.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="fonts/oswald-700.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="styles.css?v=34" />
+  <link rel="stylesheet" href="styles.css?v=35" />
   <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
   <script>
     try {
@@ -218,6 +218,16 @@
               <input id="assumedMph" type="number" inputmode="decimal" min="1" step="1" value="50" />
             </label>
           </div>
+          <div class="relay-settings-box" id="settings-relay-box">
+            <h3 class="relay-settings-title">Connect to Grok Bot</h3>
+            <p class="hint">Enter your app PIN once (saved only on this phone) to pull fresh loads and sync deliveries.</p>
+            <div class="relay-connect-form">
+              <input id="settings-relay-pin" type="password" inputmode="numeric" autocomplete="off" placeholder="Enter app PIN" />
+              <button type="button" class="btn primary" id="settings-relay-save">Save PIN</button>
+              <button type="button" class="btn" id="settings-relay-clear" hidden>Disconnect</button>
+            </div>
+            <p class="relay-connect-status" id="settings-relay-status"></p>
+          </div>
         </details>
       </section>
 
@@ -283,7 +293,7 @@
       <footer class="footer">
         <p><strong>Black Ram Logistics</strong> · DBA of Sand Lily Pad LLC</p>
         <p>Estimates are marked EST. Not a quote and not tax advice.</p>
-        <p class="app-version" id="app-version">v34</p>
+        <p class="app-version" id="app-version">v35</p>
       </footer>
       <div class="pad" aria-hidden="true"></div>
     </main>
@@ -348,8 +358,8 @@
   </div>
   <noscript><p class="noscript">Black Ram Logistics needs JavaScript for the load check, stops, and reports.</p></noscript>
   <script src="vendor/leaflet/leaflet.js"></script>
-  <script src="app.js?v=34"></script>
-  <script src="stops.js?v=34"></script>
+  <script src="app.js?v=35"></script>
+  <script src="stops.js?v=35"></script>
   <script>
     (function () {
       if (!('serviceWorker' in navigator)) return;

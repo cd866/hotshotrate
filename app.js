@@ -1,7 +1,10 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v34';
+  var APP_VERSION = 'v35';
+  var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
+  var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
+  var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
   var SETTINGS_KEY = 'blackram_settings_v4';
   var SETTINGS_KEY_V1 = 'blackram_settings_v1';
   var SETTINGS_KEY_V2 = 'blackram_settings_v2';
@@ -52,6 +55,23 @@
     deliverUndoId: '',
     deliverUndoUntil: 0,
     deliverUndoTimer: null,
+    relayConnectOpen: false,
+    relayConnectMsg: '',
+    relayConnectErr: false,
+    freshPullBusy: false,
+    freshPullStatus: '',
+    freshPullStatusType: '',
+    freshPullPollTimer: null,
+    freshPullPollEnd: 0,
+    freshPullBaseline: '',
+    freshPullLastOkAt: 0,
+    freshOriginRec: null,
+    freshDestRec: null,
+    freshOriginText: null,
+    freshDestText: '',
+    freshAnywhere: true,
+    freshRadius: 150,
+    outboxFlushing: false,
     offline: false,
     savedAt: null,
     error: '',
@@ -820,6 +840,123 @@
     }));
   }
 
+  function readDeliveredSyncMap() {
+    var map = readJsonKey(DELIVERED_SYNC_KEY, {});
+    return (map && typeof map === 'object' && !Array.isArray(map)) ? map : {};
+  }
+
+  function setDeliveredSyncState(id, status, error) {
+    if (!id) return;
+    var map = readDeliveredSyncMap();
+    map[String(id)] = {
+      status: status || 'queued',
+      error: error || '',
+      updated_at: new Date().toISOString()
+    };
+    writeJsonKey(DELIVERED_SYNC_KEY, map);
+  }
+
+  function getRelayPin() {
+    try {
+      var v = localStorage.getItem(RELAY_PIN_KEY);
+      if (v && v.trim()) return v.trim();
+      var legacy = localStorage.getItem(FRESH_PULL_CODE_KEY);
+      return legacy ? legacy.trim() : '';
+    } catch (err) {
+      return '';
+    }
+  }
+
+  function setRelayPin(pin) {
+    var clean = String(pin || '').trim();
+    try {
+      if (clean) {
+        localStorage.setItem(RELAY_PIN_KEY, clean);
+        localStorage.setItem(FRESH_PULL_CODE_KEY, clean);
+      } else {
+        localStorage.removeItem(RELAY_PIN_KEY);
+        localStorage.removeItem(FRESH_PULL_CODE_KEY);
+      }
+    } catch (err) { /* private mode */ }
+    syncSettingsRelayUI();
+  }
+
+  function postRelayRequest(type, payload) {
+    var pin = getRelayPin();
+    if (!pin) {
+      return Promise.resolve({ ok: false, status: 401, noPin: true, error: 'Enter your app PIN in Connect first.' });
+    }
+    return fetch(RELAY_URL + '/request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: pin, type: type, payload: payload })
+    }).then(function (resp) {
+      return resp.text().then(function (txt) {
+        var data = null;
+        try { data = txt ? JSON.parse(txt) : null; } catch (e) { data = null; }
+        if (resp.ok && data && data.ok) {
+          return { ok: true, status: resp.status, data: data };
+        }
+        var msg = (data && data.error) ? data.error : ('Request failed (' + resp.status + ')');
+        return { ok: false, status: resp.status, wrongPin: resp.status === 401, error: msg };
+      });
+    }).catch(function () {
+      return { ok: false, status: 0, offline: true, error: 'Network error - check connection and try again.' };
+    });
+  }
+
+  function flushDeliveredOutbox() {
+    var list = readDeliveredOutbox();
+    if (!list.length || state.outboxFlushing) return Promise.resolve();
+    if (!getRelayPin()) return Promise.resolve();
+    state.outboxFlushing = true;
+    var idx = 0;
+    function step() {
+      var current = readDeliveredOutbox();
+      if (idx >= current.length) {
+        state.outboxFlushing = false;
+        if (state.tab === 'reports') renderReports();
+        return Promise.resolve();
+      }
+      var item = current[idx];
+      if (!item || !item.load_id) {
+        idx += 1;
+        return step();
+      }
+      var payload = {
+        load_id: String(item.load_id),
+        delivered_at: String(item.delivered_at || ''),
+        note: String(item.note || '')
+      };
+      return postRelayRequest('delivered', payload).then(function (res) {
+        if (res.ok) {
+          dropDeliveredOutbox(item.load_id);
+          setDeliveredSyncState(item.load_id, 'sent', '');
+          return step();
+        }
+        setDeliveredSyncState(item.load_id, res.wrongPin ? 'error' : 'queued', res.error || '');
+        state.outboxFlushing = false;
+        if (state.tab === 'reports') renderReports();
+        return Promise.resolve();
+      });
+    }
+    return step();
+  }
+
+  function syncSettingsRelayUI() {
+    var hasPin = !!getRelayPin();
+    var inp = $('settings-relay-pin');
+    var clearBtn = $('settings-relay-clear');
+    var st = $('settings-relay-status');
+    if (inp && hasPin && !inp.value) inp.placeholder = 'PIN saved on this phone';
+    if (inp && !hasPin) inp.placeholder = 'Enter app PIN';
+    if (clearBtn) clearBtn.hidden = !hasPin;
+    if (st) {
+      st.textContent = hasPin ? 'Connected - PIN saved on this phone.' : 'Not connected yet.';
+      st.className = 'relay-connect-status' + (hasPin ? ' ok' : '');
+    }
+  }
+
   function chicagoDateTimeLocal(parts) {
     parts = parts || chicagoNowParts();
     return parts.year + '-' + pad2(parts.month) + '-' + pad2(parts.day) + 'T' +
@@ -1385,7 +1522,20 @@
     if (local) {
       deliverBits += '<p class="delivered-meta">Delivered ' + esc(formatDeliveredAt(local.delivered_at)) +
         (local.note ? ' · ' + esc(local.note) : '') + '</p>';
-      deliverBits += '<p class="deliver-sync-note">Saved on this phone - Grok Bot syncs it to the books</p>';
+      var inOutbox = readDeliveredOutbox().some(function (r) { return r && String(r.load_id) === String(id); });
+      var syncInfo = readDeliveredSyncMap()[String(id)] || null;
+      var syncText = 'Queued on this phone - will send to Grok Bot';
+      var syncCls = '';
+      if (!inOutbox && syncInfo && syncInfo.status === 'sent') {
+        syncText = 'Sent to Grok Bot';
+        syncCls = ' ok';
+      } else if (syncInfo && syncInfo.status === 'error') {
+        syncText = 'Sync paused: ' + syncInfo.error;
+        syncCls = ' err';
+      } else if (!getRelayPin()) {
+        syncText = 'Saved on this phone - enter PIN in Connect to send to Grok Bot';
+      }
+      deliverBits += '<p class="deliver-sync-note' + syncCls + '">' + esc(syncText) + '</p>';
       deliverBits += '<button type="button" class="btn undo-delivered-btn" data-load-id="' + esc(id) +
         '">Undo</button>';
     } else if (markable) {
@@ -1606,11 +1756,13 @@
     map[rec.load_id] = rec;
     writeDeliveredMap(map);
     queueDeliveredOutbox(rec);
+    setDeliveredSyncState(rec.load_id, 'queued', '');
     state.deliverUndoId = rec.load_id;
     state.deliverUndoUntil = Date.now() + 10000;
     if (state.tab === 'reports') renderReports();
     else if (state.tab === 'kpis') renderKpis();
     refreshDeliverUndoToast();
+    flushDeliveredOutbox();
     return true;
   }
 
@@ -1620,6 +1772,9 @@
     delete map[String(id)];
     writeDeliveredMap(map);
     dropDeliveredOutbox(id);
+    var syncMap = readDeliveredSyncMap();
+    delete syncMap[String(id)];
+    writeJsonKey(DELIVERED_SYNC_KEY, syncMap);
     if (state.deliverUndoId === String(id)) {
       state.deliverUndoId = '';
       state.deliverUndoUntil = 0;
@@ -3025,40 +3180,100 @@
     }).catch(function () { /* keep pipeline numbers / fallback */ });
   }
 
-  function freshPullEnabled() {
-    try { return localStorage.getItem(FRESH_PULL_FLAG) === '1'; } catch (err) { return false; }
+  function currentScanStamp() {
+    if (!state.searches) return '';
+    return String(state.searches.scanned_at || state.searches.as_of || '');
+  }
+
+  function stopFreshPullPolling() {
+    if (state.freshPullPollTimer) {
+      clearInterval(state.freshPullPollTimer);
+      state.freshPullPollTimer = null;
+    }
+  }
+
+  function startFreshPullPolling() {
+    stopFreshPullPolling();
+    state.freshPullBaseline = currentScanStamp();
+    state.freshPullPollEnd = Date.now() + 10 * 60 * 1000;
+    state.freshPullPollTimer = setInterval(function () {
+      if (Date.now() > state.freshPullPollEnd) {
+        stopFreshPullPolling();
+        return;
+      }
+      refreshSearches().then(function () {
+        var nowStamp = currentScanStamp();
+        if (nowStamp && nowStamp !== state.freshPullBaseline) {
+          stopFreshPullPolling();
+          state.freshPullStatus = 'New loads arrived (' + nowStamp + ').';
+          state.freshPullStatusType = 'ok';
+          var st = $('fresh-pull-status');
+          if (st) {
+            st.textContent = state.freshPullStatus;
+            st.className = 'fresh-pull-status ok';
+          }
+        }
+      });
+    }, 20000);
+  }
+
+  function renderConnectPanel() {
+    if (!state.relayConnectOpen) return '';
+    var connected = !!getRelayPin();
+    var msg = state.relayConnectMsg || (connected ? 'Connected - PIN saved on this phone.' : 'Enter your app PIN once to pull loads and sync deliveries.');
+    var msgCls = state.relayConnectErr ? ' err' : (connected && !state.relayConnectMsg ? ' ok' : (state.relayConnectMsg && !state.relayConnectErr ? ' ok' : ''));
+    return '<div class="relay-connect-panel" id="relay-connect-panel">' +
+      '<h3>Connect to Grok Bot</h3>' +
+      '<p class="fine">Saved in this phone\'s browser only.</p>' +
+      '<form id="relay-connect-form" action="#" class="relay-connect-form">' +
+        '<input type="password" id="relay-pin-input" inputmode="numeric" autocomplete="off" placeholder="' + (connected ? 'PIN saved (enter new to change)' : 'Enter app PIN') + '">' +
+        '<button type="submit" class="btn primary" id="relay-pin-save">Save PIN</button>' +
+        (connected ? '<button type="button" class="btn" id="relay-pin-clear">Disconnect</button>' : '') +
+      '</form>' +
+      '<p class="relay-connect-status' + msgCls + '" id="relay-connect-status">' + esc(msg) + '</p>' +
+      '</div>';
   }
 
   function renderFreshPull() {
-    if (!freshPullEnabled()) return '';
-    var origin = currentTruckPoint() || {};
-    var originLabel = origin.label || '';
-    return '<div class="fresh-pull" id="fresh-pull">' +
-      '<h3>Pull fresh loads</h3>' +
-      '<p class="fine">On-demand board search. Not connected yet \u2014 this form only prepares the request.</p>' +
+    var origin = state.freshOriginRec || currentTruckPoint() || {};
+    var originLabel = state.freshOriginText != null ? state.freshOriginText : (origin.label || '');
+    var destLabel = state.freshDestText || '';
+    var anyChecked = state.freshAnywhere !== false;
+    var rad = Number(state.freshRadius || 150);
+    var connected = !!getRelayPin();
+    var stText = state.freshPullStatus || '';
+    var stCls = state.freshPullStatusType ? (' ' + state.freshPullStatusType) : '';
+    return '<div class="fresh-pull-top" id="fresh-pull">' +
+      '<div class="fresh-pull-head">' +
+        '<h3>Pull fresh loads</h3>' +
+        '<span class="fresh-pull-badge' + (connected ? ' connected' : '') + '">' + (connected ? 'Connected' : 'PIN needed') + '</span>' +
+      '</div>' +
+      '<p class="fine">Triggers a live Grok Bot board scan from your current location. New loads arrive in a few minutes.</p>' +
       '<form id="fresh-pull-form" action="#" class="fresh-pull-form">' +
         '<label class="fresh-pull-field">Origin' +
           '<div class="truck-at-lookup">' +
             '<input type="text" id="fresh-origin" placeholder="City, address, or ZIP" value="' + esc(originLabel) + '" autocomplete="off" autocapitalize="words">' +
             '<ul class="truck-at-suggests" id="fresh-origin-suggests" hidden></ul>' +
           '</div></label>' +
-        '<button type="button" id="fresh-origin-gps">Use my GPS</button>' +
-        '<label class="fresh-pull-anywhere"><input type="checkbox" id="fresh-anywhere" checked> Anywhere</label>' +
+        '<button type="button" class="btn fresh-pull-gps-btn" id="fresh-origin-gps">Use my GPS</button>' +
+        '<label class="fresh-pull-anywhere"><input type="checkbox" id="fresh-anywhere"' + (anyChecked ? ' checked' : '') + '> Anywhere</label>' +
         '<label class="fresh-pull-field" id="fresh-dest-wrap">Destination' +
           '<div class="truck-at-lookup">' +
-            '<input type="text" id="fresh-dest" placeholder="City, address, or ZIP" autocomplete="off" autocapitalize="words" disabled>' +
+            '<input type="text" id="fresh-dest" placeholder="City, address, or ZIP" value="' + esc(destLabel) + '" autocomplete="off" autocapitalize="words"' + (anyChecked ? ' disabled' : '') + '>' +
             '<ul class="truck-at-suggests" id="fresh-dest-suggests" hidden></ul>' +
           '</div></label>' +
         '<label class="fresh-pull-field">Deadhead radius' +
           '<select id="fresh-radius">' +
-            '<option value="50">50 mi</option>' +
-            '<option value="100" selected>100 mi</option>' +
-            '<option value="150">150 mi</option>' +
-            '<option value="250">250 mi</option>' +
+            '<option value="50"' + (rad === 50 ? ' selected' : '') + '>50 mi</option>' +
+            '<option value="100"' + (rad === 100 ? ' selected' : '') + '>100 mi</option>' +
+            '<option value="150"' + (rad === 150 ? ' selected' : '') + '>150 mi</option>' +
+            '<option value="250"' + (rad === 250 ? ' selected' : '') + '>250 mi</option>' +
           '</select></label>' +
-        '<button type="submit" class="primary" id="fresh-pull-go">Pull fresh loads</button>' +
+        '<button type="submit" class="fresh-pull-go-btn" id="fresh-pull-go"' + (state.freshPullBusy ? ' disabled' : '') + '>' +
+          (state.freshPullBusy ? 'Starting search...' : 'Pull fresh loads') +
+        '</button>' +
       '</form>' +
-      '<p class="fresh-pull-status" id="fresh-pull-status"></p>' +
+      '<p class="fresh-pull-status' + stCls + '" id="fresh-pull-status">' + esc(stText) + '</p>' +
       '</div>';
   }
 
@@ -3095,58 +3310,197 @@
     });
   }
 
+  function resolvePlaceIfTyped(inputEl, currentRec) {
+    var text = inputEl ? String(inputEl.value || '').trim() : '';
+    if (!text) return Promise.resolve(null);
+    if (currentRec && currentRec.lat != null && currentRec.lon != null &&
+        String(currentRec.label || '').trim().toLowerCase() === text.toLowerCase()) {
+      return Promise.resolve({ label: currentRec.label, lat: Number(currentRec.lat), lon: Number(currentRec.lon) });
+    }
+    return suggestPlaces(text).then(function (items) {
+      if (items && items.length && items[0].lat != null) {
+        var top = items[0];
+        if (inputEl) inputEl.value = top.label || text;
+        return { label: top.label || text, lat: Number(top.lat), lon: Number(top.lon) };
+      }
+      return null;
+    }).catch(function () { return null; });
+  }
+
+  function setFreshPullStatus(text, type) {
+    state.freshPullStatus = text || '';
+    state.freshPullStatusType = type || '';
+    var st = $('fresh-pull-status');
+    if (st) {
+      st.textContent = state.freshPullStatus;
+      st.className = 'fresh-pull-status' + (type ? (' ' + type) : '');
+    }
+  }
+
+  function bindConnectPanel() {
+    var gear = $('relay-gear-btn');
+    if (gear && !gear._bound) {
+      gear._bound = true;
+      gear.addEventListener('click', function () {
+        state.relayConnectOpen = !state.relayConnectOpen;
+        state.relayConnectMsg = '';
+        state.relayConnectErr = false;
+        renderSearches();
+      });
+    }
+    var form = $('relay-connect-form');
+    if (form && !form._bound) {
+      form._bound = true;
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var inp = $('relay-pin-input');
+        var val = inp ? String(inp.value || '').trim() : '';
+        if (!val) {
+          state.relayConnectMsg = 'Type your PIN first.';
+          state.relayConnectErr = true;
+          renderSearches();
+          return;
+        }
+        setRelayPin(val);
+        state.relayConnectMsg = 'PIN saved on this phone.';
+        state.relayConnectErr = false;
+        state.relayConnectOpen = false;
+        renderSearches();
+        flushDeliveredOutbox();
+      });
+    }
+    var clearBtn = $('relay-pin-clear');
+    if (clearBtn && !clearBtn._bound) {
+      clearBtn._bound = true;
+      clearBtn.addEventListener('click', function () {
+        setRelayPin('');
+        state.relayConnectMsg = 'Disconnected - PIN removed.';
+        state.relayConnectErr = false;
+        renderSearches();
+      });
+    }
+  }
+
   function bindFreshPull() {
-    if (!freshPullEnabled()) return;
     var form = $('fresh-pull-form');
     if (!form || form._bound) return;
     form._bound = true;
-    var originRec = currentTruckPoint() ? { label: currentTruckPoint().label, lat: currentTruckPoint().lat, lon: currentTruckPoint().lon } : null;
-    var destRec = null;
-    bindSuggestInput('fresh-origin', 'fresh-origin-suggests', function (rec) { originRec = rec; });
-    bindSuggestInput('fresh-dest', 'fresh-dest-suggests', function (rec) { destRec = rec; });
+    var originRec = state.freshOriginRec || (currentTruckPoint() ? { label: currentTruckPoint().label, lat: currentTruckPoint().lat, lon: currentTruckPoint().lon } : null);
+    var destRec = state.freshDestRec || null;
+    var originInp = $('fresh-origin');
+    var destInp = $('fresh-dest');
+    var radSel = $('fresh-radius');
+    if (originInp) originInp.addEventListener('input', function () { state.freshOriginText = originInp.value; });
+    if (destInp) destInp.addEventListener('input', function () { state.freshDestText = destInp.value; });
+    if (radSel) radSel.addEventListener('change', function () { state.freshRadius = Number(radSel.value) || 150; });
+    bindSuggestInput('fresh-origin', 'fresh-origin-suggests', function (rec) { originRec = rec; state.freshOriginRec = rec; state.freshOriginText = rec.label; });
+    bindSuggestInput('fresh-dest', 'fresh-dest-suggests', function (rec) { destRec = rec; state.freshDestRec = rec; state.freshDestText = rec.label; });
     var any = $('fresh-anywhere');
     var dest = $('fresh-dest');
     function syncAnywhere() {
-      if (dest) dest.disabled = !!(any && any.checked);
+      var chk = !!(any && any.checked);
+      state.freshAnywhere = chk;
+      if (dest) dest.disabled = chk;
       var wrap = $('fresh-dest-wrap');
-      if (wrap) wrap.hidden = !!(any && any.checked);
+      if (wrap) wrap.hidden = chk;
     }
     if (any) any.addEventListener('change', syncAnywhere);
     syncAnywhere();
     var gps = $('fresh-origin-gps');
     if (gps) gps.addEventListener('click', function () {
       if (!navigator.geolocation) {
-        var st = $('fresh-pull-status');
-        if (st) st.textContent = 'This browser cannot share a location.';
+        setFreshPullStatus('This browser cannot share a location.', 'err');
         return;
       }
+      setFreshPullStatus('Finding your GPS location...', '');
       navigator.geolocation.getCurrentPosition(function (pos) {
         reverseGeocode(pos.coords.latitude, pos.coords.longitude).then(function (rec) {
           originRec = rec;
           var inp = $('fresh-origin');
           if (inp) inp.value = rec.label || '';
+          setFreshPullStatus('Using GPS: ' + (rec.label || 'Current location'), '');
         });
       }, function () {
-        var st2 = $('fresh-pull-status');
-        if (st2) st2.textContent = 'Location was not available.';
+        setFreshPullStatus('Location was not available. Type a city or ZIP.', 'err');
       }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 });
     });
     form.addEventListener('submit', function (e) {
       e.preventDefault();
-      // Not wired: a later pass will POST this payload to the webhook URL
-      // in localStorage (blackram_fresh_pull_webhook) with the code in
-      // blackram_fresh_pull_code. Do not send anything yet.
-      var payload = {
-        origin: originRec && originRec.lat != null ? { label: originRec.label, lat: originRec.lat, lon: originRec.lon } : null,
-        destination: (any && any.checked) ? 'anywhere' : (destRec && destRec.lat != null ? { label: destRec.label, lat: destRec.lat, lon: destRec.lon } : null),
-        radius_mi: Number($('fresh-radius') && $('fresh-radius').value) || 100,
-        code: null
-      };
-      try { payload.code = localStorage.getItem(FRESH_PULL_CODE_KEY) || null; } catch (err) { payload.code = null; }
-      var st = $('fresh-pull-status');
-      if (st) st.textContent = 'On-demand search is not connected yet. The request would be ' +
-        '{origin:{label,lat,lon}, destination:{label,lat,lon}|\"anywhere\", radius_mi, code}.';
-      try { console.log('fresh-pull payload (not sent)', payload); } catch (err2) { /* ignore */ }
+      if (state.freshPullBusy) return;
+      if (!getRelayPin()) {
+        state.relayConnectOpen = true;
+        state.relayConnectMsg = 'Enter your app PIN to pull fresh loads.';
+        state.relayConnectErr = true;
+        setFreshPullStatus('Enter your app PIN in Connect first.', 'err');
+        renderSearches();
+        var pinInput = $('relay-pin-input');
+        if (pinInput) pinInput.focus();
+        return;
+      }
+      var cooldownLeft = state.freshPullLastOkAt ? Math.ceil((120000 - (Date.now() - state.freshPullLastOkAt)) / 1000) : 0;
+      if (cooldownLeft > 0) {
+        setFreshPullStatus('Search already running - wait ' + cooldownLeft + 's before starting another.', 'err');
+        return;
+      }
+      state.freshPullBusy = true;
+      var goBtn = $('fresh-pull-go');
+      if (goBtn) { goBtn.disabled = true; goBtn.textContent = 'Starting search...'; }
+      setFreshPullStatus('Sending request to Grok Bot...', '');
+
+      var originEl = $('fresh-origin');
+      var destEl = $('fresh-dest');
+      var isAny = !!(any && any.checked);
+      var rad = Number($('fresh-radius') && $('fresh-radius').value) || 150;
+
+      Promise.all([
+        resolvePlaceIfTyped(originEl, originRec),
+        isAny ? Promise.resolve('anywhere') : resolvePlaceIfTyped(destEl, destRec)
+      ]).then(function (resolved) {
+        var o = resolved[0];
+        var d = resolved[1];
+        if (!o || o.lat == null || o.lon == null) {
+          state.freshPullBusy = false;
+          if (goBtn) { goBtn.disabled = false; goBtn.textContent = 'Pull fresh loads'; }
+          setFreshPullStatus('Pick an origin city, ZIP, or tap Use my GPS.', 'err');
+          return;
+        }
+        originRec = o;
+        if (!isAny && (!d || d === 'anywhere' || d.lat == null || d.lon == null)) {
+          state.freshPullBusy = false;
+          if (goBtn) { goBtn.disabled = false; goBtn.textContent = 'Pull fresh loads'; }
+          setFreshPullStatus('Pick a destination city or check Anywhere.', 'err');
+          return;
+        }
+        if (!isAny) destRec = d;
+        var payload = {
+          origin: o,
+          destination: isAny ? 'anywhere' : d,
+          radius_mi: rad
+        };
+        return postRelayRequest('fresh_pull', payload).then(function (res) {
+          state.freshPullBusy = false;
+          if (goBtn) { goBtn.disabled = false; goBtn.textContent = 'Pull fresh loads'; }
+          if (res.ok) {
+            state.freshPullLastOkAt = Date.now();
+            setFreshPullStatus('Search started - loads arrive in a few minutes', 'ok');
+            startFreshPullPolling();
+            return;
+          }
+          if (res.wrongPin) {
+            state.relayConnectOpen = true;
+            state.relayConnectMsg = 'Wrong PIN. Re-enter your PIN and tap Save PIN.';
+            state.relayConnectErr = true;
+            setFreshPullStatus('Wrong PIN - tap Connect to fix your PIN.', 'err');
+            renderSearches();
+            return;
+          }
+          setFreshPullStatus(res.error || 'Could not start search.', 'err');
+        });
+      }).catch(function () {
+        state.freshPullBusy = false;
+        if (goBtn) { goBtn.disabled = false; goBtn.textContent = 'Pull fresh loads'; }
+        setFreshPullStatus('Could not start search. Try again.', 'err');
+      });
     });
   }
 
@@ -4869,22 +5223,31 @@
 
   function searchToolbar() {
     var spinHidden = state.searchRefreshing ? '' : ' hidden';
+    var connected = !!getRelayPin();
     return '<div id="search-pull" class="pull">Pull to refresh</div>' +
       '<div class="search-toolbar">' +
         '<p class="search-updated" id="search-updated">' +
           '<span id="search-spinner" class="search-spinner"' + spinHidden + ' aria-hidden="true"></span>' +
           '<span id="search-updated-text">' + esc(searchUpdatedText()) + '</span>' +
         '</p>' +
-        '<button type="button" class="btn" id="search-refresh-btn"' +
-          (state.searchRefreshing ? ' disabled' : '') + '>Refresh</button>' +
+        '<div class="search-toolbar-actions">' +
+          '<button type="button" class="btn relay-gear-btn' + (connected ? ' connected' : '') + '" id="relay-gear-btn" aria-expanded="' + (state.relayConnectOpen ? 'true' : 'false') + '" aria-controls="relay-connect-panel">' +
+            '&#9881; ' + (connected ? 'Connected' : 'Connect') +
+          '</button>' +
+          '<button type="button" class="btn" id="search-refresh-btn"' +
+            (state.searchRefreshing ? ' disabled' : '') + '>Refresh</button>' +
+        '</div>' +
       '</div>' +
-      '<p class="fine">Refresh reloads the latest saved scan. It does not start a new board search.</p>' +
+      renderConnectPanel() +
+      renderFreshPull() +
+      '<p class="fine">Refresh reloads the latest saved scan. Use Pull fresh loads above to start a new scan.</p>' +
       renderTruckAt();
   }
 
   function bindSearchRefresh() {
     var btn = $('search-refresh-btn');
     if (btn) btn.addEventListener('click', function () { refreshSearches(); });
+    bindConnectPanel();
     bindTruckAt();
     bindFreshPull();
   }
@@ -5114,7 +5477,6 @@
           countTile('pass', 'Pass', counts.pass || 0) +
         '</div>' +
         rateLegend() +
-        renderFreshPull() +
       '</div>' +
       controlsHtml +
       '<div id="search-list">' +
@@ -5299,11 +5661,37 @@
     loadDieselPrices();
     var ver = $('app-version');
     if (ver) ver.textContent = APP_VERSION;
+    var sSave = $('settings-relay-save');
+    var sClear = $('settings-relay-clear');
+    var sPin = $('settings-relay-pin');
+    if (sSave) sSave.addEventListener('click', function () {
+      var v = sPin ? String(sPin.value || '').trim() : '';
+      if (!v) {
+        var sst = $('settings-relay-status');
+        if (sst) { sst.textContent = 'Type your PIN first.'; sst.className = 'relay-connect-status err'; }
+        return;
+      }
+      setRelayPin(v);
+      if (sPin) sPin.value = '';
+      if (state.tab === 'searches') renderSearches();
+      flushDeliveredOutbox();
+    });
+    if (sClear) sClear.addEventListener('click', function () {
+      setRelayPin('');
+      if (sPin) sPin.value = '';
+      if (state.tab === 'searches') renderSearches();
+    });
+    syncSettingsRelayUI();
+    window.addEventListener('online', function () { flushDeliveredOutbox(); });
     renderCheck();
     refreshFeed();
     refreshSearches();
+    flushDeliveredOutbox();
     document.addEventListener('visibilitychange', function () {
-      if (document.visibilityState === 'visible') refreshSearches();
+      if (document.visibilityState === 'visible') {
+        refreshSearches();
+        flushDeliveredOutbox();
+      }
     });
   }
 
