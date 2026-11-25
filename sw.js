@@ -3,18 +3,21 @@
    caches are dropped and phones pick up the new build.
    Shell files (HTML, JS, CSS, the worker) are network-first with cache:
    'no-store', so GitHub Pages' max-age=600 cannot keep a stale copy.
-   data/feed.json, data/load_searches.json, data/diesel_prices.json and data/stops.json are
-   network-first with a 12 s timeout, then the cached copy. */
-var CACHE = 'blackram-v29';
+   data/feed.json, data/diesel_prices.json and data/stops.json are
+   network-first with a 12 s timeout, then the cached copy.
+   data/load_searches.json is always fetched with cache: 'no-store' and is
+   not precached. A cached copy is used only when the network request fails,
+   so a new scan shows on the next open or refresh without a version bump. */
+var CACHE = 'blackram-v30';
 var ASSETS = [
   './',
   './index.html',
   './styles.css',
-  './styles.css?v=29',
+  './styles.css?v=30',
   './app.js',
-  './app.js?v=29',
+  './app.js?v=30',
   './stops.js',
-  './stops.js?v=29',
+  './stops.js?v=30',
   './manifest.json',
   './manifest.json?v=3',
   './manifest.webmanifest',
@@ -40,7 +43,6 @@ var ASSETS = [
   './fonts/oswald-600.woff2',
   './fonts/oswald-700.woff2',
   './data/feed.json',
-  './data/load_searches.json',
   './data/diesel_prices.json',
   './data/stops.json',
   './vendor/leaflet/leaflet.css',
@@ -52,8 +54,12 @@ var ASSETS = [
   './vendor/leaflet/images/layers-2x.png'
 ];
 
+function isLoadSearches(url) {
+  return url.pathname.endsWith('/data/load_searches.json');
+}
+
 function isFreshData(url) {
-  return url.pathname.endsWith('/data/feed.json') || url.pathname.endsWith('/data/load_searches.json') || url.pathname.endsWith('/data/diesel_prices.json') || url.pathname.endsWith('/data/stops.json');
+  return url.pathname.endsWith('/data/feed.json') || url.pathname.endsWith('/data/diesel_prices.json') || url.pathname.endsWith('/data/stops.json');
 }
 
 function isShell(url, req) {
@@ -158,6 +164,22 @@ self.addEventListener('fetch', function (event) {
   var url;
   try { url = new URL(req.url); } catch (err) { return; }
   if (url.origin !== self.location.origin) return;
+
+  if (isLoadSearches(url)) {
+    // Always go to the network with no-store. Do not serve a 12 s stale
+    // copy; that is how yesterday's board stayed on the phone after a new
+    // scan. Cached JSON is only used when the request itself fails.
+    var key = pathKey(url);
+    event.respondWith(
+      fetch(req, { cache: 'no-store' }).then(function (res) {
+        store(key, res);
+        return res;
+      }).catch(function () {
+        return feedFromCache(key);
+      })
+    );
+    return;
+  }
 
   if (isFreshData(url)) {
     // One cache entry per data file (ignore the ?t= cache-buster) so the

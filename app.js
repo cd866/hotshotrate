@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v29';
+  var APP_VERSION = 'v30';
   var SETTINGS_KEY = 'blackram_settings_v4';
   var SETTINGS_KEY_V1 = 'blackram_settings_v1';
   var SETTINGS_KEY_V2 = 'blackram_settings_v2';
@@ -1555,8 +1555,9 @@
     setSearchRefreshing(true);
     // Cache-bust so the phone gets the newest saved scan, not a stale copy.
     // This only reloads data/load_searches.json. It does not start a new board search.
+    // no-store plus the cache-bust query so a new scan shows without a version bump.
     var url = 'data/load_searches.json?t=' + Date.now();
-    state.searchInflight = fetchTimed(url, { cache: 'no-cache' }, 15000).then(function (res) {
+    state.searchInflight = fetchTimed(url, { cache: 'no-store' }, 15000).then(function (res) {
       if (!res.ok) throw new Error('Load Boards responded ' + res.status);
       var fromCache = res.headers.get('X-Feed-Cache') === '1';
       return res.json().then(function (data) {
@@ -3538,7 +3539,87 @@
     return html + '</div>';
   }
 
-  function renderSearchCard(row) {
+  function comboPackages(data) {
+    var list = (data && data.combos) ? data.combos : [];
+    var comboN = 0;
+    var chainN = 0;
+    return list.map(function (combo) {
+      var chain = !!(combo.kind && combo.kind !== 'shared');
+      if (chain) {
+        chainN += 1;
+        return { combo: combo, chain: true, n: chainN, label: 'Chain ' + chainN };
+      }
+      comboN += 1;
+      return { combo: combo, chain: false, n: comboN, label: 'Combo ' + comboN };
+    });
+  }
+
+  function loadKey(row) {
+    if (!row) return '';
+    var ln = String(row.load_number || '').trim();
+    return [row.board || '', row.origin || '', row.destination || '', ln || String(row.posted_rate || ''), String(row.weight_lb || '')].join('|').toLowerCase();
+  }
+
+  function alsoInLabels(row, data) {
+    var key = loadKey(row);
+    if (!key) return [];
+    var names = [];
+    comboPackages(data).forEach(function (pkg) {
+      var loads = pkg.combo.loads || [];
+      for (var i = 0; i < loads.length; i++) {
+        if (loadKey(loads[i]) === key) {
+          names.push(pkg.label);
+          break;
+        }
+      }
+    });
+    return names;
+  }
+
+  function typeBadgeHtml(kind, text) {
+    return '<span class="type-badge ' + kind + '">' + esc(text) + '</span>';
+  }
+
+  function packageTypeBadge(combo) {
+    var n = (combo.loads || []).length;
+    if (combo.kind && combo.kind !== 'shared') {
+      return typeBadgeHtml('chain', 'CHAIN (leg 1 of ' + n + ')');
+    }
+    return typeBadgeHtml('combo', 'COMBO (' + n + ' load' + (n === 1 ? '' : 's') + ')');
+  }
+
+  function renderLegBox(row, i, total) {
+    var route = (row.origin || 'Origin') + ' to ' + (row.destination || 'Destination');
+    var miles = rowLoadedMiles(row);
+    var milesTxt = miles ? plainNum(miles, 0) + ' mi' : 'miles n/a';
+    var wt = row.weight_lb != null ? plainNum(row.weight_lb, 0) + ' lb' : 'weight n/a';
+    var rate = row.posted_rate != null ? money(row.posted_rate) : 'rate n/a';
+    return '<div class="combo-leg-box">' +
+      '<div class="combo-leg-kicker">Leg ' + (i + 1) + ' of ' + total + '</div>' +
+      '<div class="combo-leg-route">' + esc(route) + '</div>' +
+      '<div class="combo-leg-stats">' +
+        '<span>' + esc(milesTxt) + '</span>' +
+        '<span>' + esc(wt) + '</span>' +
+        '<span>' + esc(rate) + '</span>' +
+      '</div>' +
+      '</div>';
+  }
+
+  function scrollToSearchGroup(name) {
+    var id = 'search-list';
+    if (name === 'take') id = 'search-group-take';
+    else if (name === 'maybe') id = 'search-group-maybe';
+    else if (name === 'pass') id = 'search-group-pass';
+    var el = document.getElementById(id) || document.getElementById('search-list') ||
+      document.querySelector('.combo-card, .search-card');
+    if (!el) return;
+    var tab = document.querySelector('.tabbar');
+    var offset = (tab ? tab.getBoundingClientRect().height : 0) + 8;
+    var top = el.getBoundingClientRect().top + window.pageYOffset - offset;
+    window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+  }
+
+  function renderSearchCard(row, data) {
     var verd = String(row.verdict || 'PASS').toLowerCase();
     var origin = row.origin || 'Origin';
     var dest = row.destination || 'Destination';
@@ -3554,11 +3635,15 @@
     if (row.load_number) bits.push('Load # ' + row.load_number);
     if (row.notes) bits.push(row.notes);
     var reason = verdictReason(row);
+    var also = alsoInLabels(row, data);
+    var alsoHtml = also.length ? '<p class="also-in">also in ' + esc(also.join(', ')) + '</p>' : '';
     return '<article class="search-card ' + esc(verd) + '">' +
+      '<div class="type-badge-row">' + typeBadgeHtml('single', 'SINGLE') + '</div>' +
       '<div class="search-head">' +
         netBlock(row.net_est, perHourValue(row), netPerMileValue(row), '', row) +
         '<span class="verdict-pill ' + esc(verd) + '">' + esc(row.verdict || 'PASS') + '</span>' +
       '</div>' +
+      alsoHtml +
       (reason ? '<p class="search-reason">' + esc(reason) + '</p>' : '') +
       '<div class="lane">' + esc(origin) + ' to ' + esc(dest) + '</div>' +
       loadStatRow(row, searchOriginLabel()) +
@@ -3570,7 +3655,7 @@
       searchActions(row) + '</article>';
   }
 
-  function renderComboCard(combo) {
+  function renderComboCard(combo, pkg) {
     var verd = String(combo.verdict || 'MAYBE').toLowerCase();
     var stops = (combo.stop_order || []).map(function (stop) {
       return '<li><span class="act">' + esc(stop.action) + '</span> ' + esc(stop.place) +
@@ -3578,32 +3663,37 @@
         (stop.window ? ' · ' + esc(stop.window) : '') + '</li>';
     }).join('');
     var comboLoads = combo.loads || [];
+    var nLegs = comboLoads.length;
     var legs = comboLoads.map(function (row, i) {
-      var from;
-      if (combo.kind === 'shared') from = searchOriginLabel() + ' (solo run)';
-      else from = i === 0 ? searchOriginLabel() : (comboLoads[i - 1].destination || 'previous drop');
-      var bits = [(row.origin || '') + ' to ' + (row.destination || '')];
-      if (row.board) bits.push(row.board);
-      if (row.load_number) bits.push('Load # ' + row.load_number);
-      var reason = verdictReason(row);
-      return '<li class="combo-leg ' + esc(String(row.verdict || '').toLowerCase()) + '">' +
-        '<div class="search-head">' +
-          netBlock(row.net_est, perHourValue(row), netPerMileValue(row), '', row) +
-          (row.verdict ? '<span class="verdict-pill ' + esc(String(row.verdict).toLowerCase()) + '">' + esc(row.verdict) + '</span>' : '') +
-        '</div>' +
-        (reason ? '<p class="search-reason">' + esc(reason) + '</p>' : '') +
-        '<div class="lane">' + (i + 1) + '. ' + esc(bits.join(' · ')) + '</div>' +
-        loadStatRow(row, from) +
-        routeBlock(routePayload(row), loadMapsUrl(row), (row.origin || '') + ' to ' + (row.destination || '') + ' route map') +
-        searchActions(row) + '</li>';
+      return renderLegBox(row, i, nLegs);
     }).join('');
+    var rateSum = 0;
+    var rateOk = nLegs > 0;
+    comboLoads.forEach(function (row) {
+      if (row.posted_rate == null || !isFinite(Number(row.posted_rate))) rateOk = false;
+      else rateSum += Number(row.posted_rate);
+    });
     var wt = combo.combined_weight_lb != null ? plainNum(combo.combined_weight_lb, 0) + ' lb' : 'n/a';
     if (combo.weight_unknown) wt += ' (some not listed)';
+    var totalBits = [];
+    if (combo.loaded_mi != null) totalBits.push(plainNum(combo.loaded_mi, 0) + ' mi');
+    else if (combo.total_mi != null) totalBits.push(plainNum(combo.total_mi, 0) + ' mi');
+    if (combo.combined_weight_lb != null) totalBits.push(plainNum(combo.combined_weight_lb, 0) + ' lb');
+    if (rateOk) totalBits.push(money(rateSum));
+    else if (combo.posted_rate != null) totalBits.push(money(combo.posted_rate));
+    if (combo.net_est != null) totalBits.push('Net EST ' + money(combo.net_est));
+    var totalLine = '<div class="combo-total">' +
+      '<div class="combo-total-kicker">Combined total</div>' +
+      '<div class="combo-total-stats">' +
+        (totalBits.length ? totalBits.map(function (bit) { return '<span>' + esc(bit) + '</span>'; }).join('') : '') +
+      '</div></div>';
     var len = combo.combined_length_ft != null ? plainNum(combo.combined_length_ft, 1) + ' ft' : 'n/a';
     if (combo.length_unknown) len += ' (some not listed)';
     var kind = combo.kind === 'shared' ? 'Shared deck' : 'Sequential chain';
     var reason = verdictReason(combo);
+    var nameHtml = (pkg && pkg.label) ? '<span class="combo-name">' + esc(pkg.label) + '</span>' : '';
     return '<article class="combo-card ' + esc(verd) + '">' +
+      '<div class="type-badge-row">' + packageTypeBadge(combo) + nameHtml + '</div>' +
       '<div class="search-head">' +
         netBlock(combo.net_est, perHourValue(combo, (combo.loads || []).length),
           netPerMileValue(combo),
@@ -3623,34 +3713,48 @@
       '</div>' +
       routeBlock(routePayload(combo), comboMapsUrl(combo), kind + ' route map') +
       '<p class="combo-label">Stop order</p><ol class="combo-stops">' + stops + '</ol>' +
-      '<p class="combo-label">Loads</p><ul class="combo-loads">' + legs + '</ul>' +
+      '<div class="combo-legs">' + legs + totalLine + '</div>' +
       ((combo.flags && combo.flags.length) ? '<p class="search-flags">' + esc(combo.flags.join(' ')) + '</p>' : '') +
       '</article>';
   }
 
   function renderCombos(data) {
-    var list = (data && data.combos) ? data.combos.slice() : [];
+    var packages = comboPackages(data);
     var cap = Number(state.maxDeadhead) || 0;
     if (cap > 0) {
-      list = list.filter(function (combo) {
+      packages = packages.filter(function (pkg) {
+        var combo = pkg.combo;
         var first = (combo.loads || [])[0];
         var dh = first ? rowEmptyMiles(first) : combo.deadhead_mi;
         return dh == null || dh <= cap;
       });
     }
-    var body;
-    if (!list.length) {
-      body = '<p class="fine">No 2- or 3-load combos in this scan cleared the $1,000 net bar with a feasible route. Many postings were full TL, over the 15,300 lb or 40 ft limit, or did not line up for a shared deck or a sequential chain.</p>';
-    } else {
-      body = list.map(renderComboCard).join('');
+    var f = state.searchFilter || 'all';
+    if (f === 'take' || f === 'maybe' || f === 'pass') {
+      packages = packages.filter(function (pkg) {
+        return String(pkg.combo.verdict || '').toLowerCase() === f;
+      });
+    } else if (f === 'truckstop' || f === 'df') {
+      packages = [];
     }
+    var body;
+    if (!packages.length) {
+      if (f === 'all') {
+        body = '<p class="fine">No 2- or 3-load combos in this scan cleared the $1,000 net bar with a feasible route. Many postings were full TL, over the 15,300 lb or 40 ft limit, or did not line up for a shared deck or a sequential chain.</p>';
+      } else {
+        body = '';
+      }
+    } else {
+      body = packages.map(function (pkg) { return renderComboCard(pkg.combo, pkg); }).join('');
+    }
+    if (!body) return '';
     return '<div class="combos">' +
       '<h3>Combos</h3>' +
       '<p class="fine">Shared-deck and sequential chains, ranked by total net EST and net per day. A combo needs at least $1,000 net EST and must beat its best single load by $200, with no losing leg.</p>' +
       body + '</div>';
   }
 
-  function renderSearchGroups(rows) {
+  function renderSearchGroups(rows, data) {
     var groups = { TAKE: [], MAYBE: [], PASS: [] };
     rows.forEach(function (row) {
       var key = String(row.verdict || 'PASS').toUpperCase();
@@ -3659,18 +3763,20 @@
     });
     var labels = { TAKE: 'Take', MAYBE: 'Maybe', PASS: 'Pass' };
     var html = '';
+    var filter = state.searchFilter || 'all';
     ['TAKE', 'MAYBE', 'PASS'].forEach(function (key) {
       var list = groups[key] || [];
       if (!list.length) return;
-      var cards = list.map(renderSearchCard).join('');
+      var cards = list.map(function (row) { return renderSearchCard(row, data); }).join('');
       var title = labels[key] + ' (' + list.length + ')';
-      if (key === 'PASS') {
+      var gid = 'search-group-' + key.toLowerCase();
+      if (key === 'PASS' && filter !== 'pass') {
         var onlyPass = !groups.TAKE.length && !groups.MAYBE.length;
-        html += '<details class="search-group pass-group"' + (onlyPass ? ' open' : '') + '>' +
+        html += '<details class="search-group pass-group" id="' + gid + '"' + (onlyPass ? ' open' : '') + '>' +
           '<summary class="search-group-head pass">' + esc(title) + '</summary>' +
           cards + '</details>';
       } else {
-        html += '<section class="search-group">' +
+        html += '<section class="search-group" id="' + gid + '">' +
           '<h3 class="search-group-head ' + key.toLowerCase() + '">' + esc(title) + '</h3>' +
           cards + '</section>';
       }
@@ -3722,18 +3828,25 @@
     var formula = rules.formula || 'net EST = rate x 0.87 - $1.14 per loaded mile (fuel and DEF) - $0.30 per deadhead mile';
     var bar = rules.quality_bar || '';
     var rows = filteredSearches(data);
+    var filter = state.searchFilter || 'all';
+    function countTile(name, label, value) {
+      var on = filter === name;
+      return '<button type="button" class="search-count" data-filter="' + name +
+        '" aria-pressed="' + (on ? 'true' : 'false') +
+        '" aria-label="' + label + ', ' + esc(String(value || 0)) +
+        (name === 'all' ? ' loads, show all' : ', show ' + label + ' loads') + '">' +
+        '<div class="n">' + esc(String(value || 0)) + '</div>' +
+        '<div class="l">' + label + '</div></button>';
+    }
     var filters = [
-      ['all', 'All'],
-      ['take', 'TAKE'],
-      ['maybe', 'MAYBE'],
-      ['pass', 'PASS'],
       ['truckstop', 'Truckstop'],
       ['df', 'Direct Freight']
     ].map(function (pair) {
-      var on = (state.searchFilter || 'all') === pair[0];
+      var on = filter === pair[0];
       return '<button type="button" data-filter="' + pair[0] + '" aria-pressed="' + (on ? 'true' : 'false') + '">' + pair[1] + '</button>';
     }).join('');
-    var cards = renderSearchGroups(rows);
+    var cards = renderSearchGroups(rows, data);
+    var combosHtml = renderCombos(data);
     root.innerHTML =
       head +
       '<div class="searches-hero">' +
@@ -3742,24 +3855,29 @@
           (data.origin ? ' / from ' + esc(data.origin) : '') +
           (state.searchOffline ? ' / offline copy' : '') + '</p>' +
         '<p class="fine">' + esc(formula) + '. ' + esc(bar) + '</p>' +
-        '<div class="search-counts">' +
-          '<div class="search-count"><div class="n">' + esc(String(counts.total || 0)) + '</div><div class="l">Loads</div></div>' +
-          '<div class="search-count"><div class="n">' + esc(String(counts.take || 0)) + '</div><div class="l">TAKE</div></div>' +
-          '<div class="search-count"><div class="n">' + esc(String(counts.maybe || 0)) + '</div><div class="l">MAYBE</div></div>' +
-          '<div class="search-count"><div class="n">' + esc(String(counts.pass || 0)) + '</div><div class="l">PASS</div></div>' +
+        '<div class="search-counts" role="group" aria-label="Filter load boards by verdict">' +
+          countTile('all', 'Loads', counts.total || 0) +
+          countTile('take', 'TAKE', counts.take || 0) +
+          countTile('maybe', 'MAYBE', counts.maybe || 0) +
+          countTile('pass', 'PASS', counts.pass || 0) +
         '</div>' +
         rateLegend() +
         renderFreshPull() +
       '</div>' +
-      renderCombos(data) +
+      '<div id="search-list">' +
+      combosHtml +
       renderSearchChart(rows) +
-      '<div class="search-filters" role="group" aria-label="Filter load boards">' + filters + '</div>' +
-      cards;
+      '<div class="search-filters" role="group" aria-label="Filter load boards by board">' + filters + '</div>' +
+      cards +
+      '</div>';
     bindSearchRefresh();
-    root.querySelectorAll('.search-filters button').forEach(function (btn) {
+    root.querySelectorAll('[data-filter]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         state.searchFilter = btn.getAttribute('data-filter') || 'all';
         renderSearches();
+        requestAnimationFrame(function () {
+          scrollToSearchGroup(state.searchFilter);
+        });
       });
     });
     observeRouteMaps(root);
@@ -3867,6 +3985,9 @@
     renderCheck();
     refreshFeed();
     refreshSearches();
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') refreshSearches();
+    });
   }
 
   window.BlackRam = {
