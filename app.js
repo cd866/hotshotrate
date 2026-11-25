@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v30';
+  var APP_VERSION = 'v31';
   var SETTINGS_KEY = 'blackram_settings_v4';
   var SETTINGS_KEY_V1 = 'blackram_settings_v1';
   var SETTINGS_KEY_V2 = 'blackram_settings_v2';
@@ -9,6 +9,8 @@
   var FEED_CACHE_KEY = 'blackram_feed_cache_v1';
   var SEARCH_CACHE_KEY = 'blackram_search_cache_v1';
   var PERIOD_KEY = 'blackram_period_v1';
+  var DELIVERED_KEY = 'blackram_delivered_v1';
+  var DELIVERED_OUTBOX_KEY = 'blackram_delivered_outbox_v1';
   var SPLASH_KEY = 'blackram_splash_seen';
   var ALL_TIME = 'all';
 
@@ -36,6 +38,9 @@
     routeCache: null,
     geoCache: null,
     viewMonth: null,
+    deliverUndoId: '',
+    deliverUndoUntil: 0,
+    deliverUndoTimer: null,
     offline: false,
     savedAt: null,
     error: '',
@@ -735,12 +740,146 @@
     return 'unpaid';
   }
 
+  function pad2(n) {
+    return (n < 10 ? '0' : '') + n;
+  }
+
+  function loadId(load) {
+    if (!load) return '';
+    if (load.load_id) return String(load.load_id);
+    if (load.load_no) return String(load.load_no);
+    return [load.date || '', load.pickup_place || '', load.drop_place || '', load.desc || '', load.lane || ''].join('|');
+  }
+
+  function readJsonKey(key, fallback) {
+    try {
+      var raw = localStorage.getItem(key);
+      if (!raw) return fallback;
+      var val = JSON.parse(raw);
+      return val == null ? fallback : val;
+    } catch (err) {
+      return fallback;
+    }
+  }
+
+  function writeJsonKey(key, val) {
+    try { localStorage.setItem(key, JSON.stringify(val)); } catch (err) { /* private mode */ }
+  }
+
+  function readDeliveredMap() {
+    var map = readJsonKey(DELIVERED_KEY, {});
+    return (map && typeof map === 'object' && !Array.isArray(map)) ? map : {};
+  }
+
+  function writeDeliveredMap(map) {
+    writeJsonKey(DELIVERED_KEY, map || {});
+  }
+
+  function readDeliveredOutbox() {
+    var list = readJsonKey(DELIVERED_OUTBOX_KEY, []);
+    return Array.isArray(list) ? list : [];
+  }
+
+  function writeDeliveredOutbox(list) {
+    writeJsonKey(DELIVERED_OUTBOX_KEY, list || []);
+  }
+
+  function localDelivery(loadOrId) {
+    var id = typeof loadOrId === 'string' ? loadOrId : loadId(loadOrId);
+    if (!id) return null;
+    var rec = readDeliveredMap()[id];
+    return rec && rec.load_id ? rec : null;
+  }
+
+  function queueDeliveredOutbox(rec) {
+    var list = readDeliveredOutbox().filter(function (row) {
+      return !row || String(row.load_id) !== String(rec.load_id);
+    });
+    list.push({
+      load_id: rec.load_id,
+      delivered_at: rec.delivered_at,
+      note: rec.note || ''
+    });
+    writeDeliveredOutbox(list);
+  }
+
+  function dropDeliveredOutbox(id) {
+    writeDeliveredOutbox(readDeliveredOutbox().filter(function (row) {
+      return row && String(row.load_id) !== String(id);
+    }));
+  }
+
+  function chicagoDateTimeLocal(parts) {
+    parts = parts || chicagoNowParts();
+    return parts.year + '-' + pad2(parts.month) + '-' + pad2(parts.day) + 'T' +
+      pad2(parts.hour) + ':' + pad2(parts.minute);
+  }
+
+  function chicagoStampFromLocalInput(value) {
+    var m = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+    if (!m) return chicagoStampFromLocalInput(chicagoDateTimeLocal());
+    var y = Number(m[1]);
+    var mo = Number(m[2]);
+    var d = Number(m[3]);
+    var h = Number(m[4]);
+    var mi = Number(m[5]);
+    var offs = ['-06:00', '-05:00'];
+    var i;
+    for (i = 0; i < offs.length; i++) {
+      var iso = m[1] + '-' + m[2] + '-' + m[3] + 'T' + m[4] + ':' + m[5] + ':00' + offs[i];
+      var p = chicagoNowParts(new Date(iso));
+      if (p.year === y && p.month === mo && p.day === d && p.hour === h && p.minute === mi) return iso;
+    }
+    return m[1] + '-' + m[2] + '-' + m[3] + 'T' + m[4] + ':' + m[5] + ':00-06:00';
+  }
+
+  function formatDeliveredAt(iso) {
+    var p = parseYmd(iso);
+    if (!p) return String(iso || '');
+    var mon = MON[p.month - 1] || p.month;
+    if (p.hour == null) return mon + ' ' + p.day;
+    var h = p.hour;
+    var ap = 'AM';
+    if (h === 0) h = 12;
+    else if (h === 12) ap = 'PM';
+    else if (h > 12) { h -= 12; ap = 'PM'; }
+    return mon + ' ' + p.day + ', ' + h + ':' + pad2(p.minute) + ' ' + ap + ' CT';
+  }
+
+  function canMarkDelivered(load) {
+    if (!load || isCancelledLoad(load)) return false;
+    if (localDelivery(load)) return false;
+    var status = resolveRunStatus(load, chicagoNowParts());
+    return status === 'booked' || status === 'in_transit';
+  }
+
+  function findFeedLoad(id) {
+    var months = (state.feed && state.feed.months) || [];
+    var i, j, loads;
+    for (i = 0; i < months.length; i++) {
+      loads = months[i].loads || [];
+      for (j = 0; j < loads.length; j++) {
+        if (loadId(loads[j]) === String(id)) return loads[j];
+      }
+    }
+    return null;
+  }
+
   function withResolvedStatus(load) {
     var nowParts = chicagoNowParts();
-    var run = resolveRunStatus(load, nowParts);
-    var pay = resolvePayStatus(load, run, nowParts);
+    var rec = localDelivery(load);
+    var src = load || {};
+    var run = resolveRunStatus(src, nowParts);
+    if (rec && !isCancelledLoad(src)) run = 'delivered';
+    var pay = resolvePayStatus(src, run, nowParts);
     var out = {};
-    Object.keys(load || {}).forEach(function (key) { out[key] = load[key]; });
+    Object.keys(src).forEach(function (key) { out[key] = src[key]; });
+    if (rec && !isCancelledLoad(src)) {
+      out._local_delivery = rec;
+      if (rec.delivered_at) out.delivered_at = rec.delivered_at;
+      var day = rec.delivered_at ? String(rec.delivered_at).slice(0, 10) : '';
+      if (day) out.delivered_date = day;
+    }
     out.status = run;
     out.pay_status = pay;
     return out;
@@ -1084,10 +1223,24 @@
       '</div>';
     var toggle = '<button type="button" class="load-toggle" aria-expanded="false">' +
       (canMap ? 'Show route' : 'Show $/mi') + '</button>';
+    var id = loadId(load);
+    var local = localDelivery(load);
+    var markable = canMarkDelivered(load);
     load = withResolvedStatus(load);
     var statusCls = 'load-' + String(load.status || '').replace(/_/g, '-');
     var payCls = load.pay_status ? ' load-pay-' + String(load.pay_status).replace(/_/g, '-') : '';
-    return '<article class="load has-route ' + esc(statusCls) + esc(payCls) + '">' +
+    var deliverBits = '';
+    if (local) {
+      deliverBits += '<p class="delivered-meta">Delivered ' + esc(formatDeliveredAt(local.delivered_at)) +
+        (local.note ? ' · ' + esc(local.note) : '') + '</p>';
+      deliverBits += '<p class="deliver-sync-note">Saved on this phone - Grok Bot syncs it to the books</p>';
+      deliverBits += '<button type="button" class="btn undo-delivered-btn" data-load-id="' + esc(id) +
+        '">Undo</button>';
+    } else if (markable) {
+      deliverBits += '<button type="button" class="btn primary mark-delivered-btn" data-load-id="' +
+        esc(id) + '">Mark delivered</button>';
+    }
+    return '<article class="load has-route ' + esc(statusCls) + esc(payCls) + '" data-load-id="' + esc(id) + '">' +
       '<h3>' + esc(load.desc || 'Load') + payBadge(load) + '</h3>' +
       '<p class="lane">' + esc(when) + (load.lane ? ' · ' + esc(load.lane) : '') + '</p>' +
       milesStrip(miles, emp.mi, { loadedEst: !!load.miles_estimate, emptyEst: true, emptyFrom: emp.from }) +
@@ -1108,6 +1261,7 @@
       '<div><span>All-mi $/mi</span><b>' + allRate + '</b></div>' +
       '<div><span>Net</span><b>' + money(roundMoney(gross - fee)) + '</b></div>' +
       '</div>' + payLine(load) +
+      deliverBits +
       '<p class="notes">Fee ' + money(fee) +
       (who ? ' · ' + esc(who) : '') +
       (typeof load.weight_lb === 'number' ? ' · ' + plainNum(load.weight_lb, 0) + ' lb' : '') +
@@ -1251,6 +1405,156 @@
     bindRefresh();
     bindMonthSwitch(root);
     bindLoadRoutes(root);
+    bindDeliveredActions(root);
+    refreshDeliverUndoToast();
+  }
+
+  function deliverLaneLabel(load) {
+    if (!load) return '';
+    if (load.lane) return load.lane;
+    var a = load.pickup_place || '';
+    var b = load.drop_place || '';
+    if (a && b) return a + ' to ' + b;
+    return load.desc || ('Load ' + loadId(load));
+  }
+
+  function openDeliverSheet(id) {
+    var load = findFeedLoad(id);
+    if (!load || !canMarkDelivered(load)) return;
+    var sheet = $('deliver-sheet');
+    var lane = $('deliver-sheet-lane');
+    var when = $('deliver-at');
+    var note = $('deliver-note');
+    if (!sheet || !when) return;
+    sheet.dataset.loadId = id;
+    if (lane) lane.textContent = deliverLaneLabel(load);
+    when.value = chicagoDateTimeLocal();
+    if (note) note.value = '';
+    sheet.removeAttribute('hidden');
+    sheet.classList.add('open');
+    document.documentElement.classList.add('sheet-open');
+    when.focus();
+  }
+
+  function closeDeliverSheet() {
+    var sheet = $('deliver-sheet');
+    if (!sheet) return;
+    sheet.classList.remove('open');
+    sheet.setAttribute('hidden', '');
+    delete sheet.dataset.loadId;
+    document.documentElement.classList.remove('sheet-open');
+  }
+
+  function markLoadDelivered(id, deliveredAt, note) {
+    if (!id) return false;
+    var load = findFeedLoad(id);
+    if (!load || isCancelledLoad(load)) return false;
+    var rec = {
+      load_id: String(id),
+      delivered_at: deliveredAt || chicagoStampFromLocalInput(chicagoDateTimeLocal()),
+      note: String(note || '').trim()
+    };
+    var map = readDeliveredMap();
+    map[rec.load_id] = rec;
+    writeDeliveredMap(map);
+    queueDeliveredOutbox(rec);
+    state.deliverUndoId = rec.load_id;
+    state.deliverUndoUntil = Date.now() + 10000;
+    if (state.tab === 'reports') renderReports();
+    else if (state.tab === 'kpis') renderKpis();
+    refreshDeliverUndoToast();
+    return true;
+  }
+
+  function undoLocalDelivery(id) {
+    if (!id) return;
+    var map = readDeliveredMap();
+    delete map[String(id)];
+    writeDeliveredMap(map);
+    dropDeliveredOutbox(id);
+    if (state.deliverUndoId === String(id)) {
+      state.deliverUndoId = '';
+      state.deliverUndoUntil = 0;
+    }
+    if (state.tab === 'reports') renderReports();
+    else if (state.tab === 'kpis') renderKpis();
+    refreshDeliverUndoToast();
+  }
+
+  function refreshDeliverUndoToast() {
+    var toast = $('deliver-undo-toast');
+    if (!toast) return;
+    var id = state.deliverUndoId;
+    var until = state.deliverUndoUntil || 0;
+    var left = until - Date.now();
+    if (!id || left <= 0 || !localDelivery(id)) {
+      toast.hidden = true;
+      if (state.deliverUndoTimer) {
+        clearTimeout(state.deliverUndoTimer);
+        state.deliverUndoTimer = null;
+      }
+      return;
+    }
+    toast.hidden = false;
+    var text = $('deliver-undo-text');
+    if (text) text.textContent = 'Marked delivered.';
+    if (state.deliverUndoTimer) clearTimeout(state.deliverUndoTimer);
+    state.deliverUndoTimer = setTimeout(function () {
+      state.deliverUndoId = '';
+      state.deliverUndoUntil = 0;
+      state.deliverUndoTimer = null;
+      var el = $('deliver-undo-toast');
+      if (el) el.hidden = true;
+    }, left);
+  }
+
+  function bindDeliveredActions(root) {
+    var scope = root || document;
+    scope.querySelectorAll('.mark-delivered-btn').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        openDeliverSheet(btn.getAttribute('data-load-id') || '');
+      });
+    });
+    scope.querySelectorAll('.undo-delivered-btn').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        undoLocalDelivery(btn.getAttribute('data-load-id') || '');
+      });
+    });
+  }
+
+  function bindDeliverSheet() {
+    var form = $('deliver-sheet-form');
+    var close = $('deliver-sheet-close');
+    var cancel = $('deliver-sheet-cancel');
+    var undoBtn = $('deliver-undo-now');
+    if (close) close.addEventListener('click', function () { closeDeliverSheet(); });
+    if (cancel) cancel.addEventListener('click', function () { closeDeliverSheet(); });
+    if (form) {
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var sheet = $('deliver-sheet');
+        var id = sheet && sheet.dataset ? sheet.dataset.loadId : '';
+        var when = $('deliver-at');
+        var note = $('deliver-note');
+        var stamp = chicagoStampFromLocalInput(when && when.value);
+        closeDeliverSheet();
+        markLoadDelivered(id, stamp, note && note.value);
+      });
+    }
+    if (undoBtn) {
+      undoBtn.addEventListener('click', function () {
+        undoLocalDelivery(state.deliverUndoId || '');
+      });
+    }
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && $('deliver-sheet') && $('deliver-sheet').classList.contains('open')) {
+        closeDeliverSheet();
+      }
+    });
   }
 
   function bindRefresh() {
@@ -3976,6 +4280,7 @@
       btn.addEventListener('click', function () { showTab(btn.getAttribute('data-tab')); });
     });
     setupPull();
+    bindDeliverSheet();
     recallTruckAt();
     watchTabbar();
     bindRigPhoto();
