@@ -2094,6 +2094,7 @@
     }
     row.fit_flags = flags;
     row.verdict = verdict;
+    delete row.reason;
     row.reason = verdictReason(row);
     return row;
   }
