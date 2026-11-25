@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v32';
+  var APP_VERSION = 'v33';
   var SETTINGS_KEY = 'blackram_settings_v4';
   var SETTINGS_KEY_V1 = 'blackram_settings_v1';
   var SETTINGS_KEY_V2 = 'blackram_settings_v2';
@@ -345,7 +345,7 @@
     if (result.flags && result.flags.length) bits.push(result.flags.join('. ') + '.');
     if (state.tarp) bits.push('Tarp required. We have tarps and straps.');
     return {
-      label: result.verdict === 'take' ? 'TAKE' : (result.verdict === 'maybe' ? 'MAYBE' : (result.verdict === 'idle' ? 'READY' : 'PASS')),
+      label: result.verdict === 'take' ? 'Take' : (result.verdict === 'maybe' ? 'Maybe' : (result.verdict === 'idle' ? 'Ready' : 'Pass')),
       msg: msg,
       meta: bits.join(' ')
     };
@@ -2155,7 +2155,7 @@
     if (days == null && npd == null) return '';
     var low = npd != null && npd < MIN_NET_PER_DAY;
     var badge = (days != null && days >= 1.5)
-      ? '<span class="days-badge">' + esc(formatDays(days)) + ' DAYS</span>'
+      ? '<span class="days-badge">' + esc(formatDays(days)) + ' days</span>'
       : '';
     return '<div class="trip-days' + (low ? ' low-day' : '') + '">' +
       '<div class="td-cell"><span>Trip days</span><b>' + (days == null ? 'n/a' : esc(formatDays(days))) + '</b></div>' +
@@ -3880,6 +3880,15 @@
     return names;
   }
 
+  function displayVerdict(v) {
+    var key = String(v || '').toUpperCase();
+    if (key === 'TAKE') return 'Take';
+    if (key === 'MAYBE') return 'Maybe';
+    if (key === 'PASS') return 'Pass';
+    if (key === 'READY') return 'Ready';
+    return v || '';
+  }
+
   function typeBadgeHtml(kind, text) {
     return '<span class="type-badge ' + kind + '">' + esc(text) + '</span>';
   }
@@ -3887,9 +3896,9 @@
   function packageTypeBadge(combo) {
     var n = (combo.loads || []).length;
     if (combo.kind && combo.kind !== 'shared') {
-      return typeBadgeHtml('chain', 'CHAIN (leg 1 of ' + n + ')');
+      return typeBadgeHtml('chain', 'Chain (leg 1 of ' + n + ')');
     }
-    return typeBadgeHtml('combo', 'COMBO (' + n + ' load' + (n === 1 ? '' : 's') + ')');
+    return typeBadgeHtml('combo', 'Combo (' + n + ' load' + (n === 1 ? '' : 's') + ')');
   }
 
   function renderLegBox(row, i, total) {
@@ -3942,10 +3951,10 @@
     var also = alsoInLabels(row, data);
     var alsoHtml = also.length ? '<p class="also-in">also in ' + esc(also.join(', ')) + '</p>' : '';
     return '<article class="search-card ' + esc(verd) + '">' +
-      '<div class="type-badge-row">' + typeBadgeHtml('single', 'SINGLE') + '</div>' +
+      '<div class="type-badge-row">' + typeBadgeHtml('single', 'Single') + '</div>' +
       '<div class="search-head">' +
         netBlock(row.net_est, perHourValue(row), netPerMileValue(row), '', row) +
-        '<span class="verdict-pill ' + esc(verd) + '">' + esc(row.verdict || 'PASS') + '</span>' +
+        '<span class="verdict-pill ' + esc(verd) + '">' + esc(displayVerdict(row.verdict || 'PASS')) + '</span>' +
       '</div>' +
       alsoHtml +
       (reason ? '<p class="search-reason">' + esc(reason) + '</p>' : '') +
@@ -4003,7 +4012,7 @@
           netPerMileValue(combo),
           '',
           combo, (combo.loads || []).length) +
-        '<span class="verdict-pill ' + esc(verd) + '">' + esc(combo.verdict || 'MAYBE') + '</span>' +
+        '<span class="verdict-pill ' + esc(verd) + '">' + esc(displayVerdict(combo.verdict || 'MAYBE')) + '</span>' +
       '</div>' +
       (reason ? '<p class="search-reason">' + esc(reason) + '</p>' : '') +
       '<div class="lane">' + esc(kind) + '</div>' +
@@ -4161,9 +4170,9 @@
         '<p class="fine">' + esc(formula) + '. ' + esc(bar) + '</p>' +
         '<div class="search-counts" role="group" aria-label="Filter load boards by verdict">' +
           countTile('all', 'Loads', counts.total || 0) +
-          countTile('take', 'TAKE', counts.take || 0) +
-          countTile('maybe', 'MAYBE', counts.maybe || 0) +
-          countTile('pass', 'PASS', counts.pass || 0) +
+          countTile('take', 'Take', counts.take || 0) +
+          countTile('maybe', 'Maybe', counts.maybe || 0) +
+          countTile('pass', 'Pass', counts.pass || 0) +
         '</div>' +
         rateLegend() +
         renderFreshPull() +

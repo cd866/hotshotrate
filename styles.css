@@ -1,10 +1,10 @@
 @font-face {
-  font-family: Inter;
+  font-family: "Nunito Sans";
   font-style: normal;
-  font-weight: 100 900;
+  font-weight: 200 1000;
   font-display: swap;
-  src: url("fonts/inter-variable.woff2") format("woff2-variations"),
-       url("fonts/inter-variable.woff2") format("woff2");
+  src: url("fonts/nunito-sans-variable.woff2") format("woff2-variations"),
+       url("fonts/nunito-sans-variable.woff2") format("woff2");
 }
 
 @font-face {
@@ -58,8 +58,8 @@
   --stripe-take: #34D399;
   --stripe-maybe: #FBBF24;
   --stripe-pass: #F87171;
-  --display: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --body: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --display: "Nunito Sans", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --body: "Nunito Sans", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -2605,3 +2605,191 @@ select {
   letter-spacing: -0.02em;
   font-weight: 600;
 }
+
+
+/* v33 typography: softer, friendlier, sentence case, more air */
+body {
+  line-height: 1.55;
+}
+
+h1, h2, h3, h4,
+.searches-hero h2,
+h2.sec,
+.search-group-head,
+article.load h3,
+.combo-label,
+.sheet h2,
+.stop-name,
+.lane,
+.search-card .lane,
+.combo-card .lane {
+  letter-spacing: 0.01em;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+/* Labels: medium, sentence case, no tight tracking */
+.tabbar button,
+.month-btn,
+.field .lbl,
+.lbl,
+.metric .l,
+.stats .l,
+.search-count .l,
+.kv span,
+.stat-row span,
+.miles-strip .mi-cell span,
+.rate-tile .rate-label,
+.rate-tile .rate-sub,
+.rate-legend .rate-legend-label,
+.rate-legend .rate-pill,
+.big .kicker,
+h2.sec,
+.search-group-head,
+.type-badge,
+.verdict-pill,
+.pay,
+.combo-label,
+.combo-leg-kicker,
+.combo-total-kicker,
+.combo-name,
+.also-in,
+.load-toggle,
+.search-filters button,
+.search-net .unit,
+.chips button,
+.btn,
+.about-btn,
+.seg button,
+.fresh-pull-field,
+.rig-kicker,
+.combo-total-kicker {
+  text-transform: none;
+  letter-spacing: 0.015em;
+  font-weight: 500;
+}
+
+/* Chips and badges use sentence-case copy; do not re-uppercase them */
+.type-badge,
+.verdict-pill,
+.pay,
+.search-count .l,
+.also-in,
+.combo-name,
+.combos h3 {
+  text-transform: none;
+}
+
+/* Key numbers: semibold, not heavy bold; no tight tracking; keep tabular figures */
+.search-net,
+.combo-leg .search-net,
+.search-card.take .search-net,
+.search-card.maybe .search-net,
+.search-card.pass .search-net,
+.combo-card .search-net,
+.rate-tile .rate-value,
+.combo-leg .rate-tile .rate-value,
+.big .n,
+.metric .n,
+.stats .n,
+.search-count .n,
+.kv b,
+.stat-row b,
+.miles-strip .mi-cell b,
+.exp b,
+.combo-total-stats,
+.combo-leg-stats,
+.combo-leg-stats span,
+.combo-total-stats span,
+.net-chart .chart-val {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+
+.search-net,
+.combo-leg .search-net,
+.search-card.take .search-net,
+.search-card.maybe .search-net,
+.search-card.pass .search-net,
+.combo-card .search-net {
+  font-size: 30px;
+  line-height: 1.15;
+}
+.combo-leg .search-net { font-size: 24px; }
+.rate-tile .rate-value { font-size: 24px; line-height: 1.15; }
+.combo-leg .rate-tile .rate-value { font-size: 22px; }
+.big .n { font-size: 48px; line-height: 1.1; letter-spacing: 0; }
+
+/* Comfortable reading text */
+.fine,
+.offline,
+.hint,
+.status p,
+.load .notes,
+.breakdown,
+.notes,
+.search-meta,
+.search-reason,
+.search-math,
+.search-flags,
+.verdict-msg,
+.verdict-meta,
+.deliver-sync-note,
+.delivered-meta,
+.footer,
+.footer p,
+.rig,
+.rig-note,
+.sheet p,
+.sheet li,
+.need p,
+.note p {
+  font-size: 16px;
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+/* More padding and space between rows */
+.search-card,
+.combo-card,
+article.load {
+  padding: 18px 18px;
+  margin-bottom: 18px;
+}
+.search-head { margin-bottom: 10px; }
+.stat-row { gap: 10px; margin-top: 10px; }
+.miles-strip { gap: 10px; margin: 10px 0; }
+.kv { gap: 10px; margin-top: 10px; }
+.metrics, .stats { gap: 10px; }
+.type-badge-row { margin-bottom: 12px; }
+.combo-legs { gap: 12px; padding: 14px; }
+.combo-leg-box { padding: 12px 14px; }
+.searches-hero { margin-bottom: 8px; }
+.search-counts { gap: 10px; margin: 16px 0 8px; }
+.rate-legend { margin: 12px 0; }
+.search-filters { margin: 16px 0 18px; gap: 10px; }
+
+/* Tab chrome stays one line, sentence case, medium weight */
+.tabbar button {
+  white-space: nowrap;
+  font-size: 13px;
+  letter-spacing: 0.01em;
+  font-weight: 500;
+  text-transform: none;
+}
+
+.trip-days .td-cell span,
+.days-badge,
+.truck-at h3 {
+  text-transform: none;
+  letter-spacing: 0.015em;
+  font-weight: 500;
+}
+.trip-days .td-cell span { font-size: 13px; }
+.trip-days .td-cell b,
+.days-badge {
+  font-weight: 600;
+}
+.days-badge { text-transform: none; }
