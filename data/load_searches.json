@@ -25,7 +25,7 @@
     "chain_min": 1000.0,
     "payload_lb": 16000,
     "deck_ft": 40,
-    "formula": "net EST = rate x 0.87 - $1.14 per loaded mile (fuel and DEF) - $0.30 per deadhead mile",
+    "formula": "net EST = rate x 0.87 - (diesel/gal / 8.0 mpg + $0.034/mi DEF) x (loaded + empty miles). Diesel is the EIA on-highway price for the origin state's PADD, week of 2026-11-23. Fallback is $1.14/loaded mi + $0.30/empty mi if no price is on file.",
     "per_hour_formula": "$/hr EST = net EST / hours. Hours = (loaded mi + deadhead mi) / 50 mph + 2 h load/unload per load.",
     "per_hour_mph": 50.0,
     "load_unload_hours": 2.0,
@@ -33,7 +33,9 @@
     "gross_per_mile_formula": "Gross $/mi = posted rate / (loaded mi + empty miles). Rate/mi is posted rate / loaded miles only.",
     "quality_bar": "Single load >= $500 net EST, or >= $300 for a same-day run under 250 total miles. A chain needs >= $1,000 total with no losing leg. Length over 40 ft or weight over 16,000 lb is an automatic PASS. No overhang. Tarp-required, F+T, and FT loads are a fit; the rig has tarps and straps.",
     "combo_bar": "A 2- or 3-load combo needs >= $1,000 total net EST, must beat the best single load in it by at least $200, and no leg may lose money. Shared-deck combos keep combined weight <= 16,000 lb and combined length <= 40 ft for whatever is on the deck at the same time. Extra pickups must stay within about 100 mi of detour and extra drops within about 150 mi. Sequential chains deliver one load, then pick up the next within about 100 mi of the drop. Windows are checked at 550 mi/day. Route miles use the posted trip when the lane matches, otherwise haversine x 1.2. Unknown weight or length is flagged.",
-    "truck_note": "The truck is on Rich Logistics load 168481, Port Wentworth, GA to Graceville, FL, delivering Wed 11/25. Deadhead on this scan is from Graceville, FL, available about midday 11/25. First legs with pickup only on 11/24 are infeasible."
+    "truck_note": "The truck is on Rich Logistics load 168481, Port Wentworth, GA to Graceville, FL, delivering Wed 11/25. Deadhead on this scan is from Graceville, FL, available about midday 11/25. First legs with pickup only on 11/24 are infeasible.",
+    "mpg": 8.0,
+    "def_per_mi": 0.034
   },
   "counts": {
     "total": 29,
@@ -49,11 +51,11 @@
       "kind": "chain",
       "verdict": "TAKE",
       "reason": "Clears the combo bar and beats the best single load.",
-      "net_est": 1161.33,
-      "net_per_day": 234.26,
+      "net_est": 1668.69,
+      "net_per_day": 336.43,
       "hours": 38.68,
-      "per_hour": 30.02,
-      "net_per_mile": 0.67,
+      "per_hour": 43.14,
+      "net_per_mile": 0.96,
       "gross_per_mile": 1.92,
       "posted_rate": 3325.0,
       "days": 4.96,
@@ -63,7 +65,7 @@
       "loaded_mi": 1442.0,
       "deadhead_mi": 291.8,
       "total_mi": 1733.8,
-      "math": "Rates after the 13% Totni fee $2,892.75. Fuel and DEF $1.14 x 1,442 mi = $1,643.88. Empty miles $0.30 x 292 mi = $87.54. Net EST $1,161.33.",
+      "math": "Rates after the 13% Totni fee $2,892.75. Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 1,734 mi (loaded+empty) = $1,224.06. Net EST $1,668.69.",
       "combined_weight_lb": 11000,
       "combined_length_ft": 40.0,
       "weight_unknown": false,
@@ -118,10 +120,10 @@
           "origin": "Douglas, GA",
           "destination": "Edinburg, TX",
           "posted_rate": 2700.0,
-          "net_est": 949.05,
+          "net_est": 1383.12,
           "hours": 29.36,
-          "per_hour": 32.32,
-          "net_per_mile": 0.69,
+          "per_hour": 47.11,
+          "net_per_mile": 1.01,
           "gross_per_mile": 1.97,
           "reason": "",
           "trip_mi": 1178,
@@ -410,17 +412,28 @@
                 "n": 2
               }
             ]
-          }
+          },
+          "fuel": {
+            "diesel_usd_gal": 5.378,
+            "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+            "diesel_region": "PADD1C",
+            "diesel_stop": null,
+            "mpg": 8.0,
+            "def_per_mi": 0.034,
+            "fuel_per_mi": 0.706,
+            "fallback": false
+          },
+          "math": "Rate $2,700.00 x 0.87 = $2,349.00 after the 13% Totni fee ($351.00). Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 1,368 mi (loaded+empty) = $965.88. Net EST $1,383.12."
         },
         {
           "board": "Truckstop",
           "origin": "Alice, TX",
           "destination": "Tomball, TX",
           "posted_rate": 625.0,
-          "net_est": 212.28,
+          "net_est": 289.22,
           "hours": 9.31,
-          "per_hour": 22.8,
-          "net_per_mile": 0.58,
+          "per_hour": 31.07,
+          "net_per_mile": 0.79,
           "gross_per_mile": 1.71,
           "reason": "",
           "trip_mi": 264,
@@ -725,7 +738,18 @@
                 "n": 2
               }
             ]
-          }
+          },
+          "fuel": {
+            "diesel_usd_gal": 5.294,
+            "diesel_source": "EIA Gulf Coast (PADD 3), week of 2026-11-23",
+            "diesel_region": "PADD3",
+            "diesel_stop": null,
+            "mpg": 8.0,
+            "def_per_mi": 0.034,
+            "fuel_per_mi": 0.696,
+            "fallback": false
+          },
+          "math": "Rate $625.00 x 0.87 = $543.75 after the 13% Totni fee ($81.25). Diesel $5.294/gal (EIA Gulf Coast (PADD 3), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.696/mi. Fuel $0.696 x 366 mi (loaded+empty) = $254.53. Net EST $289.22."
         }
       ],
       "flags": [
@@ -1188,17 +1212,27 @@
             "n": 4
           }
         ]
+      },
+      "fuel": {
+        "diesel_usd_gal": 5.378,
+        "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+        "diesel_region": "PADD1C",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.706,
+        "fallback": false
       }
     },
     {
       "kind": "chain",
       "verdict": "MAYBE",
       "reason": "Clears the combo bar, but check fit, timing, or missing size before you book.",
-      "net_est": 1488.81,
-      "net_per_day": 260.68,
+      "net_est": 2252.98,
+      "net_per_day": 394.57,
       "hours": 48.62,
-      "per_hour": 30.62,
-      "net_per_mile": 0.67,
+      "per_hour": 46.34,
+      "net_per_mile": 1.01,
       "gross_per_mile": 1.97,
       "posted_rate": 4400.0,
       "days": 5.71,
@@ -1208,7 +1242,7 @@
       "loaded_mi": 1988.0,
       "deadhead_mi": 242.9,
       "total_mi": 2230.9,
-      "math": "Rates after the 13% Totni fee $3,828.00. Fuel and DEF $1.14 x 1,988 mi = $2,266.32. Empty miles $0.30 x 243 mi = $72.87. Net EST $1,488.81.",
+      "math": "Rates after the 13% Totni fee $3,828.00. Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 2,231 mi (loaded+empty) = $1,575.02. Net EST $2,252.98.",
       "combined_weight_lb": 13000,
       "combined_length_ft": 32.0,
       "weight_unknown": false,
@@ -1263,10 +1297,10 @@
           "origin": "Smithville, GA",
           "destination": "Hollis, OK",
           "posted_rate": 2200.0,
-          "net_est": 637.2,
+          "net_est": 1060.02,
           "hours": 26.19,
-          "per_hour": 24.33,
-          "net_per_mile": 0.53,
+          "per_hour": 40.47,
+          "net_per_mile": 0.88,
           "gross_per_mile": 1.82,
           "reason": "",
           "trip_mi": 1088,
@@ -1555,17 +1589,28 @@
                 "n": 2
               }
             ]
-          }
+          },
+          "fuel": {
+            "diesel_usd_gal": 5.378,
+            "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+            "diesel_region": "PADD1C",
+            "diesel_stop": null,
+            "mpg": 8.0,
+            "def_per_mi": 0.034,
+            "fuel_per_mi": 0.706,
+            "fallback": false
+          },
+          "math": "Rate $2,200.00 x 0.87 = $1,914.00 after the 13% Totni fee ($286.00). Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 1,210 mi (loaded+empty) = $853.98. Net EST $1,060.02."
         },
         {
           "board": "Truckstop",
           "origin": "Tulia, TX",
           "destination": "Somerton, AZ",
           "posted_rate": 2200.0,
-          "net_est": 851.61,
+          "net_est": 1203.18,
           "hours": 22.43,
-          "per_hour": 37.97,
-          "net_per_mile": 0.83,
+          "per_hour": 53.64,
+          "net_per_mile": 1.18,
           "gross_per_mile": 2.15,
           "reason": "",
           "trip_mi": 900,
@@ -1902,7 +1947,18 @@
                 "n": 2
               }
             ]
-          }
+          },
+          "fuel": {
+            "diesel_usd_gal": 5.294,
+            "diesel_source": "EIA Gulf Coast (PADD 3), week of 2026-11-23",
+            "diesel_region": "PADD3",
+            "diesel_stop": null,
+            "mpg": 8.0,
+            "def_per_mi": 0.034,
+            "fuel_per_mi": 0.696,
+            "fallback": false
+          },
+          "math": "Rate $2,200.00 x 0.87 = $1,914.00 after the 13% Totni fee ($286.00). Diesel $5.294/gal (EIA Gulf Coast (PADD 3), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.696/mi. Fuel $0.696 x 1,021 mi (loaded+empty) = $710.82. Net EST $1,203.18."
         }
       ],
       "flags": [
@@ -2417,17 +2473,27 @@
             "n": 4
           }
         ]
+      },
+      "fuel": {
+        "diesel_usd_gal": 5.378,
+        "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+        "diesel_region": "PADD1C",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.706,
+        "fallback": false
       }
     },
     {
       "kind": "chain",
       "verdict": "MAYBE",
       "reason": "Clears the combo bar, but check fit, timing, or missing size before you book.",
-      "net_est": 1311.09,
-      "net_per_day": 271.52,
+      "net_est": 1909.29,
+      "net_per_day": 395.3,
       "hours": 39.87,
-      "per_hour": 32.88,
-      "net_per_mile": 0.73,
+      "per_hour": 47.89,
+      "net_per_mile": 1.06,
       "gross_per_mile": 2.04,
       "posted_rate": 3650.0,
       "days": 4.83,
@@ -2437,7 +2503,7 @@
       "loaded_mi": 1579.0,
       "deadhead_mi": 214.5,
       "total_mi": 1793.5,
-      "math": "Rates after the 13% Totni fee $3,175.50. Fuel and DEF $1.14 x 1,579 mi = $1,800.06. Empty miles $0.30 x 214 mi = $64.35. Net EST $1,311.09.",
+      "math": "Rates after the 13% Totni fee $3,175.50. Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 1,794 mi (loaded+empty) = $1,266.21. Net EST $1,909.29.",
       "combined_weight_lb": 13000,
       "combined_length_ft": 16.0,
       "weight_unknown": false,
@@ -2492,10 +2558,10 @@
           "origin": "Smithville, GA",
           "destination": "Hollis, OK",
           "posted_rate": 2200.0,
-          "net_est": 637.2,
+          "net_est": 1060.02,
           "hours": 26.19,
-          "per_hour": 24.33,
-          "net_per_mile": 0.53,
+          "per_hour": 40.47,
+          "net_per_mile": 0.88,
           "gross_per_mile": 1.82,
           "reason": "",
           "trip_mi": 1088,
@@ -2784,17 +2850,28 @@
                 "n": 2
               }
             ]
-          }
+          },
+          "fuel": {
+            "diesel_usd_gal": 5.378,
+            "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+            "diesel_region": "PADD1C",
+            "diesel_stop": null,
+            "mpg": 8.0,
+            "def_per_mi": 0.034,
+            "fuel_per_mi": 0.706,
+            "fallback": false
+          },
+          "math": "Rate $2,200.00 x 0.87 = $1,914.00 after the 13% Totni fee ($286.00). Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 1,210 mi (loaded+empty) = $853.98. Net EST $1,060.02."
         },
         {
           "board": "Truckstop",
           "origin": "Electra, TX",
           "destination": "Albuquerque, NM",
           "posted_rate": 1450.0,
-          "net_est": 673.89,
+          "net_est": 855.11,
           "hours": 13.68,
-          "per_hour": 49.26,
-          "net_per_mile": 1.15,
+          "per_hour": 62.51,
+          "net_per_mile": 1.46,
           "gross_per_mile": 2.48,
           "reason": "",
           "trip_mi": 491,
@@ -3075,7 +3152,18 @@
                 "n": 2
               }
             ]
-          }
+          },
+          "fuel": {
+            "diesel_usd_gal": 5.294,
+            "diesel_source": "EIA Gulf Coast (PADD 3), week of 2026-11-23",
+            "diesel_region": "PADD3",
+            "diesel_stop": null,
+            "mpg": 8.0,
+            "def_per_mi": 0.034,
+            "fuel_per_mi": 0.696,
+            "fallback": false
+          },
+          "math": "Rate $1,450.00 x 0.87 = $1,261.50 after the 13% Totni fee ($188.50). Diesel $5.294/gal (EIA Gulf Coast (PADD 3), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.696/mi. Fuel $0.696 x 584 mi (loaded+empty) = $406.39. Net EST $855.11."
         }
       ],
       "flags": [
@@ -3569,17 +3657,27 @@
             "n": 4
           }
         ]
+      },
+      "fuel": {
+        "diesel_usd_gal": 5.378,
+        "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+        "diesel_region": "PADD1C",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.706,
+        "fallback": false
       }
     },
     {
       "kind": "chain",
       "verdict": "MAYBE",
       "reason": "Clears the combo bar, but check fit, timing, or missing size before you book.",
-      "net_est": 1140.81,
-      "net_per_day": 199.75,
+      "net_est": 1904.98,
+      "net_per_day": 333.62,
       "hours": 48.62,
-      "per_hour": 23.46,
-      "net_per_mile": 0.51,
+      "per_hour": 39.18,
+      "net_per_mile": 0.85,
       "gross_per_mile": 1.79,
       "posted_rate": 4000.0,
       "days": 5.71,
@@ -3589,7 +3687,7 @@
       "loaded_mi": 1988.0,
       "deadhead_mi": 242.9,
       "total_mi": 2230.9,
-      "math": "Rates after the 13% Totni fee $3,480.00. Fuel and DEF $1.14 x 1,988 mi = $2,266.32. Empty miles $0.30 x 243 mi = $72.87. Net EST $1,140.81.",
+      "math": "Rates after the 13% Totni fee $3,480.00. Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 2,231 mi (loaded+empty) = $1,575.02. Net EST $1,904.98.",
       "combined_weight_lb": 13000,
       "combined_length_ft": 32.0,
       "weight_unknown": false,
@@ -3644,10 +3742,10 @@
           "origin": "Smithville, GA",
           "destination": "Hollis, OK",
           "posted_rate": 2200.0,
-          "net_est": 637.2,
+          "net_est": 1060.02,
           "hours": 26.19,
-          "per_hour": 24.33,
-          "net_per_mile": 0.53,
+          "per_hour": 40.47,
+          "net_per_mile": 0.88,
           "gross_per_mile": 1.82,
           "reason": "",
           "trip_mi": 1088,
@@ -3936,17 +4034,28 @@
                 "n": 2
               }
             ]
-          }
+          },
+          "fuel": {
+            "diesel_usd_gal": 5.378,
+            "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+            "diesel_region": "PADD1C",
+            "diesel_stop": null,
+            "mpg": 8.0,
+            "def_per_mi": 0.034,
+            "fuel_per_mi": 0.706,
+            "fallback": false
+          },
+          "math": "Rate $2,200.00 x 0.87 = $1,914.00 after the 13% Totni fee ($286.00). Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 1,210 mi (loaded+empty) = $853.98. Net EST $1,060.02."
         },
         {
           "board": "Truckstop",
           "origin": "Tulia, TX",
           "destination": "Somerton, AZ",
           "posted_rate": 1800.0,
-          "net_est": 503.61,
+          "net_est": 855.18,
           "hours": 22.43,
-          "per_hour": 22.45,
-          "net_per_mile": 0.49,
+          "per_hour": 38.13,
+          "net_per_mile": 0.84,
           "gross_per_mile": 1.76,
           "reason": "",
           "trip_mi": 900,
@@ -4283,7 +4392,18 @@
                 "n": 2
               }
             ]
-          }
+          },
+          "fuel": {
+            "diesel_usd_gal": 5.294,
+            "diesel_source": "EIA Gulf Coast (PADD 3), week of 2026-11-23",
+            "diesel_region": "PADD3",
+            "diesel_stop": null,
+            "mpg": 8.0,
+            "def_per_mi": 0.034,
+            "fuel_per_mi": 0.696,
+            "fallback": false
+          },
+          "math": "Rate $1,800.00 x 0.87 = $1,566.00 after the 13% Totni fee ($234.00). Diesel $5.294/gal (EIA Gulf Coast (PADD 3), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.696/mi. Fuel $0.696 x 1,021 mi (loaded+empty) = $710.82. Net EST $855.18."
         }
       ],
       "flags": [
@@ -4798,17 +4918,27 @@
             "n": 4
           }
         ]
+      },
+      "fuel": {
+        "diesel_usd_gal": 5.378,
+        "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+        "diesel_region": "PADD1C",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.706,
+        "fallback": false
       }
     },
     {
       "kind": "chain",
       "verdict": "MAYBE",
       "reason": "Clears the combo bar, but check fit, timing, or missing size before you book.",
-      "net_est": 1074.33,
-      "net_per_day": 182.8,
+      "net_est": 1906.44,
+      "net_per_day": 324.22,
       "hours": 53.51,
-      "per_hour": 20.08,
-      "net_per_mile": 0.43,
+      "per_hour": 35.63,
+      "net_per_mile": 0.77,
       "gross_per_mile": 1.7,
       "posted_rate": 4200.0,
       "days": 5.88,
@@ -4818,7 +4948,7 @@
       "loaded_mi": 2187.0,
       "deadhead_mi": 288.3,
       "total_mi": 2475.3,
-      "math": "Rates after the 13% Totni fee $3,654.00. Fuel and DEF $1.14 x 2,187 mi = $2,493.18. Empty miles $0.30 x 288 mi = $86.49. Net EST $1,074.33.",
+      "math": "Rates after the 13% Totni fee $3,654.00. Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 2,475 mi (loaded+empty) = $1,747.56. Net EST $1,906.44.",
       "combined_weight_lb": 13000,
       "combined_length_ft": null,
       "weight_unknown": false,
@@ -4873,10 +5003,10 @@
           "origin": "Smithville, GA",
           "destination": "Hollis, OK",
           "posted_rate": 2200.0,
-          "net_est": 637.2,
+          "net_est": 1060.02,
           "hours": 26.19,
-          "per_hour": 24.33,
-          "net_per_mile": 0.53,
+          "per_hour": 40.47,
+          "net_per_mile": 0.88,
           "gross_per_mile": 1.82,
           "reason": "",
           "trip_mi": 1088,
@@ -5165,17 +5295,28 @@
                 "n": 2
               }
             ]
-          }
+          },
+          "fuel": {
+            "diesel_usd_gal": 5.378,
+            "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+            "diesel_region": "PADD1C",
+            "diesel_stop": null,
+            "mpg": 8.0,
+            "def_per_mi": 0.034,
+            "fuel_per_mi": 0.706,
+            "fallback": false
+          },
+          "math": "Rate $2,200.00 x 0.87 = $1,914.00 after the 13% Totni fee ($286.00). Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 1,210 mi (loaded+empty) = $853.98. Net EST $1,060.02."
         },
         {
           "board": "Direct Freight",
           "origin": "Abernathy, TX",
           "destination": "Fort Walton Beach, FL",
           "posted_rate": 2000.0,
-          "net_est": 437.13,
+          "net_est": 859.07,
           "hours": 27.31,
-          "per_hour": 16.01,
-          "net_per_mile": 0.35,
+          "per_hour": 31.46,
+          "net_per_mile": 0.68,
           "gross_per_mile": 1.58,
           "reason": "",
           "trip_mi": 1099,
@@ -5520,7 +5661,18 @@
                 "n": 2
               }
             ]
-          }
+          },
+          "fuel": {
+            "diesel_usd_gal": 5.294,
+            "diesel_source": "EIA Gulf Coast (PADD 3), week of 2026-11-23",
+            "diesel_region": "PADD3",
+            "diesel_stop": null,
+            "mpg": 8.0,
+            "def_per_mi": 0.034,
+            "fuel_per_mi": 0.696,
+            "fallback": false
+          },
+          "math": "Rate $2,000.00 x 0.87 = $1,740.00 after the 13% Totni fee ($260.00). Diesel $5.294/gal (EIA Gulf Coast (PADD 3), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.696/mi. Fuel $0.696 x 1,266 mi (loaded+empty) = $880.93. Net EST $859.07."
         }
       ],
       "flags": [
@@ -6071,6 +6223,16 @@
             "n": 4
           }
         ]
+      },
+      "fuel": {
+        "diesel_usd_gal": 5.378,
+        "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+        "diesel_region": "PADD1C",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.706,
+        "fallback": false
       }
     }
   ],
@@ -6101,8 +6263,8 @@
       "length_ft": 40.0,
       "posted_rate": 2700.0,
       "rate_per_mi": 2.29,
-      "net_est": 949.05,
-      "math": "Rate $2,700.00 x 0.87 = $2,349.00 after the 13% Totni fee ($351.00). Fuel and DEF $1.14 x 1,178 mi = $1,342.92. Empty miles $0.30 x 190 mi = $57.03. Net EST $949.05.",
+      "net_est": 1383.12,
+      "math": "Rate $2,700.00 x 0.87 = $2,349.00 after the 13% Totni fee ($351.00). Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 1,368 mi (loaded+empty) = $965.88. Net EST $1,383.12.",
       "fit_flags": [],
       "verdict": "TAKE",
       "same_day": false,
@@ -6119,8 +6281,8 @@
       "looked_up": false,
       "tarp": false,
       "hours": 29.36,
-      "per_hour": 32.32,
-      "net_per_mile": 0.69,
+      "per_hour": 47.11,
+      "net_per_mile": 1.01,
       "gross_per_mile": 1.97,
       "reason": "Clears the net bar and fits the deck.",
       "truck_coord": {
@@ -6392,6 +6554,16 @@
             "n": 2
           }
         ]
+      },
+      "fuel": {
+        "diesel_usd_gal": 5.378,
+        "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+        "diesel_region": "PADD1C",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.706,
+        "fallback": false
       }
     },
     {
@@ -6408,8 +6580,8 @@
       "length_ft": 22.0,
       "posted_rate": 3200.0,
       "rate_per_mi": 2.74,
-      "net_est": 1343.1,
-      "math": "Rate $3,200.00 x 0.87 = $2,784.00 after the 13% Totni fee ($416.00). Fuel and DEF $1.14 x 1,170 mi = $1,333.80. Empty miles $0.30 x 357 mi = $107.10. Net EST $1,343.10.",
+      "net_est": 1705.94,
+      "math": "Rate $3,200.00 x 0.87 = $2,784.00 after the 13% Totni fee ($416.00). Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 1,527 mi (loaded+empty) = $1,078.06. Net EST $1,705.94.",
       "fit_flags": [
         "at payload (~16,000 lb)",
         "15,001-16,000 lb - scale check"
@@ -6429,8 +6601,8 @@
       "looked_up": false,
       "tarp": false,
       "hours": 32.54,
-      "per_hour": 41.28,
-      "net_per_mile": 0.88,
+      "per_hour": 52.43,
+      "net_per_mile": 1.12,
       "gross_per_mile": 2.1,
       "reason": "Clears the net bar, but weight is at the 16,000 lb payload.",
       "truck_coord": {
@@ -6658,6 +6830,16 @@
             "n": 2
           }
         ]
+      },
+      "fuel": {
+        "diesel_usd_gal": 5.378,
+        "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+        "diesel_region": "PADD1C",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.706,
+        "fallback": false
       }
     },
     {
@@ -6674,8 +6856,8 @@
       "length_ft": null,
       "posted_rate": 2200.0,
       "rate_per_mi": 2.02,
-      "net_est": 637.2,
-      "math": "Rate $2,200.00 x 0.87 = $1,914.00 after the 13% Totni fee ($286.00). Fuel and DEF $1.14 x 1,088 mi = $1,240.32. Empty miles $0.30 x 122 mi = $36.48. Net EST $637.20.",
+      "net_est": 1060.02,
+      "math": "Rate $2,200.00 x 0.87 = $1,914.00 after the 13% Totni fee ($286.00). Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 1,210 mi (loaded+empty) = $853.98. Net EST $1,060.02.",
       "fit_flags": [
         "length not listed"
       ],
@@ -6694,8 +6876,8 @@
       "looked_up": false,
       "tarp": false,
       "hours": 26.19,
-      "per_hour": 24.33,
-      "net_per_mile": 0.53,
+      "per_hour": 40.47,
+      "net_per_mile": 0.88,
       "gross_per_mile": 1.82,
       "reason": "Clears the net bar, but length not listed.",
       "truck_coord": {
@@ -6967,6 +7149,16 @@
             "n": 2
           }
         ]
+      },
+      "fuel": {
+        "diesel_usd_gal": 5.378,
+        "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+        "diesel_region": "PADD1C",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.706,
+        "fallback": false
       }
     },
     {
@@ -6983,8 +7175,8 @@
       "length_ft": null,
       "posted_rate": 4500.0,
       "rate_per_mi": 3.01,
-      "net_est": 2088.54,
-      "math": "Rate $4,500.00 x 0.87 = $3,915.00 after the 13% Totni fee ($585.00). Fuel and DEF $1.14 x 1,496 mi = $1,705.44. Empty miles $0.30 x 403 mi = $121.02. Net EST $2,088.54.",
+      "net_est": 2574.02,
+      "math": "Rate $4,500.00 x 0.87 = $3,915.00 after the 13% Totni fee ($585.00). Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 1,899 mi (loaded+empty) = $1,340.98. Net EST $2,574.02.",
       "fit_flags": [
         "length not listed",
         "Infeasible: pickup is only 11/24, and the truck delivers Rich 168481 in Graceville, FL on Wed 11/25."
@@ -7004,8 +7196,8 @@
       "looked_up": false,
       "tarp": true,
       "hours": 39.99,
-      "per_hour": 52.23,
-      "net_per_mile": 1.1,
+      "per_hour": 64.37,
+      "net_per_mile": 1.36,
       "gross_per_mile": 2.37,
       "reason": "Infeasible: pickup is only 11/24, and the truck delivers Rich 168481 in Graceville, FL on Wed 11/25.",
       "truck_coord": {
@@ -7217,6 +7409,16 @@
             "n": 2
           }
         ]
+      },
+      "fuel": {
+        "diesel_usd_gal": 5.378,
+        "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+        "diesel_region": "PADD1C",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.706,
+        "fallback": false
       }
     },
     {
@@ -7233,8 +7435,8 @@
       "length_ft": 31.0,
       "posted_rate": 4800.0,
       "rate_per_mi": 2.26,
-      "net_est": 1641.0,
-      "math": "Rate $4,800.00 x 0.87 = $4,176.00 after the 13% Totni fee ($624.00). Fuel and DEF $1.14 x 2,120 mi = $2,416.80. Empty miles $0.30 x 394 mi = $118.20. Net EST $1,641.00.",
+      "net_est": 2401.12,
+      "math": "Rate $4,800.00 x 0.87 = $4,176.00 after the 13% Totni fee ($624.00). Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 2,514 mi (loaded+empty) = $1,774.88. Net EST $2,401.12.",
       "fit_flags": [
         "Infeasible: pickup is only 11/24, and the truck delivers Rich 168481 in Graceville, FL on Wed 11/25."
       ],
@@ -7253,8 +7455,8 @@
       "looked_up": false,
       "tarp": true,
       "hours": 52.28,
-      "per_hour": 31.39,
-      "net_per_mile": 0.65,
+      "per_hour": 45.93,
+      "net_per_mile": 0.96,
       "gross_per_mile": 1.91,
       "reason": "Infeasible: pickup is only 11/24, and the truck delivers Rich 168481 in Graceville, FL on Wed 11/25.",
       "truck_coord": {
@@ -7494,6 +7696,16 @@
             "n": 2
           }
         ]
+      },
+      "fuel": {
+        "diesel_usd_gal": 5.378,
+        "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+        "diesel_region": "PADD1C",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.706,
+        "fallback": false
       }
     },
     {
@@ -7510,8 +7722,8 @@
       "length_ft": 24.0,
       "posted_rate": 3000.0,
       "rate_per_mi": 2.88,
-      "net_est": 1410.75,
-      "math": "Rate $3,000.00 x 0.87 = $2,610.00 after the 13% Totni fee ($390.00). Fuel and DEF $1.14 x 1,040 mi = $1,185.60. Empty miles $0.30 x 46 mi = $13.65. Net EST $1,410.75.",
+      "net_est": 1843.64,
+      "math": "Rate $3,000.00 x 0.87 = $2,610.00 after the 13% Totni fee ($390.00). Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 1,086 mi (loaded+empty) = $766.36. Net EST $1,843.64.",
       "fit_flags": [
         "Infeasible: pickup is only 11/24, and the truck delivers Rich 168481 in Graceville, FL on Wed 11/25."
       ],
@@ -7530,8 +7742,8 @@
       "looked_up": false,
       "tarp": false,
       "hours": 23.71,
-      "per_hour": 59.5,
-      "net_per_mile": 1.3,
+      "per_hour": 77.76,
+      "net_per_mile": 1.7,
       "gross_per_mile": 2.76,
       "reason": "Infeasible: pickup is only 11/24, and the truck delivers Rich 168481 in Graceville, FL on Wed 11/25.",
       "truck_coord": {
@@ -7791,6 +8003,16 @@
             "n": 2
           }
         ]
+      },
+      "fuel": {
+        "diesel_usd_gal": 5.378,
+        "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+        "diesel_region": "PADD1C",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.706,
+        "fallback": false
       }
     },
     {
@@ -7807,8 +8029,8 @@
       "length_ft": null,
       "posted_rate": 2571.0,
       "rate_per_mi": 2.99,
-      "net_est": 1211.97,
-      "math": "Rate $2,571.00 x 0.87 = $2,236.77 after the 13% Totni fee ($334.23). Fuel and DEF $1.14 x 861 mi = $981.54. Empty miles $0.30 x 144 mi = $43.26. Net EST $1,211.97.",
+      "net_est": 1527.1,
+      "math": "Rate $2,571.00 x 0.87 = $2,236.77 after the 13% Totni fee ($334.23). Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 1,005 mi (loaded+empty) = $709.67. Net EST $1,527.10.",
       "fit_flags": [
         "weight not listed",
         "length not listed",
@@ -7829,8 +8051,8 @@
       "looked_up": false,
       "tarp": true,
       "hours": 22.1,
-      "per_hour": 54.84,
-      "net_per_mile": 1.21,
+      "per_hour": 69.1,
+      "net_per_mile": 1.52,
       "gross_per_mile": 2.56,
       "reason": "Infeasible: pickup is only 11/24, and the truck delivers Rich 168481 in Graceville, FL on Wed 11/25.",
       "truck_coord": {
@@ -8078,6 +8300,16 @@
             "n": 2
           }
         ]
+      },
+      "fuel": {
+        "diesel_usd_gal": 5.378,
+        "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+        "diesel_region": "PADD1C",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.706,
+        "fallback": false
       }
     },
     {
@@ -8094,8 +8326,8 @@
       "length_ft": 40.0,
       "posted_rate": 2946.0,
       "rate_per_mi": 2.7,
-      "net_est": 1193.07,
-      "math": "Rate $2,946.00 x 0.87 = $2,563.02 after the 13% Totni fee ($382.98). Fuel and DEF $1.14 x 1,090 mi = $1,242.60. Empty miles $0.30 x 424 mi = $127.35. Net EST $1,193.07.",
+      "net_est": 1493.78,
+      "math": "Rate $2,946.00 x 0.87 = $2,563.02 after the 13% Totni fee ($382.98). Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 1,514 mi (loaded+empty) = $1,069.24. Net EST $1,493.78.",
       "fit_flags": [
         "at payload (~16,000 lb)",
         "15,001-16,000 lb - scale check",
@@ -8116,8 +8348,8 @@
       "looked_up": false,
       "tarp": false,
       "hours": 32.29,
-      "per_hour": 36.95,
-      "net_per_mile": 0.79,
+      "per_hour": 46.26,
+      "net_per_mile": 0.99,
       "gross_per_mile": 1.95,
       "reason": "May miss pickup window at 550 mi/day from Graceville, FL (arrive 11/25 8:29 PM CT, window ends 11/25 3:00 PM CT).",
       "truck_coord": {
@@ -8417,6 +8649,16 @@
             "n": 2
           }
         ]
+      },
+      "fuel": {
+        "diesel_usd_gal": 5.378,
+        "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+        "diesel_region": "PADD1C",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.706,
+        "fallback": false
       }
     },
     {
@@ -8433,8 +8675,8 @@
       "length_ft": null,
       "posted_rate": 2106.0,
       "rate_per_mi": 2.97,
-      "net_est": 1017.36,
-      "math": "Rate $2,106.00 x 0.87 = $1,832.22 after the 13% Totni fee ($273.78). Fuel and DEF $1.14 x 708 mi = $807.12. Empty miles $0.30 x 26 mi = $7.74. Net EST $1,017.36.",
+      "net_est": 1314.16,
+      "math": "Rate $2,106.00 x 0.87 = $1,832.22 after the 13% Totni fee ($273.78). Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 734 mi (loaded+empty) = $518.06. Net EST $1,314.16.",
       "fit_flags": [
         "weight not listed",
         "length not listed",
@@ -8455,8 +8697,8 @@
       "looked_up": false,
       "tarp": true,
       "hours": 16.68,
-      "per_hour": 60.99,
-      "net_per_mile": 1.39,
+      "per_hour": 78.79,
+      "net_per_mile": 1.79,
       "gross_per_mile": 2.87,
       "reason": "Infeasible: pickup is only 11/24, and the truck delivers Rich 168481 in Graceville, FL on Wed 11/25.",
       "truck_coord": {
@@ -8684,6 +8926,16 @@
             "n": 2
           }
         ]
+      },
+      "fuel": {
+        "diesel_usd_gal": 5.378,
+        "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+        "diesel_region": "PADD1C",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.706,
+        "fallback": false
       }
     },
     {
@@ -8700,8 +8952,8 @@
       "length_ft": 40.0,
       "posted_rate": 2100.0,
       "rate_per_mi": 2.62,
-      "net_est": 869.46,
-      "math": "Rate $2,100.00 x 0.87 = $1,827.00 after the 13% Totni fee ($273.00). Fuel and DEF $1.14 x 802 mi = $914.28. Empty miles $0.30 x 144 mi = $43.26. Net EST $869.46.",
+      "net_est": 1158.98,
+      "math": "Rate $2,100.00 x 0.87 = $1,827.00 after the 13% Totni fee ($273.00). Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 946 mi (loaded+empty) = $668.02. Net EST $1,158.98.",
       "fit_flags": [
         "Infeasible: pickup is only 11/24, and the truck delivers Rich 168481 in Graceville, FL on Wed 11/25."
       ],
@@ -8720,8 +8972,8 @@
       "looked_up": false,
       "tarp": false,
       "hours": 20.92,
-      "per_hour": 41.56,
-      "net_per_mile": 0.92,
+      "per_hour": 55.4,
+      "net_per_mile": 1.22,
       "gross_per_mile": 2.22,
       "reason": "Infeasible: pickup is only 11/24, and the truck delivers Rich 168481 in Graceville, FL on Wed 11/25.",
       "truck_coord": {
@@ -8965,6 +9217,16 @@
             "n": 2
           }
         ]
+      },
+      "fuel": {
+        "diesel_usd_gal": 5.378,
+        "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+        "diesel_region": "PADD1C",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.706,
+        "fallback": false
       }
     },
     {
@@ -8981,8 +9243,8 @@
       "length_ft": null,
       "posted_rate": 2100.0,
       "rate_per_mi": 2.55,
-      "net_est": 800.25,
-      "math": "Rate $2,100.00 x 0.87 = $1,827.00 after the 13% Totni fee ($273.00). Fuel and DEF $1.14 x 824 mi = $939.36. Empty miles $0.30 x 291 mi = $87.39. Net EST $800.25.",
+      "net_est": 1039.6,
+      "math": "Rate $2,100.00 x 0.87 = $1,827.00 after the 13% Totni fee ($273.00). Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 1,115 mi (loaded+empty) = $787.40. Net EST $1,039.60.",
       "fit_flags": [
         "length not listed",
         "Infeasible: pickup is only 11/24, and the truck delivers Rich 168481 in Graceville, FL on Wed 11/25."
@@ -9002,8 +9264,8 @@
       "looked_up": false,
       "tarp": false,
       "hours": 24.31,
-      "per_hour": 32.92,
-      "net_per_mile": 0.72,
+      "per_hour": 42.76,
+      "net_per_mile": 0.93,
       "gross_per_mile": 1.88,
       "reason": "Infeasible: pickup is only 11/24, and the truck delivers Rich 168481 in Graceville, FL on Wed 11/25.",
       "truck_coord": {
@@ -9263,6 +9525,16 @@
             "n": 2
           }
         ]
+      },
+      "fuel": {
+        "diesel_usd_gal": 5.378,
+        "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+        "diesel_region": "PADD1C",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.706,
+        "fallback": false
       }
     },
     {
@@ -9279,8 +9551,8 @@
       "length_ft": null,
       "posted_rate": 2017.6,
       "rate_per_mi": 2.52,
-      "net_est": 797.77,
-      "math": "Rate $2,017.60 x 0.87 = $1,755.31 after the 13% Totni fee ($262.29). Fuel and DEF $1.14 x 802 mi = $914.28. Empty miles $0.30 x 144 mi = $43.26. Net EST $797.77.",
+      "net_est": 1087.29,
+      "math": "Rate $2,017.60 x 0.87 = $1,755.31 after the 13% Totni fee ($262.29). Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 946 mi (loaded+empty) = $668.02. Net EST $1,087.29.",
       "fit_flags": [
         "weight not listed",
         "length not listed",
@@ -9301,8 +9573,8 @@
       "looked_up": false,
       "tarp": true,
       "hours": 20.92,
-      "per_hour": 38.13,
-      "net_per_mile": 0.84,
+      "per_hour": 51.97,
+      "net_per_mile": 1.15,
       "gross_per_mile": 2.13,
       "reason": "Infeasible: pickup is only 11/24, and the truck delivers Rich 168481 in Graceville, FL on Wed 11/25.",
       "truck_coord": {
@@ -9550,6 +9822,16 @@
             "n": 2
           }
         ]
+      },
+      "fuel": {
+        "diesel_usd_gal": 5.378,
+        "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+        "diesel_region": "PADD1C",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.706,
+        "fallback": false
       }
     },
     {
@@ -9566,8 +9848,8 @@
       "length_ft": null,
       "posted_rate": 1825.0,
       "rate_per_mi": 3.02,
-      "net_est": 756.27,
-      "math": "Rate $1,825.00 x 0.87 = $1,587.75 after the 13% Totni fee ($237.25). Fuel and DEF $1.14 x 605 mi = $689.70. Empty miles $0.30 x 473 mi = $141.78. Net EST $756.27.",
+      "net_est": 826.96,
+      "math": "Rate $1,825.00 x 0.87 = $1,587.75 after the 13% Totni fee ($237.25). Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 1,078 mi (loaded+empty) = $760.79. Net EST $826.96.",
       "fit_flags": [
         "weight not listed",
         "length not listed",
@@ -9588,8 +9870,8 @@
       "looked_up": false,
       "tarp": true,
       "hours": 23.55,
-      "per_hour": 32.11,
-      "net_per_mile": 0.7,
+      "per_hour": 35.12,
+      "net_per_mile": 0.77,
       "gross_per_mile": 1.69,
       "reason": "Infeasible: pickup is only 11/24, and the truck delivers Rich 168481 in Graceville, FL on Wed 11/25.",
       "truck_coord": {
@@ -9789,6 +10071,16 @@
             "n": 2
           }
         ]
+      },
+      "fuel": {
+        "diesel_usd_gal": 5.378,
+        "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+        "diesel_region": "PADD1C",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.706,
+        "fallback": false
       }
     },
     {
@@ -9805,8 +10097,8 @@
       "length_ft": null,
       "posted_rate": 1775.0,
       "rate_per_mi": 2.98,
-      "net_est": 704.97,
-      "math": "Rate $1,775.00 x 0.87 = $1,544.25 after the 13% Totni fee ($230.75). Fuel and DEF $1.14 x 595 mi = $678.30. Empty miles $0.30 x 537 mi = $160.98. Net EST $704.97.",
+      "net_est": 745.34,
+      "math": "Rate $1,775.00 x 0.87 = $1,544.25 after the 13% Totni fee ($230.75). Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 1,132 mi (loaded+empty) = $798.91. Net EST $745.34.",
       "fit_flags": [
         "weight not listed",
         "length not listed",
@@ -9827,8 +10119,8 @@
       "looked_up": false,
       "tarp": true,
       "hours": 24.63,
-      "per_hour": 28.62,
-      "net_per_mile": 0.62,
+      "per_hour": 30.26,
+      "net_per_mile": 0.66,
       "gross_per_mile": 1.57,
       "reason": "Infeasible: pickup is only 11/24, and the truck delivers Rich 168481 in Graceville, FL on Wed 11/25.",
       "truck_coord": {
@@ -10064,6 +10356,16 @@
             "n": 2
           }
         ]
+      },
+      "fuel": {
+        "diesel_usd_gal": 5.378,
+        "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+        "diesel_region": "PADD1C",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.706,
+        "fallback": false
       }
     },
     {
@@ -10080,8 +10382,8 @@
       "length_ft": 35.0,
       "posted_rate": 2300.0,
       "rate_per_mi": 2.06,
-      "net_est": 645.3,
-      "math": "Rate $2,300.00 x 0.87 = $2,001.00 after the 13% Totni fee ($299.00). Fuel and DEF $1.14 x 1,119 mi = $1,275.66. Empty miles $0.30 x 267 mi = $80.04. Net EST $645.30.",
+      "net_est": 1022.63,
+      "math": "Rate $2,300.00 x 0.87 = $2,001.00 after the 13% Totni fee ($299.00). Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 1,386 mi (loaded+empty) = $978.37. Net EST $1,022.63.",
       "fit_flags": [
         "Infeasible: pickup is only 11/24, and the truck delivers Rich 168481 in Graceville, FL on Wed 11/25."
       ],
@@ -10100,8 +10402,8 @@
       "looked_up": false,
       "tarp": false,
       "hours": 29.72,
-      "per_hour": 21.71,
-      "net_per_mile": 0.47,
+      "per_hour": 34.41,
+      "net_per_mile": 0.74,
       "gross_per_mile": 1.66,
       "reason": "Infeasible: pickup is only 11/24, and the truck delivers Rich 168481 in Graceville, FL on Wed 11/25.",
       "truck_coord": {
@@ -10357,6 +10659,16 @@
             "n": 2
           }
         ]
+      },
+      "fuel": {
+        "diesel_usd_gal": 5.378,
+        "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+        "diesel_region": "PADD1C",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.706,
+        "fallback": false
       }
     },
     {
@@ -10373,8 +10685,8 @@
       "length_ft": null,
       "posted_rate": 1547.1,
       "rate_per_mi": 2.73,
-      "net_est": 544.23,
-      "math": "Rate $1,547.10 x 0.87 = $1,345.98 after the 13% Totni fee ($201.12). Fuel and DEF $1.14 x 566 mi = $645.24. Empty miles $0.30 x 522 mi = $156.51. Net EST $544.23.",
+      "net_est": 578.06,
+      "math": "Rate $1,547.10 x 0.87 = $1,345.98 after the 13% Totni fee ($201.12). Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 1,088 mi (loaded+empty) = $767.92. Net EST $578.06.",
       "fit_flags": [
         "weight not listed",
         "length not listed",
@@ -10395,8 +10707,8 @@
       "looked_up": false,
       "tarp": true,
       "hours": 23.75,
-      "per_hour": 22.91,
-      "net_per_mile": 0.5,
+      "per_hour": 24.34,
+      "net_per_mile": 0.53,
       "gross_per_mile": 1.42,
       "reason": "Infeasible: pickup is only 11/24, and the truck delivers Rich 168481 in Graceville, FL on Wed 11/25.",
       "truck_coord": {
@@ -10620,6 +10932,16 @@
             "n": 2
           }
         ]
+      },
+      "fuel": {
+        "diesel_usd_gal": 5.378,
+        "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+        "diesel_region": "PADD1C",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.706,
+        "fallback": false
       }
     },
     {
@@ -10636,8 +10958,8 @@
       "length_ft": 31.0,
       "posted_rate": 2200.0,
       "rate_per_mi": 1.88,
-      "net_est": 477.75,
-      "math": "Rate $2,200.00 x 0.87 = $1,914.00 after the 13% Totni fee ($286.00). Fuel and DEF $1.14 x 1,168 mi = $1,331.52. Empty miles $0.30 x 349 mi = $104.73. Net EST $477.75.",
+      "net_est": 842.93,
+      "math": "Rate $2,200.00 x 0.87 = $1,914.00 after the 13% Totni fee ($286.00). Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 1,517 mi (loaded+empty) = $1,071.07. Net EST $842.93.",
       "fit_flags": [
         "Over 8.5 ft wide - cannot haul"
       ],
@@ -10656,8 +10978,8 @@
       "looked_up": false,
       "tarp": false,
       "hours": 32.34,
-      "per_hour": 14.77,
-      "net_per_mile": 0.31,
+      "per_hour": 26.06,
+      "net_per_mile": 0.56,
       "gross_per_mile": 1.45,
       "reason": "Over 8.5 ft wide - cannot haul.",
       "truck_coord": {
@@ -10853,6 +11175,16 @@
             "n": 2
           }
         ]
+      },
+      "fuel": {
+        "diesel_usd_gal": 5.378,
+        "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+        "diesel_region": "PADD1C",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.706,
+        "fallback": false
       }
     },
     {
@@ -10869,8 +11201,8 @@
       "length_ft": 20.0,
       "posted_rate": 2300.0,
       "rate_per_mi": 1.7,
-      "net_est": 438.9,
-      "math": "Rate $2,300.00 x 0.87 = $2,001.00 after the 13% Totni fee ($299.00). Fuel and DEF $1.14 x 1,356 mi = $1,545.84. Empty miles $0.30 x 54 mi = $16.26. Net EST $438.90.",
+      "net_est": 1005.4,
+      "math": "Rate $2,300.00 x 0.87 = $2,001.00 after the 13% Totni fee ($299.00). Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 1,410 mi (loaded+empty) = $995.60. Net EST $1,005.40.",
       "fit_flags": [],
       "verdict": "PASS",
       "same_day": false,
@@ -10887,8 +11219,8 @@
       "looked_up": false,
       "tarp": false,
       "hours": 30.2,
-      "per_hour": 14.53,
-      "net_per_mile": 0.31,
+      "per_hour": 33.29,
+      "net_per_mile": 0.71,
       "gross_per_mile": 1.63,
       "reason": "Net EST is under the $500 bar.",
       "truck_coord": {
@@ -11140,6 +11472,16 @@
             "n": 2
           }
         ]
+      },
+      "fuel": {
+        "diesel_usd_gal": 5.378,
+        "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+        "diesel_region": "PADD1C",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.706,
+        "fallback": false
       }
     },
     {
@@ -11156,8 +11498,8 @@
       "length_ft": null,
       "posted_rate": 1200.0,
       "rate_per_mi": 2.33,
-      "net_est": 324.93,
-      "math": "Rate $1,200.00 x 0.87 = $1,044.00 after the 13% Totni fee ($156.00). Fuel and DEF $1.14 x 516 mi = $588.24. Empty miles $0.30 x 436 mi = $130.83. Net EST $324.93.",
+      "net_est": 371.82,
+      "math": "Rate $1,200.00 x 0.87 = $1,044.00 after the 13% Totni fee ($156.00). Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 952 mi (loaded+empty) = $672.18. Net EST $371.82.",
       "fit_flags": [
         "length not listed"
       ],
@@ -11176,8 +11518,8 @@
       "looked_up": false,
       "tarp": false,
       "hours": 21.04,
-      "per_hour": 15.44,
-      "net_per_mile": 0.34,
+      "per_hour": 17.67,
+      "net_per_mile": 0.39,
       "gross_per_mile": 1.26,
       "reason": "Net EST is under the $500 bar.",
       "truck_coord": {
@@ -11441,6 +11783,16 @@
             "n": 2
           }
         ]
+      },
+      "fuel": {
+        "diesel_usd_gal": 5.378,
+        "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+        "diesel_region": "PADD1C",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.706,
+        "fallback": false
       }
     },
     {
@@ -11457,8 +11809,8 @@
       "length_ft": null,
       "posted_rate": 1200.0,
       "rate_per_mi": 2.14,
-      "net_est": 294.81,
-      "math": "Rate $1,200.00 x 0.87 = $1,044.00 after the 13% Totni fee ($156.00). Fuel and DEF $1.14 x 561 mi = $639.54. Empty miles $0.30 x 366 mi = $109.65. Net EST $294.81.",
+      "net_est": 389.89,
+      "math": "Rate $1,200.00 x 0.87 = $1,044.00 after the 13% Totni fee ($156.00). Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 926 mi (loaded+empty) = $654.11. Net EST $389.89.",
       "fit_flags": [
         "length not listed"
       ],
@@ -11477,8 +11829,8 @@
       "looked_up": false,
       "tarp": false,
       "hours": 20.53,
-      "per_hour": 14.36,
-      "net_per_mile": 0.32,
+      "per_hour": 18.99,
+      "net_per_mile": 0.42,
       "gross_per_mile": 1.3,
       "reason": "Net EST is under the $500 bar.",
       "truck_coord": {
@@ -11770,6 +12122,16 @@
             "n": 2
           }
         ]
+      },
+      "fuel": {
+        "diesel_usd_gal": 5.378,
+        "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+        "diesel_region": "PADD1C",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.706,
+        "fallback": false
       }
     },
     {
@@ -11786,8 +12148,8 @@
       "length_ft": 20.0,
       "posted_rate": 2200.0,
       "rate_per_mi": 1.64,
-      "net_est": 281.31,
-      "math": "Rate $2,200.00 x 0.87 = $1,914.00 after the 13% Totni fee ($286.00). Fuel and DEF $1.14 x 1,339 mi = $1,526.46. Empty miles $0.30 x 354 mi = $106.23. Net EST $281.31.",
+      "net_est": 718.67,
+      "math": "Rate $2,200.00 x 0.87 = $1,914.00 after the 13% Totni fee ($286.00). Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 1,693 mi (loaded+empty) = $1,195.33. Net EST $718.67.",
       "fit_flags": [
         "Infeasible: pickup is only 11/24, and the truck delivers Rich 168481 in Graceville, FL on Wed 11/25."
       ],
@@ -11806,8 +12168,8 @@
       "looked_up": false,
       "tarp": false,
       "hours": 35.86,
-      "per_hour": 7.84,
-      "net_per_mile": 0.17,
+      "per_hour": 20.04,
+      "net_per_mile": 0.42,
       "gross_per_mile": 1.3,
       "reason": "Infeasible: pickup is only 11/24, and the truck delivers Rich 168481 in Graceville, FL on Wed 11/25.",
       "truck_coord": {
@@ -12099,6 +12461,16 @@
             "n": 2
           }
         ]
+      },
+      "fuel": {
+        "diesel_usd_gal": 5.378,
+        "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+        "diesel_region": "PADD1C",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.706,
+        "fallback": false
       }
     },
     {
@@ -12115,8 +12487,8 @@
       "length_ft": 22.0,
       "posted_rate": 2300.0,
       "rate_per_mi": 1.59,
-      "net_est": 203.04,
-      "math": "Rate $2,300.00 x 0.87 = $2,001.00 after the 13% Totni fee ($299.00). Fuel and DEF $1.14 x 1,445 mi = $1,647.30. Empty miles $0.30 x 502 mi = $150.66. Net EST $203.04.",
+      "net_est": 626.28,
+      "math": "Rate $2,300.00 x 0.87 = $2,001.00 after the 13% Totni fee ($299.00). Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 1,947 mi (loaded+empty) = $1,374.72. Net EST $626.28.",
       "fit_flags": [
         "Over 8.5 ft wide - cannot haul",
         "Infeasible: pickup is only 11/24, and the truck delivers Rich 168481 in Graceville, FL on Wed 11/25."
@@ -12136,8 +12508,8 @@
       "looked_up": false,
       "tarp": false,
       "hours": 40.94,
-      "per_hour": 4.96,
-      "net_per_mile": 0.1,
+      "per_hour": 15.3,
+      "net_per_mile": 0.32,
       "gross_per_mile": 1.18,
       "reason": "Infeasible: pickup is only 11/24, and the truck delivers Rich 168481 in Graceville, FL on Wed 11/25.",
       "truck_coord": {
@@ -12341,6 +12713,16 @@
             "n": 2
           }
         ]
+      },
+      "fuel": {
+        "diesel_usd_gal": 5.378,
+        "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+        "diesel_region": "PADD1C",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.706,
+        "fallback": false
       }
     },
     {
@@ -12357,8 +12739,8 @@
       "length_ft": 20.0,
       "posted_rate": 300.0,
       "rate_per_mi": 3.75,
-      "net_est": 75.33,
-      "math": "Rate $300.00 x 0.87 = $261.00 after the 13% Totni fee ($39.00). Fuel and DEF $1.14 x 80 mi = $91.20. Empty miles $0.30 x 315 mi = $94.47. Net EST $75.33.",
+      "net_est": -17.8,
+      "math": "Rate $300.00 x 0.87 = $261.00 after the 13% Totni fee ($39.00). Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 395 mi (loaded+empty) = $278.80. Net EST $-17.80.",
       "fit_flags": [
         "Infeasible: pickup is only 11/24, and the truck delivers Rich 168481 in Graceville, FL on Wed 11/25."
       ],
@@ -12377,8 +12759,8 @@
       "looked_up": false,
       "tarp": false,
       "hours": 9.9,
-      "per_hour": 7.61,
-      "net_per_mile": 0.19,
+      "per_hour": -1.8,
+      "net_per_mile": -0.05,
       "gross_per_mile": 0.76,
       "reason": "Infeasible: pickup is only 11/24, and the truck delivers Rich 168481 in Graceville, FL on Wed 11/25.",
       "truck_coord": {
@@ -12646,6 +13028,16 @@
             "n": 2
           }
         ]
+      },
+      "fuel": {
+        "diesel_usd_gal": 5.378,
+        "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+        "diesel_region": "PADD1C",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.706,
+        "fallback": false
       }
     },
     {
@@ -12662,8 +13054,8 @@
       "length_ft": 11.3,
       "posted_rate": 2700.0,
       "rate_per_mi": 1.24,
-      "net_est": -239.79,
-      "math": "Rate $2,700.00 x 0.87 = $2,349.00 after the 13% Totni fee ($351.00). Fuel and DEF $1.14 x 2,179 mi = $2,484.06. Empty miles $0.30 x 349 mi = $104.73. Net EST -$239.79.",
+      "net_est": 564.16,
+      "math": "Rate $2,700.00 x 0.87 = $2,349.00 after the 13% Totni fee ($351.00). Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 2,528 mi (loaded+empty) = $1,784.84. Net EST $564.16.",
       "fit_flags": [
         "Infeasible: pickup is only 11/24, and the truck delivers Rich 168481 in Graceville, FL on Wed 11/25."
       ],
@@ -12682,8 +13074,8 @@
       "looked_up": false,
       "tarp": false,
       "hours": 52.56,
-      "per_hour": -4.56,
-      "net_per_mile": -0.09,
+      "per_hour": 10.73,
+      "net_per_mile": 0.22,
       "gross_per_mile": 1.07,
       "reason": "Infeasible: pickup is only 11/24, and the truck delivers Rich 168481 in Graceville, FL on Wed 11/25.",
       "truck_coord": {
@@ -12939,6 +13331,16 @@
             "n": 2
           }
         ]
+      },
+      "fuel": {
+        "diesel_usd_gal": 5.378,
+        "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+        "diesel_region": "PADD1C",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.706,
+        "fallback": false
       }
     },
     {
@@ -12955,8 +13357,8 @@
       "length_ft": 20.0,
       "posted_rate": 2800.0,
       "rate_per_mi": 1.2,
-      "net_est": -331.86,
-      "math": "Rate $2,800.00 x 0.87 = $2,436.00 after the 13% Totni fee ($364.00). Fuel and DEF $1.14 x 2,334 mi = $2,660.76. Empty miles $0.30 x 357 mi = $107.10. Net EST -$331.86.",
+      "net_est": 536.15,
+      "math": "Rate $2,800.00 x 0.87 = $2,436.00 after the 13% Totni fee ($364.00). Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 2,691 mi (loaded+empty) = $1,899.85. Net EST $536.15.",
       "fit_flags": [
         "Over 8.5 ft wide - cannot haul"
       ],
@@ -12975,8 +13377,8 @@
       "looked_up": false,
       "tarp": false,
       "hours": 55.82,
-      "per_hour": -5.95,
-      "net_per_mile": -0.12,
+      "per_hour": 9.6,
+      "net_per_mile": 0.2,
       "gross_per_mile": 1.04,
       "reason": "Over 8.5 ft wide - cannot haul.",
       "truck_coord": {
@@ -13296,6 +13698,16 @@
             "n": 2
           }
         ]
+      },
+      "fuel": {
+        "diesel_usd_gal": 5.378,
+        "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+        "diesel_region": "PADD1C",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.706,
+        "fallback": false
       }
     },
     {
@@ -13312,8 +13724,8 @@
       "length_ft": 10.5,
       "posted_rate": 2300.0,
       "rate_per_mi": 1.05,
-      "net_est": -583.62,
-      "math": "Rate $2,300.00 x 0.87 = $2,001.00 after the 13% Totni fee ($299.00). Fuel and DEF $1.14 x 2,197 mi = $2,504.58. Empty miles $0.30 x 267 mi = $80.04. Net EST -$583.62.",
+      "net_est": 261.56,
+      "math": "Rate $2,300.00 x 0.87 = $2,001.00 after the 13% Totni fee ($299.00). Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 2,464 mi (loaded+empty) = $1,739.44. Net EST $261.56.",
       "fit_flags": [
         "Infeasible: pickup is only 11/24, and the truck delivers Rich 168481 in Graceville, FL on Wed 11/25."
       ],
@@ -13332,8 +13744,8 @@
       "looked_up": false,
       "tarp": true,
       "hours": 51.28,
-      "per_hour": -11.38,
-      "net_per_mile": -0.24,
+      "per_hour": 5.1,
+      "net_per_mile": 0.11,
       "gross_per_mile": 0.93,
       "reason": "Infeasible: pickup is only 11/24, and the truck delivers Rich 168481 in Graceville, FL on Wed 11/25.",
       "truck_coord": {
@@ -13585,6 +13997,16 @@
             "n": 2
           }
         ]
+      },
+      "fuel": {
+        "diesel_usd_gal": 5.378,
+        "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+        "diesel_region": "PADD1C",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.706,
+        "fallback": false
       }
     },
     {
@@ -13601,8 +14023,8 @@
       "length_ft": 6.0,
       "posted_rate": 1300.0,
       "rate_per_mi": 0.89,
-      "net_est": -640.41,
-      "math": "Rate $1,300.00 x 0.87 = $1,131.00 after the 13% Totni fee ($169.00). Fuel and DEF $1.14 x 1,462 mi = $1,666.68. Empty miles $0.30 x 349 mi = $104.73. Net EST -$640.41.",
+      "net_est": -147.64,
+      "math": "Rate $1,300.00 x 0.87 = $1,131.00 after the 13% Totni fee ($169.00). Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 1,811 mi (loaded+empty) = $1,278.64. Net EST $-147.64.",
       "fit_flags": [
         "Infeasible: pickup is only 11/24, and the truck delivers Rich 168481 in Graceville, FL on Wed 11/25."
       ],
@@ -13621,8 +14043,8 @@
       "looked_up": false,
       "tarp": false,
       "hours": 38.22,
-      "per_hour": -16.76,
-      "net_per_mile": -0.35,
+      "per_hour": -3.86,
+      "net_per_mile": -0.08,
       "gross_per_mile": 0.72,
       "reason": "Infeasible: pickup is only 11/24, and the truck delivers Rich 168481 in Graceville, FL on Wed 11/25.",
       "truck_coord": {
@@ -13826,6 +14248,16 @@
             "n": 2
           }
         ]
+      },
+      "fuel": {
+        "diesel_usd_gal": 5.378,
+        "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+        "diesel_region": "PADD1C",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.706,
+        "fallback": false
       }
     },
     {
@@ -13842,8 +14274,8 @@
       "length_ft": 14.0,
       "posted_rate": 2400.0,
       "rate_per_mi": 0.96,
-      "net_est": -861.99,
-      "math": "Rate $2,400.00 x 0.87 = $2,088.00 after the 13% Totni fee ($312.00). Fuel and DEF $1.14 x 2,495 mi = $2,844.30. Empty miles $0.30 x 352 mi = $105.69. Net EST -$861.99.",
+      "net_est": 77.81,
+      "math": "Rate $2,400.00 x 0.87 = $2,088.00 after the 13% Totni fee ($312.00). Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 2,847 mi (loaded+empty) = $2,010.19. Net EST $77.81.",
       "fit_flags": [],
       "verdict": "PASS",
       "same_day": false,
@@ -13860,8 +14292,8 @@
       "looked_up": false,
       "tarp": false,
       "hours": 58.95,
-      "per_hour": -14.62,
-      "net_per_mile": -0.3,
+      "per_hour": 1.32,
+      "net_per_mile": 0.03,
       "gross_per_mile": 0.84,
       "reason": "Net EST is under the $500 bar.",
       "truck_coord": {
@@ -14153,6 +14585,16 @@
             "n": 2
           }
         ]
+      },
+      "fuel": {
+        "diesel_usd_gal": 5.378,
+        "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+        "diesel_region": "PADD1C",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.706,
+        "fallback": false
       }
     },
     {
@@ -14169,8 +14611,8 @@
       "length_ft": 17.0,
       "posted_rate": 2000.0,
       "rate_per_mi": 0.71,
-      "net_est": -1602.45,
-      "math": "Rate $2,000.00 x 0.87 = $1,740.00 after the 13% Totni fee ($260.00). Fuel and DEF $1.14 x 2,836 mi = $3,233.04. Empty miles $0.30 x 365 mi = $109.41. Net EST -$1,602.45.",
+      "net_est": -519.69,
+      "math": "Rate $2,000.00 x 0.87 = $1,740.00 after the 13% Totni fee ($260.00). Diesel $5.378/gal (EIA Lower Atlantic (PADD 1C), week of 2026-11-23) at 8.0 mpg plus $0.034/mi DEF = $0.706/mi. Fuel $0.706 x 3,201 mi (loaded+empty) = $2,259.69. Net EST $-519.69.",
       "fit_flags": [],
       "verdict": "PASS",
       "same_day": false,
@@ -14187,8 +14629,8 @@
       "looked_up": false,
       "tarp": false,
       "hours": 66.01,
-      "per_hour": -24.28,
-      "net_per_mile": -0.5,
+      "per_hour": -7.87,
+      "net_per_mile": -0.16,
       "gross_per_mile": 0.62,
       "reason": "Net EST is under the $500 bar.",
       "truck_coord": {
@@ -14548,7 +14990,25 @@
             "n": 2
           }
         ]
+      },
+      "fuel": {
+        "diesel_usd_gal": 5.378,
+        "diesel_source": "EIA Lower Atlantic (PADD 1C), week of 2026-11-23",
+        "diesel_region": "PADD1C",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.706,
+        "fallback": false
       }
     }
-  ]
+  ],
+  "fuel": {
+    "mpg": 8.0,
+    "def_per_mi": 0.034,
+    "fallback_loaded_per_mi": 1.14,
+    "fallback_deadhead_per_mi": 0.3,
+    "source": "eia_padd",
+    "week": "2026-11-23"
+  }
 }

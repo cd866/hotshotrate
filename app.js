@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v26';
+  var APP_VERSION = 'v27';
   var SETTINGS_KEY = 'blackram_settings_v4';
   var SETTINGS_KEY_V1 = 'blackram_settings_v1';
   var SETTINGS_KEY_V2 = 'blackram_settings_v2';
@@ -30,6 +30,8 @@
     truckAt: null,
     truckAtBusy: false,
     truckAtError: '',
+    dieselPrices: null,
+    truckFuel: null,
     maxDeadhead: 0,
     routeCache: null,
     geoCache: null,
@@ -177,8 +179,8 @@
       trailer: n('trailer', 434.84),
       insurance: n('insurance', 1221.62),
       otherFixed: n('otherFixed', 1573.04),
-      mpg: n('mpg', 9),
-      diesel: n('diesel', 6.04),
+      mpg: n('mpg', 8),
+      diesel: n('diesel', 5.378),
       capacity: capacity != null ? capacity : 16000,
       deckFt: deckFt != null ? deckFt : 40,
       assumedMph: mph > 0 ? mph : 50
@@ -2111,6 +2113,7 @@
 
   function rememberTruckAt(rec) {
     state.truckAt = rec;
+    refreshTruckFuel();
     try {
       if (rec) localStorage.setItem(TRUCK_AT_KEY, JSON.stringify(rec));
       else localStorage.removeItem(TRUCK_AT_KEY);
@@ -2136,6 +2139,284 @@
     return scanOriginPoint();
   }
 
+
+  var FRESH_PULL_FLAG = 'blackram_fresh_pull_v1';
+  var FRESH_PULL_CODE_KEY = 'blackram_fresh_pull_code';
+  var FRESH_PULL_URL_KEY = 'blackram_fresh_pull_webhook';
+  var FALLBACK_LOADED = 1.14;
+  var FALLBACK_DEADHEAD = 0.30;
+  var DEFAULT_MPG = 8;
+  var DEFAULT_DEF_PER_MI = 0.034;
+
+  var STATE_NAMES = {
+    ALABAMA:'AL', ALASKA:'AK', ARIZONA:'AZ', ARKANSAS:'AR', CALIFORNIA:'CA',
+    COLORADO:'CO', CONNECTICUT:'CT', DELAWARE:'DE', FLORIDA:'FL', GEORGIA:'GA',
+    HAWAII:'HI', IDAHO:'ID', ILLINOIS:'IL', INDIANA:'IN', IOWA:'IA', KANSAS:'KS',
+    KENTUCKY:'KY', LOUISIANA:'LA', MAINE:'ME', MARYLAND:'MD', MASSACHUSETTS:'MA',
+    MICHIGAN:'MI', MINNESOTA:'MN', MISSISSIPPI:'MS', MISSOURI:'MO', MONTANA:'MT',
+    NEBRASKA:'NE', NEVADA:'NV', 'NEW HAMPSHIRE':'NH', 'NEW JERSEY':'NJ',
+    'NEW MEXICO':'NM', 'NEW YORK':'NY', 'NORTH CAROLINA':'NC', 'NORTH DAKOTA':'ND',
+    OHIO:'OH', OKLAHOMA:'OK', OREGON:'OR', PENNSYLVANIA:'PA', 'RHODE ISLAND':'RI',
+    'SOUTH CAROLINA':'SC', 'SOUTH DAKOTA':'SD', TENNESSEE:'TN', TEXAS:'TX',
+    UTAH:'UT', VERMONT:'VT', VIRGINIA:'VA', WASHINGTON:'WA', 'WEST VIRGINIA':'WV',
+    WISCONSIN:'WI', WYOMING:'WY', 'DISTRICT OF COLUMBIA':'DC'
+  };
+
+  function stateFromText(text) {
+    if (!text) return null;
+    var s = String(text);
+    var m = s.match(/,\s*([A-Z]{2})(?:\s|,|$)/);
+    if (m) return m[1];
+    var up = s.toUpperCase().replace(/[^A-Z ]/g, ' ');
+    var name;
+    for (name in STATE_NAMES) {
+      if (up.indexOf(name) !== -1) return STATE_NAMES[name];
+    }
+    return null;
+  }
+
+  function fallbackFuel() {
+    return {
+      diesel_usd_gal: null,
+      diesel_source: 'fallback $1.14/loaded mi + $0.30/empty mi',
+      diesel_region: null,
+      diesel_stop: null,
+      mpg: DEFAULT_MPG,
+      def_per_mi: DEFAULT_DEF_PER_MI,
+      fuel_per_mi: FALLBACK_LOADED,
+      fallback: true
+    };
+  }
+
+  function fuelFromPrices(prices, st) {
+    var eia = prices && prices.eia;
+    if (!eia || !eia.regions) return fallbackFuel();
+    var map = prices.state_to_region || {};
+    var code = (st && map[st]) || 'US';
+    var info = eia.regions[code] || eia.regions.US;
+    if (!info || info.usd_gal == null) return fallbackFuel();
+    var mpg = Number(prices.mpg) > 0 ? Number(prices.mpg) : DEFAULT_MPG;
+    var defp = prices.def_per_mi != null ? Number(prices.def_per_mi) : DEFAULT_DEF_PER_MI;
+    var diesel = Number(info.usd_gal);
+    var fpm = Math.round((diesel / mpg + defp) * 1000) / 1000;
+    return {
+      diesel_usd_gal: diesel,
+      diesel_source: 'EIA ' + (info.name || code) + ', week of ' + (eia.week || ''),
+      diesel_region: code,
+      diesel_stop: null,
+      mpg: mpg,
+      def_per_mi: defp,
+      fuel_per_mi: fpm,
+      fallback: false
+    };
+  }
+
+  function refreshTruckFuel() {
+    state.truckFuel = null;
+    var p = state.truckAt;
+    if (!p || !state.dieselPrices) return;
+    var st = stateFromText(p.label || '');
+    if (!st) return;
+    state.truckFuel = fuelFromPrices(state.dieselPrices, st);
+  }
+
+  function currentFuel(row) {
+    if (state.truckFuel && !state.truckFuel.fallback) return state.truckFuel;
+    if (row && row.fuel && row.fuel.fuel_per_mi != null && !row.fuel.fallback) return row.fuel;
+    if (state.dieselPrices) {
+      var st = row ? stateFromText(row.origin || '') : null;
+      var f = fuelFromPrices(state.dieselPrices, st);
+      if (f && !f.fallback) return f;
+    }
+    return fallbackFuel();
+  }
+
+  function money2(n) {
+    return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function money3(n) {
+    return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+  }
+
+  function applyFuelNet(rate, trip, dh, fuel) {
+    var after = Math.round(Number(rate) * 0.87 * 100) / 100;
+    var feeAmt = Math.round((Number(rate) - after) * 100) / 100;
+    var net, math, cost;
+    if (!fuel || fuel.fallback) {
+      var loadedCost = Math.round(FALLBACK_LOADED * trip * 100) / 100;
+      var dhCost = Math.round(FALLBACK_DEADHEAD * dh * 100) / 100;
+      net = Math.round((after - loadedCost - dhCost) * 100) / 100;
+      math = 'Rate ' + money2(rate) + ' x 0.87 = ' + money2(after) +
+        ' after the 13% Totni fee (' + money2(feeAmt) + '). Fuel and DEF $1.14 x ' +
+        Math.round(trip).toLocaleString('en-US') + ' mi = ' + money2(loadedCost) +
+        '. Empty miles $0.30 x ' + Math.round(dh).toLocaleString('en-US') + ' mi = ' +
+        money2(dhCost) + '. Net EST ' + money2(net) + '.';
+    } else {
+      var total = trip + dh;
+      cost = Math.round(fuel.fuel_per_mi * total * 100) / 100;
+      net = Math.round((after - cost) * 100) / 100;
+      math = 'Rate ' + money2(rate) + ' x 0.87 = ' + money2(after) +
+        ' after the 13% Totni fee (' + money2(feeAmt) + '). Diesel ' +
+        money3(fuel.diesel_usd_gal) + '/gal (' + fuel.diesel_source + ') at ' +
+        Number(fuel.mpg).toFixed(1) + ' mpg plus ' + money3(fuel.def_per_mi) +
+        '/mi DEF = ' + money3(fuel.fuel_per_mi) + '/mi. Fuel ' +
+        money3(fuel.fuel_per_mi) + ' x ' + Math.round(total).toLocaleString('en-US') +
+        ' mi (loaded+empty) = ' + money2(cost) + '. Net EST ' + money2(net) + '.';
+    }
+    return { net: net, after: after, math: math, fuel: fuel };
+  }
+
+  function fuelLine(fuel) {
+    if (!fuel) return '';
+    if (fuel.fallback) {
+      return '<p class="search-fuel">Fuel: fallback $1.14/loaded mi + $0.30/empty mi (no diesel price on file)</p>';
+    }
+    var stop = fuel.diesel_stop ? ' · ' + fuel.diesel_stop : '';
+    return '<p class="search-fuel">Diesel ' + money3(fuel.diesel_usd_gal) + '/gal · ' +
+      esc(fuel.diesel_source || 'price source n/a') + stop +
+      ' · ' + Number(fuel.mpg).toFixed(1) + ' mpg + ' + money3(fuel.def_per_mi) + '/mi DEF · ' +
+      money3(fuel.fuel_per_mi) + '/mi</p>';
+  }
+
+  function loadDieselPrices() {
+    return fetchTimed('data/diesel_prices.json?t=' + Date.now(), { cache: 'no-cache' }, 10000).then(function (res) {
+      if (!res.ok) throw new Error('diesel');
+      return res.json();
+    }).then(function (data) {
+      state.dieselPrices = data;
+      refreshTruckFuel();
+      if (state.searches) {
+        state.scoredSearches = applyLocalScoring(cloneData(state.searches));
+        if (state.tab === 'searches') renderSearches();
+      }
+    }).catch(function () { /* keep pipeline numbers / fallback */ });
+  }
+
+  function freshPullEnabled() {
+    try { return localStorage.getItem(FRESH_PULL_FLAG) === '1'; } catch (err) { return false; }
+  }
+
+  function renderFreshPull() {
+    if (!freshPullEnabled()) return '';
+    var origin = currentTruckPoint() || {};
+    var originLabel = origin.label || '';
+    return '<div class="fresh-pull" id="fresh-pull">' +
+      '<h3>Pull fresh loads</h3>' +
+      '<p class="fine">On-demand board search. Not connected yet \u2014 this form only prepares the request.</p>' +
+      '<form id="fresh-pull-form" action="#" class="fresh-pull-form">' +
+        '<label class="fresh-pull-field">Origin' +
+          '<div class="truck-at-lookup">' +
+            '<input type="text" id="fresh-origin" placeholder="City, address, or ZIP" value="' + esc(originLabel) + '" autocomplete="off" autocapitalize="words">' +
+            '<ul class="truck-at-suggests" id="fresh-origin-suggests" hidden></ul>' +
+          '</div></label>' +
+        '<button type="button" id="fresh-origin-gps">Use my GPS</button>' +
+        '<label class="fresh-pull-anywhere"><input type="checkbox" id="fresh-anywhere" checked> Anywhere</label>' +
+        '<label class="fresh-pull-field" id="fresh-dest-wrap">Destination' +
+          '<div class="truck-at-lookup">' +
+            '<input type="text" id="fresh-dest" placeholder="City, address, or ZIP" autocomplete="off" autocapitalize="words" disabled>' +
+            '<ul class="truck-at-suggests" id="fresh-dest-suggests" hidden></ul>' +
+          '</div></label>' +
+        '<label class="fresh-pull-field">Deadhead radius' +
+          '<select id="fresh-radius">' +
+            '<option value="50">50 mi</option>' +
+            '<option value="100" selected>100 mi</option>' +
+            '<option value="150">150 mi</option>' +
+            '<option value="250">250 mi</option>' +
+          '</select></label>' +
+        '<button type="submit" class="primary" id="fresh-pull-go">Pull fresh loads</button>' +
+      '</form>' +
+      '<p class="fresh-pull-status" id="fresh-pull-status"></p>' +
+      '</div>';
+  }
+
+  function bindSuggestInput(inputId, listId, onPick) {
+    var input = $(inputId);
+    var box = $(listId);
+    if (!input || !box) return;
+    var timer = null, gen = 0;
+    input.addEventListener('input', function () {
+      var q = input.value || '';
+      if (timer) clearTimeout(timer);
+      if (q.trim().length < 3) { box.hidden = true; box.innerHTML = ''; return; }
+      var g = ++gen;
+      timer = setTimeout(function () {
+        suggestPlaces(q).then(function (items) {
+          if (g !== gen) return;
+          if (!items || !items.length) { box.hidden = true; box.innerHTML = ''; return; }
+          box.innerHTML = items.map(function (it, i) {
+            return '<li><button type="button" class="truck-at-suggest" data-idx="' + i + '">' + esc(it.label) + '</button></li>';
+          }).join('');
+          box._items = items;
+          box.hidden = false;
+        }).catch(function () { box.hidden = true; });
+      }, 300);
+    });
+    box.addEventListener('click', function (e) {
+      var btn = e.target && e.target.closest ? e.target.closest('.truck-at-suggest') : null;
+      if (!btn) return;
+      var rec = (box._items || [])[Number(btn.getAttribute('data-idx'))];
+      if (!rec) return;
+      input.value = rec.label;
+      box.hidden = true;
+      if (onPick) onPick(rec);
+    });
+  }
+
+  function bindFreshPull() {
+    if (!freshPullEnabled()) return;
+    var form = $('fresh-pull-form');
+    if (!form || form._bound) return;
+    form._bound = true;
+    var originRec = currentTruckPoint() ? { label: currentTruckPoint().label, lat: currentTruckPoint().lat, lon: currentTruckPoint().lon } : null;
+    var destRec = null;
+    bindSuggestInput('fresh-origin', 'fresh-origin-suggests', function (rec) { originRec = rec; });
+    bindSuggestInput('fresh-dest', 'fresh-dest-suggests', function (rec) { destRec = rec; });
+    var any = $('fresh-anywhere');
+    var dest = $('fresh-dest');
+    function syncAnywhere() {
+      if (dest) dest.disabled = !!(any && any.checked);
+      var wrap = $('fresh-dest-wrap');
+      if (wrap) wrap.hidden = !!(any && any.checked);
+    }
+    if (any) any.addEventListener('change', syncAnywhere);
+    syncAnywhere();
+    var gps = $('fresh-origin-gps');
+    if (gps) gps.addEventListener('click', function () {
+      if (!navigator.geolocation) {
+        var st = $('fresh-pull-status');
+        if (st) st.textContent = 'This browser cannot share a location.';
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(function (pos) {
+        reverseGeocode(pos.coords.latitude, pos.coords.longitude).then(function (rec) {
+          originRec = rec;
+          var inp = $('fresh-origin');
+          if (inp) inp.value = rec.label || '';
+        });
+      }, function () {
+        var st2 = $('fresh-pull-status');
+        if (st2) st2.textContent = 'Location was not available.';
+      }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 });
+    });
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      // Not wired: a later pass will POST this payload to the webhook URL
+      // in localStorage (blackram_fresh_pull_webhook) with the code in
+      // blackram_fresh_pull_code. Do not send anything yet.
+      var payload = {
+        origin: originRec && originRec.lat != null ? { label: originRec.label, lat: originRec.lat, lon: originRec.lon } : null,
+        destination: (any && any.checked) ? 'anywhere' : (destRec && destRec.lat != null ? { label: destRec.label, lat: destRec.lat, lon: destRec.lon } : null),
+        radius_mi: Number($('fresh-radius') && $('fresh-radius').value) || 100,
+        code: null
+      };
+      try { payload.code = localStorage.getItem(FRESH_PULL_CODE_KEY) || null; } catch (err) { payload.code = null; }
+      var st = $('fresh-pull-status');
+      if (st) st.textContent = 'On-demand search is not connected yet. The request would be ' +
+        '{origin:{label,lat,lon}, destination:{label,lat,lon}|\"anywhere\", radius_mi, code}.';
+      try { console.log('fresh-pull payload (not sent)', payload); } catch (err2) { /* ignore */ }
+    });
+  }
+
   function scoreSearchLoad(row) {
     var trip = rowLoadedMiles(row);
     var dh = rowEmptyMiles(row);
@@ -2143,9 +2424,12 @@
     var total = trip + dh;
     var sameDay = total > 0 && total < 250;
     var bar = sameDay ? 300 : 500;
+    var fuel = currentFuel(row);
     var net = null;
+    var fuelMath = null;
     if (rate != null && isFinite(Number(rate)) && trip > 0) {
-      net = Math.round((Number(rate) * 0.87 - 1.14 * trip - 0.30 * dh) * 100) / 100;
+      fuelMath = applyFuelNet(rate, trip, dh, fuel);
+      net = fuelMath.net;
     }
     var flags = [];
     var hard = false;
@@ -2166,20 +2450,8 @@
     flags = flags.concat(keepFlags);
     if (keepFlags.length) hard = true;
     row.net_est = net;
-    if (rate != null && trip > 0) {
-      var after = Math.round(Number(rate) * 0.87 * 100) / 100;
-      var feeAmt = Math.round((Number(rate) - after) * 100) / 100;
-      var loadedCost = Math.round(1.14 * trip * 100) / 100;
-      var dhCost = Math.round(0.30 * dh * 100) / 100;
-      row.math = 'Rate $' + Number(rate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) +
-        ' x 0.87 = $' + after.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) +
-        ' after the 13% Totni fee ($' + feeAmt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) +
-        '). Fuel and DEF $1.14 x ' + Math.round(trip).toLocaleString('en-US') + ' mi = $' +
-        loadedCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) +
-        '. Empty miles $0.30 x ' + Math.round(dh).toLocaleString('en-US') + ' mi = $' +
-        dhCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) +
-        '. Net EST $' + (net == null ? 'n/a' : net.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })) + '.';
-    }
+    row.fuel = fuel;
+    if (fuelMath) row.math = fuelMath.math;
     row.total_mi = total;
     row.same_day = sameDay;
     row.bar = bar;
@@ -2219,8 +2491,22 @@
     var dead = (Number(origCombo && origCombo.deadhead_mi) || 0) + extra;
     combo.deadhead_mi = Math.round(dead * 10) / 10;
     combo.total_mi = Math.round(((Number(combo.loaded_mi) || 0) + dead) * 10) / 10;
+    var fuel = currentFuel(combo.loads && combo.loads[0] ? combo.loads[0] : combo);
+    combo.fuel = fuel;
     if (combo.after_fee != null && combo.loaded_mi != null) {
-      combo.net_est = Math.round((Number(combo.after_fee) - 1.14 * Number(combo.loaded_mi) - 0.30 * dead) * 100) / 100;
+      var loaded = Number(combo.loaded_mi) || 0;
+      if (fuel && !fuel.fallback) {
+        var cost = Math.round(fuel.fuel_per_mi * (loaded + dead) * 100) / 100;
+        combo.net_est = Math.round((Number(combo.after_fee) - cost) * 100) / 100;
+        combo.math = 'Rates after the 13% Totni fee ' + money2(combo.after_fee) + '. Diesel ' +
+          money3(fuel.diesel_usd_gal) + '/gal (' + fuel.diesel_source + ') at ' +
+          Number(fuel.mpg).toFixed(1) + ' mpg plus ' + money3(fuel.def_per_mi) +
+          '/mi DEF = ' + money3(fuel.fuel_per_mi) + '/mi. Fuel ' +
+          money3(fuel.fuel_per_mi) + ' x ' + Math.round(loaded + dead).toLocaleString('en-US') +
+          ' mi (loaded+empty) = ' + money2(cost) + '. Net EST ' + money2(combo.net_est) + '.';
+      } else {
+        combo.net_est = Math.round((Number(combo.after_fee) - FALLBACK_LOADED * loaded - FALLBACK_DEADHEAD * dead) * 100) / 100;
+      }
     }
     delete combo.days;
     delete combo.net_per_day;
@@ -3261,6 +3547,7 @@
       (reason ? '<p class="search-reason">' + esc(reason) + '</p>' : '') +
       '<div class="lane">' + esc(origin) + ' to ' + esc(dest) + '</div>' +
       loadStatRow(row, searchOriginLabel()) +
+      fuelLine(currentFuel(row)) +
       (row.math ? '<p class="search-math">' + esc(row.math) + '</p>' : '') +
       (row.tarp ? '<p class="search-fit">Tarps, straps</p>' : '') +
       '<p class="search-meta">' + esc(bits.filter(Boolean).join(' | ')) + '</p>' +
@@ -3312,6 +3599,7 @@
       (reason ? '<p class="search-reason">' + esc(reason) + '</p>' : '') +
       '<div class="lane">' + esc(kind) + '</div>' +
       milesStrip(combo.loaded_mi, combo.deadhead_mi, { emptyFrom: searchOriginLabel() + ', all legs' }) +
+      fuelLine(currentFuel(combo.loads && combo.loads[0] ? combo.loads[0] : combo)) +
       (combo.math ? '<p class="search-math">' + esc(combo.math) + '</p>' : '') +
       '<div class="stat-row">' +
         statCell('On deck', esc(wt)) +
@@ -3394,6 +3682,7 @@
     var btn = $('search-refresh-btn');
     if (btn) btn.addEventListener('click', function () { refreshSearches(); });
     bindTruckAt();
+    bindFreshPull();
   }
 
   function renderSearches() {
@@ -3445,6 +3734,7 @@
           '<div class="search-count"><div class="n">' + esc(String(counts.pass || 0)) + '</div><div class="l">PASS</div></div>' +
         '</div>' +
         rateLegend() +
+        renderFreshPull() +
       '</div>' +
       renderCombos(data) +
       renderSearchChart(rows) +
@@ -3556,6 +3846,7 @@
     recallTruckAt();
     watchTabbar();
     bindRigPhoto();
+    loadDieselPrices();
     var ver = $('app-version');
     if (ver) ver.textContent = APP_VERSION;
     renderCheck();

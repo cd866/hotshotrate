@@ -3,18 +3,18 @@
    caches are dropped and phones pick up the new build.
    Shell files (HTML, JS, CSS, the worker) are network-first with cache:
    'no-store', so GitHub Pages' max-age=600 cannot keep a stale copy.
-   data/feed.json, data/load_searches.json and data/stops.json are
+   data/feed.json, data/load_searches.json, data/diesel_prices.json and data/stops.json are
    network-first with a 12 s timeout, then the cached copy. */
-var CACHE = 'blackram-v26';
+var CACHE = 'blackram-v27';
 var ASSETS = [
   './',
   './index.html',
   './styles.css',
-  './styles.css?v=26',
+  './styles.css?v=27',
   './app.js',
-  './app.js?v=26',
+  './app.js?v=27',
   './stops.js',
-  './stops.js?v=26',
+  './stops.js?v=27',
   './manifest.json',
   './manifest.json?v=3',
   './manifest.webmanifest',
@@ -41,6 +41,7 @@ var ASSETS = [
   './fonts/oswald-700.woff2',
   './data/feed.json',
   './data/load_searches.json',
+  './data/diesel_prices.json',
   './data/stops.json',
   './vendor/leaflet/leaflet.css',
   './vendor/leaflet/leaflet.js',
@@ -52,7 +53,7 @@ var ASSETS = [
 ];
 
 function isFreshData(url) {
-  return url.pathname.endsWith('/data/feed.json') || url.pathname.endsWith('/data/load_searches.json') || url.pathname.endsWith('/data/stops.json');
+  return url.pathname.endsWith('/data/feed.json') || url.pathname.endsWith('/data/load_searches.json') || url.pathname.endsWith('/data/diesel_prices.json') || url.pathname.endsWith('/data/stops.json');
 }
 
 function isShell(url, req) {

@@ -1,0 +1,116 @@
+{
+  "schema": 1,
+  "fetched_at": "2026-11-25 11:39 CT",
+  "mpg": 8.0,
+  "mpg_note": "8.0 loaded mpg from the company fuel ledger, 10/12-11/16/2026: 585.5 gal (130.95 gal on receipts plus the rest of the diesel spend at the $5.96/gal receipt average) against 2,966 delivered loaded miles. The raw gal/loaded-mi ratio is lower because empty miles between loads were mostly not recorded; tighter stretches with complete fuel and loaded miles land around 7-9 mpg. DEF is $0.034/mi from $159.75 of DEF over the implied 4,684 miles at 8.0 mpg.",
+  "def_per_mi": 0.034,
+  "fallback_loaded_per_mi": 1.14,
+  "fallback_deadhead_per_mi": 0.3,
+  "source": "eia_padd",
+  "source_note": "EIA weekly retail on-highway diesel (includes taxes), Gasoline and Diesel Fuel Update. Love's store prices need an OAuth API we do not have; Pilot does not post pump prices on the public site; TA/Petro and GasBuddy had no usable unauthenticated feed from this host. Each load uses the PADD for its origin state. When Truck is at is set, the app uses the PADD for that spot.",
+  "eia": {
+    "week": "2026-11-23",
+    "url": "https://www.eia.gov/petroleum/gasdiesel/",
+    "workbook": "https://www.eia.gov/petroleum/gasdiesel/includes/dieselfuel_recent_prices_and_SEs.xlsx",
+    "regions": {
+      "US": {
+        "name": "United States",
+        "usd_gal": 5.695
+      },
+      "PADD1": {
+        "name": "East Coast (PADD 1)",
+        "usd_gal": 5.619
+      },
+      "PADD1A": {
+        "name": "New England (PADD 1A)",
+        "usd_gal": 6.064
+      },
+      "PADD1B": {
+        "name": "Central Atlantic (PADD 1B)",
+        "usd_gal": 6.146
+      },
+      "PADD1C": {
+        "name": "Lower Atlantic (PADD 1C)",
+        "usd_gal": 5.378
+      },
+      "PADD2": {
+        "name": "Midwest (PADD 2)",
+        "usd_gal": 5.671
+      },
+      "PADD3": {
+        "name": "Gulf Coast (PADD 3)",
+        "usd_gal": 5.294
+      },
+      "PADD4": {
+        "name": "Rocky Mountain (PADD 4)",
+        "usd_gal": 5.772
+      },
+      "PADD5": {
+        "name": "West Coast (PADD 5)",
+        "usd_gal": 6.709
+      },
+      "CA": {
+        "name": "California",
+        "usd_gal": 7.436
+      },
+      "PADD5XCA": {
+        "name": "West Coast less California",
+        "usd_gal": 6.079
+      }
+    }
+  },
+  "state_to_region": {
+    "ME": "PADD1A",
+    "NH": "PADD1A",
+    "VT": "PADD1A",
+    "MA": "PADD1A",
+    "RI": "PADD1A",
+    "CT": "PADD1A",
+    "NY": "PADD1B",
+    "NJ": "PADD1B",
+    "PA": "PADD1B",
+    "DE": "PADD1B",
+    "MD": "PADD1B",
+    "DC": "PADD1B",
+    "WV": "PADD1C",
+    "VA": "PADD1C",
+    "NC": "PADD1C",
+    "SC": "PADD1C",
+    "GA": "PADD1C",
+    "FL": "PADD1C",
+    "ND": "PADD2",
+    "SD": "PADD2",
+    "NE": "PADD2",
+    "KS": "PADD2",
+    "OK": "PADD2",
+    "MN": "PADD2",
+    "IA": "PADD2",
+    "MO": "PADD2",
+    "WI": "PADD2",
+    "IL": "PADD2",
+    "IN": "PADD2",
+    "MI": "PADD2",
+    "OH": "PADD2",
+    "KY": "PADD2",
+    "TN": "PADD2",
+    "NM": "PADD3",
+    "TX": "PADD3",
+    "AR": "PADD3",
+    "LA": "PADD3",
+    "MS": "PADD3",
+    "AL": "PADD3",
+    "MT": "PADD4",
+    "ID": "PADD4",
+    "WY": "PADD4",
+    "UT": "PADD4",
+    "CO": "PADD4",
+    "WA": "PADD5XCA",
+    "OR": "PADD5XCA",
+    "NV": "PADD5XCA",
+    "AZ": "PADD5XCA",
+    "AK": "PADD5XCA",
+    "HI": "PADD5XCA",
+    "CA": "CA"
+  },
+  "stops": []
+}
