@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v27';
+  var APP_VERSION = 'v28';
   var SETTINGS_KEY = 'blackram_settings_v4';
   var SETTINGS_KEY_V1 = 'blackram_settings_v1';
   var SETTINGS_KEY_V2 = 'blackram_settings_v2';
@@ -180,7 +180,7 @@
       insurance: n('insurance', 1221.62),
       otherFixed: n('otherFixed', 1573.04),
       mpg: n('mpg', 8),
-      diesel: n('diesel', 5.378),
+      diesel: n('diesel', 5.36),
       capacity: capacity != null ? capacity : 16000,
       deckFt: deckFt != null ? deckFt : 40,
       assumedMph: mph > 0 ? mph : 50
@@ -2197,11 +2197,15 @@
     if (!info || info.usd_gal == null) return fallbackFuel();
     var mpg = Number(prices.mpg) > 0 ? Number(prices.mpg) : DEFAULT_MPG;
     var defp = prices.def_per_mi != null ? Number(prices.def_per_mi) : DEFAULT_DEF_PER_MI;
-    var diesel = Number(info.usd_gal);
+    var eiaPrice = Number(info.usd_gal);
+    var premium = prices.pump_premium_usd_gal != null ? Number(prices.pump_premium_usd_gal) : 0;
+    var diesel = Math.round((eiaPrice + premium) * 1000) / 1000;
     var fpm = Math.round((diesel / mpg + defp) * 1000) / 1000;
     return {
       diesel_usd_gal: diesel,
-      diesel_source: 'EIA ' + (info.name || code) + ', week of ' + (eia.week || ''),
+      diesel_eia_usd_gal: eiaPrice,
+      pump_premium_usd_gal: Math.round(premium * 1000) / 1000,
+      diesel_source: 'EIA ' + (info.name || code) + ' ' + money3(eiaPrice) + ' + our pump premium ' + money3(premium),
       diesel_region: code,
       diesel_stop: null,
       mpg: mpg,
@@ -2231,11 +2235,22 @@
     return fallbackFuel();
   }
 
-  function money2(n) {
-    return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  function moneyFmt(n, places) {
+    var v = Number(n);
+    var sign = v < 0 ? '-' : '';
+    return sign + '$' + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: places, maximumFractionDigits: places });
   }
-  function money3(n) {
-    return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+  function money2(n) { return moneyFmt(n, 2); }
+  function money3(n) { return moneyFmt(n, 3); }
+  function dieselPhrase(fuel, places) {
+    places = places == null ? 2 : places;
+    var m = function (n) { return moneyFmt(n, places); };
+    if (!fuel || fuel.fallback || fuel.diesel_eia_usd_gal == null) {
+      return 'Diesel ' + m(fuel && fuel.diesel_usd_gal) + '/gal';
+    }
+    return 'Diesel ' + m(fuel.diesel_usd_gal) + '/gal (EIA region ' +
+      m(fuel.diesel_eia_usd_gal) + ' + our pump premium ' +
+      m(fuel.pump_premium_usd_gal) + ')';
   }
 
   function applyFuelNet(rate, trip, dh, fuel) {
@@ -2256,8 +2271,8 @@
       cost = Math.round(fuel.fuel_per_mi * total * 100) / 100;
       net = Math.round((after - cost) * 100) / 100;
       math = 'Rate ' + money2(rate) + ' x 0.87 = ' + money2(after) +
-        ' after the 13% Totni fee (' + money2(feeAmt) + '). Diesel ' +
-        money3(fuel.diesel_usd_gal) + '/gal (' + fuel.diesel_source + ') at ' +
+        ' after the 13% Totni fee (' + money2(feeAmt) + '). ' +
+        dieselPhrase(fuel, 3) + ' at ' +
         Number(fuel.mpg).toFixed(1) + ' mpg plus ' + money3(fuel.def_per_mi) +
         '/mi DEF = ' + money3(fuel.fuel_per_mi) + '/mi. Fuel ' +
         money3(fuel.fuel_per_mi) + ' x ' + Math.round(total).toLocaleString('en-US') +
@@ -2272,8 +2287,7 @@
       return '<p class="search-fuel">Fuel: fallback $1.14/loaded mi + $0.30/empty mi (no diesel price on file)</p>';
     }
     var stop = fuel.diesel_stop ? ' · ' + fuel.diesel_stop : '';
-    return '<p class="search-fuel">Diesel ' + money3(fuel.diesel_usd_gal) + '/gal · ' +
-      esc(fuel.diesel_source || 'price source n/a') + stop +
+    return '<p class="search-fuel">' + esc(dieselPhrase(fuel, 2)) + stop +
       ' · ' + Number(fuel.mpg).toFixed(1) + ' mpg + ' + money3(fuel.def_per_mi) + '/mi DEF · ' +
       money3(fuel.fuel_per_mi) + '/mi</p>';
   }
@@ -2498,8 +2512,8 @@
       if (fuel && !fuel.fallback) {
         var cost = Math.round(fuel.fuel_per_mi * (loaded + dead) * 100) / 100;
         combo.net_est = Math.round((Number(combo.after_fee) - cost) * 100) / 100;
-        combo.math = 'Rates after the 13% Totni fee ' + money2(combo.after_fee) + '. Diesel ' +
-          money3(fuel.diesel_usd_gal) + '/gal (' + fuel.diesel_source + ') at ' +
+        combo.math = 'Rates after the 13% Totni fee ' + money2(combo.after_fee) + '. ' +
+          dieselPhrase(fuel, 3) + ' at ' +
           Number(fuel.mpg).toFixed(1) + ' mpg plus ' + money3(fuel.def_per_mi) +
           '/mi DEF = ' + money3(fuel.fuel_per_mi) + '/mi. Fuel ' +
           money3(fuel.fuel_per_mi) + ' x ' + Math.round(loaded + dead).toLocaleString('en-US') +

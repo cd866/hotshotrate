@@ -1,13 +1,64 @@
 {
   "schema": 1,
-  "fetched_at": "2026-11-25 11:39 CT",
+  "fetched_at": "2026-11-25 11:49 CT",
   "mpg": 8.0,
-  "mpg_note": "8.0 loaded mpg from the company fuel ledger, 10/12-11/16/2026: 585.5 gal (130.95 gal on receipts plus the rest of the diesel spend at the $5.96/gal receipt average) against 2,966 delivered loaded miles. The raw gal/loaded-mi ratio is lower because empty miles between loads were mostly not recorded; tighter stretches with complete fuel and loaded miles land around 7-9 mpg. DEF is $0.034/mi from $159.75 of DEF over the implied 4,684 miles at 8.0 mpg.",
+  "mpg_note": "8.0 loaded mpg from the company fuel ledger, 10/12-11/16/2026: 585.5 gal (130.95 gal on receipts plus the rest of the diesel spend at the $5.96/gal receipt average) against 2,966 delivered loaded miles. The raw gal/loaded-mi ratio is lower because empty miles between loads were mostly not recorded; tighter stretches with complete fuel and loaded miles land around 7-9 mpg. DEF is $0.034/mi from $159.75 of DEF over the implied 4,684 miles at 8.0 mpg. 8.0 mpg is unchanged; more clean fill-to-fill mpg readings would firm this up.",
   "def_per_mi": 0.034,
+  "pump_premium_usd_gal": -0.018,
+  "pump_premium": {
+    "method": "gallon_weighted_same_week_padd",
+    "receipt_avg_usd_gal": 5.878,
+    "matched_eia_avg_usd_gal": 5.896,
+    "pump_premium_usd_gal": -0.018,
+    "gallons": 80.808,
+    "fills": [
+      {
+        "date": "2026-10-13",
+        "stop": "Circle K, McDonough, GA",
+        "region": "PADD1C",
+        "eia_week": "2026-10-12",
+        "gal": 23.218,
+        "pump_usd_gal": 5.599,
+        "eia_usd_gal": 5.645,
+        "diff": -0.046
+      },
+      {
+        "date": "2026-10-14",
+        "stop": "Love's, Jasper, TN",
+        "region": "PADD2",
+        "eia_week": "2026-10-12",
+        "gal": 23.69,
+        "pump_usd_gal": 5.91,
+        "eia_usd_gal": 6.259,
+        "diff": -0.349
+      },
+      {
+        "date": "2026-11-04",
+        "stop": "Circle K, Pensacola, FL",
+        "region": "PADD1C",
+        "eia_week": "2026-11-02",
+        "gal": 19.52,
+        "pump_usd_gal": 5.891,
+        "eia_usd_gal": 5.814,
+        "diff": 0.077
+      },
+      {
+        "date": "2026-11-06",
+        "stop": "TA Jacksonville South, FL",
+        "region": "PADD1C",
+        "eia_week": "2026-11-02",
+        "gal": 14.38,
+        "pump_usd_gal": 6.259,
+        "eia_usd_gal": 5.814,
+        "diff": 0.445
+      }
+    ],
+    "note": "Premium is our receipt average minus the EIA PADD price for the same week and region, gallon-weighted. A negative number means those fills came in below same-week EIA, not a markup. 8.0 mpg is unchanged; more clean fill-to-fill mpg readings would firm that up."
+  },
   "fallback_loaded_per_mi": 1.14,
   "fallback_deadhead_per_mi": 0.3,
-  "source": "eia_padd",
-  "source_note": "EIA weekly retail on-highway diesel (includes taxes), Gasoline and Diesel Fuel Update. Love's store prices need an OAuth API we do not have; Pilot does not post pump prices on the public site; TA/Petro and GasBuddy had no usable unauthenticated feed from this host. Each load uses the PADD for its origin state. When Truck is at is set, the app uses the PADD for that spot.",
+  "source": "eia_padd_plus_pump_premium",
+  "source_note": "Live diesel is the EIA weekly on-highway PADD price plus our pump premium (receipt average minus same-week EIA for that region, gallon-weighted). Love's, Pilot, and TA have no public unauthenticated feed, so EIA is the live regional source. Each load, and Truck is at, uses diesel = EIA PADD + premium.",
   "eia": {
     "week": "2026-11-23",
     "url": "https://www.eia.gov/petroleum/gasdiesel/",

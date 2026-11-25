@@ -96,6 +96,67 @@ STATE_NAMES = {
 }
 
 
+# Actual receipt gallons from the company ledger (work period starting
+# 10/12/2026). Prepay slips that print 1.000 gal and fills whose gallons
+# were only approximate are omitted. Amount / gallons is the pump $/gal.
+RECEIPT_FILLS = [
+    {"date": "2026-10-13", "region": "PADD1C", "gal": 23.218, "amount": 130.00, "stop": "Circle K, McDonough, GA"},
+    {"date": "2026-10-14", "region": "PADD2", "gal": 23.69, "amount": 140.00, "stop": "Love's, Jasper, TN"},
+    {"date": "2026-11-04", "region": "PADD1C", "gal": 19.52, "amount": 115.00, "stop": "Circle K, Pensacola, FL"},
+    {"date": "2026-11-06", "region": "PADD1C", "gal": 14.38, "amount": 90.00, "stop": "TA Jacksonville South, FL"},
+]
+
+
+def eia_week_for(day, weeks):
+    cands = [w for w in weeks if w <= day]
+    return cands[-1] if cands else None
+
+
+def compute_pump_premium(all_weeks):
+    """Gallon-weighted (receipt $/gal minus same-week EIA PADD)."""
+    weeks = sorted(all_weeks)
+    tot_g = tot_d = tot_e = 0.0
+    rows = []
+    for fill in RECEIPT_FILLS:
+        w = eia_week_for(fill["date"], weeks)
+        if not w or fill["region"] not in all_weeks[w]:
+            continue
+        eia = float(all_weeks[w][fill["region"]]["usd_gal"])
+        pump = fill["amount"] / fill["gal"]
+        rows.append({
+            "date": fill["date"],
+            "stop": fill["stop"],
+            "region": fill["region"],
+            "eia_week": w,
+            "gal": fill["gal"],
+            "pump_usd_gal": round(pump, 3),
+            "eia_usd_gal": eia,
+            "diff": round(pump - eia, 3),
+        })
+        tot_g += fill["gal"]
+        tot_d += fill["amount"]
+        tot_e += eia * fill["gal"]
+    if tot_g <= 0:
+        return 0.0, {"method": "none", "fills": []}
+    receipt_avg = tot_d / tot_g
+    eia_avg = tot_e / tot_g
+    premium = round(receipt_avg - eia_avg, 3)
+    return premium, {
+        "method": "gallon_weighted_same_week_padd",
+        "receipt_avg_usd_gal": round(receipt_avg, 3),
+        "matched_eia_avg_usd_gal": round(eia_avg, 3),
+        "pump_premium_usd_gal": premium,
+        "gallons": round(tot_g, 3),
+        "fills": rows,
+        "note": (
+            "Premium is our receipt average minus the EIA PADD price for the "
+            "same week and region, gallon-weighted. A negative number means "
+            "those fills came in below same-week EIA, not a markup. 8.0 mpg "
+            "is unchanged; more clean fill-to-fill mpg readings would firm that up."
+        ),
+    }
+
+
 def now_iso():
     if CT:
         return datetime.now(CT).strftime("%Y-%m-%d %H:%M CT")
@@ -103,7 +164,9 @@ def now_iso():
 
 
 def money(n, places=2):
-    return f"${n:,.{places}f}"
+    n = float(n)
+    sign = "-" if n < 0 else ""
+    return f"{sign}${abs(n):,.{places}f}"
 
 
 def state_from_text(text):
@@ -149,7 +212,7 @@ def parse_eia(path: Path):
     if not by_date:
         raise SystemExit("EIA workbook had no diesel rows")
     week = sorted(by_date)[-1]
-    return week, by_date[week]
+    return week, by_date[week], dict(by_date)
 
 
 def fuel_per_mi(diesel):
@@ -162,16 +225,22 @@ def source_label(week, region_code, regions):
     return f"EIA {name}, week of {week}"
 
 
-def fuel_for_state(st, week, regions):
+def fuel_for_state(st, week, regions, premium=0.0):
     code = STATE_TO_PADD.get(st or "", "US")
     if code not in regions:
         code = "US"
     info = regions[code]
-    diesel = info["usd_gal"]
+    eia = float(info["usd_gal"])
+    diesel = round(eia + float(premium or 0), 3)
     fpm = fuel_per_mi(diesel)
+    name = info.get("name") or code
     return {
         "diesel_usd_gal": diesel,
-        "diesel_source": source_label(week, code, regions),
+        "diesel_eia_usd_gal": eia,
+        "pump_premium_usd_gal": round(float(premium or 0), 3),
+        "diesel_source": (
+            f"EIA {name} {money(eia, 3)} + our pump premium {money(float(premium or 0), 3)}"
+        ),
         "diesel_region": code,
         "diesel_stop": None,
         "mpg": LOADED_MPG,
@@ -206,14 +275,15 @@ def compute_net(rate, trip, dh, fuel):
     return net, after, math
 
 
-def apply_to_searches(data, week, regions):
+def apply_to_searches(data, week, regions, premium=0.0):
     fuel_index = {
         "mpg": LOADED_MPG,
         "def_per_mi": DEF_PER_MI,
         "fallback_loaded_per_mi": FALLBACK_LOADED,
         "fallback_deadhead_per_mi": FALLBACK_DEADHEAD,
-        "source": "eia_padd",
+        "source": "eia_padd_plus_pump_premium",
         "week": week,
+        "pump_premium_usd_gal": round(float(premium or 0), 3),
     }
     data["fuel"] = fuel_index
     rules = data.setdefault("rules", {})
@@ -229,7 +299,7 @@ def apply_to_searches(data, week, regions):
 
     def stamp(row, state_hint=None):
         st = state_from_text(row.get("origin") or "") or state_hint
-        fuel = fuel_for_state(st, week, regions)
+        fuel = fuel_for_state(st, week, regions, premium)
         row["fuel"] = fuel
         trip = row.get("trip_mi") or row.get("loaded_mi") or 0
         dh = row.get("origin_dh_mi") or row.get("empty_mi_est") or row.get("deadhead_mi") or 0
@@ -256,7 +326,7 @@ def apply_to_searches(data, week, regions):
         # combo origin is first leg
         first = (combo.get("loads") or [None])[0] or {}
         st = state_from_text(first.get("origin") or data.get("origin") or "")
-        fuel = fuel_for_state(st, week, regions)
+        fuel = fuel_for_state(st, week, regions, premium)
         combo["fuel"] = fuel
         trip = combo.get("loaded_mi") or 0
         dh = combo.get("deadhead_mi") or 0
@@ -287,7 +357,7 @@ def apply_to_searches(data, week, regions):
     return data
 
 
-def build_prices_doc(week, regions):
+def build_prices_doc(week, regions, premium=0.0, premium_meta=None):
     return {
         "schema": 1,
         "fetched_at": now_iso(),
@@ -299,19 +369,21 @@ def build_prices_doc(week, regions):
             "The raw gal/loaded-mi ratio is lower because empty miles between loads "
             "were mostly not recorded; tighter stretches with complete fuel and "
             "loaded miles land around 7-9 mpg. DEF is $0.034/mi from $159.75 of DEF "
-            "over the implied 4,684 miles at 8.0 mpg."
+            "over the implied 4,684 miles at 8.0 mpg. 8.0 mpg is unchanged; more "
+            "clean fill-to-fill mpg readings would firm this up."
         ),
         "def_per_mi": DEF_PER_MI,
+        "pump_premium_usd_gal": round(float(premium or 0), 3),
+        "pump_premium": premium_meta or {},
         "fallback_loaded_per_mi": FALLBACK_LOADED,
         "fallback_deadhead_per_mi": FALLBACK_DEADHEAD,
-        "source": "eia_padd",
+        "source": "eia_padd_plus_pump_premium",
         "source_note": (
-            "EIA weekly retail on-highway diesel (includes taxes), Gasoline and "
-            "Diesel Fuel Update. Love's store prices need an OAuth API we do not "
-            "have; Pilot does not post pump prices on the public site; TA/Petro "
-            "and GasBuddy had no usable unauthenticated feed from this host. "
-            "Each load uses the PADD for its origin state. When Truck is at is "
-            "set, the app uses the PADD for that spot."
+            "Live diesel is the EIA weekly on-highway PADD price plus our pump "
+            "premium (receipt average minus same-week EIA for that region, "
+            "gallon-weighted). Love's, Pilot, and TA have no public unauthenticated "
+            "feed, so EIA is the live regional source. Each load, and Truck is at, "
+            "uses diesel = EIA PADD + premium."
         ),
         "eia": {
             "week": week,
@@ -334,9 +406,10 @@ def main():
     else:
         print("fetching", EIA_XLSX)
         fetch_eia(tmp)
-    week, regions = parse_eia(tmp)
-    print("EIA week", week, "US", regions.get("US"))
-    prices = build_prices_doc(week, regions)
+    week, regions, all_weeks = parse_eia(tmp)
+    premium, premium_meta = compute_pump_premium(all_weeks)
+    print("EIA week", week, "US", regions.get("US"), "premium", premium)
+    prices = build_prices_doc(week, regions, premium, premium_meta)
     out_prices = data_dir / "diesel_prices.json"
     out_prices.write_text(json.dumps(prices, indent=2) + "\n")
     print("wrote", out_prices)
@@ -346,7 +419,7 @@ def main():
     scanned = data.get("scanned_at")
     as_of = data.get("as_of")
     n = len(data.get("loads") or [])
-    apply_to_searches(data, week, regions)
+    apply_to_searches(data, week, regions, premium)
     if data.get("scanned_at") != scanned or data.get("as_of") != as_of:
         raise SystemExit("refused to write: scan timestamps changed")
     if len(data.get("loads") or []) != n:

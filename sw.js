@@ -5,16 +5,16 @@
    'no-store', so GitHub Pages' max-age=600 cannot keep a stale copy.
    data/feed.json, data/load_searches.json, data/diesel_prices.json and data/stops.json are
    network-first with a 12 s timeout, then the cached copy. */
-var CACHE = 'blackram-v27';
+var CACHE = 'blackram-v28';
 var ASSETS = [
   './',
   './index.html',
   './styles.css',
-  './styles.css?v=27',
+  './styles.css?v=28',
   './app.js',
-  './app.js?v=27',
+  './app.js?v=28',
   './stops.js',
-  './stops.js?v=27',
+  './stops.js?v=28',
   './manifest.json',
   './manifest.json?v=3',
   './manifest.webmanifest',
