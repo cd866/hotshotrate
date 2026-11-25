@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-24T15:17:10Z",
+  "generated_at": "2026-11-25T19:21:14Z",
   "company": "Sand Lily Pad LLC",
   "dba": "Black Ram Logistics",
   "authority": "Leased onto Totni Enterprise",
@@ -8,7 +8,10 @@
   "rig": {
     "truck": "2026 Ram 3500 dually",
     "trailer": "2027 Big Tex 25GN 40 ft gooseneck",
-    "deck_capacity_lb": 15000
+    "deck_capacity_lb": 12500,
+    "payload_ok_lb": 12500,
+    "payload_maybe_max_lb": 15300,
+    "payload_note": "Cargo up to 12,500 lb is OK; 12,501-15,300 lb is MAYBE (scale check, load centered just ahead of trailer axles); over 15,300 lb is a PASS. The Ram GVWR of 14,000 lb binds (CAT empty 10,940 lb on the truck)."
   },
   "months": [
     {
@@ -19,7 +22,7 @@
         {
           "date": "2026-10-12",
           "desc": "Wood mats",
-          "lane": "Near FL 32091 \u2192 Fernandina Beach FL",
+          "lane": "Near FL 32091 → Fernandina Beach FL",
           "weight_lb": 12000,
           "loaded_mi": 73.63,
           "gross": 600.0,
@@ -56,6 +59,11 @@
           "net_per_mile": 3.37,
           "hours": 4.51,
           "per_hour": 93.69,
+          "days": 2.0,
+          "net_per_day": 211.26,
+          "flags": [
+            "net per day under $300"
+          ],
           "route": {
             "legs": [
               {
@@ -225,17 +233,12 @@
                 "n": 2
               }
             ]
-          },
-          "days": 2.0,
-          "net_per_day": 211.26,
-          "flags": [
-            "net per day under $300"
-          ]
+          }
         },
         {
           "date": "2026-10-13",
           "desc": "JCB telehandler",
-          "lane": "Pooler GA \u2192 EquipmentShare Chattanooga TN",
+          "lane": "Pooler GA → EquipmentShare Chattanooga TN",
           "weight_lb": 12000,
           "loaded_mi": 363,
           "gross": 1200.0,
@@ -272,6 +275,11 @@
           "net_per_mile": 1.23,
           "hours": 11.67,
           "per_hour": 50.9,
+          "days": 2.0,
+          "net_per_day": 297.03,
+          "flags": [
+            "net per day under $300"
+          ],
           "route": {
             "legs": [
               {
@@ -486,17 +494,12 @@
                 "n": 2
               }
             ]
-          },
-          "days": 2.0,
-          "net_per_day": 297.03,
-          "flags": [
-            "net per day under $300"
-          ]
+          }
         },
         {
           "date": "2026-10-14",
           "desc": "Bucket attachment (new)",
-          "lane": "Tag Mfg Chattanooga TN \u2192 Stribling Equipment Memphis TN",
+          "lane": "Tag Mfg Chattanooga TN → Stribling Equipment Memphis TN",
           "weight_lb": 14226,
           "loaded_mi": 300,
           "gross": 1700.0,
@@ -535,6 +538,8 @@
           "net_per_mile": 3.79,
           "hours": 8.0,
           "per_hour": 142.12,
+          "days": 2.0,
+          "net_per_day": 568.5,
           "route": {
             "legs": [
               {
@@ -715,9 +720,7 @@
                 "n": 2
               }
             ]
-          },
-          "days": 2.0,
-          "net_per_day": 568.5
+          }
         },
         {
           "date": "2026-10-22",
@@ -761,6 +764,11 @@
           "net_per_mile": 1.68,
           "hours": 8.23,
           "per_hour": 63.44,
+          "days": 2.0,
+          "net_per_day": 261.05,
+          "flags": [
+            "net per day under $300"
+          ],
           "route": {
             "legs": [
               {
@@ -1055,12 +1063,7 @@
                 "n": 2
               }
             ]
-          },
-          "days": 2.0,
-          "net_per_day": 261.05,
-          "flags": [
-            "net per day under $300"
-          ]
+          }
         },
         {
           "date": "2026-10-26",
@@ -1105,6 +1108,11 @@
           "net_per_mile": 0.47,
           "hours": 14.62,
           "per_hour": 20.13,
+          "days": 3.0,
+          "net_per_day": 98.12,
+          "flags": [
+            "net per day under $300"
+          ],
           "route": {
             "legs": [
               {
@@ -1283,12 +1291,7 @@
                 "n": 2
               }
             ]
-          },
-          "days": 3.0,
-          "net_per_day": 98.12,
-          "flags": [
-            "net per day under $300"
-          ]
+          }
         }
       ],
       "expenses": [
@@ -1544,7 +1547,7 @@
     },
     {
       "month": "2026-11",
-      "as_of": "2026-11-24",
+      "as_of": "2026-11-25",
       "fee_pct": 13,
       "loads": [
         {
@@ -1593,6 +1596,11 @@
           "net_per_mile": 0.32,
           "hours": 18.7,
           "per_hour": 14.15,
+          "days": 2.0,
+          "net_per_day": 132.3,
+          "flags": [
+            "net per day under $300"
+          ],
           "route": {
             "legs": [
               {
@@ -1799,12 +1807,7 @@
                 "n": 2
               }
             ]
-          },
-          "days": 2.0,
-          "net_per_day": 132.3,
-          "flags": [
-            "net per day under $300"
-          ]
+          }
         },
         {
           "date": "2026-11-05",
@@ -1851,6 +1854,11 @@
           "net_per_mile": 0.84,
           "hours": 15.1,
           "per_hour": 36.5,
+          "days": 2.0,
+          "net_per_day": 275.55,
+          "flags": [
+            "net per day under $300"
+          ],
           "route": {
             "legs": [
               {
@@ -2121,12 +2129,7 @@
                 "n": 2
               }
             ]
-          },
-          "days": 2.0,
-          "net_per_day": 275.55,
-          "flags": [
-            "net per day under $300"
-          ]
+          }
         },
         {
           "date": "2026-11-13",
@@ -2172,6 +2175,11 @@
           "net_per_mile": 0.27,
           "hours": 12.33,
           "per_hour": 11.23,
+          "days": 1.5,
+          "net_per_day": 92.32,
+          "flags": [
+            "net per day under $300"
+          ],
           "route": {
             "legs": [
               {
@@ -2402,12 +2410,7 @@
                 "n": 2
               }
             ]
-          },
-          "days": 1.5,
-          "net_per_day": 92.32,
-          "flags": [
-            "net per day under $300"
-          ]
+          }
         },
         {
           "date": "2026-11-16",
@@ -2453,6 +2456,11 @@
           "net_per_mile": 1.1,
           "hours": 8.17,
           "per_hour": 41.39,
+          "days": 2.0,
+          "net_per_day": 169.07,
+          "flags": [
+            "net per day under $300"
+          ],
           "route": {
             "legs": [
               {
@@ -2751,12 +2759,7 @@
                 "n": 2
               }
             ]
-          },
-          "days": 2.0,
-          "net_per_day": 169.07,
-          "flags": [
-            "net per day under $300"
-          ]
+          }
         },
         {
           "date": "2026-11-24",
@@ -2770,13 +2773,14 @@
           "miles_estimate": true,
           "broker": "Rich Logistics LLC",
           "load_no": "168481",
-          "notes": "Rate con: $750.00 line haul, 2 x 20 ft empty containers, 8,500 lb, hot shot. PU Port Wentworth GA 11/24 11:00 AM, DEL Graceville FL 11/25. About 330 loaded mi EST plus about 143 deadhead mi EST from the Jacksonville home base (not on rate con), about $2.27/mi loaded and $1.59/mi all-in EST. Totni 13% fee $97.50, expected net $652.50; payment not received. In transit (pickup 11/24). Needs 4 sticks of dunnage and PPE (closed-toe shoes and a safety vest). Container number photos required before leaving the shipper or $500 off; tracking required or $250 off; 4% quickpay available; signed BOL within 24 hours. Call the consignee ahead of arrival; GPS does not work.",
+          "notes": "Rate con: $750.00 line haul, 2 x 20 ft empty containers (TRDU 197629, TRDU 197633), 8,500 lb, hot shot. PU Port Wentworth GA 11/24 11:00 AM, DEL Graceville FL 11/25. About 330 loaded mi EST plus about 143 deadhead mi EST from the Jacksonville home base (not on rate con), about $2.27/mi loaded and $1.59/mi all-in EST. Totni 13% fee $97.50, expected net $652.50; payment not received. Delivered 11/25 at Battle's Containers, Graceville FL (unloading photos on file, 10:36 AM CT EXIF / reported ~1:17 PM CT; signed BOL/POD and Totni submission still open). Needs 4 sticks of dunnage and PPE (closed-toe shoes and a safety vest). Container number photos required before leaving the shipper or $500 off; tracking required or $250 off; 4% quickpay available; signed BOL within 24 hours. Call the consignee ahead of arrival; GPS does not work.",
+          "delivered_date": "2026-11-25",
           "pickup_date": "2026-11-24",
-          "pay_status": "in_transit",
+          "pay_status": "unpaid",
           "net_due": 652.5,
           "net_received": 0.0,
-          "pay_note": "In transit; pickup 11/24 11:00 AM at Port Wentworth GA, delivery 11/25 at Graceville FL. $652.50 = $750 less 13% ($97.50). About 330 loaded mi EST plus about 143 deadhead mi EST from the Jacksonville home base, about $2.27/mi loaded and $1.59/mi all-in EST. Container number photos required before leaving the shipper or $500 off; tracking required or $250 off; 4% quickpay available; signed BOL within 24 hours",
-          "status": "in_transit",
+          "pay_note": "Delivered 11/25 at Battle's Containers, Graceville FL (unloading photos on file, 10:36 AM CT EXIF / reported ~1:17 PM CT; payment not received). $652.50 = $750 less 13% ($97.50). About 330 loaded mi EST plus about 143 deadhead mi EST from the Jacksonville home base, about $2.27/mi loaded and $1.59/mi all-in EST. Container number photos required before leaving the shipper or $500 off; tracking required or $250 off; 4% quickpay available; signed BOL within 24 hours",
+          "status": "delivered",
           "rate_per_mi": 2.27,
           "pickup_place": "Con Global, 321 Grange Rd, Port Wentworth GA 31407",
           "drop_place": "Battle's Containers, 4102 Hwy 77, Graceville FL 32440",
@@ -2801,6 +2805,11 @@
           "net_per_mile": 0.49,
           "hours": 11.46,
           "per_hour": 20.37,
+          "days": 2.0,
+          "net_per_day": 116.7,
+          "flags": [
+            "net per day under $300"
+          ],
           "route": {
             "legs": [
               {
@@ -3082,12 +3091,7 @@
                 "n": 2
               }
             ]
-          },
-          "days": 2.0,
-          "net_per_day": 116.7,
-          "flags": [
-            "net per day under $300"
-          ]
+          }
         }
       ],
       "expenses": [
@@ -3247,6 +3251,10 @@
         {
           "date": "2026-11-24",
           "text": "Rich Logistics load 168481 in transit: 2 x 20 ft empty containers, Port Wentworth GA to Graceville FL, $750.00 gross, $652.50 net after the 13% fee, pickup 11/24 11:00 AM, delivery due 11/25, payment not received. About 330 loaded mi EST plus about 143 deadhead mi EST from the Jacksonville home base; about 258 mi back to Jacksonville."
+        },
+        {
+          "date": "2026-11-25",
+          "text": "Rich Logistics load 168481 delivered at Battle's Containers, Graceville FL ($750.00 gross, $652.50 net after the 13% fee, payment not received). Two unloading photos of 20 ft containers TRDU 197629 and TRDU 197633 on file (10:36 AM CT EXIF / reported ~1:17 PM CT); signed BOL/POD and paperwork submission still open."
         }
       ]
     }
