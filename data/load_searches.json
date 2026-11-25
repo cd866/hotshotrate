@@ -1,6 +1,6 @@
 {
   "schema": 2,
-  "as_of": "2026-11-25 12:09 CT",
+  "as_of": "2026-11-25 12:14 CT",
   "scanned_at": "2026-11-25 11:55 CT",
   "origin": "Graceville, FL",
   "origin_coord": {
@@ -10,7 +10,7 @@
   "map_stats": {
     "places_ok": 62,
     "places_miss": 0,
-    "nominatim": 0,
+    "nominatim": 1,
     "loads_with_coords": 38,
     "osrm": 104,
     "straight": 0
@@ -23,7 +23,7 @@
     "min_net_same_day": 300.0,
     "same_day_max_miles": 250.0,
     "chain_min": 1000.0,
-    "payload_lb": 16000,
+    "payload_lb": 15300,
     "deck_ft": 40,
     "formula": "net EST = rate x 0.87 - (diesel/gal / 8.0 mpg + $0.034/mi DEF) x (loaded + empty miles). Diesel is the EIA on-highway price for the origin state's PADD, week of 2026-11-23. Fallback is $1.14/loaded mi + $0.30/empty mi if no price is on file.",
     "per_hour_formula": "$/hr EST = net EST / hours. Hours = (loaded mi + deadhead mi) / 50 mph + 2 h load/unload per load.",
@@ -34,16 +34,16 @@
     "miles_per_day": 550.0,
     "min_net_per_day": 300.0,
     "days_formula": "Trip days = (loaded mi + empty miles) / 550 mi/day + 2 h load/unload per load, rounded up to the next half day. If the pickup-to-drop window (or a wait between combo legs) is longer, that window is used.",
-    "quality_bar": "Single load >= $500 net EST, or >= $300 for a same-day run under 250 total miles. A chain needs >= $1,000 total with no losing leg. Length over 40 ft, width over 8.5 ft, or weight over 16,000 lb is an automatic PASS. Weight 15,001-16,000 lb is MAYBE. No overhang. Tarp-required, F+T, and FT loads are a fit; the rig has tarps and straps. Step deck (FSD) is a PASS unless the notes allow a flatbed or hotshot. Conestoga (CONG) is a PASS.",
-    "combo_bar": "A 2- or 3-load combo needs >= $1,000 total net EST, must beat the best single load in it by at least $200, and no leg may lose money. Shared-deck combos keep combined weight <= 16,000 lb and combined length <= 40 ft for whatever is on the deck at the same time. Extra pickups must stay within about 100 mi of detour and extra drops within about 150 mi. Sequential chains deliver one load, then pick up the next within about 100 mi of the drop. Windows are checked at 550 mi/day. Route miles use the posted trip when the lane matches, otherwise haversine x 1.2. Unknown weight or length is flagged.",
+    "quality_bar": "Single load >= $500 net EST, or >= $300 for a same-day run under 250 total miles. A chain needs >= $1,000 total with no losing leg. Length over 40 ft, width over 8.5 ft, or weight over 15,300 lb is an automatic PASS. Cargo up to 12,500 lb is OK; 12,501-15,300 lb is MAYBE (scale check, load centered just ahead of trailer axles). Ram GVWR 14,000 lb binds (CAT empty 10,940 lb on the truck). No overhang. Tarp-required, F+T, and FT loads are a fit; the rig has tarps and straps.",
+    "combo_bar": "A 2- or 3-load combo needs >= $1,000 total net EST, must beat the best single load in it by at least $200, and no leg may lose money. Shared-deck combos keep combined weight <= 15,300 lb (12,501-15,300 lb is MAYBE) and combined length <= 40 ft for whatever is on the deck at the same time. Extra pickups must stay within about 100 mi of detour and extra drops within about 150 mi. Sequential chains deliver one load, then pick up the next within about 100 mi of the drop. Windows are checked at 550 mi/day. Route miles use the posted trip when the lane matches, otherwise haversine x 1.2. Unknown weight or length is flagged.",
     "mpg": 8.0,
     "def_per_mi": 0.034
   },
   "counts": {
     "total": 38,
-    "take": 3,
-    "maybe": 15,
-    "pass": 20
+    "take": 1,
+    "maybe": 16,
+    "pass": 21
   },
   "combo_counts": {
     "total": 6
@@ -52,7 +52,7 @@
     {
       "kind": "shared",
       "verdict": "MAYBE",
-      "reason": "Clears the combo bar, but timing is not fully confirmed.",
+      "reason": "Clears the combo bar, but combined weight is 12,501-15,300 lb (scale check, load centered just ahead of trailer axles).",
       "net_est": 3238.71,
       "net_per_day": 539.78,
       "hours": 68.11,
@@ -1202,6 +1202,7 @@
       ],
       "flags": [
         "Shared deck: pickups first, then drops along the route.",
+        "12,501-15,300 lb, scale check, load centered just ahead of trailer axles",
         "Tarps, straps - we have them",
         "Some windows are not listed; timing not fully confirmed at 550 mi/day."
       ],
@@ -2039,7 +2040,7 @@
     {
       "kind": "shared",
       "verdict": "MAYBE",
-      "reason": "Clears the combo bar, but timing is not fully confirmed.",
+      "reason": "Clears the combo bar, but combined weight is 12,501-15,300 lb (scale check, load centered just ahead of trailer axles).",
       "net_est": 2724.18,
       "net_per_day": 544.84,
       "hours": 55.87,
@@ -2711,6 +2712,7 @@
       ],
       "flags": [
         "Shared deck: pickups first, then drops along the route.",
+        "12,501-15,300 lb, scale check, load centered just ahead of trailer axles",
         "Some windows are not listed; timing not fully confirmed at 550 mi/day."
       ],
       "truck_coord": {
@@ -5956,6 +5958,7 @@
       ],
       "flags": [
         "Shared deck: pickups first, then drops along the route.",
+        "12,501-15,300 lb, scale check, load centered just ahead of trailer axles",
         "length not listed on at least one load",
         "Some windows are not listed; timing not fully confirmed at 550 mi/day.",
         "net per day under $300"
@@ -8784,377 +8787,6 @@
   "loads": [
     {
       "board": "Truckstop",
-      "origin": "Opp, AL",
-      "origin_dh_mi": 71,
-      "destination": "Miami, FL",
-      "trip_mi": 1256,
-      "pickup_window": "11/18 12:00 AM - 11/27 11:59 PM",
-      "drop_window": "",
-      "equipment": "HS",
-      "mode": "TL",
-      "weight_lb": 15000,
-      "length_ft": 40.0,
-      "width_ft": 8.0,
-      "posted_rate": 3000.0,
-      "rate_per_mi": 2.39,
-      "net_est": 1689.06,
-      "math": "Rate $3,000.00 x 0.87 = $2,610.00 after the 13% Totni fee ($390.00). Diesel $5.276/gal (EIA Gulf Coast (PADD 3) $5.294 + our pump premium -$0.018) at 8.0 mpg plus $0.034/mi DEF = $0.694/mi. Fuel $0.694 x 1,327 mi (loaded+empty) = $920.94. Net EST $1,689.06.",
-      "fit_flags": [],
-      "verdict": "TAKE",
-      "same_day": false,
-      "bar": 500.0,
-      "total_mi": 1327,
-      "broker": "CML Logistics Services Corp",
-      "broker_mc": "80730164",
-      "broker_dot": "8323949",
-      "load_number": "J119 AMA",
-      "notes": "Tilt Bed And Winch Needed For Container Transport Please Notice This Is For The ROUND-TRIP (1,256mi) MULTIPLE CONTAINERS AVAILABLE - Two Week CONTRACT Possible. Please t Pieces Count: 1; Load Number: J119 AMA",
-      "link": "https://main.truckstop.com/app/search/loads",
-      "broker_email": "management@cmllogistics.us",
-      "broker_phone": "",
-      "looked_up": false,
-      "one_way_mi": 656,
-      "tarp": false,
-      "hours": 28.54,
-      "per_hour": 59.18,
-      "net_per_mile": 1.27,
-      "gross_per_mile": 2.26,
-      "days": 4.0,
-      "net_per_day": 422.26,
-      "reason": "Clears the net bar and fits the deck.",
-      "fuel": {
-        "diesel_usd_gal": 5.276,
-        "diesel_eia_usd_gal": 5.294,
-        "pump_premium_usd_gal": -0.018,
-        "diesel_source": "EIA Gulf Coast (PADD 3) $5.294 + our pump premium -$0.018",
-        "diesel_region": "PADD3",
-        "diesel_stop": null,
-        "mpg": 8.0,
-        "def_per_mi": 0.034,
-        "fuel_per_mi": 0.694,
-        "fallback": false
-      },
-      "truck_coord": {
-        "lat": 30.9426,
-        "lon": -85.51362
-      },
-      "origin_coord": {
-        "lat": 31.27986,
-        "lon": -86.2571
-      },
-      "destination_coord": {
-        "lat": 25.779,
-        "lon": -80.1982
-      },
-      "route": {
-        "legs": [
-          {
-            "kind": "deadhead",
-            "path": [
-              [
-                30.94262,
-                -85.51414
-              ],
-              [
-                30.96253,
-                -85.51672
-              ],
-              [
-                30.96463,
-                -85.52387
-              ],
-              [
-                30.96326,
-                -85.58972
-              ],
-              [
-                30.97267,
-                -85.61645
-              ],
-              [
-                30.97246,
-                -85.63661
-              ],
-              [
-                30.96525,
-                -85.64668
-              ],
-              [
-                30.99943,
-                -85.647
-              ],
-              [
-                31.02996,
-                -85.67703
-              ],
-              [
-                31.05155,
-                -85.68218
-              ],
-              [
-                31.09664,
-                -85.70868
-              ],
-              [
-                31.09274,
-                -85.75636
-              ],
-              [
-                31.08709,
-                -85.7743
-              ],
-              [
-                31.0737,
-                -85.80344
-              ],
-              [
-                31.04344,
-                -85.84301
-              ],
-              [
-                31.04044,
-                -85.85925
-              ],
-              [
-                31.04891,
-                -85.88487
-              ],
-              [
-                31.04726,
-                -85.89493
-              ],
-              [
-                31.09302,
-                -85.98443
-              ],
-              [
-                31.11266,
-                -86.03589
-              ],
-              [
-                31.11374,
-                -86.11518
-              ],
-              [
-                31.13253,
-                -86.13387
-              ],
-              [
-                31.18109,
-                -86.14676
-              ],
-              [
-                31.23868,
-                -86.18563
-              ],
-              [
-                31.26361,
-                -86.2195
-              ],
-              [
-                31.26475,
-                -86.23358
-              ],
-              [
-                31.28003,
-                -86.2506
-              ],
-              [
-                31.27985,
-                -86.25678
-              ]
-            ],
-            "source": "osrm"
-          },
-          {
-            "kind": "loaded",
-            "path": [
-              [
-                31.27985,
-                -86.25678
-              ],
-              [
-                31.23836,
-                -86.18536
-              ],
-              [
-                31.11695,
-                -86.12065
-              ],
-              [
-                31.11297,
-                -86.046
-              ],
-              [
-                30.86317,
-                -85.94415
-              ],
-              [
-                30.71304,
-                -85.93501
-              ],
-              [
-                30.76048,
-                -85.79572
-              ],
-              [
-                30.75722,
-                -85.28363
-              ],
-              [
-                30.63972,
-                -84.99769
-              ],
-              [
-                30.61989,
-                -84.77416
-              ],
-              [
-                30.48625,
-                -84.4144
-              ],
-              [
-                30.48932,
-                -83.98789
-              ],
-              [
-                30.43501,
-                -83.46852
-              ],
-              [
-                30.33725,
-                -83.10804
-              ],
-              [
-                30.34828,
-                -82.99249
-              ],
-              [
-                30.26563,
-                -82.75437
-              ],
-              [
-                29.98867,
-                -82.58295
-              ],
-              [
-                29.76318,
-                -82.50377
-              ],
-              [
-                29.46514,
-                -82.27238
-              ],
-              [
-                29.25845,
-                -82.19022
-              ],
-              [
-                29.07761,
-                -82.18474
-              ],
-              [
-                28.85598,
-                -82.08976
-              ],
-              [
-                28.56116,
-                -81.68297
-              ],
-              [
-                28.54583,
-                -81.54235
-              ],
-              [
-                28.48739,
-                -81.45607
-              ],
-              [
-                28.41958,
-                -81.39302
-              ],
-              [
-                28.09469,
-                -81.27534
-              ],
-              [
-                27.93244,
-                -81.06775
-              ],
-              [
-                27.57099,
-                -80.79949
-              ],
-              [
-                27.55788,
-                -80.64491
-              ],
-              [
-                27.48658,
-                -80.56631
-              ],
-              [
-                27.48204,
-                -80.45628
-              ],
-              [
-                27.41362,
-                -80.40263
-              ],
-              [
-                27.19281,
-                -80.3257
-              ],
-              [
-                26.87546,
-                -80.12908
-              ],
-              [
-                26.63515,
-                -80.17605
-              ],
-              [
-                26.24989,
-                -80.16658
-              ],
-              [
-                26.17526,
-                -80.22002
-              ],
-              [
-                25.77882,
-                -80.19819
-              ]
-            ],
-            "source": "osrm"
-          }
-        ],
-        "points": [
-          {
-            "kind": "truck",
-            "label": "Graceville, FL",
-            "lat": 30.9426,
-            "lon": -85.51362
-          },
-          {
-            "kind": "pickup",
-            "label": "Opp, AL",
-            "lat": 31.27986,
-            "lon": -86.2571,
-            "n": 1
-          },
-          {
-            "kind": "drop",
-            "label": "Miami, FL",
-            "lat": 25.779,
-            "lon": -80.1982,
-            "n": 2
-          }
-        ]
-      }
-    },
-    {
-      "board": "Truckstop",
       "origin": "Haleyville, AL",
       "origin_dh_mi": 298,
       "destination": "El Paso, TX",
@@ -9454,372 +9086,6 @@
             "label": "El Paso, TX",
             "lat": 31.75841,
             "lon": -106.47831,
-            "n": 2
-          }
-        ]
-      }
-    },
-    {
-      "board": "Truckstop",
-      "origin": "Smithville, GA",
-      "origin_dh_mi": 125,
-      "destination": "Hollis, OK",
-      "trip_mi": 1088,
-      "pickup_window": "11/18 12:00 AM - 11/30 11:59 PM",
-      "drop_window": "11/20 12:00 AM - 12/1 11:59 PM",
-      "equipment": "HS",
-      "mode": "TL",
-      "weight_lb": 13000,
-      "length_ft": null,
-      "width_ft": null,
-      "posted_rate": 2200.0,
-      "rate_per_mi": 2.02,
-      "net_est": 1060.05,
-      "math": "Rate $2,200.00 x 0.87 = $1,914.00 after the 13% Totni fee ($286.00). Diesel $5.360/gal (EIA Lower Atlantic (PADD 1C) $5.378 + our pump premium -$0.018) at 8.0 mpg plus $0.034/mi DEF = $0.704/mi. Fuel $0.704 x 1,213 mi (loaded+empty) = $853.95. Net EST $1,060.05.",
-      "fit_flags": [],
-      "verdict": "TAKE",
-      "same_day": false,
-      "bar": 500.0,
-      "total_mi": 1213,
-      "broker": "IFT-SAFEWAY INC / IFT-SAFEWAY LLC",
-      "broker_mc": "769263",
-      "broker_dot": "2262405",
-      "load_number": "",
-      "notes": "FLATBED HOTSHOT / NO TARPS/ ROUND BALES OF HAY / 1PICK/1DROP/LIVE LOAD/LIVE UNLOAD/WE OFFER QUICKPAY",
-      "link": "https://main.truckstop.com/app/search/loads",
-      "broker_email": "rd@iftrans.com",
-      "broker_phone": "",
-      "looked_up": false,
-      "tarp": false,
-      "hours": 26.26,
-      "per_hour": 40.37,
-      "net_per_mile": 0.87,
-      "gross_per_mile": 1.81,
-      "days": 3.0,
-      "net_per_day": 353.35,
-      "reason": "Clears the net bar and fits the deck.",
-      "fuel": {
-        "diesel_usd_gal": 5.36,
-        "diesel_eia_usd_gal": 5.378,
-        "pump_premium_usd_gal": -0.018,
-        "diesel_source": "EIA Lower Atlantic (PADD 1C) $5.378 + our pump premium -$0.018",
-        "diesel_region": "PADD1C",
-        "diesel_stop": null,
-        "mpg": 8.0,
-        "def_per_mi": 0.034,
-        "fuel_per_mi": 0.704,
-        "fallback": false
-      },
-      "truck_coord": {
-        "lat": 30.9426,
-        "lon": -85.51362
-      },
-      "origin_coord": {
-        "lat": 31.88469,
-        "lon": -84.22707
-      },
-      "destination_coord": {
-        "lat": 34.69528,
-        "lon": -99.91771
-      },
-      "route": {
-        "legs": [
-          {
-            "kind": "deadhead",
-            "path": [
-              [
-                30.94262,
-                -85.51414
-              ],
-              [
-                30.96297,
-                -85.51656
-              ],
-              [
-                30.989,
-                -85.48042
-              ],
-              [
-                31.06239,
-                -85.46567
-              ],
-              [
-                31.09759,
-                -85.44508
-              ],
-              [
-                31.10723,
-                -85.40512
-              ],
-              [
-                31.19005,
-                -85.40145
-              ],
-              [
-                31.19685,
-                -85.37231
-              ],
-              [
-                31.22204,
-                -85.36033
-              ],
-              [
-                31.25795,
-                -85.277
-              ],
-              [
-                31.258,
-                -85.22925
-              ],
-              [
-                31.27552,
-                -85.15077
-              ],
-              [
-                31.29344,
-                -85.12412
-              ],
-              [
-                31.29214,
-                -85.10587
-              ],
-              [
-                31.28017,
-                -85.09526
-              ],
-              [
-                31.28084,
-                -85.07331
-              ],
-              [
-                31.31365,
-                -85.04194
-              ],
-              [
-                31.33349,
-                -84.99194
-              ],
-              [
-                31.36891,
-                -84.95739
-              ],
-              [
-                31.38912,
-                -84.95581
-              ],
-              [
-                31.39149,
-                -84.92437
-              ],
-              [
-                31.413,
-                -84.9215
-              ],
-              [
-                31.48457,
-                -84.86255
-              ],
-              [
-                31.53629,
-                -84.86281
-              ],
-              [
-                31.59792,
-                -84.8488
-              ],
-              [
-                31.61855,
-                -84.83117
-              ],
-              [
-                31.70153,
-                -84.82179
-              ],
-              [
-                31.76987,
-                -84.77158
-              ],
-              [
-                31.77861,
-                -84.72852
-              ],
-              [
-                31.77197,
-                -84.61316
-              ],
-              [
-                31.78237,
-                -84.59475
-              ],
-              [
-                31.77037,
-                -84.55853
-              ],
-              [
-                31.77076,
-                -84.44821
-              ],
-              [
-                31.7811,
-                -84.44638
-              ],
-              [
-                31.90257,
-                -84.25314
-              ],
-              [
-                31.88156,
-                -84.23618
-              ]
-            ],
-            "source": "osrm"
-          },
-          {
-            "kind": "loaded",
-            "path": [
-              [
-                31.88156,
-                -84.23618
-              ],
-              [
-                31.83555,
-                -84.46679
-              ],
-              [
-                32.40288,
-                -84.8953
-              ],
-              [
-                32.91384,
-                -85.94989
-              ],
-              [
-                33.3315,
-                -86.41708
-              ],
-              [
-                33.35739,
-                -86.65291
-              ],
-              [
-                33.58487,
-                -86.83078
-              ],
-              [
-                33.85593,
-                -87.34882
-              ],
-              [
-                34.07415,
-                -87.99039
-              ],
-              [
-                34.17858,
-                -88.07595
-              ],
-              [
-                34.31587,
-                -88.80187
-              ],
-              [
-                34.62999,
-                -89.21184
-              ],
-              [
-                34.95532,
-                -89.84585
-              ],
-              [
-                35.15014,
-                -90.02428
-              ],
-              [
-                35.1312,
-                -90.51141
-              ],
-              [
-                34.81906,
-                -91.52137
-              ],
-              [
-                34.77742,
-                -92.23916
-              ],
-              [
-                34.89554,
-                -92.40025
-              ],
-              [
-                35.11225,
-                -92.43558
-              ],
-              [
-                35.33945,
-                -93.30805
-              ],
-              [
-                35.45124,
-                -93.43251
-              ],
-              [
-                35.52909,
-                -93.88929
-              ],
-              [
-                35.393,
-                -94.57755
-              ],
-              [
-                35.49352,
-                -95.00761
-              ],
-              [
-                35.38056,
-                -96.53539
-              ],
-              [
-                35.39919,
-                -97.57587
-              ],
-              [
-                35.2766,
-                -97.60463
-              ],
-              [
-                34.72913,
-                -98.39664
-              ],
-              [
-                34.63818,
-                -98.39107
-              ],
-              [
-                34.69517,
-                -99.91771
-              ]
-            ],
-            "source": "osrm"
-          }
-        ],
-        "points": [
-          {
-            "kind": "truck",
-            "label": "Graceville, FL",
-            "lat": 30.9426,
-            "lon": -85.51362
-          },
-          {
-            "kind": "pickup",
-            "label": "Smithville, GA",
-            "lat": 31.88469,
-            "lon": -84.22707,
-            "n": 1
-          },
-          {
-            "kind": "drop",
-            "label": "Hollis, OK",
-            "lat": 34.69528,
-            "lon": -99.91771,
             "n": 2
           }
         ]
@@ -11106,6 +10372,379 @@
       }
     },
     {
+      "board": "Truckstop",
+      "origin": "Opp, AL",
+      "origin_dh_mi": 71,
+      "destination": "Miami, FL",
+      "trip_mi": 1256,
+      "pickup_window": "11/18 12:00 AM - 11/27 11:59 PM",
+      "drop_window": "",
+      "equipment": "HS",
+      "mode": "TL",
+      "weight_lb": 15000,
+      "length_ft": 40.0,
+      "width_ft": 8.0,
+      "posted_rate": 3000.0,
+      "rate_per_mi": 2.39,
+      "net_est": 1689.06,
+      "math": "Rate $3,000.00 x 0.87 = $2,610.00 after the 13% Totni fee ($390.00). Diesel $5.276/gal (EIA Gulf Coast (PADD 3) $5.294 + our pump premium -$0.018) at 8.0 mpg plus $0.034/mi DEF = $0.694/mi. Fuel $0.694 x 1,327 mi (loaded+empty) = $920.94. Net EST $1,689.06.",
+      "fit_flags": [
+        "12,501-15,300 lb, scale check, load centered just ahead of trailer axles"
+      ],
+      "verdict": "MAYBE",
+      "same_day": false,
+      "bar": 500.0,
+      "total_mi": 1327,
+      "broker": "CML Logistics Services Corp",
+      "broker_mc": "80730164",
+      "broker_dot": "8323949",
+      "load_number": "J119 AMA",
+      "notes": "Tilt Bed And Winch Needed For Container Transport Please Notice This Is For The ROUND-TRIP (1,256mi) MULTIPLE CONTAINERS AVAILABLE - Two Week CONTRACT Possible. Please t Pieces Count: 1; Load Number: J119 AMA",
+      "link": "https://main.truckstop.com/app/search/loads",
+      "broker_email": "management@cmllogistics.us",
+      "broker_phone": "",
+      "looked_up": false,
+      "one_way_mi": 656,
+      "tarp": false,
+      "hours": 28.54,
+      "per_hour": 59.18,
+      "net_per_mile": 1.27,
+      "gross_per_mile": 2.26,
+      "days": 4.0,
+      "net_per_day": 422.26,
+      "reason": "Clears the net bar, but weight is 12,501-15,300 lb (scale check, load centered just ahead of trailer axles).",
+      "fuel": {
+        "diesel_usd_gal": 5.276,
+        "diesel_eia_usd_gal": 5.294,
+        "pump_premium_usd_gal": -0.018,
+        "diesel_source": "EIA Gulf Coast (PADD 3) $5.294 + our pump premium -$0.018",
+        "diesel_region": "PADD3",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.694,
+        "fallback": false
+      },
+      "truck_coord": {
+        "lat": 30.9426,
+        "lon": -85.51362
+      },
+      "origin_coord": {
+        "lat": 31.27986,
+        "lon": -86.2571
+      },
+      "destination_coord": {
+        "lat": 25.779,
+        "lon": -80.1982
+      },
+      "route": {
+        "legs": [
+          {
+            "kind": "deadhead",
+            "path": [
+              [
+                30.94262,
+                -85.51414
+              ],
+              [
+                30.96253,
+                -85.51672
+              ],
+              [
+                30.96463,
+                -85.52387
+              ],
+              [
+                30.96326,
+                -85.58972
+              ],
+              [
+                30.97267,
+                -85.61645
+              ],
+              [
+                30.97246,
+                -85.63661
+              ],
+              [
+                30.96525,
+                -85.64668
+              ],
+              [
+                30.99943,
+                -85.647
+              ],
+              [
+                31.02996,
+                -85.67703
+              ],
+              [
+                31.05155,
+                -85.68218
+              ],
+              [
+                31.09664,
+                -85.70868
+              ],
+              [
+                31.09274,
+                -85.75636
+              ],
+              [
+                31.08709,
+                -85.7743
+              ],
+              [
+                31.0737,
+                -85.80344
+              ],
+              [
+                31.04344,
+                -85.84301
+              ],
+              [
+                31.04044,
+                -85.85925
+              ],
+              [
+                31.04891,
+                -85.88487
+              ],
+              [
+                31.04726,
+                -85.89493
+              ],
+              [
+                31.09302,
+                -85.98443
+              ],
+              [
+                31.11266,
+                -86.03589
+              ],
+              [
+                31.11374,
+                -86.11518
+              ],
+              [
+                31.13253,
+                -86.13387
+              ],
+              [
+                31.18109,
+                -86.14676
+              ],
+              [
+                31.23868,
+                -86.18563
+              ],
+              [
+                31.26361,
+                -86.2195
+              ],
+              [
+                31.26475,
+                -86.23358
+              ],
+              [
+                31.28003,
+                -86.2506
+              ],
+              [
+                31.27985,
+                -86.25678
+              ]
+            ],
+            "source": "osrm"
+          },
+          {
+            "kind": "loaded",
+            "path": [
+              [
+                31.27985,
+                -86.25678
+              ],
+              [
+                31.23836,
+                -86.18536
+              ],
+              [
+                31.11695,
+                -86.12065
+              ],
+              [
+                31.11297,
+                -86.046
+              ],
+              [
+                30.86317,
+                -85.94415
+              ],
+              [
+                30.71304,
+                -85.93501
+              ],
+              [
+                30.76048,
+                -85.79572
+              ],
+              [
+                30.75722,
+                -85.28363
+              ],
+              [
+                30.63972,
+                -84.99769
+              ],
+              [
+                30.61989,
+                -84.77416
+              ],
+              [
+                30.48625,
+                -84.4144
+              ],
+              [
+                30.48932,
+                -83.98789
+              ],
+              [
+                30.43501,
+                -83.46852
+              ],
+              [
+                30.33725,
+                -83.10804
+              ],
+              [
+                30.34828,
+                -82.99249
+              ],
+              [
+                30.26563,
+                -82.75437
+              ],
+              [
+                29.98867,
+                -82.58295
+              ],
+              [
+                29.76318,
+                -82.50377
+              ],
+              [
+                29.46514,
+                -82.27238
+              ],
+              [
+                29.25845,
+                -82.19022
+              ],
+              [
+                29.07761,
+                -82.18474
+              ],
+              [
+                28.85598,
+                -82.08976
+              ],
+              [
+                28.56116,
+                -81.68297
+              ],
+              [
+                28.54583,
+                -81.54235
+              ],
+              [
+                28.48739,
+                -81.45607
+              ],
+              [
+                28.41958,
+                -81.39302
+              ],
+              [
+                28.09469,
+                -81.27534
+              ],
+              [
+                27.93244,
+                -81.06775
+              ],
+              [
+                27.57099,
+                -80.79949
+              ],
+              [
+                27.55788,
+                -80.64491
+              ],
+              [
+                27.48658,
+                -80.56631
+              ],
+              [
+                27.48204,
+                -80.45628
+              ],
+              [
+                27.41362,
+                -80.40263
+              ],
+              [
+                27.19281,
+                -80.3257
+              ],
+              [
+                26.87546,
+                -80.12908
+              ],
+              [
+                26.63515,
+                -80.17605
+              ],
+              [
+                26.24989,
+                -80.16658
+              ],
+              [
+                26.17526,
+                -80.22002
+              ],
+              [
+                25.77882,
+                -80.19819
+              ]
+            ],
+            "source": "osrm"
+          }
+        ],
+        "points": [
+          {
+            "kind": "truck",
+            "label": "Graceville, FL",
+            "lat": 30.9426,
+            "lon": -85.51362
+          },
+          {
+            "kind": "pickup",
+            "label": "Opp, AL",
+            "lat": 31.27986,
+            "lon": -86.2571,
+            "n": 1
+          },
+          {
+            "kind": "drop",
+            "label": "Miami, FL",
+            "lat": 25.779,
+            "lon": -80.1982,
+            "n": 2
+          }
+        ]
+      }
+    },
+    {
       "board": "Direct Freight",
       "origin": "Fulton, AL",
       "origin_dh_mi": 171,
@@ -11746,6 +11385,374 @@
             "label": "Rockville, IN",
             "lat": 39.76815,
             "lon": -87.19779,
+            "n": 2
+          }
+        ]
+      }
+    },
+    {
+      "board": "Truckstop",
+      "origin": "Smithville, GA",
+      "origin_dh_mi": 125,
+      "destination": "Hollis, OK",
+      "trip_mi": 1088,
+      "pickup_window": "11/18 12:00 AM - 11/30 11:59 PM",
+      "drop_window": "11/20 12:00 AM - 12/1 11:59 PM",
+      "equipment": "HS",
+      "mode": "TL",
+      "weight_lb": 13000,
+      "length_ft": null,
+      "width_ft": null,
+      "posted_rate": 2200.0,
+      "rate_per_mi": 2.02,
+      "net_est": 1060.05,
+      "math": "Rate $2,200.00 x 0.87 = $1,914.00 after the 13% Totni fee ($286.00). Diesel $5.360/gal (EIA Lower Atlantic (PADD 1C) $5.378 + our pump premium -$0.018) at 8.0 mpg plus $0.034/mi DEF = $0.704/mi. Fuel $0.704 x 1,213 mi (loaded+empty) = $853.95. Net EST $1,060.05.",
+      "fit_flags": [
+        "12,501-15,300 lb, scale check, load centered just ahead of trailer axles"
+      ],
+      "verdict": "MAYBE",
+      "same_day": false,
+      "bar": 500.0,
+      "total_mi": 1213,
+      "broker": "IFT-SAFEWAY INC / IFT-SAFEWAY LLC",
+      "broker_mc": "769263",
+      "broker_dot": "2262405",
+      "load_number": "",
+      "notes": "FLATBED HOTSHOT / NO TARPS/ ROUND BALES OF HAY / 1PICK/1DROP/LIVE LOAD/LIVE UNLOAD/WE OFFER QUICKPAY",
+      "link": "https://main.truckstop.com/app/search/loads",
+      "broker_email": "rd@iftrans.com",
+      "broker_phone": "",
+      "looked_up": false,
+      "tarp": false,
+      "hours": 26.26,
+      "per_hour": 40.37,
+      "net_per_mile": 0.87,
+      "gross_per_mile": 1.81,
+      "days": 3.0,
+      "net_per_day": 353.35,
+      "reason": "Clears the net bar, but weight is 12,501-15,300 lb (scale check, load centered just ahead of trailer axles).",
+      "fuel": {
+        "diesel_usd_gal": 5.36,
+        "diesel_eia_usd_gal": 5.378,
+        "pump_premium_usd_gal": -0.018,
+        "diesel_source": "EIA Lower Atlantic (PADD 1C) $5.378 + our pump premium -$0.018",
+        "diesel_region": "PADD1C",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.704,
+        "fallback": false
+      },
+      "truck_coord": {
+        "lat": 30.9426,
+        "lon": -85.51362
+      },
+      "origin_coord": {
+        "lat": 31.88469,
+        "lon": -84.22707
+      },
+      "destination_coord": {
+        "lat": 34.69528,
+        "lon": -99.91771
+      },
+      "route": {
+        "legs": [
+          {
+            "kind": "deadhead",
+            "path": [
+              [
+                30.94262,
+                -85.51414
+              ],
+              [
+                30.96297,
+                -85.51656
+              ],
+              [
+                30.989,
+                -85.48042
+              ],
+              [
+                31.06239,
+                -85.46567
+              ],
+              [
+                31.09759,
+                -85.44508
+              ],
+              [
+                31.10723,
+                -85.40512
+              ],
+              [
+                31.19005,
+                -85.40145
+              ],
+              [
+                31.19685,
+                -85.37231
+              ],
+              [
+                31.22204,
+                -85.36033
+              ],
+              [
+                31.25795,
+                -85.277
+              ],
+              [
+                31.258,
+                -85.22925
+              ],
+              [
+                31.27552,
+                -85.15077
+              ],
+              [
+                31.29344,
+                -85.12412
+              ],
+              [
+                31.29214,
+                -85.10587
+              ],
+              [
+                31.28017,
+                -85.09526
+              ],
+              [
+                31.28084,
+                -85.07331
+              ],
+              [
+                31.31365,
+                -85.04194
+              ],
+              [
+                31.33349,
+                -84.99194
+              ],
+              [
+                31.36891,
+                -84.95739
+              ],
+              [
+                31.38912,
+                -84.95581
+              ],
+              [
+                31.39149,
+                -84.92437
+              ],
+              [
+                31.413,
+                -84.9215
+              ],
+              [
+                31.48457,
+                -84.86255
+              ],
+              [
+                31.53629,
+                -84.86281
+              ],
+              [
+                31.59792,
+                -84.8488
+              ],
+              [
+                31.61855,
+                -84.83117
+              ],
+              [
+                31.70153,
+                -84.82179
+              ],
+              [
+                31.76987,
+                -84.77158
+              ],
+              [
+                31.77861,
+                -84.72852
+              ],
+              [
+                31.77197,
+                -84.61316
+              ],
+              [
+                31.78237,
+                -84.59475
+              ],
+              [
+                31.77037,
+                -84.55853
+              ],
+              [
+                31.77076,
+                -84.44821
+              ],
+              [
+                31.7811,
+                -84.44638
+              ],
+              [
+                31.90257,
+                -84.25314
+              ],
+              [
+                31.88156,
+                -84.23618
+              ]
+            ],
+            "source": "osrm"
+          },
+          {
+            "kind": "loaded",
+            "path": [
+              [
+                31.88156,
+                -84.23618
+              ],
+              [
+                31.83555,
+                -84.46679
+              ],
+              [
+                32.40288,
+                -84.8953
+              ],
+              [
+                32.91384,
+                -85.94989
+              ],
+              [
+                33.3315,
+                -86.41708
+              ],
+              [
+                33.35739,
+                -86.65291
+              ],
+              [
+                33.58487,
+                -86.83078
+              ],
+              [
+                33.85593,
+                -87.34882
+              ],
+              [
+                34.07415,
+                -87.99039
+              ],
+              [
+                34.17858,
+                -88.07595
+              ],
+              [
+                34.31587,
+                -88.80187
+              ],
+              [
+                34.62999,
+                -89.21184
+              ],
+              [
+                34.95532,
+                -89.84585
+              ],
+              [
+                35.15014,
+                -90.02428
+              ],
+              [
+                35.1312,
+                -90.51141
+              ],
+              [
+                34.81906,
+                -91.52137
+              ],
+              [
+                34.77742,
+                -92.23916
+              ],
+              [
+                34.89554,
+                -92.40025
+              ],
+              [
+                35.11225,
+                -92.43558
+              ],
+              [
+                35.33945,
+                -93.30805
+              ],
+              [
+                35.45124,
+                -93.43251
+              ],
+              [
+                35.52909,
+                -93.88929
+              ],
+              [
+                35.393,
+                -94.57755
+              ],
+              [
+                35.49352,
+                -95.00761
+              ],
+              [
+                35.38056,
+                -96.53539
+              ],
+              [
+                35.39919,
+                -97.57587
+              ],
+              [
+                35.2766,
+                -97.60463
+              ],
+              [
+                34.72913,
+                -98.39664
+              ],
+              [
+                34.63818,
+                -98.39107
+              ],
+              [
+                34.69517,
+                -99.91771
+              ]
+            ],
+            "source": "osrm"
+          }
+        ],
+        "points": [
+          {
+            "kind": "truck",
+            "label": "Graceville, FL",
+            "lat": 30.9426,
+            "lon": -85.51362
+          },
+          {
+            "kind": "pickup",
+            "label": "Smithville, GA",
+            "lat": 31.88469,
+            "lon": -84.22707,
+            "n": 1
+          },
+          {
+            "kind": "drop",
+            "label": "Hollis, OK",
+            "lat": 34.69528,
+            "lon": -99.91771,
             "n": 2
           }
         ]
@@ -12810,339 +12817,6 @@
             "label": "Milaca, MN",
             "lat": 45.77948,
             "lon": -93.64527,
-            "n": 2
-          }
-        ]
-      }
-    },
-    {
-      "board": "Truckstop",
-      "origin": "Bessemer, AL",
-      "origin_dh_mi": 227,
-      "destination": "Fairfield, NJ",
-      "trip_mi": 973,
-      "pickup_window": "11/25 12:00 AM - 11/25 11:59 PM",
-      "drop_window": "by 11/30 11:59 PM",
-      "equipment": "HS",
-      "mode": "TL",
-      "weight_lb": 15400,
-      "length_ft": 20.0,
-      "width_ft": null,
-      "posted_rate": 2600.0,
-      "rate_per_mi": 2.67,
-      "net_est": 1429.2,
-      "math": "Rate $2,600.00 x 0.87 = $2,262.00 after the 13% Totni fee ($338.00). Diesel $5.276/gal (EIA Gulf Coast (PADD 3) $5.294 + our pump premium -$0.018) at 8.0 mpg plus $0.034/mi DEF = $0.694/mi. Fuel $0.694 x 1,200 mi (loaded+empty) = $832.80. Net EST $1,429.20.",
-      "fit_flags": [
-        "weight is 15,001-16,000 lb",
-        "net per day under $300"
-      ],
-      "verdict": "MAYBE",
-      "same_day": false,
-      "bar": 500.0,
-      "total_mi": 1200,
-      "broker": "LANDSTAR RANGER INC CTJ",
-      "broker_mc": "178439",
-      "broker_dot": "2212928",
-      "load_number": "190846283",
-      "notes": "Max X995; Tarp Load Number: 190846283",
-      "link": "https://main.truckstop.com/app/search/loads",
-      "broker_email": "ctj.ops@safreight.com",
-      "broker_phone": "3462496542",
-      "looked_up": false,
-      "tarp": true,
-      "hours": 26.0,
-      "per_hour": 54.97,
-      "net_per_mile": 1.19,
-      "gross_per_mile": 2.17,
-      "days": 6.0,
-      "net_per_day": 238.2,
-      "reason": "Clears the net bar, but net per day is under $300.",
-      "fuel": {
-        "diesel_usd_gal": 5.276,
-        "diesel_eia_usd_gal": 5.294,
-        "pump_premium_usd_gal": -0.018,
-        "diesel_source": "EIA Gulf Coast (PADD 3) $5.294 + our pump premium -$0.018",
-        "diesel_region": "PADD3",
-        "diesel_stop": null,
-        "mpg": 8.0,
-        "def_per_mi": 0.034,
-        "fuel_per_mi": 0.694,
-        "fallback": false
-      },
-      "truck_coord": {
-        "lat": 30.9426,
-        "lon": -85.51362
-      },
-      "origin_coord": {
-        "lat": 33.409,
-        "lon": -86.94755
-      },
-      "destination_coord": {
-        "lat": 40.88218,
-        "lon": -74.29603
-      },
-      "route": {
-        "legs": [
-          {
-            "kind": "deadhead",
-            "path": [
-              [
-                30.94262,
-                -85.51414
-              ],
-              [
-                30.96463,
-                -85.52387
-              ],
-              [
-                30.96525,
-                -85.64668
-              ],
-              [
-                30.99917,
-                -85.64688
-              ],
-              [
-                31.15809,
-                -85.73384
-              ],
-              [
-                31.28002,
-                -85.82564
-              ],
-              [
-                31.32477,
-                -85.83202
-              ],
-              [
-                31.33465,
-                -85.86016
-              ],
-              [
-                31.59767,
-                -85.9466
-              ],
-              [
-                31.77439,
-                -85.96071
-              ],
-              [
-                31.82264,
-                -85.99471
-              ],
-              [
-                32.04061,
-                -86.03398
-              ],
-              [
-                32.11571,
-                -86.06793
-              ],
-              [
-                32.16404,
-                -86.11589
-              ],
-              [
-                32.22924,
-                -86.11989
-              ],
-              [
-                32.33771,
-                -86.26083
-              ],
-              [
-                32.36387,
-                -86.26689
-              ],
-              [
-                32.36836,
-                -86.32182
-              ],
-              [
-                32.55332,
-                -86.46064
-              ],
-              [
-                32.85424,
-                -86.5995
-              ],
-              [
-                33.03755,
-                -86.72468
-              ],
-              [
-                33.13608,
-                -86.7446
-              ],
-              [
-                33.22592,
-                -86.80688
-              ],
-              [
-                33.3925,
-                -86.78365
-              ],
-              [
-                33.34656,
-                -86.86737
-              ],
-              [
-                33.33995,
-                -86.92072
-              ],
-              [
-                33.39827,
-                -86.96005
-              ],
-              [
-                33.40881,
-                -86.94721
-              ]
-            ],
-            "source": "osrm"
-          },
-          {
-            "kind": "loaded",
-            "path": [
-              [
-                33.40881,
-                -86.94721
-              ],
-              [
-                33.49488,
-                -86.91455
-              ],
-              [
-                33.98241,
-                -86.0995
-              ],
-              [
-                34.73115,
-                -85.53904
-              ],
-              [
-                34.93704,
-                -85.48193
-              ],
-              [
-                35.02465,
-                -85.37613
-              ],
-              [
-                35.01271,
-                -85.18401
-              ],
-              [
-                35.1988,
-                -84.87751
-              ],
-              [
-                35.87264,
-                -84.2485
-              ],
-              [
-                36.01339,
-                -83.85952
-              ],
-              [
-                36.02507,
-                -83.46784
-              ],
-              [
-                36.75052,
-                -81.87886
-              ],
-              [
-                36.96551,
-                -81.07954
-              ],
-              [
-                36.95329,
-                -80.86692
-              ],
-              [
-                37.3686,
-                -79.92044
-              ],
-              [
-                38.13537,
-                -79.02601
-              ],
-              [
-                38.7506,
-                -78.64797
-              ],
-              [
-                39.08425,
-                -78.21258
-              ],
-              [
-                39.4713,
-                -77.98834
-              ],
-              [
-                39.66344,
-                -77.73985
-              ],
-              [
-                39.89308,
-                -77.66841
-              ],
-              [
-                40.06396,
-                -77.47542
-              ],
-              [
-                40.31585,
-                -76.92692
-              ],
-              [
-                40.57074,
-                -75.96012
-              ],
-              [
-                40.5545,
-                -75.43059
-              ],
-              [
-                40.67679,
-                -75.19138
-              ],
-              [
-                40.64079,
-                -74.64323
-              ],
-              [
-                40.86276,
-                -74.41676
-              ],
-              [
-                40.88197,
-                -74.29619
-              ]
-            ],
-            "source": "osrm"
-          }
-        ],
-        "points": [
-          {
-            "kind": "truck",
-            "label": "Graceville, FL",
-            "lat": 30.9426,
-            "lon": -85.51362
-          },
-          {
-            "kind": "pickup",
-            "label": "Bessemer, AL",
-            "lat": 33.409,
-            "lon": -86.94755,
-            "n": 1
-          },
-          {
-            "kind": "drop",
-            "label": "Fairfield, NJ",
-            "lat": 40.88218,
-            "lon": -74.29603,
             "n": 2
           }
         ]
@@ -15605,6 +15279,339 @@
     },
     {
       "board": "Truckstop",
+      "origin": "Bessemer, AL",
+      "origin_dh_mi": 227,
+      "destination": "Fairfield, NJ",
+      "trip_mi": 973,
+      "pickup_window": "11/25 12:00 AM - 11/25 11:59 PM",
+      "drop_window": "by 11/30 11:59 PM",
+      "equipment": "HS",
+      "mode": "TL",
+      "weight_lb": 15400,
+      "length_ft": 20.0,
+      "width_ft": null,
+      "posted_rate": 2600.0,
+      "rate_per_mi": 2.67,
+      "net_est": 1429.2,
+      "math": "Rate $2,600.00 x 0.87 = $2,262.00 after the 13% Totni fee ($338.00). Diesel $5.276/gal (EIA Gulf Coast (PADD 3) $5.294 + our pump premium -$0.018) at 8.0 mpg plus $0.034/mi DEF = $0.694/mi. Fuel $0.694 x 1,200 mi (loaded+empty) = $832.80. Net EST $1,429.20.",
+      "fit_flags": [
+        "Over 15,300 lb payload - cannot haul",
+        "net per day under $300"
+      ],
+      "verdict": "PASS",
+      "same_day": false,
+      "bar": 500.0,
+      "total_mi": 1200,
+      "broker": "LANDSTAR RANGER INC CTJ",
+      "broker_mc": "178439",
+      "broker_dot": "2212928",
+      "load_number": "190846283",
+      "notes": "Max X995; Tarp Load Number: 190846283",
+      "link": "https://main.truckstop.com/app/search/loads",
+      "broker_email": "ctj.ops@safreight.com",
+      "broker_phone": "3462496542",
+      "looked_up": false,
+      "tarp": true,
+      "hours": 26.0,
+      "per_hour": 54.97,
+      "net_per_mile": 1.19,
+      "gross_per_mile": 2.17,
+      "days": 6.0,
+      "net_per_day": 238.2,
+      "reason": "Over 15,300 lb payload - cannot haul.",
+      "fuel": {
+        "diesel_usd_gal": 5.276,
+        "diesel_eia_usd_gal": 5.294,
+        "pump_premium_usd_gal": -0.018,
+        "diesel_source": "EIA Gulf Coast (PADD 3) $5.294 + our pump premium -$0.018",
+        "diesel_region": "PADD3",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.694,
+        "fallback": false
+      },
+      "truck_coord": {
+        "lat": 30.9426,
+        "lon": -85.51362
+      },
+      "origin_coord": {
+        "lat": 33.409,
+        "lon": -86.94755
+      },
+      "destination_coord": {
+        "lat": 40.88218,
+        "lon": -74.29603
+      },
+      "route": {
+        "legs": [
+          {
+            "kind": "deadhead",
+            "path": [
+              [
+                30.94262,
+                -85.51414
+              ],
+              [
+                30.96463,
+                -85.52387
+              ],
+              [
+                30.96525,
+                -85.64668
+              ],
+              [
+                30.99917,
+                -85.64688
+              ],
+              [
+                31.15809,
+                -85.73384
+              ],
+              [
+                31.28002,
+                -85.82564
+              ],
+              [
+                31.32477,
+                -85.83202
+              ],
+              [
+                31.33465,
+                -85.86016
+              ],
+              [
+                31.59767,
+                -85.9466
+              ],
+              [
+                31.77439,
+                -85.96071
+              ],
+              [
+                31.82264,
+                -85.99471
+              ],
+              [
+                32.04061,
+                -86.03398
+              ],
+              [
+                32.11571,
+                -86.06793
+              ],
+              [
+                32.16404,
+                -86.11589
+              ],
+              [
+                32.22924,
+                -86.11989
+              ],
+              [
+                32.33771,
+                -86.26083
+              ],
+              [
+                32.36387,
+                -86.26689
+              ],
+              [
+                32.36836,
+                -86.32182
+              ],
+              [
+                32.55332,
+                -86.46064
+              ],
+              [
+                32.85424,
+                -86.5995
+              ],
+              [
+                33.03755,
+                -86.72468
+              ],
+              [
+                33.13608,
+                -86.7446
+              ],
+              [
+                33.22592,
+                -86.80688
+              ],
+              [
+                33.3925,
+                -86.78365
+              ],
+              [
+                33.34656,
+                -86.86737
+              ],
+              [
+                33.33995,
+                -86.92072
+              ],
+              [
+                33.39827,
+                -86.96005
+              ],
+              [
+                33.40881,
+                -86.94721
+              ]
+            ],
+            "source": "osrm"
+          },
+          {
+            "kind": "loaded",
+            "path": [
+              [
+                33.40881,
+                -86.94721
+              ],
+              [
+                33.49488,
+                -86.91455
+              ],
+              [
+                33.98241,
+                -86.0995
+              ],
+              [
+                34.73115,
+                -85.53904
+              ],
+              [
+                34.93704,
+                -85.48193
+              ],
+              [
+                35.02465,
+                -85.37613
+              ],
+              [
+                35.01271,
+                -85.18401
+              ],
+              [
+                35.1988,
+                -84.87751
+              ],
+              [
+                35.87264,
+                -84.2485
+              ],
+              [
+                36.01339,
+                -83.85952
+              ],
+              [
+                36.02507,
+                -83.46784
+              ],
+              [
+                36.75052,
+                -81.87886
+              ],
+              [
+                36.96551,
+                -81.07954
+              ],
+              [
+                36.95329,
+                -80.86692
+              ],
+              [
+                37.3686,
+                -79.92044
+              ],
+              [
+                38.13537,
+                -79.02601
+              ],
+              [
+                38.7506,
+                -78.64797
+              ],
+              [
+                39.08425,
+                -78.21258
+              ],
+              [
+                39.4713,
+                -77.98834
+              ],
+              [
+                39.66344,
+                -77.73985
+              ],
+              [
+                39.89308,
+                -77.66841
+              ],
+              [
+                40.06396,
+                -77.47542
+              ],
+              [
+                40.31585,
+                -76.92692
+              ],
+              [
+                40.57074,
+                -75.96012
+              ],
+              [
+                40.5545,
+                -75.43059
+              ],
+              [
+                40.67679,
+                -75.19138
+              ],
+              [
+                40.64079,
+                -74.64323
+              ],
+              [
+                40.86276,
+                -74.41676
+              ],
+              [
+                40.88197,
+                -74.29619
+              ]
+            ],
+            "source": "osrm"
+          }
+        ],
+        "points": [
+          {
+            "kind": "truck",
+            "label": "Graceville, FL",
+            "lat": 30.9426,
+            "lon": -85.51362
+          },
+          {
+            "kind": "pickup",
+            "label": "Bessemer, AL",
+            "lat": 33.409,
+            "lon": -86.94755,
+            "n": 1
+          },
+          {
+            "kind": "drop",
+            "label": "Fairfield, NJ",
+            "lat": 40.88218,
+            "lon": -74.29603,
+            "n": 2
+          }
+        ]
+      }
+    },
+    {
+      "board": "Truckstop",
       "origin": "Greenville, AL",
       "origin_dh_mi": 98,
       "destination": "Sparta, WI",
@@ -17285,7 +17292,7 @@
       "net_est": null,
       "math": "",
       "fit_flags": [
-        "weight is 15,001-16,000 lb",
+        "Over 15,300 lb payload - cannot haul",
         "informational only (no posted rate)"
       ],
       "verdict": "PASS",
@@ -17308,7 +17315,7 @@
       "gross_per_mile": null,
       "days": 3.0,
       "net_per_day": null,
-      "reason": "No posted rate or miles, so net cannot be figured.",
+      "reason": "Over 15,300 lb payload - cannot haul.",
       "fuel": {
         "diesel_usd_gal": 5.276,
         "diesel_eia_usd_gal": 5.294,

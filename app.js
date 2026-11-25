@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v28';
+  var APP_VERSION = 'v29';
   var SETTINGS_KEY = 'blackram_settings_v4';
   var SETTINGS_KEY_V1 = 'blackram_settings_v1';
   var SETTINGS_KEY_V2 = 'blackram_settings_v2';
@@ -166,7 +166,7 @@
     var minNetSameDay = n('minNetSameDay', 300);
     var sameDayMiles = n('sameDayMiles', 250);
     var chainMin = n('chainMin', 1000);
-    var capacity = n('capacity', 16000);
+    var capacity = n('capacity', 15300);
     var deckFt = n('deckFt', 40);
     return {
       feePct: n('feePct', 13),
@@ -181,7 +181,7 @@
       otherFixed: n('otherFixed', 1573.04),
       mpg: n('mpg', 8),
       diesel: n('diesel', 5.36),
-      capacity: capacity != null ? capacity : 16000,
+      capacity: capacity != null ? capacity : 15300,
       deckFt: deckFt != null ? deckFt : 40,
       assumedMph: mph > 0 ? mph : 50
     };
@@ -260,13 +260,14 @@
     var loadedRpm = loadedMi > 0 ? rate / loadedMi : null;
     var sameDay = totalMi > 0 && totalMi < s.sameDayMiles;
     var bar = sameDay ? s.minNetSameDay : s.minNet;
-    var overWeight = weight != null && weight > s.capacity;
-    var atWeight = weight != null && weight === s.capacity;
+    var hardMax = Math.min(s.capacity != null ? s.capacity : 15300, 15300);
+    var overWeight = weight != null && weight > hardMax;
+    var maybeWeight = weight != null && weight > 12500 && weight <= hardMax;
     var overLength = lengthFt != null && lengthFt > s.deckFt;
     var hardFail = overWeight || overLength;
     var flags = [];
-    if (overWeight) flags.push('Over ' + plainNum(s.capacity, 0) + ' lb payload - cannot haul');
-    else if (atWeight) flags.push('at payload (~' + plainNum(s.capacity, 0) + ' lb)');
+    if (overWeight) flags.push('Over ' + plainNum(hardMax, 0) + ' lb payload - cannot haul');
+    else if (maybeWeight) flags.push('12,501-15,300 lb, scale check, load centered just ahead of trailer axles');
     if (overLength) flags.push('Over ' + plainNum(s.deckFt, 0) + ' ft deck - cannot haul');
     var verdict = 'idle';
     if (ready && loadedMi > 0) {
@@ -365,7 +366,7 @@
       warn.hidden = false;
       warn.textContent = (result.flags && result.flags.length)
         ? result.flags.join('. ') + '. Confirm before you haul it.'
-        : 'This may not fit the 40 ft deck or the about ' + plainNum(result.settings.capacity, 0) + ' lb payload.';
+        : 'This may not fit the 40 ft deck or the 12,500 lb clean / 15,300 lb maybe payload (scale check, load centered just ahead of trailer axles).';
     } else {
       warn.hidden = true;
       warn.textContent = '';
@@ -2447,11 +2448,11 @@
     }
     var flags = [];
     var hard = false;
-    if (row.weight_lb != null && Number(row.weight_lb) > 16000) {
-      flags.push('Over 16,000 lb payload - cannot haul');
+    if (row.weight_lb != null && Number(row.weight_lb) > 15300) {
+      flags.push('Over 15,300 lb payload - cannot haul');
       hard = true;
-    } else if (row.weight_lb != null && Number(row.weight_lb) === 16000) {
-      flags.push('at payload (~16,000 lb)');
+    } else if (row.weight_lb != null && Number(row.weight_lb) > 12500) {
+      flags.push('12,501-15,300 lb, scale check, load centered just ahead of trailer axles');
     }
     if (row.length_ft != null && Number(row.length_ft) > 40) {
       flags.push('Over 40 ft deck - cannot haul');
@@ -3119,8 +3120,8 @@
       if (flags.some(function (f) { return String(f).indexOf('weight not listed') !== -1; })) {
         return 'Clears the net bar, but weight is not listed.';
       }
-      if (flags.some(function (f) { return String(f).indexOf('at payload') !== -1; })) {
-        return 'Clears the net bar, but weight is at the 16,000 lb payload.';
+      if (flags.some(function (f) { return String(f).indexOf('12,501-15,300') !== -1 || String(f).indexOf('scale check') !== -1; })) {
+        return 'Clears the net bar, but weight is 12,501-15,300 lb (scale check, load centered just ahead of trailer axles).';
       }
       return 'Clears the net bar, but check fit before you book.';
     }
@@ -3639,7 +3640,7 @@
     }
     var body;
     if (!list.length) {
-      body = '<p class="fine">No 2- or 3-load combos in this scan cleared the $1,000 net bar with a feasible route. Many postings were full TL, over the 16,000 lb or 40 ft limit, or did not line up for a shared deck or a sequential chain.</p>';
+      body = '<p class="fine">No 2- or 3-load combos in this scan cleared the $1,000 net bar with a feasible route. Many postings were full TL, over the 15,300 lb or 40 ft limit, or did not line up for a shared deck or a sequential chain.</p>';
     } else {
       body = list.map(renderComboCard).join('');
     }

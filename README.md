@@ -1,6 +1,6 @@
 # Black Ram Logistics
 
-Installable phone app for Sand Lily Pad LLC’s hotshot business, doing business as **Black Ram Logistics**, leased onto Totni Enterprise’s MC authority. Our rig: 2026 Ram 3500 dually and a 40 ft Big Tex gooseneck. Deck about 16,000 lb. Tarps, straps.
+Installable phone app for Sand Lily Pad LLC’s hotshot business, doing business as **Black Ram Logistics**, leased onto Totni Enterprise’s MC authority. Our rig: 2026 Ram 3500 dually and a 40 ft Big Tex gooseneck. Cargo up to 12,500 lb is OK; 12,501-15,300 lb is MAYBE (scale check, load centered just ahead of trailer axles); over 15,300 lb is a PASS. The Ram GVWR of 14,000 lb binds (CAT empty 10,940 lb on the truck). Tarps, straps.
 
 **Live:** https://cd866.github.io/hotshotrate/
 
@@ -28,11 +28,11 @@ Saved on the phone (localStorage):
 | Trailer payment | $434.84 / month |
 | Insurance | $1,221.62 / month |
 | Truck note (other fixed) | $1,573.04 / month |
-| Deck warning | at or over 16,000 lb, or over 40 ft |
+| Deck warning | over 15,300 lb, or over 40 ft; 12,501-15,300 lb is a scale-check MAYBE |
 | MPG | 9, estimate, badged **EST** (shown as a fuel check only) |
 | Diesel | $6.04 / gal, estimate, badged **EST** |
 
-Net EST = rate x 0.87 - $1.14 per loaded mile (fuel and DEF) - $0.30 per empty mile. TAKE if it clears the bar and fits the deck. MAYBE if it clears the bar but weight is not listed or is exactly at the 16,000 lb payload. PASS if it is under the bar, or if length is over 40 ft or weight is over 16,000 lb. No overhang.
+Net EST = rate x 0.87 - $1.14 per loaded mile (fuel and DEF) - $0.30 per empty mile. TAKE if it clears the bar and fits the deck. MAYBE if it clears the bar but weight is not listed or is 12,501-15,300 lb (scale check, load centered just ahead of trailer axles). PASS if it is under the bar, or if length is over 40 ft or weight is over 15,300 lb. No overhang.
 
 ## How the feed gets updated
 

@@ -225,7 +225,12 @@
                 "n": 2
               }
             ]
-          }
+          },
+          "days": 2.0,
+          "net_per_day": 211.26,
+          "flags": [
+            "net per day under $300"
+          ]
         },
         {
           "date": "2026-10-13",
@@ -481,7 +486,12 @@
                 "n": 2
               }
             ]
-          }
+          },
+          "days": 2.0,
+          "net_per_day": 297.03,
+          "flags": [
+            "net per day under $300"
+          ]
         },
         {
           "date": "2026-10-14",
@@ -705,7 +715,9 @@
                 "n": 2
               }
             ]
-          }
+          },
+          "days": 2.0,
+          "net_per_day": 568.5
         },
         {
           "date": "2026-10-22",
@@ -1043,7 +1055,12 @@
                 "n": 2
               }
             ]
-          }
+          },
+          "days": 2.0,
+          "net_per_day": 261.05,
+          "flags": [
+            "net per day under $300"
+          ]
         },
         {
           "date": "2026-10-26",
@@ -1266,7 +1283,12 @@
                 "n": 2
               }
             ]
-          }
+          },
+          "days": 3.0,
+          "net_per_day": 98.12,
+          "flags": [
+            "net per day under $300"
+          ]
         }
       ],
       "expenses": [
@@ -1777,7 +1799,12 @@
                 "n": 2
               }
             ]
-          }
+          },
+          "days": 2.0,
+          "net_per_day": 132.3,
+          "flags": [
+            "net per day under $300"
+          ]
         },
         {
           "date": "2026-11-05",
@@ -2094,7 +2121,12 @@
                 "n": 2
               }
             ]
-          }
+          },
+          "days": 2.0,
+          "net_per_day": 275.55,
+          "flags": [
+            "net per day under $300"
+          ]
         },
         {
           "date": "2026-11-13",
@@ -2370,7 +2402,12 @@
                 "n": 2
               }
             ]
-          }
+          },
+          "days": 1.5,
+          "net_per_day": 92.32,
+          "flags": [
+            "net per day under $300"
+          ]
         },
         {
           "date": "2026-11-16",
@@ -2714,7 +2751,12 @@
                 "n": 2
               }
             ]
-          }
+          },
+          "days": 2.0,
+          "net_per_day": 169.07,
+          "flags": [
+            "net per day under $300"
+          ]
         },
         {
           "date": "2026-11-24",
@@ -3040,7 +3082,12 @@
                 "n": 2
               }
             ]
-          }
+          },
+          "days": 2.0,
+          "net_per_day": 116.7,
+          "flags": [
+            "net per day under $300"
+          ]
         }
       ],
       "expenses": [
