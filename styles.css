@@ -5127,3 +5127,31 @@ header.top.rc-top { padding: var(--s-1) var(--s-2) 0; margin: 0; }
 .rc-rig-text { padding-right: 80px; }
 
 .rc-rig .rig-specs-toggle { top: calc(var(--s-1h) + 10px); transform: none; }
+
+/* =====================================================================
+   v63 RATE CHECK: full-width truck hero (like v58) + manual Save check
+   ===================================================================== */
+.rc-save-row { margin-top: var(--s-2); }
+.rc-save-row .btn { width: 100%; min-height: var(--tap); }
+.rc-save-row .btn[data-flash="1"] { background: var(--c-take); border-color: var(--c-take); color: var(--c-take-ink); }
+.rc-hist-row {
+  display: grid; grid-template-columns: 1fr auto; align-items: stretch; gap: var(--s-1);
+  padding: 0; background: var(--c-bg); border: 1px solid var(--c-line); border-radius: var(--radius-md);
+}
+.rc-hist-load {
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: var(--s-1h);
+  min-height: 56px; padding: var(--s-1) var(--s-1h); text-align: left; cursor: pointer; width: 100%;
+  background: transparent; border: 0; color: inherit; font: inherit;
+}
+.rc-hist-del {
+  min-width: var(--tap); min-height: var(--tap); margin: 4px 4px 4px 0; padding: 0 10px;
+  border: 0; background: transparent; color: var(--c-text-3); font: inherit;
+  font-size: var(--fs-xs); font-weight: var(--fw-bold); letter-spacing: 0.02em; cursor: pointer;
+  border-radius: var(--radius-md);
+}
+.rc-hist-del:hover, .rc-hist-del:focus-visible { color: #F87171; background: rgba(248, 113, 113, 0.12); }
+header.top .rig-specs-toggle {
+  min-height: var(--tap); cursor: pointer;
+  font-family: var(--body); font-size: var(--fs-md); font-weight: var(--fw-bold);
+  letter-spacing: 0; text-transform: none;
+}

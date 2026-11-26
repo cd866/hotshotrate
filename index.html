@@ -18,7 +18,7 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=3" sizes="180x180" />
   <link rel="preload" href="fonts/nunito-sans-variable.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="fonts/oswald-700.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="styles.css?v=62" />
+  <link rel="stylesheet" href="styles.css?v=63" />
   <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
   <script>
     try {
@@ -41,7 +41,7 @@
         <h2 id="about-title" class="sr-only">Black Ram Logistics</h2>
         <p>Black Ram Logistics is the hotshot DBA of Sand Lily Pad LLC, leased onto Totni Enterprise’s MC authority.</p>
         <p>Our rig: 2026 Ram 3500 dually and a 40 ft Big Tex gooseneck. Cargo up to 12,500 lb is OK; 12,501-15,300 lb is MAYBE (scale check, load centered just ahead of trailer axles); over 15,300 lb is a PASS. The Ram GVWR of 14,000 lb binds (CAT empty 10,940 lb on the truck). Tarps, straps. $/hr EST = net EST / hours. Hours = (loaded mi + empty miles) / 50 mph + 2 h load/unload per load. Net $/mi EST = net EST / (loaded mi + empty miles).</p>
-        <p>Rate Check scores a broker's offer as you type: enter the rate, loaded miles and deadhead miles to get TAKE, MAYBE or PASS with net, net per day, net per mile and net per hour. Your last 10 checks are kept on this phone.</p>
+        <p>Rate Check scores a broker's offer as you type: enter the rate, loaded miles and deadhead miles to get TAKE, MAYBE or PASS with net, net per day, net per mile and net per hour. Tap Save check to keep an offer on this phone. The last 10 saved checks stay here.</p>
         <p>Load Boards shows the latest Truckstop and Direct Freight scan. Net EST is the posted rate times 0.87, minus $1.14 per loaded mile (fuel and DEF) and $0.30 per empty mile. Driver pay is not in the per-load estimate; Meshach is paid out of profits. A single load needs at least $500 net EST, or $300 for a same-day run under 250 total miles. A chain or a 2- or 3-load combo needs at least $1,000 total with no losing leg. An overnight low of 45 F or below at the drop (or at any stop on a combo) is an automatic PASS, because the truck would have to idle overnight. Each load and combo also shows a route weather report. Ice or snow on the route, or gusts of 50+ mph, is a MAYBE and does not PASS by itself. Load Boards lists TAKE loads first, then MAYBE, then PASS. Tarp-required and F+T loads are a fit; the rig has tarps and straps. If a company email is listed, Email broker opens a draft in your mail app and does not send it. If there is no email, Call broker uses a company phone, or a looked-up company line marked Looked up. Direct Freight rows with no broker identity link to the board detail. Each load and combo shows a route map (grey dashed empty miles to pickup, solid purple loaded) and an Open in Google Maps directions link. Maps use OpenStreetMap and only load when they scroll into view. The public list does not include contact person names, personal cell numbers, card numbers, or other confidential details.</p>
         <h2>Add to your iPhone</h2>
         <ol>
@@ -74,19 +74,22 @@
       </button>
     </header>
 
-    <header class="top rc-top">
-      <section class="rig-card rc-rig" aria-label="Our rig">
+    <header class="top">
+      <div class="logo-wrap"><svg role="img" aria-label="Black Ram Logistics" xmlns="http://www.w3.org/2000/svg" width="720" height="190" viewBox="0 0 720 190"><rect width="720" height="190" fill="#0f0d17"/><g transform="translate(10,10) scale(.9)"><circle cx="100" cy="100" r="96" fill="#0f0d17" stroke="#D4A62A" stroke-width="5"/><path d="M84,72 C46,38 10,62 18,104 C24,140 62,144 64,116 C65,98 46,94 42,108" fill="none" stroke="#D4A62A" stroke-width="13" stroke-linecap="round"/><g transform="translate(200,0) scale(-1,1)"><path d="M84,72 C46,38 10,62 18,104 C24,140 62,144 64,116 C65,98 46,94 42,108" fill="none" stroke="#D4A62A" stroke-width="13" stroke-linecap="round"/></g><polygon points="80,62 120,62 134,96 120,158 100,176 80,158 66,96" fill="#2A2A2E" stroke="#D4A62A" stroke-width="5" stroke-linejoin="round"/>
+<polygon points="78,100 94,106 80,112" fill="#F2C94C"/><polygon points="122,100 106,106 120,112" fill="#F2C94C"/>
+<path d="M92,150 L100,160 L108,150" fill="none" stroke="#D4A62A" stroke-width="4"/></g><text x="205" y="105" style="font-family:Oswald,'Antonio',sans-serif;font-weight:700;font-size:78px;letter-spacing:5px" fill="#F5F1E6">BLACK RAM</text><text x="208" y="152" style="font-family:Oswald,'Antonio',sans-serif;font-weight:500;font-size:32px;letter-spacing:10px" fill="#D4A62A">LOGISTICS</text></svg></div>
+      <p class="tag">Sand Lily Pad LLC</p>
+      <section class="rig-card" aria-label="Our rig">
         <figure class="rig-figure">
           <div class="rig-stage">
             <div class="rig-floor" aria-hidden="true"></div>
             <picture>
-              <source type="image/webp" srcset="brand/rig-800.webp 800w, brand/rig-1600.webp 1600w" sizes="120px">
-              <img id="rig-photo" class="rig-photo" alt="Diamond Black 2026 Ram 3500 dually and Big Tex 25GN 40 ft gooseneck trailer, hooked together." width="1600" height="563" src="brand/rig-800.png" srcset="brand/rig-800.png 800w, brand/rig-1600.png 1600w" sizes="120px" decoding="async" fetchpriority="high">
+              <source type="image/webp" srcset="brand/rig-800.webp 800w, brand/rig-1600.webp 1600w" sizes="(max-width: 480px) 92vw, 440px">
+              <img id="rig-photo" class="rig-photo" alt="Diamond Black 2026 Ram 3500 dually and Big Tex 25GN 40 ft gooseneck trailer, hooked together." width="1600" height="563" src="brand/rig-800.png" srcset="brand/rig-800.png 800w, brand/rig-1600.png 1600w" sizes="(max-width: 480px) 92vw, 440px" decoding="async" fetchpriority="high">
             </picture>
-            <img id="rig-reflect" class="rig-reflect" alt="" width="1600" height="563" src="brand/rig-800.png" srcset="brand/rig-800.png 800w, brand/rig-1600.png 1600w" sizes="120px" decoding="async" aria-hidden="true">
+            <img id="rig-reflect" class="rig-reflect" alt="" width="1600" height="563" src="brand/rig-800.png" srcset="brand/rig-800.png 800w, brand/rig-1600.png 1600w" sizes="(max-width: 480px) 92vw, 440px" decoding="async" aria-hidden="true">
           </div>
         </figure>
-        <div class="rc-rig-text"><b>Our rig</b><span>Ram 3500 + 40 ft gooseneck</span></div>
         <details class="rig-specs-panel">
           <summary class="rig-specs-toggle"><span class="rig-specs-show">Specs</span><span class="rig-specs-hide">Hide</span></summary>
           <div class="rig-specs-body">
@@ -193,6 +196,9 @@
             </div>
             <p class="rcv-meta" id="verdict-meta"></p>
             <p id="weight-warn" class="warn rcv-warn" hidden></p>
+            <div class="rc-save-row">
+              <button type="button" class="btn btn-secondary" id="rc-save" disabled>Save check</button>
+            </div>
           </section>
 
           <details class="rc-fold" id="rc-why">
@@ -240,9 +246,9 @@
           </section>
         </form>
 
-        <section class="rc-card rc-history" id="rc-history" aria-label="Recent checks">
+        <section class="rc-card rc-history" id="rc-history" aria-label="Saved checks">
           <div class="rc-hist-head">
-            <h2 class="rc-h2">Recent checks</h2>
+            <h2 class="rc-h2">Saved checks</h2>
             <button type="button" class="btn btn-ghost btn-sm" id="rc-hist-clear" hidden>Clear</button>
           </div>
           <div id="rc-hist-list" class="rc-hist-list"></div>
@@ -407,7 +413,7 @@
       <footer class="footer">
         <p><strong>Black Ram Logistics</strong> · DBA of Sand Lily Pad LLC</p>
         <p>Estimates are marked EST. Not a quote and not tax advice.</p>
-        <p class="app-version" id="app-version">v62</p>
+        <p class="app-version" id="app-version">v63</p>
       </footer>
       <div class="pad" aria-hidden="true"></div>
     </main>
@@ -555,15 +561,15 @@
   </div>
   <noscript><p class="noscript">Black Ram Logistics needs JavaScript for Rate Check, stops, and reports.</p></noscript>
   <script src="vendor/leaflet/leaflet.js"></script>
-  <script src="maps.js?v=62"></script>
-  <script src="tripplan.js?v=62"></script>
-  <script src="app.js?v=62"></script>
-  <script src="stops.js?v=62"></script>
-  <script src="targets.js?v=62"></script>
-  <script src="loadcosts.js?v=62"></script>
-  <script src="reports.js?v=62"></script>
-  <script src="scoreboard.js?v=62"></script>
-  <script src="accounting.js?v=62"></script>
+  <script src="maps.js?v=63"></script>
+  <script src="tripplan.js?v=63"></script>
+  <script src="app.js?v=63"></script>
+  <script src="stops.js?v=63"></script>
+  <script src="targets.js?v=63"></script>
+  <script src="loadcosts.js?v=63"></script>
+  <script src="reports.js?v=63"></script>
+  <script src="scoreboard.js?v=63"></script>
+  <script src="accounting.js?v=63"></script>
   <script>
     (function () {
       if (!('serviceWorker' in navigator)) return;

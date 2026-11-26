@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v62';
+  var APP_VERSION = 'v63';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -445,15 +445,13 @@
     $('settings-brief').textContent = brief;
 
     if (state.tab === 'kpis' && state.feed) renderKpis();
-    scheduleRateHistory(result);
   }
 
-  /* ---- Rate Check (v59): big verdict numbers, Why list, recent checks ----
+  /* ---- Rate Check: big verdict numbers, Why list, saved checks (manual save only) ----
      Display only. Every number comes from compute() above or from the same
      hosDaysFromMiles() the load boards use for days. */
   var RC_HIST_KEY = 'blackram_ratecheck_history_v1';
   var RC_HIST_MAX = 10;
-  var rcHistTimer = null;
 
   function rcSet(id, text) {
     var el = $(id);
@@ -499,6 +497,15 @@
       if (state.tarp) li('', 'Tarp required. We have tarps and straps.');
     }
     list.innerHTML = items.join('');
+    updateSaveBtn(result);
+  }
+
+  function updateSaveBtn(result) {
+    var btn = $('rc-save');
+    if (!btn) return;
+    var ready = !!(result && result.ready && result.loadedMi > 0);
+    btn.disabled = !ready;
+    if (btn.getAttribute('data-flash') !== '1') btn.textContent = 'Save check';
   }
 
   function rcHistRead() {
@@ -527,20 +534,39 @@
     return [e.rate, e.loaded, e.dead, e.weight, e.len, e.pickup, e.delivery, e.hours, e.tarp ? 1 : 0].join('|');
   }
 
-  function scheduleRateHistory(result) {
-    clearTimeout(rcHistTimer);
-    if (!result.ready || result.loadedMi <= 0) return;
-    rcHistTimer = setTimeout(function () {
-      var cur = compute();
-      if (!cur.ready || cur.loadedMi <= 0) return;
-      var snap = rcSnapshot(cur);
-      var arr = rcHistRead();
-      if (arr.length && rcSig(arr[0]) === rcSig(snap)) return;
-      // edits within 25 s of the last save replace it, so typing does not spam the list
-      if (arr.length && snap.t - arr[0].t < 25000) arr[0] = snap; else arr.unshift(snap);
-      rcHistWrite(arr);
-      renderRateHistory();
-    }, 1800);
+  function saveRateCheck() {
+    var cur = compute();
+    if (!cur.ready || cur.loadedMi <= 0) return;
+    var snap = rcSnapshot(cur);
+    var arr = rcHistRead();
+    if (arr.length && rcSig(arr[0]) === rcSig(snap)) {
+      flashSaved();
+      return;
+    }
+    arr.unshift(snap);
+    rcHistWrite(arr);
+    renderRateHistory();
+    flashSaved();
+  }
+
+  function flashSaved() {
+    var btn = $('rc-save');
+    if (!btn) return;
+    btn.setAttribute('data-flash', '1');
+    btn.textContent = 'Saved';
+    btn.disabled = true;
+    setTimeout(function () {
+      btn.removeAttribute('data-flash');
+      updateSaveBtn(compute());
+    }, 1400);
+  }
+
+  function deleteSavedCheck(i) {
+    var arr = rcHistRead();
+    if (i < 0 || i >= arr.length) return;
+    arr.splice(i, 1);
+    rcHistWrite(arr);
+    renderRateHistory();
   }
 
   function rcAgo(t) {
@@ -560,17 +586,19 @@
     if (clr) clr.hidden = !arr.length;
     if (!arr.length) {
       box.innerHTML = '<div class="rc-empty"><div class="rc-empty-ico" aria-hidden="true">' + navIcon('check') + '</div>' +
-        '<b>No checks yet</b><span>Every offer you check is saved here on this phone. Tap one to bring it back.</span></div>';
+        '<b>No saved checks</b><span>Score an offer, then tap Save check to keep it on this phone. Tap a saved check to bring it back.</span></div>';
       return;
     }
     box.innerHTML = arr.map(function (e, i) {
       var lane = (e.pickup || e.delivery) ? esc((e.pickup || '?') + ' > ' + (e.delivery || '?')) : '';
       var miles = plainNum(Number(e.loaded) || 0, 0) + (Number(e.dead) > 0 ? ' + ' + plainNum(Number(e.dead), 0) : '') + ' mi';
       var v = e.v === 'take' || e.v === 'maybe' ? e.v : 'pass';
-      return '<button type="button" class="rc-hist-row ' + v + '" data-i="' + i + '" aria-label="Load this check back in">' +
+      return '<div class="rc-hist-row ' + v + '" data-i="' + i + '">' +
+        '<button type="button" class="rc-hist-load" data-i="' + i + '" aria-label="Load this check back in">' +
         '<span class="rc-hist-pill ' + v + '">' + v.toUpperCase() + '</span>' +
         '<span class="rc-hist-main"><b>' + esc(money(Number(e.rate) || 0)) + '</b><span>' + esc(miles) + (lane ? ' &middot; ' + lane : '') + '</span></span>' +
-        '<span class="rc-hist-net"><b>' + esc(money(e.net)) + '</b><span>' + esc(rcAgo(e.t)) + (e.days ? ' &middot; ' + e.days + 'd' : '') + '</span></span></button>';
+        '<span class="rc-hist-net"><b>' + esc(money(e.net)) + '</b><span>' + esc(rcAgo(e.t)) + (e.days ? ' &middot; ' + e.days + 'd' : '') + '</span></span></button>' +
+        '<button type="button" class="rc-hist-del" data-i="' + i + '" aria-label="Remove this saved check">Remove</button></div>';
     }).join('');
   }
 
@@ -586,9 +614,13 @@
   function bindRateCheck() {
     var list = $('rc-hist-list');
     if (list) list.addEventListener('click', function (ev) {
-      var row = ev.target.closest && ev.target.closest('.rc-hist-row');
+      var del = ev.target.closest && ev.target.closest('.rc-hist-del');
+      if (del) { deleteSavedCheck(Number(del.getAttribute('data-i'))); return; }
+      var row = ev.target.closest && ev.target.closest('.rc-hist-load');
       if (row) restoreRateCheck(Number(row.getAttribute('data-i')));
     });
+    var save = $('rc-save');
+    if (save) save.addEventListener('click', saveRateCheck);
     var clr = $('rc-hist-clear');
     if (clr) clr.addEventListener('click', function () { rcHistWrite([]); renderRateHistory(); });
     var why = $('rc-why');
