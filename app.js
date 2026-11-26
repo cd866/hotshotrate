@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v45';
+  var APP_VERSION = 'v46';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -3758,7 +3758,8 @@
         var payload = {
           origin: o,
           destination: isAny ? 'anywhere' : d,
-          radius_mi: rad
+          radius_mi: rad,
+          max_weight_lb: 19999
         };
         return postRelayRequest('fresh_pull', payload).then(function (res) {
           state.freshPullBusy = false;
@@ -4019,7 +4020,32 @@
     return null;
   }
 
+  var HIDDEN_HEAVY_LB = 20000;
+
+  function isHiddenHeavyLoad(row) {
+    return row && row.weight_lb != null && isFinite(Number(row.weight_lb)) && Number(row.weight_lb) >= HIDDEN_HEAVY_LB;
+  }
+
+  function stripHiddenHeavy(data) {
+    if (!data) return data;
+    var prior = Number(data.hidden_heavy || (data.counts && data.counts.hidden_heavy) || 0) || 0;
+    var extra = 0;
+    var loads = (data.loads || []).filter(function (row) {
+      if (isHiddenHeavyLoad(row)) { extra += 1; return false; }
+      return true;
+    });
+    data.loads = loads;
+    if (data.combos) {
+      data.combos = data.combos.filter(function (combo) {
+        return !(combo.loads || []).some(isHiddenHeavyLoad);
+      });
+    }
+    data.hidden_heavy = prior + extra;
+    return data;
+  }
+
   function applyLocalScoring(data) {
+    stripHiddenHeavy(data);
     var loads = data.loads || [];
     loads.forEach(function (row) { scoreSearchLoad(row); });
     var orig = state.searches || data;
@@ -4044,7 +4070,7 @@
       });
       rescoreCombo(combo, (orig.combos || [])[i] || combo);
     });
-    var counts = { total: loads.length, take: 0, maybe: 0, pass: 0 };
+    var counts = { total: loads.length, take: 0, maybe: 0, pass: 0, hidden_heavy: Number(data.hidden_heavy || 0) || 0 };
     loads.forEach(function (row) {
       var v = String(row.verdict || 'PASS').toLowerCase();
       if (counts[v] != null) counts[v] += 1;
@@ -6291,6 +6317,10 @@
           countTile('maybe', 'Maybe', counts.maybe || 0) +
           countTile('pass', 'Pass', counts.pass || 0) +
         '</div>' +
+        (Number(data.hidden_heavy || counts.hidden_heavy || 0) > 0
+          ? '<p class="fine hidden-heavy">' + esc(String(Number(data.hidden_heavy || counts.hidden_heavy))) +
+            ' loads 20,000 lb+ hidden</p>'
+          : '') +
         rateLegend() +
       '</div>' +
       controlsHtml +

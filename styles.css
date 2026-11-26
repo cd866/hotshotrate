@@ -774,6 +774,7 @@ select:focus {
   line-height: 1;
 }
 .searches-hero .fine { color: var(--purple-hi); }
+.searches-hero .hidden-heavy { color: var(--muted); opacity: 0.75; font-size: 12px; margin: 4px 0 0; }
 .search-counts {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
