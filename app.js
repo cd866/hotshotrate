@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v37';
+  var APP_VERSION = 'v38';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -3740,7 +3740,7 @@
     }
     if (row.weight_lb == null) flags.push('weight not listed');
     var keepFlags = (row.fit_flags || []).filter(function (f) {
-      return /infeasible|cannot haul|misses the|pickup is only|too cold at drop/i.test(String(f));
+      return /infeasible|cannot haul|misses the|pickup is only|too cold at drop|ice or snow on route|gusts 50\+/i.test(String(f));
     });
     flags = flags.concat(keepFlags);
     if (keepFlags.some(function (f) { return /infeasible|cannot haul|misses the|pickup is only/i.test(String(f)); })) hard = true;
@@ -3778,6 +3778,17 @@
       tooCold = true;
     }
     if (tooCold) verdict = 'PASS';
+    var iceSnow = flags.some(function (f) { return String(f).indexOf('ice or snow on route') !== -1; });
+    var gust50 = flags.some(function (f) { return String(f).indexOf('gusts 50+') !== -1; });
+    var pts = (row.route_wx && row.route_wx.points) ? row.route_wx.points : [];
+    pts.forEach(function (pt) {
+      var hz = pt.hazards || [];
+      if (hz.indexOf('ice') !== -1 || hz.indexOf('snow') !== -1) iceSnow = true;
+      if (pt.gust_mph != null && Number(pt.gust_mph) >= 50) gust50 = true;
+    });
+    if (iceSnow && flags.indexOf('ice or snow on route') === -1) flags.push('ice or snow on route');
+    if (gust50 && flags.indexOf('gusts 50+ mph on route') === -1) flags.push('gusts 50+ mph on route');
+    if (verdict === 'TAKE' && (iceSnow || gust50)) verdict = 'MAYBE';
     row.fit_flags = flags;
     row.verdict = verdict;
     delete row.reason;
@@ -3839,6 +3850,24 @@
       combo.verdict = 'PASS';
       var coldFlag = (combo.flags || []).filter(function (f) { return String(f).indexOf('too cold at drop') !== -1; })[0];
       if (coldFlag) combo.reason = /[.]$/.test(coldFlag) ? coldFlag : coldFlag + '.';
+    } else {
+      var cPts = (combo.route_wx && combo.route_wx.points) ? combo.route_wx.points : [];
+      var cIce = cFlags.some(function (f) { return String(f).indexOf('ice or snow on route') !== -1; });
+      var cGust = cFlags.some(function (f) { return String(f).indexOf('gusts 50+') !== -1; });
+      cPts.forEach(function (pt) {
+        var hz = pt.hazards || [];
+        if (hz.indexOf('ice') !== -1 || hz.indexOf('snow') !== -1) cIce = true;
+        if (pt.gust_mph != null && Number(pt.gust_mph) >= 50) cGust = true;
+      });
+      if (cIce && cFlags.indexOf('ice or snow on route') === -1) cFlags.push('ice or snow on route');
+      if (cGust && cFlags.indexOf('gusts 50+ mph on route') === -1) cFlags.push('gusts 50+ mph on route');
+      combo.flags = cFlags;
+      if (combo.verdict === 'TAKE' && (cIce || cGust)) {
+        combo.verdict = 'MAYBE';
+        combo.reason = cIce
+          ? 'Clears the combo bar, but ice or snow is on the route.'
+          : 'Clears the combo bar, but gusts of 50+ mph are on the route.';
+      }
     }
     return combo;
   }
@@ -4479,6 +4508,58 @@
     return '<span class="' + cls + '">' + esc(label) + '</span>';
   }
 
+  function formatWxDate(iso) {
+    if (!iso) return '';
+    var d = new Date(String(iso).slice(0, 10) + 'T12:00:00');
+    if (isNaN(d.getTime())) return String(iso);
+    var days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    return days[d.getDay()] + ' ' + (d.getMonth() + 1) + '/' + d.getDate();
+  }
+
+  function wxPointCond(pt) {
+    var bits = [];
+    if (pt.precip) {
+      var label = pt.precip === 'ice' ? 'Ice' : (pt.precip === 'snow' ? 'Snow' : (pt.precip === 'rain' ? 'Rain' : pt.precip));
+      if (pt.precip_chance != null && isFinite(Number(pt.precip_chance))) label += ' ' + Math.round(Number(pt.precip_chance)) + '%';
+      bits.push(label);
+    } else if (pt.precip_chance != null && Number(pt.precip_chance) > 0) {
+      bits.push('Precip ' + Math.round(Number(pt.precip_chance)) + '%');
+    }
+    if (pt.gust_mph != null && isFinite(Number(pt.gust_mph))) bits.push('gusts ' + Math.round(Number(pt.gust_mph)) + ' mph');
+    if (pt.source === 'normal') bits.push('normal');
+    return bits.join(', ');
+  }
+
+  function routeWxHtml(row) {
+    var wx = row && row.route_wx;
+    if (!wx || !wx.summary) return '';
+    var pts = wx.points || [];
+    var hazard = (wx.hazards && wx.hazards.length) || pts.some(function (pt) { return pt.hazards && pt.hazards.length; });
+    var rows = pts.map(function (pt) {
+      var hz = (pt.hazards && pt.hazards.length);
+      var temps = [];
+      if (pt.high_f != null) temps.push(pt.high_f + ' F');
+      if (pt.low_f != null) temps.push(pt.low_f + ' F');
+      var tempText = '';
+      if (pt.high_f != null && pt.low_f != null) tempText = pt.high_f + ' / ' + pt.low_f + ' F';
+      else if (temps.length) tempText = temps.join(' ');
+      var cond = wxPointCond(pt);
+      return '<div class="wx-point' + (hz ? ' hazard' : '') + '">' +
+        '<div class="wx-point-place">' + esc(pt.place || '') + '</div>' +
+        '<div class="wx-point-date">' + esc(formatWxDate(pt.date)) + '</div>' +
+        (tempText ? '<div class="wx-point-temps">' + esc(tempText) + '</div>' : '') +
+        (cond ? '<div class="wx-point-cond">' + esc(cond) + '</div>' : '') +
+        '</div>';
+    }).join('');
+    return '<div class="route-wx' + (hazard ? ' has-hazard' : '') + '">' +
+      '<button type="button" class="wx-toggle" aria-expanded="false">' +
+        '<span class="wx-summary">' + esc(wx.summary) + '</span>' +
+        '<span class="wx-toggle-label">Weather</span>' +
+      '</button>' +
+      '<div class="wx-points" hidden>' + rows + '</div>' +
+      '</div>';
+  }
+
   function fitBadgesHtml(row) {
     var badges = [];
     badges.push(weightFitBadge(row.weight_lb));
@@ -4517,6 +4598,12 @@
     var hard = flags.filter(function (f) { return String(f).indexOf('cannot haul') !== -1; });
     if (verd === 'TAKE') return 'Clears the net bar and fits the deck.';
     if (verd === 'MAYBE') {
+      if (flags.some(function (f) { return String(f).indexOf('ice or snow on route') !== -1; })) {
+        return 'Clears the net bar, but ice or snow is on the route.';
+      }
+      if (flags.some(function (f) { return String(f).indexOf('gusts 50+') !== -1; })) {
+        return 'Clears the net bar, but gusts of 50+ mph are on the route.';
+      }
       if (flags.some(function (f) { return String(f).indexOf('net per day under $300') !== -1; })) {
         return 'Clears the net bar, but net per day is under $300.';
       }
@@ -5313,6 +5400,7 @@
       fitBadgesHtml(row) +
       alsoHtml +
       (reason ? '<p class="search-reason">' + esc(reason) + '</p>' : '') +
+      routeWxHtml(row) +
       searchActions(row, true) +
       detailsHtml +
       '</article>';
@@ -5382,6 +5470,7 @@
       milesStrip(combo.loaded_mi, combo.deadhead_mi, { emptyFrom: searchOriginLabel() + ', all legs' }) +
       fitRow +
       (reason ? '<p class="search-reason">' + esc(reason) + '</p>' : '') +
+      routeWxHtml(combo) +
       '<div class="search-actions"><button type="button" class="details-toggle-btn" aria-expanded="false">Legs, stops &amp; map</button></div>' +
       detailsHtml +
       '</article>';
@@ -5787,6 +5876,16 @@
         if (!r) return;
         toggleCompareLoad(r);
         renderSearches();
+      });
+    });
+    root.querySelectorAll('.wx-toggle').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var wrap = btn.closest('.route-wx');
+        var pane = wrap ? wrap.querySelector('.wx-points') : null;
+        if (!pane) return;
+        var open = pane.hidden;
+        pane.hidden = !open;
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
       });
     });
     root.querySelectorAll('.details-toggle-btn').forEach(function (btn) {
