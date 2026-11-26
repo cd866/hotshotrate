@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v42';
+  var APP_VERSION = 'v43';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -2483,6 +2483,7 @@
   var LOAD_UNLOAD_HOURS = 2;
 
   var MILES_PER_DAY = 550;
+  var HOS_HOURS_PER_DAY = 11;
   var MIN_NET_PER_DAY = 300;
   var TRUCK_AT_KEY = 'blackram_truck_at_v1';
   var GEO_CACHE_KEY = 'blackram_geocode_cache_v1';
@@ -2622,19 +2623,55 @@
     return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
   }
 
-  function tripDaysForRow(row, nLoads) {
+  function addCalendarDays(d, n) {
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+  }
+
+  function hosDaysFromMiles(loaded, dead, nLoads) {
+    var hours = hoursEst(loaded, dead, nLoads);
+    if (hours == null || !isFinite(Number(hours)) || Number(hours) <= 0) return null;
+    return Math.max(1, Math.ceil(Number(hours) / HOS_HOURS_PER_DAY - 1e-9));
+  }
+
+  function efficientPostedSpan(pickupWindow, dropWindow, year, needed) {
+    var pu = parseWindow(pickupWindow, year);
+    var dr = parseWindow(dropWindow, year);
+    if (!pu || !dr) return null;
+    var need = needed && needed > 0 ? needed : 1;
+    var earliestDrop = new Date(dr[0].getFullYear(), dr[0].getMonth(), dr[0].getDate());
+    var earliestPu = new Date(pu[0].getFullYear(), pu[0].getMonth(), pu[0].getDate());
+    var latestPu = new Date(pu[1].getFullYear(), pu[1].getMonth(), pu[1].getDate());
+    var idealPu = addCalendarDays(earliestDrop, -(need - 1));
+    var puDate;
+    if (idealPu < earliestPu) puDate = earliestPu;
+    else if (idealPu > latestPu) puDate = latestPu;
+    else puDate = idealPu;
+    var dropDate = addCalendarDays(puDate, need - 1);
+    if (dropDate < earliestDrop) dropDate = earliestDrop;
+    return calendarSpanDays(puDate, dropDate);
+  }
+
+  function computeDaysSpan(row, nLoads) {
     if (!row) return null;
-    if (row.days != null && isFinite(Number(row.days)) && !state.truckAt) return Number(row.days);
-    var loaded = rowLoadedMiles(row);
-    var dead = rowEmptyMiles(row);
+    var loaded = rowLoadedMiles ? rowLoadedMiles(row) : (row.trip_mi != null ? row.trip_mi : row.loaded_mi);
+    var dead = rowEmptyMiles ? rowEmptyMiles(row) : (row.origin_dh_mi != null ? row.origin_dh_mi : row.deadhead_mi);
     var n = nLoads && nLoads > 0 ? nLoads : 1;
-    var byMiles = daysFromMiles(loaded, dead, n);
-    var byWindow = windowForcedDays(row.pickup_window, row.drop_window, scanYear(), loaded, dead, n);
+    var needed = hosDaysFromMiles(loaded, dead, n);
     var start = ledgerDate(row.pickup_date || row.date);
     var end = ledgerDate(row.delivery_date);
-    var byDates = start && end ? ceilHalfDay(calendarSpanDays(start, end)) : null;
-    var vals = [byMiles, byWindow, byDates].filter(function (d) { return d != null && d > 0; });
-    return vals.length ? Math.max.apply(null, vals) : null;
+    if (start && end) {
+      var posted = calendarSpanDays(start, end);
+      if (posted) return posted;
+    }
+    var span = efficientPostedSpan(row.pickup_window, row.drop_window, scanYear(), needed || 1);
+    if (span) return span;
+    return needed;
+  }
+
+  function tripDaysForRow(row, nLoads) {
+    if (!row) return null;
+    if (row.days_span != null && isFinite(Number(row.days_span)) && !state.truckAt) return Number(row.days_span);
+    return computeDaysSpan(row, nLoads);
   }
 
   function efficientLoadTimes(row, year) {
@@ -2703,13 +2740,36 @@
     return best;
   }
 
-  function rowDays(row, nLoads) {
-    if (row && row.kind && (row.loads || row.stop_order)) {
-      var byMiles = daysFromMiles(row.loaded_mi, row.deadhead_mi, (row.loads || []).length || nLoads || 1);
-      var byTime = comboElapsedDays(row);
-      var vals = [byMiles, byTime].filter(function (d) { return d != null; });
-      return vals.length ? Math.max.apply(null, vals) : byMiles;
+  function comboComputeDaysSpan(combo) {
+    if (!combo) return null;
+    if (combo.days_span != null && isFinite(Number(combo.days_span)) && !state.truckAt) return Number(combo.days_span);
+    var loads = combo.loads || [];
+    var n = loads.length || 1;
+    var needed = hosDaysFromMiles(combo.loaded_mi, combo.deadhead_mi, n);
+    var puWin = '', drWin = '';
+    var stops = combo.stop_order || [];
+    var i;
+    for (i = 0; i < stops.length; i++) {
+      if (String(stops[i].action || '').toLowerCase() === 'pickup' && String(stops[i].window || '').trim()) {
+        puWin = stops[i].window;
+        break;
+      }
     }
+    for (i = stops.length - 1; i >= 0; i--) {
+      if (String(stops[i].action || '').toLowerCase() === 'drop' && String(stops[i].window || '').trim()) {
+        drWin = stops[i].window;
+        break;
+      }
+    }
+    if (!puWin && loads[0]) puWin = loads[0].pickup_window || '';
+    if (!drWin && loads.length) drWin = (loads[loads.length - 1].drop_window || '');
+    var span = efficientPostedSpan(puWin, drWin, scanYear(), needed || 1);
+    if (span) return span;
+    return needed;
+  }
+
+  function rowDays(row, nLoads) {
+    if (row && row.kind && (row.loads || row.stop_order)) return comboComputeDaysSpan(row);
     return tripDaysForRow(row, nLoads);
   }
 
@@ -3779,9 +3839,12 @@
     row.per_hour = (net != null && row.hours) ? net / row.hours : null;
     row.net_per_mile = netPerMileValue({ net_est: net, trip_mi: trip, origin_dh_mi: dh, total_mi: total });
     row.gross_per_mile = grossPerMileValue({ posted_rate: rate, trip_mi: trip, origin_dh_mi: dh, total_mi: total });
+    var savedSpan = row.days_span;
     delete row.days;
     delete row.net_per_day;
+    if (savedSpan != null && isFinite(Number(savedSpan))) row.days_span = savedSpan;
     var days = tripDaysForRow(row, 1);
+    row.days_span = days;
     var npd = (net != null && days) ? net / days : null;
     row.days = days;
     row.net_per_day = npd == null ? null : Math.round(npd * 100) / 100;
@@ -3873,9 +3936,12 @@
         combo.net_est = Math.round((Number(combo.after_fee) - FALLBACK_LOADED * loaded - FALLBACK_DEADHEAD * dead) * 100) / 100;
       }
     }
+    var savedComboSpan = combo.days_span;
     delete combo.days;
     delete combo.net_per_day;
+    if (savedComboSpan != null && isFinite(Number(savedComboSpan))) combo.days_span = savedComboSpan;
     var days = rowDays(combo, loads.length);
+    combo.days_span = days;
     var npd = (combo.net_est != null && days) ? combo.net_est / days : null;
     combo.days = days;
     combo.net_per_day = npd == null ? null : Math.round(npd * 100) / 100;
@@ -4556,6 +4622,101 @@
     return '';
   }
 
+  function wxKindFromCode(code, gust) {
+    var c = code == null || code === '' ? null : Number(code);
+    if (c === 45 || c === 48) return 'fog';
+    if (c === 56 || c === 57 || c === 66 || c === 67) return 'ice';
+    if (c === 71 || c === 73 || c === 75 || c === 77 || c === 85 || c === 86) return 'snow';
+    if (c === 95 || c === 96 || c === 97 || c === 99) return 'thunder';
+    if (c === 51 || c === 53 || c === 55 || c === 61 || c === 63 || c === 65 || c === 80 || c === 81 || c === 82) return 'rain';
+    var windy = gust != null && isFinite(Number(gust)) && Number(gust) >= 40;
+    if (c === 3) return windy ? 'wind' : 'cloud';
+    if (c === 2) return windy ? 'wind' : 'partly';
+    if (c === 0 || c === 1) return windy ? 'wind' : 'sun';
+    if (windy) return 'wind';
+    return c == null || !isFinite(c) ? '' : 'cloud';
+  }
+
+  function wxKindFromPoint(pt) {
+    if (!pt) return '';
+    var kind = wxKindFromCode(pt.weather_code, pt.gust_mph);
+    if (kind) return kind;
+    var precip = String(pt.precip || '');
+    if (precip === 'ice') return 'ice';
+    if (precip === 'snow') return 'snow';
+    if (precip === 'rain') return 'rain';
+    if (pt.gust_mph != null && Number(pt.gust_mph) >= 40) return 'wind';
+    return '';
+  }
+
+  function wxKindForDrop(row) {
+    if (!row) return '';
+    var kind = wxKindFromCode(row.drop_wx_code, row.drop_gust_mph);
+    if (kind) return kind;
+    var pts = (row.route_wx && row.route_wx.points) || [];
+    var want = String(row.drop_low_date || '');
+    var i, pt;
+    for (i = 0; i < pts.length; i++) {
+      pt = pts[i];
+      if (want && String(pt.date || '').slice(0, 10) === want.slice(0, 10)) return wxKindFromPoint(pt);
+    }
+    if (pts.length) return wxKindFromPoint(pts[pts.length - 1]);
+    return '';
+  }
+
+  var WX_KIND_LABEL = {
+    sun: 'Sunny',
+    partly: 'Partly cloudy',
+    cloud: 'Cloudy',
+    rain: 'Rain',
+    thunder: 'Thunderstorm',
+    snow: 'Snow',
+    ice: 'Ice or freezing rain',
+    fog: 'Fog',
+    wind: 'Windy'
+  };
+
+  function wxIconSvg(kind) {
+    var k = String(kind || '');
+    if (k === 'sun') {
+      return '<svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><circle cx="9" cy="9" r="3.15" fill="#F2C94C"/><g stroke="#F2C94C" stroke-width="1.45" stroke-linecap="round"><path d="M9 1.6v2M9 14.4v2M1.6 9h2M14.4 9h2M3.5 3.5l1.4 1.4M13.1 13.1l1.4 1.4M3.5 14.5l1.4-1.4M13.1 4.9l1.4-1.4"/></g></svg>';
+    }
+    if (k === 'partly') {
+      return '<svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><circle cx="6.6" cy="6.2" r="2.3" fill="#F2C94C"/><g stroke="#F2C94C" stroke-width="1.2" stroke-linecap="round"><path d="M6.6 1.5v1.5M1.5 6.2h1.5M3.1 3.1l1.1 1.1M11 3.8l-1.1 1.1"/></g><path fill="#C4B5FD" d="M7.1 9.2a3.1 3.1 0 0 1 5.8.6 2.5 2.5 0 0 1 1.9 2.4 2.5 2.5 0 0 1-2.5 2.5H7.4A2.6 2.6 0 0 1 6.2 9.6a2.7 2.7 0 0 1 .9-.4z"/></svg>';
+    }
+    if (k === 'cloud') {
+      return '<svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path fill="#C4B5FD" d="M5.6 7.4A3.4 3.4 0 0 1 12 8a2.7 2.7 0 0 1 2.1 2.6A2.7 2.7 0 0 1 11.4 13.3H5.7A2.8 2.8 0 0 1 4.4 7.8a3 3 0 0 1 1.2-.4z"/></svg>';
+    }
+    if (k === 'rain') {
+      return '<svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path fill="#C4B5FD" d="M5.8 4.8A3.2 3.2 0 0 1 11.8 5.4 2.5 2.5 0 0 1 13.8 7.8 2.5 2.5 0 0 1 11.3 10.3H5.9A2.6 2.6 0 0 1 4.6 5.2a2.8 2.8 0 0 1 1.2-.4z"/><g fill="#60A5FA"><path d="M6.2 11.2l-.8 3.1c-.12.5.5.8.8.4l.9-1.6c.2-.35 0-.8-.4-.9-.2-.06-.4 0-.5.2z"/><path d="M9.1 11.2l-.8 3.1c-.12.5.5.8.8.4l.9-1.6c.2-.35 0-.8-.4-.9-.2-.06-.4 0-.5.2z"/><path d="M12 11.2l-.8 3.1c-.12.5.5.8.8.4l.9-1.6c.2-.35 0-.8-.4-.9-.2-.06-.4 0-.5.2z"/></g></svg>';
+    }
+    if (k === 'thunder') {
+      return '<svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path fill="#A78BFA" d="M5.7 4.6A3.2 3.2 0 0 1 11.7 5.2 2.5 2.5 0 0 1 13.7 7.6 2.5 2.5 0 0 1 11.2 10.1H5.8A2.6 2.6 0 0 1 4.5 5a2.8 2.8 0 0 1 1.2-.4z"/><path fill="#F2C94C" d="M10.3 9.2H8.2l1.15 3.05H7.4L11.1 8.1H9.15z"/></svg>';
+    }
+    if (k === 'snow') {
+      return '<svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path fill="#C4B5FD" d="M5.8 4.4A3.2 3.2 0 0 1 11.8 5 2.5 2.5 0 0 1 13.8 7.4 2.5 2.5 0 0 1 11.3 9.9H5.9A2.6 2.6 0 0 1 4.6 4.8a2.8 2.8 0 0 1 1.2-.4z"/><g stroke="#BFDBFE" stroke-width="1.15" stroke-linecap="round"><path d="M6.1 11.5v3.1M4.6 13.05h3"/><path d="M9 11.5v3.1M7.5 13.05h3"/><path d="M11.9 11.5v3.1M10.4 13.05h3"/></g></svg>';
+    }
+    if (k === 'ice') {
+      return '<svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path fill="#C4B5FD" d="M5.8 4.4A3.2 3.2 0 0 1 11.8 5 2.5 2.5 0 0 1 13.8 7.4 2.5 2.5 0 0 1 11.3 9.9H5.9A2.6 2.6 0 0 1 4.6 4.8a2.8 2.8 0 0 1 1.2-.4z"/><g fill="#93C5FD"><path d="M6.2 10.6l-.7 3.6c0 .4.5.5.7.2l.8-1.8c.15-.35-.1-.7-.45-.75-.15 0-.3.05-.35.15z"/><path d="M9 10.6l-.7 4.2c0 .4.55.55.75.2l.9-2.1c.15-.35-.1-.75-.45-.8-.15 0-.3.05-.35.15z"/><path d="M11.9 10.6l-.7 3.6c0 .4.5.5.7.2l.8-1.8c.15-.35-.1-.7-.45-.75-.15 0-.3.05-.35.15z"/></g></svg>';
+    }
+    if (k === 'fog') {
+      return '<svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><g fill="none" stroke="#C4B5FD" stroke-width="1.5" stroke-linecap="round"><path d="M3.2 6.2h9.2"/><path d="M5 9h9.8"/><path d="M3.6 11.8h8.6"/><path d="M6.2 14.4h7.2"/></g></svg>';
+    }
+    if (k === 'wind') {
+      return '<svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><g fill="none" stroke="#E9D5FF" stroke-width="1.5" stroke-linecap="round"><path d="M3 6.2h8.2a2 2 0 1 0-2-2"/><path d="M3 9.4h10.2a2 2 0 1 1-2 2"/><path d="M3 12.6h6.5"/></g></svg>';
+    }
+    return '';
+  }
+
+  function wxIconHtml(kind) {
+    var svg = wxIconSvg(kind);
+    if (!svg) return '';
+    var label = WX_KIND_LABEL[kind] || '';
+    return '<span class="wx-ico wx-ico-' + esc(kind) + '"' +
+      (label ? ' title="' + esc(label) + '" aria-label="' + esc(label) + '"' : '') +
+      '>' + svg + '</span>';
+  }
+
   function wxChipHtml(row) {
     if (!row || row.drop_low_f == null || !isFinite(Number(row.drop_low_f))) return '';
     var n = Math.round(Number(row.drop_low_f));
@@ -4563,7 +4724,7 @@
     if (String(row.drop_low_source || '') === 'normal') label += ' (normal low)';
     var cls = n <= 45 ? (weatherOn() ? 'wx-chip cold' : 'wx-chip warn') : 'wx-chip';
     if (n <= 45 && !weatherOn()) label += ' (note only)';
-    return '<span class="' + cls + '">' + esc(label) + '</span>';
+    return '<span class="' + cls + '">' + wxIconHtml(wxKindForDrop(row)) + '<span class="wx-chip-temp">' + esc(label) + '</span></span>';
   }
 
   function formatWxDate(iso) {
@@ -4602,16 +4763,28 @@
       if (pt.high_f != null && pt.low_f != null) tempText = pt.high_f + ' / ' + pt.low_f + ' F';
       else if (temps.length) tempText = temps.join(' ');
       var cond = wxPointCond(pt);
+      var kind = wxKindFromPoint(pt);
       return '<div class="wx-point' + (hz ? ' hazard' : '') + '">' +
         '<div class="wx-point-place">' + esc(pt.place || '') + '</div>' +
         '<div class="wx-point-date">' + esc(formatWxDate(pt.date)) + '</div>' +
-        (tempText ? '<div class="wx-point-temps">' + esc(tempText) + '</div>' : '') +
+        (tempText ? '<div class="wx-point-temps">' + wxIconHtml(kind) + '<span>' + esc(tempText) + '</span></div>' : '') +
         (cond ? '<div class="wx-point-cond">' + esc(cond) + '</div>' : '') +
         '</div>';
     }).join('');
+    var headline = '';
+    (function () {
+      var order = ['ice', 'thunder', 'snow', 'rain', 'wind', 'fog', 'cloud', 'partly', 'sun'];
+      var best = '', bestI = 99;
+      pts.forEach(function (pt) {
+        var k = wxKindFromPoint(pt);
+        var i = order.indexOf(k);
+        if (i !== -1 && i < bestI) { bestI = i; best = k; }
+      });
+      headline = best;
+    })();
     return '<div class="route-wx' + (hazard ? ' has-hazard' : '') + '">' +
       '<button type="button" class="wx-toggle" aria-expanded="false">' +
-        '<span class="wx-summary">' + esc(wx.summary) + '</span>' +
+        '<span class="wx-summary">' + wxIconHtml(headline) + '<span>' + esc(wx.summary) + '</span></span>' +
         '<span class="wx-toggle-label">Weather</span>' +
       '</button>' +
       '<div class="wx-points" hidden>' + rows + '</div>' +

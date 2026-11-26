@@ -3055,6 +3055,7 @@ article.load {
 .wx-chip {
   display: inline-flex;
   align-items: center;
+  gap: 6px;
   min-height: 24px;
   padding: 2px 9px;
   border-radius: 999px;
@@ -3095,6 +3096,9 @@ article.load {
   border-color: rgba(251, 191, 36, 0.45);
 }
 .wx-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   flex: 1;
   min-width: 0;
   line-height: 1.35;
@@ -4007,4 +4011,30 @@ article.load {
   flex-wrap: wrap;
   gap: 6px;
   margin: 6px 0 2px;
+}
+
+
+/* v43 weather icons next to temps */
+.wx-ico {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  line-height: 0;
+}
+.wx-ico svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+  overflow: visible;
+}
+.wx-chip-temp {
+  line-height: 1.2;
+}
+.wx-point-temps {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
