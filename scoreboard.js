@@ -6,7 +6,7 @@
 (function () {
   'use strict';
   var TKEY = 'blackram_targets_v1';
-  var DEF = { goal: 3000, partners: 3, rpm: 2.75, dead: 25, loadsWk: 3, miLoad: 350, daysMo: 22, fee: 13, maint: 0.15, otherMo: 42, driverMo: 3000 };
+  var DEF = { goal: 3000, partners: 3, rpm: 2.75, dead: 25, loadsWk: 3, miLoad: 350, daysMo: 22, fee: 13, maint: 0.15, otherMo: 0, driverMo: 3000 };
   var WEEKS = 52 / 12;
   var RELAY = 'https://blackram-relay.sandlilypad.workers.dev';
   var FIN_KEY = 'blackram_fin_session_v1';
@@ -30,6 +30,11 @@
   function tg() {
     var s = {}, out = {};
     try { s = JSON.parse(localStorage.getItem(TKEY) || '{}') || {}; } catch (e) { s = {}; }
+    if (Number(s.otherMo) === 42 && !s.droppedTruckstop42) {
+      s.otherMo = 0;
+      s.droppedTruckstop42 = 1;
+      try { localStorage.setItem(TKEY, JSON.stringify(s)); } catch (e) { /* private mode */ }
+    }
     Object.keys(DEF).forEach(function (k) { out[k] = s[k] != null ? Number(s[k]) : DEF[k]; });
     return out;
   }

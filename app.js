@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v67';
+  var APP_VERSION = 'v68';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -293,13 +293,25 @@
   }
 
   // One monthly bill basis everywhere (same as Targets / Scoreboard):
-  // trailer + insurance + truck note from settings, plus Targets "other monthly".
+  // trailer + insurance + truck note from settings, plus any real "other monthly"
+  // on Targets (phone, software). The Truckstop $42 (INV-4492445) is billed to
+  // Totni, paid by Totni, and taken from load pay, so it is not a company bill.
+  var TARGETS_KEY = 'blackram_targets_v1';
+  function dropTruckstop42(t) {
+    t = t || {};
+    if (Number(t.otherMo) === 42 && !t.droppedTruckstop42) {
+      t.otherMo = 0;
+      t.droppedTruckstop42 = 1;
+      try { localStorage.setItem(TARGETS_KEY, JSON.stringify(t)); } catch (e) { /* private mode */ }
+    }
+    return t;
+  }
   function targetsOtherMo() {
     try {
-      var t = JSON.parse(localStorage.getItem('blackram_targets_v1') || '{}');
+      var t = dropTruckstop42(JSON.parse(localStorage.getItem(TARGETS_KEY) || '{}'));
       if (t && t.otherMo != null && t.otherMo !== '' && isFinite(Number(t.otherMo))) return Number(t.otherMo);
     } catch (e) { /* ignore */ }
-    return 42;
+    return 0;
   }
 
   function monthlyBills(s) {
@@ -518,7 +530,8 @@
     if (billsEl) {
       var b = monthlyBills(s);
       billsEl.textContent = 'Monthly bills ' + money(b.total) + ' = trailer ' + money(b.trailer) + ' + insurance ' + money(b.insurance) +
-        ' + truck ' + money(b.truck) + ' + other ' + money(b.otherMo) + ' (other is set on Targets). Break-even everywhere uses this. Fuel now: ' + fuelUsedText(result.fuelModel);
+        ' + truck ' + money(b.truck) + (b.otherMo ? ' + other ' + money(b.otherMo) : '') +
+        '. The Truckstop $42 is billed to Totni and taken from load pay, so it stays in Totni fees, not in these bills. Break-even everywhere uses this. Fuel now: ' + fuelUsedText(result.fuelModel);
     }
 
     if (state.tab === 'kpis' && state.feed) renderKpis();
@@ -1651,8 +1664,8 @@
   function fixedCostNote(feed) {
     var b = monthlyBills();
     return '<p class="fine">Monthly bills ' + money(b.total) + ' (trailer ' + money(b.trailer) + ', insurance ' +
-      money(b.insurance) + ', truck ' + money(b.truck) + ', other ' + money(b.otherMo) +
-      '). Break-even here, on the Scoreboard and on Targets all use these bills.</p>';
+      money(b.insurance) + ', truck ' + money(b.truck) + (b.otherMo ? ', other ' + money(b.otherMo) : '') +
+      '). The Truckstop $42 is a Totni load-pay deduction, not a company bill. Break-even here, on the Scoreboard and on Targets all use these bills.</p>';
   }
 
   function scoreLedgerLoad(load, pct) {
@@ -2540,7 +2553,8 @@
           Math.round(ratio * 100) + '%).')
         : (money(fig.net) + ' net vs ' + money(fixed) + ' fixed (' +
           Math.round(ratio * 100) + '%). Trailer ' + money(s.trailer) + ' + insurance ' + money(s.insurance) +
-          ' + truck ' + money(s.otherFixed) + ' + other monthly ' + money(bills.otherMo) + ' (same bills as Targets).');
+          ' + truck ' + money(s.otherFixed) + (bills.otherMo ? ' + other monthly ' + money(bills.otherMo) : '') +
+          ' (same bills as Targets; Truckstop $42 is a Totni load-pay deduction, not a company bill).');
       be = '<section class="big"><div class="kicker">Break-even | ' +
         esc(all ? 'All time' : monthTitle(month.month)) + '</div>' +
         '<span class="n phrase">' + esc(headline) + '</span>' +

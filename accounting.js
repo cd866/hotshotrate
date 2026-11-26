@@ -293,7 +293,7 @@
       '<div class="ac-tot"><div><span>Charged (receipts)</span><b>' + m0(ax.charges_logged) + '</b></div><div><span>Paid down</span><b>' + m0(ax.paid_total) + '</b></div><div><span>Balance EST</span><b>' + m0(ax.est_balance) + '</b></div></div>' +
       '<p class="ac-fine">' + esc(ax.note) + '</p>' +
       '<div class="ac-sub">Loans</div>' + loans +
-      '<p class="ac-fine">Insurance: ' + b.insurance_payments_left + ' payments, ' + m2(b.insurance_left) + ' left. Taken out of load pay: ' + wh + '.</p>', 'ac-bills');
+      '<p class="ac-fine">Insurance: ' + b.insurance_payments_left + ' payments, ' + m2(b.insurance_left) + ' left. Taken out of load pay (Totni fees, not company bills): ' + wh + '.</p>', 'ac-bills');
   }
 
   function secCash(A) {

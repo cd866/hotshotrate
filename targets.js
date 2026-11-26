@@ -9,7 +9,7 @@
   var WEEKS = 52 / 12; // 4.33 weeks per month
   var DEF = {
     goal: 3000, partners: 3, rpm: 2.75, dead: 25, loadsWk: 3, miLoad: 350,
-    daysMo: 22, fee: 13, maint: 0.15, otherMo: 42, driverMo: 3000, structure: 'totni'
+    daysMo: 22, fee: 13, maint: 0.15, otherMo: 0, driverMo: 3000, structure: 'totni'
   };
   // Research numbers (see /workspace/bigtex/reports/mc-options.pdf).
   var OWN = {
@@ -43,6 +43,12 @@
     var out = {};
     var saved = {};
     try { saved = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { saved = {}; }
+    // Truckstop $42 (INV-4492445) is billed to Totni and taken from load pay, not a company bill.
+    if (Number(saved.otherMo) === 42 && !saved.droppedTruckstop42) {
+      saved.otherMo = 0;
+      saved.droppedTruckstop42 = 1;
+      try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch (e) { /* private mode */ }
+    }
     Object.keys(DEF).forEach(function (k) { out[k] = saved[k] != null ? saved[k] : DEF[k]; });
     return out;
   }
@@ -299,8 +305,11 @@
       slider('fee', 'Carrier fee', 0, 35, 1, tgt.fee, FMT.fee) +
       slider('maint', 'Tires and maintenance reserve', 0, 0.4, 0.01, tgt.maint, FMT.maint) +
       slider('driverMo', 'Driver pay (Meshach, paid first from profit)', 0, 6000, 100, tgt.driverMo, FMT.driverMo) +
-      slider('otherMo', 'Other monthly (load board, phone, software)', 0, 500, 1, tgt.otherMo, FMT.otherMo) +
-      '<p class="fine">Fuel and DEF: ' + (function () { var fp = fuelPm(s); var A = app(); return fp.live && A && A.fuelUsedText ? esc(A.fuelUsedText(fp.f)) : 'no diesel price on file, fallback ' + rpm(s.loadedCost) + ' loaded, ' + rpm(s.deadheadCost) + ' empty.'; })() + ' Bills: truck ' + money(s.otherFixed) + ', trailer ' + money(s.trailer) + ', insurance ' + money(s.insurance) + '. Meshach ' + money(tgt.driverMo) + '/mo is paid first from profit after these bills; leftover is split in thirds (his third on top of his pay). Saved on this phone. <button type="button" class="tg-reset" id="tg-reset">Reset</button></p></details>';
+      slider('otherMo', 'Other monthly (phone, software; not the Truckstop $42)', 0, 500, 1, tgt.otherMo, FMT.otherMo) +
+      '<p class="fine">Fuel and DEF: ' + (function () { var fp = fuelPm(s); var A = app(); return fp.live && A && A.fuelUsedText ? esc(A.fuelUsedText(fp.f)) : 'no diesel price on file, fallback ' + rpm(s.loadedCost) + ' loaded, ' + rpm(s.deadheadCost) + ' empty.'; })() + ' Bills: truck ' + money(s.otherFixed) + ', trailer ' + money(s.trailer) + ', insurance ' + money(s.insurance) +
+        (Number(tgt.otherMo) ? ', other ' + money(tgt.otherMo) : '') +
+        ' = ' + money(s.trailer + s.insurance + s.otherFixed + Number(tgt.otherMo)) +
+        '/mo. The Truckstop $42 is billed to Totni and taken from load pay, so it stays in Totni fees, not in these bills. Meshach ' + money(tgt.driverMo) + '/mo is paid first from profit after these bills; leftover is split in thirds (his third on top of his pay). Saved on this phone. <button type="button" class="tg-reset" id="tg-reset">Reset</button></p></details>';
 
     var cmpRows = [
       ['Stay on Totni (13%)', st.totni, 'Cheap fee, but brokers score Totni low (see below).'],
