@@ -1,9 +1,17 @@
 {
+<<<<<<< Updated upstream
   "state": "truckstop",
   "pct": 20,
   "origin": "Jacksonville, FL",
   "started_at": "2026-11-26 14:00 CT",
   "updated_at": "2026-11-26 14:01 CT",
+=======
+  "state": "live",
+  "pct": 100,
+  "origin": "Jacksonville, FL",
+  "started_at": "2026-11-26 14:00 CT",
+  "updated_at": "2026-11-26 14:03 CT",
+>>>>>>> Stashed changes
   "counts": {
     "truckstop": 0,
     "df": 0,
