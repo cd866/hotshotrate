@@ -5424,6 +5424,32 @@ header.top .rig-stage[data-r360] .rig-floor { transition: opacity 0.5s ease; }
   font: inherit; font-size: var(--fs-md, 16px); font-weight: var(--fw-bold, 700); line-height: 1; cursor: pointer;
 }
 .r360-zoom button::before { content: ''; position: absolute; inset: -4px; }
-.r360-zoom .r360-zreset { display: none; min-height: 32px; font-size: var(--fs-xs, 12px); letter-spacing: 0.04em; background: var(--gold, #D4A62A); color: #0f0d17; border-color: transparent; }
-.rig-stage[data-r360-zoomed] .r360-zreset { display: block; }
 .rig-stage[data-r360-zoomed] .r360-hint { opacity: 0 !important; }
+
+/* v79 360 arrow pad (rotate / tilt), bottom left; zoom bottom right; Reset top left */
+.r360-pad {
+  position: absolute; left: var(--s-1, 8px); bottom: var(--s-1, 8px); z-index: 5;
+  display: none; gap: 6px;
+}
+.rig-stage[data-view="360"][data-r360-ready] .r360-pad { display: flex; }
+.r360-pad button, .r360-zoom button {
+  width: 40px; height: 40px; min-width: 40px; min-height: 40px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  touch-action: none; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none;
+}
+.r360-pad button {
+  position: relative; border-radius: 999px; border: 1px solid var(--c-line, rgba(255,255,255,0.12));
+  background: rgba(10, 9, 16, 0.72); color: var(--c-text-1, #f5f1e6); cursor: pointer;
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+.r360-pad button::before { content: ''; position: absolute; inset: -3px; }
+.r360-pad svg { width: 20px; height: 20px; }
+.r360-pad button.is-held, .r360-pad button:active, .r360-zoom button:active { background: var(--gold, #D4A62A); color: #0f0d17; border-color: transparent; }
+.r360-zreset {
+  position: absolute; left: var(--s-1, 8px); top: var(--s-1, 8px); z-index: 5;
+  display: none; min-height: 34px; padding: 0 14px; border-radius: 999px; border: 0;
+  background: var(--gold, #D4A62A); color: #0f0d17; cursor: pointer;
+  font: inherit; font-size: var(--fs-xs, 12px); font-weight: var(--fw-bold, 700); letter-spacing: 0.04em;
+}
+.rig-stage[data-view="360"][data-r360-adjusted] .r360-zreset { display: block; }
+.r360-hint { bottom: calc(var(--s-1, 8px) + 48px); white-space: nowrap; }

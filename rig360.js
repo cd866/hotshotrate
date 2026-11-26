@@ -1,4 +1,4 @@
-/* Black Ram Logistics: Our rig 360 spin (v75, trailer view v76, zoom v77).
+/* Black Ram Logistics: Our rig 360 spin (v75, trailer view v76, zoom v77, arrows v79).
    A low-poly 3D model of our 2026 Ram 3500 dually crew cab (Diamond Black)
    and the Big Tex 25GN-40 gooseneck (40 ft deck incl. 5 ft dovetail, 102 in
    wide, 34 in deck height), built in code with Three.js r170 (vendored at
@@ -9,8 +9,10 @@
    - Slow auto-spin (about 26 s per turn); drag or swipe to spin by hand;
      auto-spin resumes after 3 s idle.
    - Zoom: pinch (two fingers also pan), mouse wheel or trackpad pinch, or
-     the +/- buttons, 1x to 5x; double-tap, double-click or Fit resets.
+     the +/- buttons, 1x to 5x; double-tap, double-click or Reset resets.
      Auto-spin waits while zoomed in.
+   - Arrow pad (v79): left/right rotate, up/down tilt the camera 2-62 deg;
+     press and hold keeps moving. Reset puts zoom, pan and tilt back.
    - prefers-reduced-motion: no auto-spin and no coasting; drag still works.
    - Pauses when the stage is off screen, the tab is hidden, or Photo is on.
    Units in the model are feet. x = length (truck front +x), y = up, z = width. */
@@ -79,7 +81,7 @@
 
     hint = document.createElement('div');
     hint.className = 'r360-hint';
-    hint.textContent = 'Drag to spin. Pinch to zoom';
+    hint.textContent = 'Drag to spin';
     stage.appendChild(hint);
 
     var saved = null;
@@ -178,10 +180,15 @@
     // along the camera's right/up axes, so zooming stays under the fingers.
     var ZOOM_MAX = 5;
     var zoom = 1, panX = 0, panY = 0, baseDist = 80, halfLen = 33.5;
-    var ELEV = THREE.MathUtils.degToRad(11);
+    var ELEV0 = THREE.MathUtils.degToRad(11);
+    var ELEV_MIN = THREE.MathUtils.degToRad(2), ELEV_MAX = THREE.MathUtils.degToRad(62);
+    var ELEV = ELEV0;
     var upAxis = new THREE.Vector3(0, Math.cos(ELEV), -Math.sin(ELEV));
+    var held = null; // arrow button being held: { da, de }
 
     function applyCamera() {
+      ELEV = Math.max(ELEV_MIN, Math.min(ELEV_MAX, ELEV));
+      upAxis.set(0, Math.cos(ELEV), -Math.sin(ELEV));
       var maxX = (halfLen + 2) * Math.min(1, (zoom - 1) * 2), maxY = 5 * Math.min(1, (zoom - 1) * 2);
       panX = Math.max(-maxX, Math.min(maxX, panX));
       panY = Math.max(-maxY, Math.min(maxY, panY));
@@ -192,6 +199,7 @@
       camera.lookAt(tx, ty, tz);
       camera.updateProjectionMatrix();
       stage.toggleAttribute('data-r360-zoomed', zoom > 1.02);
+      stage.toggleAttribute('data-r360-adjusted', zoom > 1.02 || Math.abs(ELEV - ELEV0) > 0.01);
     }
 
     function feetPerPx() {
@@ -216,7 +224,7 @@
       update();
     }
 
-    function resetZoom() { zoom = 1; panX = 0; panY = 0; lastInput = performance.now(); applyCamera(); render(); update(); }
+    function resetZoom() { zoom = 1; panX = 0; panY = 0; ELEV = ELEV0; lastInput = performance.now(); applyCamera(); render(); update(); }
 
     function resize() {
       var r = canvasWrap.getBoundingClientRect();
@@ -235,7 +243,7 @@
 
     function wantsLoop() {
       if (mode !== '360' || !onScreen || document.hidden) return false;
-      if (dragging) return true;
+      if (dragging || held) return true;
       if (!reduceMotion && Math.abs(velocity) > 0.002) return true;
       if (!reduceMotion && zoom <= 1.02) return true; // auto-spin (paused while zoomed)
       return false;
@@ -254,7 +262,11 @@
       raf = 0;
       var dt = lastFrame ? Math.min(0.05, (t - lastFrame) / 1000) : 0;
       lastFrame = t;
-      if (!dragging && !reduceMotion) {
+      if (held) {
+        angle += held.da * dt;
+        if (held.de) { ELEV += held.de * dt; applyCamera(); }
+        lastInput = performance.now();
+      } else if (!dragging && !reduceMotion) {
         if (Math.abs(velocity) > 0.002) {
           angle += velocity * dt;
           velocity *= Math.pow(0.04, dt); // coast out a flick
@@ -294,7 +306,7 @@
     }
     function down(ev) {
       if (mode !== '360' || (ev.button != null && ev.button > 0)) return;
-      if (ev.target.closest && ev.target.closest('.r360-toggle, .r360-zoom')) return;
+      if (ev.target.closest && ev.target.closest('.r360-toggle, .r360-zoom, .r360-pad, .r360-zreset')) return;
       pts[ev.pointerId] = { x: ev.clientX, y: ev.clientY };
       try { stage.setPointerCapture(ev.pointerId); } catch (e) { /* ignore */ }
       stage.setAttribute('data-r360-touched', '1');
@@ -369,7 +381,7 @@
     stage.addEventListener('pointerup', up);
     stage.addEventListener('pointercancel', up);
     stage.addEventListener('dblclick', function (ev) {
-      if (mode !== '360' || (ev.target.closest && ev.target.closest('.r360-toggle, .r360-zoom'))) return;
+      if (mode !== '360' || (ev.target.closest && ev.target.closest('.r360-toggle, .r360-zoom, .r360-pad, .r360-zreset'))) return;
       resetZoom();
     });
     // Desktop: wheel or trackpad pinch zooms toward the cursor. At full
@@ -388,8 +400,70 @@
     zbar.setAttribute('aria-label', 'Zoom');
     zbar.innerHTML = '<button type="button" data-z="in" aria-label="Zoom in">+</button>' +
       '<button type="button" data-z="out" aria-label="Zoom out">-</button>' +
-      '<button type="button" data-z="reset" class="r360-zreset" aria-label="Reset zoom">Fit</button>';
+      '';
+    var zreset = document.createElement('button');
+    zreset.type = 'button';
+    zreset.className = 'r360-zreset';
+    zreset.setAttribute('data-z', 'reset');
+    zreset.setAttribute('aria-label', 'Reset view (zoom, pan and tilt)');
+    zreset.textContent = 'Reset';
+    stage.appendChild(zreset);
+    zreset.addEventListener('click', function () { resetZoom(); });
     stage.appendChild(zbar);
+    // Arrow pad: left/right rotate, up/down tilt. Press and hold keeps
+    // moving; a tap (or Enter/Space) moves one step. Auto-spin waits.
+    var ICON = {
+      left: 'M15 5l-7 7 7 7', right: 'M9 5l7 7-7 7', up: 'M5 15l7-7 7 7', down: 'M5 9l7 7 7-7'
+    };
+    var ROT = 1.5, TILT = THREE.MathUtils.degToRad(32); // per second while held
+    var STEP = { left: [-0.26, 0], right: [0.26, 0], up: [0, THREE.MathUtils.degToRad(6)], down: [0, -THREE.MathUtils.degToRad(6)] };
+    var pad = document.createElement('div');
+    pad.className = 'r360-pad';
+    pad.setAttribute('role', 'group');
+    pad.setAttribute('aria-label', 'Move view');
+    pad.innerHTML = ['left', 'up', 'down', 'right'].map(function (d) {
+      var lbl = { left: 'Rotate left', right: 'Rotate right', up: 'Tilt up (look from higher)', down: 'Tilt down (look from lower)' }[d];
+      return '<button type="button" data-dir="' + d + '" aria-label="' + lbl + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + ICON[d] + '" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>';
+    }).join('');
+    stage.appendChild(pad);
+    function rate(d) {
+      return { da: d === 'left' ? -ROT : d === 'right' ? ROT : 0, de: d === 'up' ? TILT : d === 'down' ? -TILT : 0 };
+    }
+    function step(d) {
+      angle += STEP[d][0];
+      ELEV += STEP[d][1];
+      velocity = 0;
+      lastInput = performance.now();
+      applyCamera(); render(); update();
+    }
+    var holdBtn = null, holdTimer = 0;
+    function endHold() {
+      if (holdTimer) { clearTimeout(holdTimer); holdTimer = 0; }
+      if (holdBtn) holdBtn.classList.remove('is-held');
+      holdBtn = null; held = null;
+      lastInput = performance.now();
+      update();
+    }
+    pad.addEventListener('pointerdown', function (ev) {
+      var b = ev.target.closest('button[data-dir]');
+      if (!b || mode !== '360') return;
+      ev.preventDefault();
+      endHold();
+      holdBtn = b; b.classList.add('is-held');
+      stage.setAttribute('data-r360-touched', '1');
+      try { b.setPointerCapture(ev.pointerId); } catch (e) { /* ignore */ }
+      var d = b.getAttribute('data-dir');
+      step(d); // immediate nudge, then keep moving while held
+      holdTimer = setTimeout(function () { holdTimer = 0; if (holdBtn === b) { held = rate(d); update(); } }, 260);
+    });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (t) { pad.addEventListener(t, endHold); });
+    pad.addEventListener('click', function (ev) {
+      var b = ev.target.closest('button[data-dir]');
+      if (b && ev.detail === 0) step(b.getAttribute('data-dir')); // keyboard
+    });
+    pad.addEventListener('contextmenu', function (ev) { ev.preventDefault(); });
+    document.addEventListener('visibilitychange', function () { if (document.hidden) endHold(); });
+
     zbar.addEventListener('click', function (ev) {
       var b = ev.target.closest('button[data-z]');
       if (!b) return;
@@ -415,7 +489,7 @@
         var t = sub === 'trailer';
         rig.truck.visible = !t;
         rig.group.position.x = t ? rig.trailerOffset : rig.rigOffset;
-        zoom = 1; panX = 0; panY = 0;
+        zoom = 1; panX = 0; panY = 0; ELEV = ELEV0;
         w = 0;
         if (shown) { render(); }
         update();
@@ -424,6 +498,7 @@
       zoomTo: function (z, cx, cy) { zoomAt(z, cx, cy); },
       resetZoom: resetZoom,
       getZoom: function () { return zoom; },
+      getTilt: function () { return THREE.MathUtils.radToDeg(ELEV); },
       getPan: function () { return [panX, panY]; },
       setAngle: function (a) { angle = a; lastInput = performance.now(); render(); },
       getAngle: function () { return angle; },
