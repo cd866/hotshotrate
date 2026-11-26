@@ -302,6 +302,17 @@
   }
 
   /* ---------- render ---------- */
+
+  function secTheft() {
+    return card('in-theft', 'Anti-theft devices', 'On hand; some insurers ask',
+      '<ul class="in-list">' +
+      '<li><b>S5 Coupler Locks steel box sleeve</b> fits over the Demco yellow gooseneck coupler.</li>' +
+      '<li><b>Trimax THP XL puck lock</b> locks the sleeve through the side shroud whenever the trailer is unhooked.</li>' +
+      '<li>Remove the sleeve before hitching and stow it in the gooseneck toolbox. Install the sleeve and puck lock at every drop.</li>' +
+      '<li>Lube the puck lock on the Maintenance SOP (S5 coupler lock). Keep the working key off the trailer and a spare key at home. Key codes are not stored here.</li>' +
+      '</ul>');
+  }
+
   function render() {
     var el = root(); if (!el) return;
     if (!st.data && st.error !== 'wrongpin') st.data = fromCache();
@@ -312,7 +323,7 @@
     else if (st.error === 'nopin') gated = lockCard('Limits, deductibles, premiums, payments, drivers and claim status. Enter the app PIN to see them.');
     else if (st.loading) gated = (window.BlackRamApp && window.BlackRamApp.skeleton) ? window.BlackRamApp.skeleton('Loading insurance') : '<section class="in-card"><p class="in-fine">Loading...</p></section>';
     else gated = lockCard(st.error || 'Loading...');
-    var nav = [['in-pols', 'Ours'], ['in-prem', 'Premium'], ['in-pay', 'Payments'], ['in-lim', 'Limits'], ['in-claims', 'Claims'], ['in-totni', 'Totni'], ['in-cmp', 'Who pays first'], ['in-tire', 'Tires'], ['in-steps', 'Accident'], ['in-docs', 'Documents']];
+    var nav = [['in-pols', 'Ours'], ['in-prem', 'Premium'], ['in-pay', 'Payments'], ['in-lim', 'Limits'], ['in-claims', 'Claims'], ['in-totni', 'Totni'], ['in-cmp', 'Who pays first'], ['in-tire', 'Tires'], ['in-theft', 'Anti-theft'], ['in-steps', 'Accident'], ['in-docs', 'Documents']];
     var built = D && D.built_at ? new Date(D.built_at) : null;
     var stamp = built && !isNaN(built.getTime()) ? ' Private data built ' + built.toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + ' CT.' : '';
     el.innerHTML =
@@ -320,7 +331,7 @@
       '<div class="in-acts"><button type="button" class="in-btn" id="in-refresh" aria-label="Refresh">' + (st.loading ? '...' : 'Refresh') + '</button></div></div>' +
       secTiles() +
       '<nav class="in-jump">' + nav.map(function (j) { return '<a href="#' + j[0] + '" data-in-jump="' + j[0] + '">' + j[1] + '</a>'; }).join('') + '</nav>' +
-      secPolicies() + gated + secTotni(I) + secTire(I) + secSteps() + secDocs() +
+      secPolicies() + gated + secTotni(I) + secTire(I) + secTheft() + secSteps() + secDocs() +
       (I ? secNeed(I) : '') +
       '<p class="in-foot">Policy numbers show the last 4 only. Summary of the documents on file, not the policy contract. Check the dec page for the final word.' + esc(stamp) + (st.error && st.error !== 'nopin' && st.error !== 'wrongpin' ? ' ' + esc(st.error) : '') + '</p>';
     bind();

@@ -1,4 +1,4 @@
-/* Black Ram Logistics: Our rig 360 spin (v75–v81, tailgate and toolbox v82).
+/* Black Ram Logistics: Our rig 360 spin (v75–v81, tailgate and toolbox v82, top lid v89).
    A low-poly 3D model of our 2026 Ram 3500 dually crew cab (Diamond Black)
    and the Big Tex 25GN-40 gooseneck (40 ft deck incl. 5 ft dovetail, 102 in
    wide, 34 in deck height), built in code with Three.js r170 (vendored at
@@ -18,9 +18,11 @@
      in 0.6 s and eases the camera to a rear 3/4 of the bed, showing the gold
      CURT gooseneck ball on a dark puck plate. Tap again or Reset closes it.
    - Toolbox (Trailer and Rig): the Big Tex storage box sits under the gooseneck,
-     in the gap ahead of the deck. Tap or 'Tap toolbox' opens the front lid
-     straps, chains, binders and winch bar; the camera eases to it. Tap again
-     or Reset closes it. Taps are raycast and ignored if the pointer dragged.
+     in the gap ahead of the deck, between the uprights. The top is a black
+     diamond-plate lid with a latch near the rear edge; it hinges up like a
+     chest. Tap or 'Tap toolbox' opens it to show straps, chains, binders and a
+     winch bar; the camera eases above the box to look in. Tap again or Reset
+     closes it. Taps are raycast and ignored if the pointer dragged.
    - prefers-reduced-motion: no auto-spin and no coasting; openings snap;
      drag still works.
    - Pauses when the stage is off screen, the tab is hidden, or Photo is on.
@@ -286,9 +288,9 @@
         return { look: worldAt(-7.8, 3.4, 0, ang), cam: worldAt(-17.8, 9.6, 7.2, ang), angle: 2.05 };
       }
       var tb = rig.tb;
-      // From the front (toward the truck / gooseneck neck, +x), slightly to the
-      // passenger side and a little above, looking into the open front door.
-      return { look: worldAt(tb.x + 0.15, tb.y - 0.05, tb.z, ang), cam: worldAt(tb.x + 9.2, tb.y + 2.6, tb.z + 4.4, ang), angle: 0.55 };
+      // High front-passenger 3/4, well out to the side so the neck is behind
+      // the box, looking down onto the lid and into the open chest.
+      return { look: worldAt(tb.x, tb.y - 0.2, tb.z, ang), cam: worldAt(tb.x + 4.6, tb.y + 8.0, tb.z + 10.2, ang), angle: 0.55 };
     }
     function applyHeldCam() {
       if (!camHold || anim || inspectKind) return;
@@ -300,7 +302,7 @@
     }
     function applyPartPose(open) {
       if (rig.tailgate) rig.tailgate.rotation.z = (inspectKind === 'tailgate' ? open : 0) * (Math.PI / 2);
-      if (rig.toolboxLid) rig.toolboxLid.rotation.z = (inspectKind === 'toolbox' ? open : 0) * (Math.PI * 0.62);
+      if (rig.toolboxLid) rig.toolboxLid.rotation.z = (inspectKind === 'toolbox' ? open : 0) * (-Math.PI * 0.55);
       if (rig.ballLight) rig.ballLight.intensity = (inspectKind === 'tailgate' ? open : 0) * 2.2;
     }
     function applyInspectCamera(open, fromAng, toAng, fromCam, fromLook) {
@@ -1148,20 +1150,22 @@
     });
     // Storage toolbox under the gooseneck, in the gap ahead of the deck
     // (behind the truck when hooked up), between the drop-leg jacks and the header.
+    // Placement and facing stay as they are; the lid is the top (chest-style).
     var TB = { x: -12.35, y: 3.05, z: 0, lx: 1.9, ly: 1.8, lz: 3.7 };
-    var boxMat = M.diamond.clone();
-    boxMat.color.set(0xb0b0b8);
+    var bodyMat = M.frame.clone();
+    var lidMat = M.diamond.clone();
+    lidMat.color.set(0x9a9aa2);
     var toolbox = new THREE.Group();
     toolbox.position.set(TB.x, TB.y, TB.z);
     toolbox.userData.part = 'toolbox';
     group.add(toolbox);
     var tbInvis = new THREE.MeshBasicMaterial({ visible: false });
-    // Body: floor, top, both sides, rear wall; the +x (front, toward the truck) is the door
-    box(TB.lx, 0.08, TB.lz, boxMat, 0, -TB.ly / 2 + 0.04, 0, toolbox);
-    box(TB.lx, 0.08, TB.lz, boxMat, 0, TB.ly / 2 - 0.04, 0, toolbox);
-    box(TB.lx, TB.ly, 0.08, boxMat, 0, 0, -TB.lz / 2 + 0.04, toolbox);
-    box(TB.lx, TB.ly, 0.08, boxMat, 0, 0, TB.lz / 2 - 0.04, toolbox);
-    box(0.08, TB.ly, TB.lz - 0.08, boxMat, -TB.lx / 2 + 0.04, 0, 0, toolbox);
+    // Body: floor, both sides, rear and front walls (black sheet metal). The top is the lid.
+    box(TB.lx, 0.08, TB.lz, bodyMat, 0, -TB.ly / 2 + 0.04, 0, toolbox);
+    box(TB.lx, TB.ly, 0.08, bodyMat, 0, 0, -TB.lz / 2 + 0.04, toolbox);
+    box(TB.lx, TB.ly, 0.08, bodyMat, 0, 0, TB.lz / 2 - 0.04, toolbox);
+    box(0.08, TB.ly, TB.lz - 0.08, bodyMat, -TB.lx / 2 + 0.04, 0, 0, toolbox);
+    box(0.08, TB.ly, TB.lz - 0.08, bodyMat, TB.lx / 2 - 0.04, 0, 0, toolbox);
     var interior = new THREE.MeshStandardMaterial({ color: 0x1c1c20, roughness: 0.8, metalness: 0.2 });
     box(TB.lx - 0.16, 0.02, TB.lz - 0.16, interior, 0, -TB.ly / 2 + 0.09, 0, toolbox);
     // Contents: rolled straps, chain coils, ratchet binders, winch bar
@@ -1195,20 +1199,22 @@
     binder(-0.55, 0.7, 0.3);
     binder(0.15, 0.75, -0.2);
     binder(0.7, 0.55, 0.5);
-    // winch bar across the back of the box, visible from the front opening
+    // winch bar across the back of the box, visible from above when the lid is open
     var wbar = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 2.2, 8), M.bar);
     wbar.rotation.x = Math.PI / 2;
     add(wbar, -0.55, -TB.ly / 2 + 0.16, 0, toolbox);
     var wcap = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.12, 0.12), M.bar);
     add(wcap, -0.55, -TB.ly / 2 + 0.16, 1.15, toolbox);
-    // Lid: +x face (toward the truck / gooseneck neck), hinged at the top, swings up and out
+    // Lid: top face, black diamond plate, hinged at the front top edge (+x, toward
+    // the truck / neck). Latch sits near the rear edge (toward the deck). The lid
+    // lifts up so the inside is visible from above.
     var toolboxLid = new THREE.Group();
     toolboxLid.position.set(TB.lx / 2, TB.ly / 2, 0);
     toolboxLid.userData.part = 'toolbox';
     toolbox.add(toolboxLid);
-    box(0.08, TB.ly, TB.lz, boxMat, 0.04, -TB.ly / 2, 0, toolboxLid);
-    box(0.1, 0.08, 0.5, M.frame, 0.1, -TB.ly * 0.15, 0, toolboxLid); // latch
-    var tbHit = box(0.7, TB.ly + 0.2, TB.lz + 0.2, tbInvis, 0.1, -TB.ly / 2, 0, toolboxLid);
+    box(TB.lx, 0.08, TB.lz, lidMat, -TB.lx / 2, 0.04, 0, toolboxLid);
+    box(0.4, 0.1, 0.55, M.chrome, -TB.lx + 0.42, 0.15, 0, toolboxLid); // latch near rear (deck) edge
+    var tbHit = box(TB.lx + 0.2, 0.55, TB.lz + 0.2, tbInvis, -TB.lx / 2, 0.12, 0, toolboxLid);
     tbHit.userData.part = 'toolbox';
     var tbBodyHit = box(TB.lx, TB.ly, TB.lz, tbInvis, 0, 0, 0, toolbox);
     tbBodyHit.userData.part = 'toolbox';

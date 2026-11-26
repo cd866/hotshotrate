@@ -676,6 +676,20 @@
    "note": "Big Tex OM p. 62: rotate at 5,000 mi; inspect tread and sidewalls every 6 months or 6,000 mi.",
    "soon_mi": 500,
    "soon_d": 21
+  },
+  {
+   "id": "r-s5",
+   "unit": "trailer",
+   "group": "Hitch and structure",
+   "item": "S5 coupler lock and Trimax puck lock (lube, key handling)",
+   "int_mi": null,
+   "int_mo": 3,
+   "baseline": true,
+   "src": [
+    "g"
+   ],
+   "note": "On-hand theft protection: S5 Coupler Locks steel box sleeve over the Demco coupler, Trimax THP XL puck lock in the side shroud. Lube the puck lock every 3 months. Keep the key off the trailer and a spare at home. Key codes are not stored in this app.",
+   "soon_d": 21
   }
  ],
  "checklists": {
@@ -697,6 +711,7 @@
    "title": "Pre-trip: trailer and hitch",
    "src": "btm",
    "items": [
+    "Remove S5 coupler lock before hitching, stow in toolbox",
     "Ball and receiver greased, no cracks or flats; latch closed and pinned; jack-lift test 1 in (Big Tex p. 45-46, 61)",
     "Drop legs fully up and pinned (p. 46)",
     "Safety chains to bed receivers, not the ball, with turn slack (p. 47)",
@@ -732,7 +747,8 @@
     "Park level; parking brake, PARK; never park on a grade with the trailer (p. 204)",
     "Note any lug nut, brake or light issue in the Log",
     "Plug in the block heater below 0 F (required below -20 F, 1+ h) (p. 175)",
-    "Write down the odometer (Update odometer above)"
+    "Write down the odometer (Update odometer above)",
+    "Install S5 coupler lock with puck lock whenever the trailer is unhooked"
    ]
   },
   "monthly": {
@@ -1863,9 +1879,15 @@
      "Height bolts",
      "Coupler height bolts tight, then jam nuts; do not over-tighten (Big Tex p. 42)",
      "b"
+    ],
+    [
+     "S5 coupler lock",
+     "Remove the S5 sleeve and puck lock before hitching; stow in the toolbox. Reinstall whenever the trailer is unhooked (see the S5 coupler lock SOP).",
+     "g"
     ]
    ],
    "steps": [
+    "Remove the S5 coupler lock and stow it in the toolbox before you couple. Reinstall it whenever the trailer is unhooked (see the S5 coupler lock SOP).",
     "Wipe the receiver, look and feel for cracks, worn spots and pits (Big Tex p. 45).",
     "Grease the inside of the receiver and the ball with automotive bearing grease (p. 45, 66).",
     "Couple: lower onto the ball, close and pin the latch, then use the jack to raise the truck about 1 in to prove the lock (p. 45-46). Do not lift more than 1 in.",
@@ -2484,6 +2506,57 @@
     "Big Tex OM p. 62 (rotate 5,000 mi)",
     "Big Tex OM p. 59 (re-torque)",
     "Dexter 9-15K p. 75-76 (torque)"
+   ]
+  },
+  "r-s5": {
+   "about": "Care for the on-hand S5 Coupler Locks steel box sleeve and Trimax THP XL puck lock. The sleeve fits over the Demco yellow gooseneck coupler and the puck lock goes in the side shroud.",
+   "tools": [
+    "Graphite or dry lock lubricant",
+    "Rags"
+   ],
+   "parts": [
+    "None. The S5 sleeve and Trimax THP XL puck lock are already on hand."
+   ],
+   "specs": [
+    [
+     "When unhooked",
+     "Install the S5 sleeve and lock the Trimax THP XL puck lock in the side shroud",
+     "g"
+    ],
+    [
+     "Before hitching",
+     "Remove the sleeve and puck lock and stow them in the gooseneck toolbox",
+     "g"
+    ],
+    [
+     "Keys",
+     "Keep the working key off the trailer. Keep a spare key at home. Do not write or store key codes in this app or on the trailer",
+     "g"
+    ],
+    [
+     "Lube",
+     "Every 3 months, or if the puck lock feels sticky. Use graphite or a dry lock lube, not a wet oil that collects dirt",
+     "g"
+    ]
+   ],
+   "steps": [
+    "Before hitching, unlock the puck lock, slide the S5 sleeve off the Demco coupler, and stow the sleeve and lock in the gooseneck toolbox.",
+    "After you unhook or drop the trailer, slide the S5 steel box sleeve over the Demco coupler so it covers the latch.",
+    "Put the Trimax THP XL puck lock in the side shroud and lock it. Tug the sleeve to confirm it cannot come off.",
+    "Lube the puck lock with graphite or a dry lock lubricant. Wipe off extra. Do this at least every 3 months.",
+    "Keep the working key off the trailer (on the key ring or in the truck, not in the toolbox).",
+    "Keep a spare key at home.",
+    "Do not write, photograph, or store the key code in this app, on the trailer, or in the toolbox.",
+    "Log the lube date here."
+   ],
+   "safety": [
+    "Never hitch with the S5 sleeve still on the coupler. It can damage the coupler, the sleeve, and the truck hitch.",
+    "A trailer left unhooked without the coupler lock is an easy theft target."
+   ],
+   "basis": "g",
+   "note": "Key codes are not stored in this app.",
+   "cite": [
+    "On-hand equipment (S5 Coupler Locks sleeve, Trimax THP XL puck lock). Key codes are not stored."
    ]
   }
  },
