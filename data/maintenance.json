@@ -1,6 +1,6 @@
 {
  "schema": 1,
- "built_at": "2026-11-26T13:55:40-06:00",
+ "built_at": "2026-11-26T14:57:10-06:00",
  "units": [
   {
    "id": "truck",
@@ -218,7 +218,7 @@
    "src": [
     "om"
    ],
-   "note": "Use Mopar 3 micron filters. 2025-26 canisters can trap air: prime and check for hard starting after a change.",
+   "note": "Mopar filters: front 3 micron, rear engine-mounted 5 micron. 2025-26 canisters can trap air: prime and check for hard starting after a change.",
    "soon_mi": 1000
   },
   {
@@ -522,6 +522,78 @@
    ],
    "note": "No annual inspection report on file. Inspect the trailer with the truck.",
    "soon_d": 30
+  },
+  {
+   "id": "t-lug",
+   "unit": "truck",
+   "group": "Tires and brakes",
+   "item": "Lug nut torque check (truck)",
+   "int_mi": 7500,
+   "int_mo": null,
+   "baseline": true,
+   "src": [
+    "om",
+    "g"
+   ],
+   "note": "Check with a torque wrench at each rotation and about 50 mi after any wheel work. The DRW torque value is not in the owner's manual: ask the dealer.",
+   "soon_mi": 750
+  },
+  {
+   "id": "t-monthly",
+   "unit": "truck",
+   "group": "Inspections",
+   "item": "Monthly walk-around checks (truck)",
+   "int_mi": null,
+   "int_mo": 1,
+   "baseline": true,
+   "src": [
+    "om"
+   ],
+   "note": "Oil level, lights, battery, brakes and fluid, steering and suspension, wipers, coolant, DEF and tire pressure.",
+   "soon_d": 7
+  },
+  {
+   "id": "r-lug",
+   "unit": "trailer",
+   "group": "Trailer brakes and bearings",
+   "item": "Lug nut torque check (trailer)",
+   "int_mi": 3000,
+   "int_mo": 3,
+   "baseline": true,
+   "src": [
+    "dex"
+   ],
+   "note": "Dexter: torque after any wheel removal, re-check at 10, 25 and 50 mi, then periodically. Likely 140-170 ft-lb if 9/16-18 studs; not confirmed.",
+   "soon_mi": 300,
+   "soon_d": 14
+  },
+  {
+   "id": "r-breakaway",
+   "unit": "trailer",
+   "group": "Hitch and structure",
+   "item": "Breakaway switch and battery test",
+   "int_mi": null,
+   "int_mo": 1,
+   "baseline": true,
+   "src": [
+    "dex"
+   ],
+   "note": "Dexter lists it as at every use. Logged monthly here.",
+   "soon_d": 7
+  },
+  {
+   "id": "r-tires",
+   "unit": "trailer",
+   "group": "Trailer tires",
+   "item": "Trailer tire pressure and condition (80 psi cold)",
+   "int_mi": null,
+   "int_mo": 1,
+   "baseline": true,
+   "src": [
+    "tr"
+   ],
+   "note": "Also before every trip. 80 psi cold, ST235/80R16 load range E.",
+   "soon_d": 7
   }
  ],
  "checklists": {
@@ -562,7 +634,8 @@
   "bt": "Big Tex dealer (Mike Piazza, 10/8): axle gear oil 80/90 at 15,000 mi. Axle maker not confirmed",
   "tr": "General trailer practice. The Big Tex owner's manual is not on file",
   "co-deck": "Company maintenance plan: reseal wood deck every 6 to 12 months",
-  "cfr": "49 CFR 396.17: every commercial motor vehicle (over 10,000 lb GVWR or combination weight, interstate) needs an annual inspection"
+  "cfr": "49 CFR 396.17: every commercial motor vehicle (over 10,000 lb GVWR or combination weight, interstate) needs an annual inspection",
+  "g": "General guidance (not from a manual): common shop practice for the job"
  },
  "warranty": {
   "ram": [
@@ -601,5 +674,1172 @@
   "The Big Tex owner's manual or maintenance sheet for the 25GN.",
   "Annual DOT inspection reports for the truck and trailer from Totni (or book one).",
   "Ram tire warranty or road hazard paperwork and TrailerGard pages 2 to 4."
- ]
+ ],
+ "sop": {
+  "t-oil": {
+   "about": "Change the Cummins 6.7 engine oil and the cartridge filter. Company rule is every 5,000 mi (Ram manual allows 15,000 mi or 12 months, severe-duty towing 7,500 mi or 6 months).",
+   "tools": [
+    "Drain pan (14+ qt)",
+    "Filter cap socket for the cartridge housing",
+    "Torque wrench",
+    "Jack stands or ramps",
+    "Funnel, rags, gloves"
+   ],
+   "parts": [
+    "12 qt 10W-30 API CK-4 oil (MS-10902, such as Mopar, Rotella, Rimula)",
+    "Cartridge filter Mopar 68677810AA or Fleetguard LF16453 (the spin-on Donaldson DBL7349 does not fit)",
+    "New filter o-rings and drain plug washer"
+   ],
+   "specs": [
+    [
+     "Oil capacity with filter",
+     "12 qt (11.4 L)",
+     "m"
+    ],
+    [
+     "Oil grade",
+     "10W-30 CK-4 above 0 F; 5W-40 synthetic below 0 F",
+     "m"
+    ],
+    [
+     "Oil level check",
+     "At least 30 min after a warm shutdown, on level ground",
+     "m"
+    ],
+    [
+     "Reset after service",
+     "Ignition ON (do not start), press the accelerator slowly 3 times within 10 seconds, ignition OFF. Some trucks reset in the cluster menu",
+     "m"
+    ],
+    [
+     "Drain plug and filter cap torque",
+     "Not in the owner's manual. Use the number in the dealer service information or the cap/housing marking",
+     "g"
+    ]
+   ],
+   "steps": [
+    "Park on level ground, set the brake, chock the wheels. Run the engine a few minutes to warm the oil, then shut off.",
+    "Raise the front on ramps or stands if you need room. Slide the drain pan under the sump.",
+    "Remove the drain plug and let the oil drain fully (10+ minutes). Wipe and refit the plug with a new washer, then torque to spec.",
+    "Remove the oil filter cap from the housing on top of the engine, lift out the old cartridge and let it drip dry.",
+    "Fit the new cartridge and new o-rings (wet them with fresh oil). Refit the cap and torque to the marked spec.",
+    "Pour in about 11 qt of 10W-30, wait a minute, then check the dipstick.",
+    "Start the engine, watch for the oil pressure light to go out, check for leaks at the plug and cap, shut off and wait 5 minutes.",
+    "Top up to the full mark. Do not overfill.",
+    "Reset the oil change indicator (see specs).",
+    "Log it here: date, odometer, shop or who, cost. Keep the receipt (warranty requires proof of the severe-duty schedule)."
+   ],
+   "safety": [
+    "Hot oil burns. Let the engine cool a few minutes before draining.",
+    "Use jack stands rated for the load. Never work under a vehicle held only by a jack.",
+    "Recycle the used oil and the filter at a shop or parts store.",
+    "Use Ram-specified oil only while under warranty (10W-30 or the 5W-40 for cold). No switch to 15W-40 until off the factory lifters."
+   ],
+   "basis": "mixed",
+   "note": ""
+  },
+  "t-rot": {
+   "about": "Rotate the tires and look them over. Ram diesel plan: every 7,500 mi, and at the first sign of uneven wear.",
+   "tools": [
+    "Floor jack or shop lift",
+    "Jack stands (4+)",
+    "Torque wrench with the right socket",
+    "Tire pressure gauge",
+    "Chalk"
+   ],
+   "parts": [
+    "None"
+   ],
+   "specs": [
+    [
+     "Interval",
+     "Every 7,500 mi (diesel plan)",
+     "m"
+    ],
+    [
+     "Lug nut tightening",
+     "Star pattern, each nut tightened twice. Use a torque wrench",
+     "m"
+    ],
+    [
+     "Lug torque for the DRW 3500",
+     "Not in the owner's manual. Get it from the dealer service information or the wheel maker",
+     "g"
+    ],
+    [
+     "Do not oil wheel studs",
+     "Stated in the owner's manual",
+     "m"
+    ]
+   ],
+   "steps": [
+    "Check cold pressures first and write them down (door-jamb label sets the target for the load).",
+    "Chalk the tires with where they sit (position and direction).",
+    "Loosen the lug nuts one turn while the wheel is on the ground.",
+    "Jack at the frame point, set stands. Never lift on the axle tube alone for a long job.",
+    "Remove wheels. Look at the tread, sidewalls and valve stems. Check brake pads and rotors while the wheel is off (see the brake item).",
+    "Move the wheels using the pattern your tire shop or the dealer recommends for dual rear wheels (general guidance, ask which one they want for these tires).",
+    "Refit and snug in a star pattern, lower the truck, then torque in a star pattern twice.",
+    "Reset pressures. Re-check the torque after about 50 miles.",
+    "Log date and odometer."
+   ],
+   "safety": [
+    "Use jack stands rated for the load. Never work under a vehicle held only by a jack.",
+    "Never overtighten with an impact gun: it stretches studs and warps rotors.",
+    "Dually wheels must be seated and the duals spaced so they do not touch."
+   ],
+   "basis": "mixed",
+   "note": "The rotation pattern is general guidance. The manual only says to rotate at the first sign of uneven wear and every 7,500 mi."
+  },
+  "t-lug": {
+   "about": "Check the Ram wheel nut torque with a torque wrench.",
+   "tools": [
+    "Torque wrench",
+    "Correct socket (thin-wall if needed for duals)"
+   ],
+   "parts": [
+    "None"
+   ],
+   "specs": [
+    [
+     "Method",
+     "Star pattern, each nut tightened twice, check with a torque wrench",
+     "m"
+    ],
+    [
+     "After any wheel removal",
+     "Re-check at about 50 miles",
+     "g"
+    ],
+    [
+     "DRW torque value",
+     "Not in the owner's manual. Ask the dealer or read the wheel maker's spec",
+     "g"
+    ]
+   ],
+   "steps": [
+    "Find the torque value first. Do not guess.",
+    "Truck cold and parked, wheels on the ground.",
+    "Set the wrench and pull each nut in a star pattern until it clicks (do not keep pulling after the click).",
+    "Look at the studs and nut seats for rust streaks or cracks.",
+    "Log date and odometer."
+   ],
+   "safety": [
+    "A loose dually wheel can come off. If a nut turns before the click, stop and have a shop check the studs."
+   ],
+   "basis": "general",
+   "note": "Torque value to be filled in from the dealer."
+  },
+  "t-fuel": {
+   "about": "Replace both engine-mounted fuel filters at 15,000 mi.",
+   "tools": [
+    "Filter wrench or cap socket",
+    "Drain pan and rags",
+    "Basic hand tools",
+    "Gloves"
+   ],
+   "parts": [
+    "Mopar front filter, 3 micron",
+    "Mopar rear filter, 5 micron",
+    "New o-rings (come with the filters)"
+   ],
+   "specs": [
+    [
+     "Interval",
+     "Every 15,000 mi, both filters",
+     "m"
+    ],
+    [
+     "Front filter rating",
+     "3 micron",
+     "m"
+    ],
+    [
+     "Rear (engine-mounted) filter rating",
+     "5 micron",
+     "m"
+    ],
+    [
+     "Hard-start warning",
+     "2025-26 canisters can trap air after a change",
+     "g"
+    ]
+   ],
+   "steps": [
+    "Engine off and cool. Disconnect nothing electrical unless the service information says so. Have rags ready for fuel.",
+    "Drain the filter housing water separator drain if equipped, into a pan.",
+    "Remove the old element from each housing. Keep track of which is front and rear.",
+    "Lightly oil the new o-rings with clean diesel, fit the new elements and close the caps by hand to the marked torque.",
+    "Prime the system: key ON for a few seconds, off, repeat per the dealer procedure, until the pump quiets.",
+    "Start the engine. If it cranks long or stumbles, shut off and prime again (air trap).",
+    "Check for leaks, then log date, odometer, shop and cost."
+   ],
+   "safety": [
+    "No flames or sparks. Wipe all spilled fuel.",
+    "Use only filters that meet the stated micron ratings. A wrong filter harms the injection system."
+   ],
+   "basis": "mixed",
+   "note": "Prime sequence is general guidance. Ask the dealer for the priming steps for this VIN."
+  },
+  "t-air": {
+   "about": "Inspect the engine air filter and replace it when dirty, never past 15,000 mi or 24 months.",
+   "tools": [
+    "Basic hand tools",
+    "Flashlight"
+   ],
+   "parts": [
+    "Mopar or equal air filter element"
+   ],
+   "specs": [
+    [
+     "Max interval",
+     "15,000 mi or 24 months",
+     "m"
+    ],
+    [
+     "Dusty work",
+     "Inspect at each oil change",
+     "m"
+    ]
+   ],
+   "steps": [
+    "Engine off. Unclip the air box lid.",
+    "Pull the element and hold it to a light. If you cannot see light through the paper, replace it.",
+    "Wipe dust out of the air box. Do not blow dirt toward the intake tube.",
+    "Fit the new element, seat it flat, close and latch the lid.",
+    "Check the intake hose clamps are tight.",
+    "Log date and odometer."
+   ],
+   "safety": [
+    "Never run the engine without the filter."
+   ],
+   "basis": "mixed",
+   "note": ""
+  },
+  "t-cabin": {
+   "about": "Replace the cabin air filter every 12,000 mi.",
+   "tools": [
+    "Basic hand tools"
+   ],
+   "parts": [
+    "Cabin air filter for the 2026 Ram 2500/3500"
+   ],
+   "specs": [
+    [
+     "Interval",
+     "Every 12,000 mi",
+     "m"
+    ]
+   ],
+   "steps": [
+    "Find the filter door behind or under the glove box (see the owner's manual or video for this model).",
+    "Release the glove box stops, open the filter door.",
+    "Slide out the old filter. Note the airflow arrow.",
+    "Fit the new filter with the arrow pointing the same way.",
+    "Close the door and the glove box. Run the fan to check airflow.",
+    "Log date and odometer."
+   ],
+   "safety": [
+    "None special."
+   ],
+   "basis": "general",
+   "note": "Location steps are general guidance."
+  },
+  "t-front": {
+   "about": "Inspect the front end, CV and U-joints and suspension every 7,500 mi.",
+   "tools": [
+    "Floor jack and stands",
+    "Pry bar",
+    "Grease gun (if the joints have fittings)",
+    "Flashlight"
+   ],
+   "parts": [
+    "Chassis grease (only if fittings exist)"
+   ],
+   "specs": [
+    [
+     "Interval",
+     "Every 7,500 mi: inspect front end, lubricate if equipped with serviceable fittings, inspect CV and U-joints",
+     "m"
+    ],
+    [
+     "Every 15,000 mi",
+     "Inspect front suspension, tie rod ends and boot seals for cracks, leaks, looseness or end play",
+     "m"
+    ]
+   ],
+   "steps": [
+    "Raise the front and set stands.",
+    "Grab each front wheel at 12 and 6, then 3 and 9, and rock it. Any clunk or play means a worn tie rod, ball joint or bearing.",
+    "Look at all rubber boots (tie rod ends, axle shafts) for cracks or grease leaks.",
+    "Grease any fitting that has one, until fresh grease just shows.",
+    "Check the U-joints on the driveshafts for rust dust or play.",
+    "Look for leaking shocks and loose bolts.",
+    "Log date, odometer and anything found."
+   ],
+   "safety": [
+    "Use jack stands rated for the load. Never work under a vehicle held only by a jack.",
+    "A loose steering part is a safety item. Do not drive on it."
+   ],
+   "basis": "mixed",
+   "note": ""
+  },
+  "t-brake": {
+   "about": "Inspect brake linings and the parking brake. Heavy towing wears them faster than the 22,500 mi manual interval.",
+   "tools": [
+    "Jack and stands",
+    "Lug wrench and torque wrench",
+    "Flashlight, caliper or pad gauge"
+   ],
+   "parts": [
+    "None unless worn"
+   ],
+   "specs": [
+    [
+     "Interval",
+     "Inspect linings and parking brake every 22,500 mi, and look at each oil change",
+     "m"
+    ],
+    [
+     "Monthly",
+     "Check pads, rotors, brake operation and fluid level",
+     "m"
+    ],
+    [
+     "Brake fluid",
+     "Mopar DOT 3",
+     "m"
+    ]
+   ],
+   "steps": [
+    "Check fluid level in the master cylinder and the color of the fluid.",
+    "Raise the truck, remove the wheels (see the rotation steps).",
+    "Look through the caliper window at pad thickness. Measure it and write it down. Replace pads when they are thin (use the dealer minimum).",
+    "Look at the rotors for deep grooves, blue heat marks or a lip at the edge.",
+    "Check brake hoses for cracks or bulges.",
+    "Check the parking brake holds the truck on a slope.",
+    "Refit wheels, torque in a star pattern, log pad thickness, date and odometer."
+   ],
+   "safety": [
+    "Use jack stands rated for the load. Never work under a vehicle held only by a jack.",
+    "Brake dust is harmful: do not blow it with air. Use brake cleaner.",
+    "If the pedal is soft or the truck pulls, stop and have it looked at."
+   ],
+   "basis": "mixed",
+   "note": ""
+  },
+  "t-belt": {
+   "about": "Inspect the drive belt every 22,500 mi.",
+   "tools": [
+    "Flashlight"
+   ],
+   "parts": [
+    "Serpentine belt if worn"
+   ],
+   "specs": [
+    [
+     "Interval",
+     "Inspect every 22,500 mi, replace as necessary",
+     "m"
+    ]
+   ],
+   "steps": [
+    "Engine off. Open the hood.",
+    "Look along the belt for cracks, missing ribs, glazing, fraying or oil contamination.",
+    "Press the belt midway between pulleys. It should not be loose or sag.",
+    "Look at the tensioner and the idler pulleys for wobble or noise.",
+    "Replace the belt if cracked or glazed, using the belt routing label.",
+    "Log date and odometer."
+   ],
+   "safety": [
+    "Keep hands and hair away if the engine is running."
+   ],
+   "basis": "mixed",
+   "note": ""
+  },
+  "t-axle": {
+   "about": "Change the front and rear axle gear oil. The manual says to change it for frequent trailer towing, at 22,500 mi.",
+   "tools": [
+    "Drain pans",
+    "Socket or hex key for fill and drain plugs",
+    "Fluid pump",
+    "Torque wrench",
+    "Jack stands"
+   ],
+   "parts": [
+    "Rear (DRW 12.0 axle): Mopar GL-5 synthetic 75W-140, pre-mixed with limited slip additive",
+    "Front: SAE 75W-85 HD Ram GL-5 synthetic",
+    "RTV or new plug washers if needed"
+   ],
+   "specs": [
+    [
+     "Interval",
+     "Inspect at 22,500; change for police, taxi, fleet, off-road or frequent trailer towing",
+     "m"
+    ],
+    [
+     "Rear DRW axle fluid",
+     "Mopar 75W-140 GL-5 synthetic, pre-mixed (no loose additive)",
+     "m"
+    ],
+    [
+     "Front axle fluid",
+     "75W-85 GL-5 synthetic",
+     "m"
+    ],
+    [
+     "Plug torque and fluid quantity",
+     "Not in the owner's manual. Use the dealer service information",
+     "g"
+    ],
+    [
+     "Trailer axles (separate item)",
+     "Big Tex dealer advised 15,000 mi; unconfirmed whether the same for the Ram",
+     "b"
+    ]
+   ],
+   "steps": [
+    "Drive the truck a few miles to warm the gear oil, then park level.",
+    "Loosen the FILL plug first (so you can refill before you drain).",
+    "Drain through the drain plug (or by removing the cover) into the pan. Look for metal flakes on the magnet.",
+    "Clean and refit the plug with a new washer, torque to spec.",
+    "Pump new fluid in until it just starts to run out of the fill hole. Do the front and rear separately.",
+    "Refit the fill plug and torque.",
+    "Wipe clean and check for leaks after a short drive.",
+    "Log date, odometer, fluid used, shop and cost."
+   ],
+   "safety": [
+    "Use jack stands rated for the load. Never work under a vehicle held only by a jack.",
+    "Do not mix fluids. The 3500 DRW rear axle takes only the pre-mixed 75W-140.",
+    "Hot gear oil burns."
+   ],
+   "basis": "mixed",
+   "note": ""
+  },
+  "t-whl": {
+   "about": "Inspect the wheel bearings at 30,000 mi.",
+   "tools": [
+    "Jack and stands",
+    "Pry bar",
+    "Dial indicator if available"
+   ],
+   "parts": [
+    "None unless worn"
+   ],
+   "specs": [
+    [
+     "Interval",
+     "Inspect every 30,000 mi",
+     "m"
+    ]
+   ],
+   "steps": [
+    "Raise the axle and set stands.",
+    "Spin the wheel by hand. Listen for grinding or roughness.",
+    "Rock the wheel top to bottom for play (see front-end steps).",
+    "Check for leaking seals or grease on the inside of the rim.",
+    "Have the dealer measure end play if anything feels wrong.",
+    "Log date, odometer and findings."
+   ],
+   "safety": [
+    "Use jack stands rated for the load. Never work under a vehicle held only by a jack."
+   ],
+   "basis": "mixed",
+   "note": ""
+  },
+  "t-tcase": {
+   "about": "Change the transfer case fluid. Manual: inspect at 30,000 mi and change for frequent trailer towing; routine change at 60,000 mi.",
+   "tools": [
+    "Drain pan",
+    "Socket for fill and drain plugs",
+    "Fluid pump",
+    "Torque wrench"
+   ],
+   "parts": [
+    "Mopar BW44-44 transfer case fluid"
+   ],
+   "specs": [
+    [
+     "Fluid",
+     "Mopar BW44-44",
+     "m"
+    ],
+    [
+     "Interval",
+     "Change at 30,000 mi for frequent towing; 60,000 mi otherwise",
+     "m"
+    ],
+    [
+     "Plug torque and quantity",
+     "Not in the owner's manual. Use the dealer service information",
+     "g"
+    ]
+   ],
+   "steps": [
+    "Warm the fluid by driving a few miles, park level.",
+    "Loosen the fill plug first.",
+    "Remove the drain plug and drain fully. Check the drained fluid for metal.",
+    "Refit the drain plug with a new washer, torque to spec.",
+    "Pump in new fluid to the bottom of the fill hole.",
+    "Refit and torque the fill plug. Check for leaks after a drive.",
+    "Log date, odometer, shop and cost."
+   ],
+   "safety": [
+    "Use jack stands rated for the load. Never work under a vehicle held only by a jack.",
+    "Use only the specified fluid."
+   ],
+   "basis": "mixed",
+   "note": ""
+  },
+  "t-trans": {
+   "about": "Change the automatic transmission fluid (Torqueflite 8-speed) every 60,000 mi. Heavy towing may call for earlier service: ask the dealer.",
+   "tools": [
+    "Dealer-level fluid exchange or pan drop tools",
+    "Torque wrench"
+   ],
+   "parts": [
+    "Mopar ATF 818 (use only this)",
+    "Transmission filter and pan gasket if the dealer replaces them"
+   ],
+   "specs": [
+    [
+     "Fluid",
+     "Mopar ATF 818",
+     "m"
+    ],
+    [
+     "Interval",
+     "Every 60,000 mi",
+     "m"
+    ],
+    [
+     "Earlier service for towing",
+     "Dealer decision. Not stated in the owner's manual",
+     "g"
+    ],
+    [
+     "Software check",
+     "Ask whether this VIN needs the Ram 2026 Cummins transmission software update (built before 2025-12-11)",
+     "g"
+    ]
+   ],
+   "steps": [
+    "This job is best done by the dealer or a diesel shop: the fluid level is set with a scan tool at a set temperature.",
+    "Ask them to use ATF 818 only and to check for the software update.",
+    "Get the work order: fluid type, level procedure, odometer, price.",
+    "Log date, odometer, shop and cost, and keep the work order for the warranty file."
+   ],
+   "safety": [
+    "Wrong fluid or a wrong fill level can damage the transmission and the warranty."
+   ],
+   "basis": "mixed",
+   "note": ""
+  },
+  "t-ccv": {
+   "about": "Replace the crankcase ventilation (CCV) filter at 75,000 mi or when the cluster shows Perform Service.",
+   "tools": [
+    "Dealer or diesel shop"
+   ],
+   "parts": [
+    "Mopar CCV filter"
+   ],
+   "specs": [
+    [
+     "Interval",
+     "Every 75,000 mi, or when the cluster says Perform Service",
+     "m"
+    ],
+    [
+     "DEF filter",
+     "No interval is listed in the owner's manual",
+     "m"
+    ]
+   ],
+   "steps": [
+    "Watch for the Perform Service message in the cluster. It means emissions maintenance is due.",
+    "Have the dealer replace the CCV element and clear the message (they use service tools).",
+    "Ask them to check the DEF system filter and note it on the invoice.",
+    "Log date, odometer, shop and cost."
+   ],
+   "safety": [
+    "Do not ignore the Perform Service message."
+   ],
+   "basis": "mixed",
+   "note": ""
+  },
+  "t-ps": {
+   "about": "Flush and replace the power steering fluid at 97,500 mi.",
+   "tools": [
+    "Dealer or shop"
+   ],
+   "parts": [
+    "Mopar Power Steering Fluid +4 or ATF+4"
+   ],
+   "specs": [
+    [
+     "Interval",
+     "Every 97,500 mi",
+     "m"
+    ],
+    [
+     "Fluid",
+     "Mopar Power Steering Fluid +4 or ATF+4",
+     "m"
+    ]
+   ],
+   "steps": [
+    "Check the reservoir level and color each month (see monthly checks).",
+    "At the interval, have the shop flush the system with the specified fluid.",
+    "Log date, odometer, shop and cost."
+   ],
+   "safety": [
+    "Do not top off with other fluids."
+   ],
+   "basis": "mixed",
+   "note": ""
+  },
+  "t-cool": {
+   "about": "Flush and replace the coolant at 10 years or 150,000 mi, whichever comes first. Check the reservoir monthly.",
+   "tools": [
+    "Dealer or diesel shop for the flush"
+   ],
+   "parts": [
+    "Mopar Antifreeze/Coolant 10 Year/150,000 Mile OAT"
+   ],
+   "specs": [
+    [
+     "Interval",
+     "10 years or 150,000 mi",
+     "m"
+    ],
+    [
+     "Coolant",
+     "Mopar OAT 10 Year/150K only. Do not mix with HOAT or global coolant",
+     "m"
+    ],
+    [
+     "System capacity",
+     "22 qt",
+     "m"
+    ],
+    [
+     "Who",
+     "The manual strongly recommends cooling system work be done by the dealer",
+     "m"
+    ]
+   ],
+   "steps": [
+    "Monthly: look at the reservoir level with the engine cold. Never open the cap hot.",
+    "If you must add, use only Mopar OAT 10 yr coolant (premix 50/50 or add distilled water to a concentrate).",
+    "At the interval, have the dealer drain, flush and refill with fresh OAT coolant.",
+    "Log date, odometer, shop and cost."
+   ],
+   "safety": [
+    "Never open the radiator or reservoir cap on a hot engine.",
+    "Do not use water alone or alcohol-based products or rust inhibitors."
+   ],
+   "basis": "mixed",
+   "note": ""
+  },
+  "t-monthly": {
+   "about": "The Ram owner's manual monthly (or before a long trip) walk-around for the truck.",
+   "tools": [
+    "Rag",
+    "Flashlight",
+    "Tire gauge"
+   ],
+   "parts": [
+    "None"
+   ],
+   "specs": [
+    [
+     "Interval",
+     "Once a month or before a long trip",
+     "m"
+    ]
+   ],
+   "steps": [
+    "Engine oil: check the level 30 minutes after a warm shutdown, truck level.",
+    "Lights: walk around with a helper or reflect off a wall: head, tail, brake, turn, clearance.",
+    "Battery: look at terminals and cables for corrosion and tightness.",
+    "Brakes: look at pads, rotors, feel the pedal, check the fluid level.",
+    "Steering, suspension, axle boots: look and listen on a short drive.",
+    "Wipers and washer fluid: test and top up.",
+    "Coolant reservoir: level OK with the engine cold.",
+    "DEF level (7.5 gal tank). Check tire pressures.",
+    "Tap the checklist boxes on the tab and log the date."
+   ],
+   "safety": [
+    "Do the engine and coolant checks cold."
+   ],
+   "basis": "manual",
+   "note": ""
+  },
+  "t-dot": {
+   "about": "Get the annual DOT inspection (49 CFR 396.17) for the truck. Under the lease Totni is the carrier, so ask them for a copy first.",
+   "tools": [
+    "None"
+   ],
+   "parts": [
+    "Inspection report and decal"
+   ],
+   "specs": [
+    [
+     "Interval",
+     "Every 12 months",
+     "g"
+    ],
+    [
+     "Applies to",
+     "Commercial vehicles over 10,000 lb (combination weight counts) in interstate commerce",
+     "g"
+    ]
+   ],
+   "steps": [
+    "Ask Totni (Felix or Virginia) if they already have an annual inspection report on this VIN.",
+    "If not, call a truck shop or inspection station that does 396.17 annual inspections (federal inspector qualified).",
+    "Bring the truck and trailer. Expect brakes, lights, steering, suspension, tires, coupling and frame to be checked.",
+    "Get the report and decal. Keep the report in the truck and send a copy to Totni.",
+    "Fix any items marked defective, then log it here with the date and the shop."
+   ],
+   "safety": [
+    "Do not run interstate without a current report if the carrier requires it."
+   ],
+   "basis": "general",
+   "note": "Check with Totni for what they require."
+  },
+  "r-brake": {
+   "about": "Check and adjust the trailer brakes. Dexter: first 200 mi, every 3,000 mi if manual-adjust (not needed for self-adjusting brakes), full inspection yearly. The axle maker and brake type are not confirmed.",
+   "tools": [
+    "Jack and stands rated for the trailer",
+    "Brake adjusting tool or screwdriver",
+    "Torque wrench",
+    "Flashlight",
+    "Brake controller"
+   ],
+   "parts": [
+    "None unless worn (shoes, magnets)"
+   ],
+   "specs": [
+    [
+     "Adjust (manual-adjust brakes)",
+     "After the first 200 miles, then every 3,000 miles or as performance needs",
+     "d"
+    ],
+    [
+     "Brake inspection",
+     "Linings, magnets, drums, wiring: every 12 months or 12,000 mi",
+     "d"
+    ],
+    [
+     "Wheel nuts",
+     "Torque after any wheel removal, re-check at 10, 25 and 50 miles",
+     "d"
+    ]
+   ],
+   "steps": [
+    "Chock the truck and trailer wheels. Hitch up the trailer to the truck.",
+    "Test first: with the truck running, pull the brake controller lever and listen and feel for each wheel braking. Check the gain setting.",
+    "Jack one axle at a time on the frame (never on the axle tube) and set rated stands.",
+    "Spin each wheel. It should turn freely with a slight drag.",
+    "If manual-adjust: remove the adjusting hole cover, turn the star wheel to lock the shoes, then back off until the wheel turns with a slight drag. Set all wheels the same.",
+    "Look at the lining thickness and the magnet face through the hole or with the drum off. Look for oil or grease on the linings.",
+    "Check the wiring and the connectors at each brake for bare spots.",
+    "Refit covers and wheels, torque the wheel nuts in a star pattern.",
+    "Do a short drive test with the controller and log date and trailer miles."
+   ],
+   "safety": [
+    "Use jack stands rated for the load. Never work under a vehicle held only by a jack.",
+    "Grease on the linings means a bad seal: stop and fix it.",
+    "Never go under the trailer when it is only on a jack."
+   ],
+   "basis": "mixed",
+   "note": "Steps are general shop practice. Intervals are from Dexter. Confirm the axle maker and brake type from the axle tag."
+  },
+  "r-hub": {
+   "about": "Service the trailer hub bearings: repack the grease (Dexter: every 12 months or 12,000 mi) or change the axle gear oil at 15,000 mi (Big Tex dealer). Do it at the earlier mark and look at the brakes at the same time.",
+   "tools": [
+    "Jack and stands",
+    "Torque wrench",
+    "Grease packer or gloves",
+    "Seal driver",
+    "Cotter pins, pliers",
+    "Parts cleaner, rags"
+   ],
+   "parts": [
+    "Dexter or equal bearing grease (do not mix grease types)",
+    "New hub seals",
+    "Cotter pins",
+    "Gear oil 80/90 if the hubs are oil bath"
+   ],
+   "specs": [
+    [
+     "Bearing lubrication",
+     "Every 12 months or 12,000 miles",
+     "d"
+    ],
+    [
+     "Axle gear oil",
+     "80/90 at 15,000 miles",
+     "b"
+    ],
+    [
+     "Grease",
+     "Do not mix lithium, calcium, sodium or barium complex greases",
+     "d"
+    ],
+    [
+     "Hub type",
+     "Grease or oil bath is not confirmed. Read the axle tag or ask Big Tex",
+     "g"
+    ]
+   ],
+   "steps": [
+    "Find out if the hubs are grease or oil bath (a rubber plug and a sight window mean oil bath).",
+    "Chock, jack by the frame, set stands.",
+    "Remove the wheel, dust cap, cotter pin and spindle nut. Pull the hub and drum straight off.",
+    "Wipe off old grease. Inspect each bearing and cup. Replace in sets if pitted, blue or rough.",
+    "Pack the bearings by hand or with a packer until grease shows through the rollers.",
+    "Fit a new seal. Refit the hub, tighten the spindle nut then back off per the Dexter manual and fit a new cotter pin.",
+    "Oil bath: drain the old oil, refill to the line with 80/90 gear oil.",
+    "Check the brake linings and magnets while the drum is off.",
+    "Refit the wheel, torque the nuts in a star pattern, re-check at 10, 25 and 50 miles.",
+    "Log date and trailer miles."
+   ],
+   "safety": [
+    "Use jack stands rated for the load. Never work under a vehicle held only by a jack.",
+    "Bearings are replaced in a cone and cup set.",
+    "Wash hands: bearing grease and old oil are dirty and irritate skin."
+   ],
+   "basis": "mixed",
+   "note": "Steps are general shop practice. Get the Dexter service manual for the exact spindle nut procedure."
+  },
+  "r-gn": {
+   "about": "Inspect and grease the gooseneck coupler, latch, safety chains and breakaway cable. General guidance, every 3 months or 3,000 mi.",
+   "tools": [
+    "Grease gun",
+    "Rags",
+    "Flashlight",
+    "Wire brush"
+   ],
+   "parts": [
+    "Chassis grease",
+    "Lock pin or R-clip if worn"
+   ],
+   "specs": [
+    [
+     "Interval",
+     "Every 3 months or 3,000 mi",
+     "g"
+    ],
+    [
+     "Safety chains",
+     "Crossed under the gooseneck, hooked to the truck, no dragging",
+     "g"
+    ],
+    [
+     "Breakaway",
+     "Check battery charge and switch at every use",
+     "d"
+    ]
+   ],
+   "steps": [
+    "Hook the trailer to the ball. Latch it and pin the lock.",
+    "Wiggle the coupler: there should be no up-down play at the ball.",
+    "Look at the latch, lock pin and spring for wear or cracks. Look at the welds.",
+    "Grease the coupler zerks and the jack if it has fittings.",
+    "Check the safety chains: no cracked links, hooks close tight, enough slack to turn.",
+    "Check the breakaway cable and clip, and test it (see the breakaway item).",
+    "Check the nuts on the coupler and the jack.",
+    "Log date and trailer miles."
+   ],
+   "safety": [
+    "A coupler that pops off the ball is dangerous. Do not tow with a worn latch."
+   ],
+   "basis": "general",
+   "note": ""
+  },
+  "r-lights": {
+   "about": "Check the trailer lights and wiring every trip and inspect the wiring yearly.",
+   "tools": [
+    "Helper or reflection",
+    "Dielectric grease",
+    "Zip ties",
+    "Test light"
+   ],
+   "parts": [
+    "Bulbs, plug, wire if needed"
+   ],
+   "specs": [
+    [
+     "Brake wiring inspection",
+     "Every 12 months or 12,000 mi",
+     "d"
+    ],
+    [
+     "Every trip",
+     "Turn, brake, running, marker, clearance",
+     "g"
+    ]
+   ],
+   "steps": [
+    "Plug in the 7-pin. Run running lights, left and right turn, hazards and brake (use a helper).",
+    "Walk around: clearance and marker lights, tail lights, reflectors.",
+    "Fix any dead bulb or loose ground. Clean the plug contacts with a brush.",
+    "Look at the wiring harness along the frame for rubs, bare wire and loose clips.",
+    "Add dielectric grease to the connectors and secure the loose wiring with ties.",
+    "Log date and trailer miles."
+   ],
+   "safety": [
+    "Do not cut or splice wiring near the brake magnet leads unless you know the wire colors."
+   ],
+   "basis": "mixed",
+   "note": ""
+  },
+  "r-ramps": {
+   "about": "Inspect the ramps, dovetail, deck bolts and hinges every 6 months. General guidance.",
+   "tools": [
+    "Wrench set",
+    "Grease",
+    "Flashlight",
+    "Torque wrench"
+   ],
+   "parts": [
+    "Grease",
+    "Bolts or pins as needed"
+   ],
+   "specs": [
+    [
+     "Interval",
+     "Every 6 months",
+     "g"
+    ]
+   ],
+   "steps": [
+    "Lower the ramps and dovetail. Look at the hinges, pins and springs.",
+    "Look at the welds for cracks, especially at the ramp hinges and the deck cross members.",
+    "Check that the ramp latches hold when stowed.",
+    "Tighten any loose deck bolts. Replace missing hardware.",
+    "Check the deck boards for rot or soft spots, especially around the bolts.",
+    "Lube the hinges and springs.",
+    "Log date and trailer miles."
+   ],
+   "safety": [
+    "Keep fingers clear of the springs and hinges."
+   ],
+   "basis": "general",
+   "note": ""
+  },
+  "r-deck": {
+   "about": "Reseal the wood deck with penetrating oil every 6 to 12 months (company plan).",
+   "tools": [
+    "Broom or pressure wash",
+    "Brush or roller",
+    "Rags"
+   ],
+   "parts": [
+    "Penetrating deck oil (trailer wood oil or linseed-type)"
+   ],
+   "specs": [
+    [
+     "Interval",
+     "Every 6 to 12 months",
+     "c"
+    ]
+   ],
+   "steps": [
+    "Pick a dry day. Sweep the deck and wash off dirt. Let it dry.",
+    "Check for soft or rotted boards and replace them first.",
+    "Apply a thin coat of penetrating oil with a brush or roller, one board at a time. Do not leave puddles.",
+    "Wipe off the excess after about 20 minutes.",
+    "Let it dry per the can before loading.",
+    "Log date and trailer miles."
+   ],
+   "safety": [
+    "Oily rags can self-heat. Spread them to dry or put them in a water-filled can.",
+    "A fresh oiled deck is slippery."
+   ],
+   "basis": "general",
+   "note": ""
+  },
+  "r-tireage": {
+   "about": "Check the DOT date code on each trailer tire and plan to replace by 6 years from the date. The trailer was built Aug 2026.",
+   "tools": [
+    "Flashlight"
+   ],
+   "parts": [
+    "None"
+   ],
+   "specs": [
+    [
+     "Replacement guideline",
+     "6 years from the DOT date, sooner if cracked",
+     "g"
+    ],
+    [
+     "TrailerGard",
+     "7 years, to 10/5/2033. The shop must call the warranty company before work",
+     "g"
+    ]
+   ],
+   "steps": [
+    "Find the DOT code on each sidewall. The last 4 digits are week and year (for example 2926 = week 29 of 2026).",
+    "Write down the date for each of the 4 tires and the spare.",
+    "Check for dry cracks, bulges and uneven wear.",
+    "Set a reminder for 6 years after the oldest date.",
+    "Before any tire work call the warranty company (see the Insurance tab)."
+   ],
+   "safety": [
+    "An old tire can fail even with good tread."
+   ],
+   "basis": "general",
+   "note": ""
+  },
+  "r-dot": {
+   "about": "Get the annual DOT inspection for the trailer along with the truck.",
+   "tools": [
+    "None"
+   ],
+   "parts": [
+    "Inspection report"
+   ],
+   "specs": [
+    [
+     "Interval",
+     "Every 12 months",
+     "g"
+    ]
+   ],
+   "steps": [
+    "Ask Totni whether they hold a trailer inspection report on file.",
+    "If not, have the trailer inspected at the same time as the truck (one visit).",
+    "Keep the report with the trailer papers and send a copy to Totni.",
+    "Fix any defects and log the date and shop here."
+   ],
+   "safety": [
+    "Brake and light defects are the most common out-of-service items."
+   ],
+   "basis": "general",
+   "note": ""
+  },
+  "r-lug": {
+   "about": "Torque the trailer wheel nuts. Dexter: torque before first road use and after any wheel removal, re-check at 10, 25 and 50 miles, then periodically (we use every 3 months or 3,000 mi).",
+   "tools": [
+    "Torque wrench (up to 200 ft-lb)",
+    "Socket for the nuts",
+    "Wire brush"
+   ],
+   "parts": [
+    "None"
+   ],
+   "specs": [
+    [
+     "If 16 in wheels, 8 on 6.5 in, 9/16-18 studs",
+     "1st 20-25, 2nd 50-60, final 140-170 ft-lb (60 degree cone nuts)",
+     "d"
+    ],
+    [
+     "If 1/2-20 studs on 16 in wheels (6 on 5.5)",
+     "Final 100-120 ft-lb",
+     "d"
+    ],
+    [
+     "Check these on your trailer",
+     "Wheel maker spec wins. Our stud size is not confirmed",
+     "g"
+    ],
+    [
+     "Re-torque",
+     "After 10, 25 and 50 miles from any wheel work",
+     "d"
+    ]
+   ],
+   "steps": [
+    "Confirm the stud size and the wheel size from the wheel or the axle tag. Use the wheel maker's value.",
+    "Start with the trailer on the ground, wheels chocked.",
+    "Pull each nut in a star pattern: first stage, second stage, final torque.",
+    "A wheel stud should show about 3 threads past the nut.",
+    "Look for rust streaks around the studs or cracks at the nut seats.",
+    "Log date and trailer miles."
+   ],
+   "safety": [
+    "Do not exceed the stud limit (9/16-18 max 170 ft-lb).",
+    "Never grease or oil studs unless the wheel maker says so."
+   ],
+   "basis": "mixed",
+   "note": "Our trailer has ST235/80R16 tires on 8-lug 12K axles. The 9/16-18 row is the likely one but is not confirmed."
+  },
+  "r-breakaway": {
+   "about": "Test the breakaway switch and check the breakaway battery. Dexter: at every use. We use monthly plus before a long trip.",
+   "tools": [
+    "Multimeter or the trailer's battery tester",
+    "Charger"
+   ],
+   "parts": [
+    "Breakaway battery or the correct 12V battery if weak"
+   ],
+   "specs": [
+    [
+     "Interval",
+     "At every use (we log it monthly)",
+     "d"
+    ],
+    [
+     "Pass",
+     "Pulling the pin locks the trailer brakes with the truck unplugged",
+     "g"
+    ]
+   ],
+   "steps": [
+    "Chock the trailer wheels.",
+    "Check the charge indicator light on the breakaway box (or measure the battery voltage).",
+    "Pull the pin with the trailer unplugged from the truck. The trailer brakes should lock (try to push or roll it).",
+    "Put the pin back in and confirm the brakes release.",
+    "Charge the battery if the test is weak, or replace it every couple of years.",
+    "Check the cable, clip and switch for wear and the box for water.",
+    "Log date and the result."
+   ],
+   "safety": [
+    "Do the pull-pin test with wheels chocked so the trailer cannot roll."
+   ],
+   "basis": "mixed",
+   "note": ""
+  },
+  "r-tires": {
+   "about": "Check the trailer tire pressure (80 psi cold) and condition before each trip and at least monthly.",
+   "tools": [
+    "Tire pressure gauge",
+    "Air source",
+    "Flashlight"
+   ],
+   "parts": [
+    "None"
+   ],
+   "specs": [
+    [
+     "Pressure",
+     "80 psi cold (ST235/80R16 load range E)",
+     "b"
+    ],
+    [
+     "Cold means",
+     "Not driven for 3 hours or more",
+     "g"
+    ]
+   ],
+   "steps": [
+    "Check pressures with a gauge when cold. Set each tire to 80 psi.",
+    "Look at the tread across the whole face for uneven wear (a sign of alignment or brake problems).",
+    "Look at both sidewalls for cuts, bulges or dry cracks. Look for nails.",
+    "Check the valve caps and the spare.",
+    "Check the lug nuts (see the lug item).",
+    "Log date and trailer miles. For tire damage call the warranty company first (Insurance tab)."
+   ],
+   "safety": [
+    "Do not exceed the tire sidewall maximum. Under-inflation overheats a loaded tire fast."
+   ],
+   "basis": "mixed",
+   "note": ""
+  }
+ }
 }

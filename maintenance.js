@@ -1,10 +1,14 @@
-/* Black Ram Logistics - Maintenance tab (v79+).
+/* Black Ram Logistics - Maintenance tab (v80+, check-offs and SOPs v84).
    Public part: data/maintenance.json (no dollars): units, current odometer + as-of date, due-next schedule, service log
    (date, unit, job, odometer, vendor), checklists, warranty basics, open items. The schedule intervals come from the 2026 Ram
    owner's manual (diesel plan), the company rules, Dexter axle guidance and 49 CFR 396.17 (see the sources note on the tab).
    PIN-gated part: costs, who paid, spend totals. They come from the relay /financials payload key "maintenance"
    (built on the box by maintenance_build.py, pushed with push_financials.py). Nothing financial is in this repo.
    Update the odometer: edit maintenance.json on the box, or tap Update odometer (saved on that phone only).
+   v84: tap any item for a sheet: Mark done (date, miles, cost, shop, note; resets the next-due, undoable) and an SOP (how-to).
+   Check-offs are saved through the relay POST /maintenance (PIN-checked, KV key maint_log) and come back on every device in the
+   /financials payload as maintenance_applog. If the relay cannot be reached they are queued on the phone (localStorage) and sent
+   later. Costs and shop names in check-offs only travel through the PIN-checked relay (never in this repo).
    Uses v51 tokens; extends window.BlackRamApp (never overwrites it). Plain ASCII text. */
 (function () {
   'use strict';
@@ -13,8 +17,9 @@
   var FIN_KEY = 'blackram_fin_session_v1';
   var ODO_KEY = 'blackram_maint_odo_v1';
   var CHK_KEY = 'blackram_maint_chk_v1';
+  var QUEUE_KEY = 'blackram_maint_queue_v1';
   var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  var st = { pub: null, pubErr: '', priv: null, error: '', loading: false, fetchedAt: 0, unit: 'all', logf: 'all', odoOpen: false };
+  var st = { pub: null, pubErr: '', priv: null, applog: null, error: '', loading: false, fetchedAt: 0, unit: 'all', status: '', logf: 'all', odoOpen: false, sheet: null, toast: '', toastUndo: '', flushing: false, syncMsg: '' };
 
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function n0(n) { return Math.round(n).toLocaleString('en-US'); }
@@ -49,7 +54,7 @@
       .then(function () { st.pubLoading = false; render(); });
   }
   function fromCache() {
-    try { var c = sessionStorage.getItem(FIN_KEY); if (!c) return null; var j = JSON.parse(c); return j && j.maintenance ? j.maintenance : null; } catch (e) { return null; }
+    try { var c = sessionStorage.getItem(FIN_KEY); if (!c) return null; var j = JSON.parse(c); if (j && j.maintenance_applog && !st.applog) st.applog = j.maintenance_applog; return j && j.maintenance ? j.maintenance : null; } catch (e) { return null; }
   }
   function fetchPriv(force) {
     var p = pin();
@@ -63,6 +68,7 @@
           if (resp.ok && j && j.ok && j.data) {
             st.error = ''; st.fetchedAt = Date.now();
             st.priv = j.data.maintenance || null;
+            st.applog = j.data.maintenance_applog || (st.priv && st.priv.applog) || st.applog || null;
             if (!st.priv) st.error = 'Maintenance costs are not on the server yet.';
             try { sessionStorage.setItem(FIN_KEY, JSON.stringify(j.data)); } catch (e) { /* ignore */ }
           } else if (resp.status === 401) {
@@ -74,7 +80,113 @@
         });
       })
       .catch(function () { st.error = 'Offline - showing the last copy if any.'; })
-      .then(function () { st.loading = false; render(); });
+      .then(function () { st.loading = false; render(); flush(); });
+  }
+
+  /* ---------- check-offs: local queue + relay sync ---------- */
+  var PII_RE = /[\w.+-]+@[\w-]+\.[\w.]+|\(?\b\d{3}\)?[-. ]\d{3}[-. ]\d{4}\b/;
+  var flushTimer = 0, toastTimer = 0;
+  function newId() { return 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function queue() { var q = jget(QUEUE_KEY, []); return Array.isArray(q) ? q : []; }
+  function setQueue(q) { jset(QUEUE_KEY, q); }
+  function opKey(o) { return o.op + ':' + (o.entry ? o.entry.id : o.id); }
+  function srvEntries() { return (st.applog && Array.isArray(st.applog.entries)) ? st.applog.entries : []; }
+  function onServer(id) { return srvEntries().some(function (e) { return e.id === id; }); }
+  function effEntries() {
+    var map = {}, order = [];
+    srvEntries().forEach(function (e) { map[e.id] = Object.assign({}, e); order.push(e.id); });
+    queue().forEach(function (op) {
+      if (op.op === 'add' && op.entry && op.entry.id) {
+        if (!map[op.entry.id]) { map[op.entry.id] = Object.assign({}, op.entry, { pending: true }); order.push(op.entry.id); }
+      } else if (op.op === 'undo' && map[op.id]) { map[op.id].undone = true; map[op.id].pending = true; }
+      else if (op.op === 'redo' && map[op.id]) { delete map[op.id].undone; map[op.id].pending = true; }
+    });
+    return order.map(function (id) { return map[id]; });
+  }
+  function activeEntries() { return effEntries().filter(function (e) { return !e.undone; }); }
+  function cmpEntry(a, b) { return a.date < b.date ? -1 : (a.date > b.date ? 1 : ((a.at || '') < (b.at || '') ? -1 : ((a.at || '') > (b.at || '') ? 1 : 0))); }
+  function latestFor(itemId) {
+    var l = activeEntries().filter(function (e) { return e.item_id === itemId; }).sort(cmpEntry);
+    return l.length ? l[l.length - 1] : null;
+  }
+  function itemName(id) {
+    var s = st.pub && st.pub.schedule ? st.pub.schedule.filter(function (x) { return x.id === id; })[0] : null;
+    return s ? s.item : id;
+  }
+  function baseItem(it) {
+    if (!it.base) return it;
+    var c = Object.assign({}, it), b = it.base;
+    c.last_date = b.last_date;
+    if (b.last_odo != null) c.last_odo = b.last_odo; else delete c.last_odo;
+    if (b.baseline) c.baseline = true; else delete c.baseline;
+    if (b.need_record) c.need_record = true; else delete c.need_record;
+    delete c.checked_off;
+    return c;
+  }
+  function withEntry(it) {
+    var c = baseItem(it), e = latestFor(it.id);
+    if (e) {
+      if (c === it) c = Object.assign({}, it);
+      c.last_date = e.date; if (e.odo != null) c.last_odo = e.odo;
+      delete c.baseline; delete c.need_record; c.checked_off = e;
+    }
+    return c;
+  }
+  function saveCachedApplog() {
+    try { var c = sessionStorage.getItem(FIN_KEY); if (!c) return; var j = JSON.parse(c); j.maintenance_applog = st.applog; sessionStorage.setItem(FIN_KEY, JSON.stringify(j)); } catch (e) { /* ignore */ }
+  }
+  function setToast(text, undoId) {
+    st.toast = text; st.toastUndo = undoId || '';
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { st.toast = ''; st.toastUndo = ''; render(); }, 12000);
+  }
+  function flush() {
+    if (st.flushing) return;
+    var q = queue(); if (!q.length) { st.syncMsg = ''; return; }
+    var p = pin(); if (!p) return;
+    var body, sent = [], op = q[0];
+    if (op.op === 'add') {
+      for (var i = 0; i < q.length && q[i].op === 'add' && sent.length < 20; i++) sent.push(q[i]);
+      body = { pin: p, op: 'add', entries: sent.map(function (x) { return x.entry; }) };
+    } else { sent = [op]; body = { pin: p, op: op.op, id: op.id }; }
+    st.flushing = true;
+    var retry = false, more = false;
+    fetch(RELAY + '/maintenance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store' })
+      .then(function (resp) { return resp.json().catch(function () { return null; }).then(function (j) { return { resp: resp, j: j }; }); })
+      .then(function (r) {
+        var drop = false;
+        if (r.resp.ok && r.j && r.j.ok) { st.applog = r.j.data; saveCachedApplog(); st.syncMsg = ''; drop = true; if (st.error === 'wrongpin') st.error = ''; }
+        else if (r.resp.status === 401) { st.syncMsg = 'Wrong PIN. Your check-offs are saved on this phone and will send once the PIN is right.'; }
+        else if (r.resp.status === 400 || r.resp.status === 404) { drop = true; st.syncMsg = 'The server rejected one entry: ' + ((r.j && r.j.error) || r.resp.status) + '.'; setToast(st.syncMsg); }
+        else { st.syncMsg = 'Could not reach the server. Saved on this phone, will retry.'; retry = true; }
+        if (drop) {
+          var keys = sent.map(opKey);
+          setQueue(queue().filter(function (x) { return keys.indexOf(opKey(x)) < 0; }));
+          more = queue().length > 0;
+        }
+      })
+      .catch(function () { st.syncMsg = 'Offline. Saved on this phone, will retry.'; retry = true; })
+      .then(function () {
+        st.flushing = false; render(); refreshSheet();
+        if (more) flush();
+        else if (retry) { if (flushTimer) clearTimeout(flushTimer); flushTimer = setTimeout(flush, 30000); }
+      });
+  }
+  function addEntry(entry) {
+    var q = queue(); q.push({ op: 'add', entry: entry }); setQueue(q);
+  }
+  function undoEntry(id) {
+    var q = queue(), idx = -1;
+    q.forEach(function (o, i) { if (o.op === 'add' && o.entry && o.entry.id === id) idx = i; });
+    if (idx >= 0 && !onServer(id)) { q.splice(idx, 1); setQueue(q); }
+    else { q = q.filter(function (o) { return !(o.id === id && (o.op === 'undo' || o.op === 'redo')); }); q.push({ op: 'undo', id: id }); setQueue(q); }
+    setToast('Undone. The item is back to its earlier due date.');
+    render(); refreshSheet(); flush();
+  }
+  function redoEntry(id) {
+    var q = queue().filter(function (o) { return !(o.id === id && (o.op === 'undo' || o.op === 'redo')); });
+    q.push({ op: 'redo', id: id }); setQueue(q);
+    render(); refreshSheet(); flush();
   }
 
   /* ---------- math ---------- */
@@ -86,6 +198,13 @@
     if (loc && loc.value > 0 && loc.as_of && loc.as_of >= O.as_of && (loc.as_of > O.as_of || loc.value >= O.value)) {
       o.reading = loc.value; o.as_of = loc.as_of; o.source = 'Entered on this phone'; o.since = 0; o.est = false; o.local = true;
     }
+    var best = null;
+    activeEntries().forEach(function (e) {
+      if (e.unit === 'truck' && e.odo != null && e.odo > 0 && !e.odo_est && e.date >= o.as_of && (e.date > o.as_of || e.odo >= o.reading)) {
+        if (!best || e.date > best.date || (e.date === best.date && e.odo > best.odo)) best = e;
+      }
+    });
+    if (best) { o.reading = best.odo; o.as_of = best.date; o.source = 'Check-off: ' + itemName(best.item_id); o.since = 0; o.est = false; o.local = false; o.fromEntry = true; }
     o.cur = o.reading + o.since;
     var t = (P.units || []).filter(function (u) { return u.id === 'trailer'; })[0] || {};
     o.trailer = ((L.trailer_before && L.trailer_before.est) || 0) + (o.cur - O.value);
@@ -123,7 +242,7 @@
   }
   function allRows() {
     var P = st.pub, O = odo(); if (!P) return [];
-    var rows = P.schedule.map(function (it) { return calc(it, P, O); });
+    var rows = P.schedule.map(function (it) { return calc(withEntry(it), P, O); });
     rows.sort(function (a, b) {
       var A = a.status === 'need' ? 9 : -a.frac, B = b.status === 'need' ? 9 : -b.frac;
       return A - B;
@@ -132,13 +251,177 @@
   }
   var ST_LABEL = { ok: 'OK', soon: 'Due soon', over: 'Overdue', need: 'Need record' };
 
+  /* ---------- tile sheet: Mark done + SOP ---------- */
+  var BASIS = { manual: 'From the manual', mixed: 'Manual specs plus general shop practice', general: 'General guidance, not from a manual' };
+  var TAG = { m: ['Ram manual', 'm'], d: ['Dexter', 'd'], b: ['Big Tex', 'b'], c: ['Company rule', 'c'], g: ['General guidance', 'g'] };
+  function sheetHost() {
+    var h = document.getElementById('mt-sheet');
+    if (!h) {
+      h = document.createElement('div'); h.id = 'mt-sheet'; h.className = 'mt-sheet'; h.hidden = true;
+      document.body.appendChild(h);
+      h.addEventListener('click', function (e) {
+        var t = e.target;
+        if (t && t.hasAttribute && t.hasAttribute('data-mt-close')) { closeSheet(); return; }
+        var b = t && t.closest ? t.closest('[data-mt-tab],[data-mt-undo],[data-mt-redo]') : null;
+        if (!b || !st.sheet) return;
+        if (b.hasAttribute('data-mt-tab')) { st.sheet.tab = b.getAttribute('data-mt-tab'); st.sheet.err = ''; renderSheet(); var sc = h.querySelector('.mt-sh-body'); if (sc) sc.scrollTop = 0; }
+        else if (b.hasAttribute('data-mt-undo')) undoEntry(b.getAttribute('data-mt-undo'));
+        else if (b.hasAttribute('data-mt-redo')) redoEntry(b.getAttribute('data-mt-redo'));
+      });
+      h.addEventListener('input', function (e) {
+        var t = e.target, f = st.sheet && st.sheet.f; if (!f || !t.id) return;
+        var k = { 'mt-f-date': 'date', 'mt-f-odo': 'odo', 'mt-f-cost': 'cost', 'mt-f-vendor': 'vendor', 'mt-f-note': 'note' }[t.id];
+        if (k) { f[k] = t.value; f.odoTouched = f.odoTouched || k === 'odo'; updatePreview(); }
+      });
+      h.addEventListener('submit', function (e) { e.preventDefault(); if (e.target && e.target.id === 'mt-done-form') saveDone(); });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && st.sheet) closeSheet(); });
+    }
+    return h;
+  }
+  function rowFor(id) {
+    var P = st.pub; if (!P) return null;
+    var it = P.schedule.filter(function (x) { return x.id === id; })[0]; if (!it) return null;
+    return calc(withEntry(it), P, odo());
+  }
+  function openSheet(id, tab) {
+    var P = st.pub, O = odo(); if (!P || !O) return;
+    var it = P.schedule.filter(function (x) { return x.id === id; })[0]; if (!it) return;
+    var isT = it.unit === 'trailer';
+    st.sheet = { id: id, tab: tab || 'done', err: '', f: { date: todayIso(), odo: String(Math.round(isT ? O.trailer : O.cur)), cost: '', vendor: '', note: '', odoTouched: false, est: Math.round(isT ? O.trailer : O.cur) } };
+    renderSheet();
+    var h = sheetHost(), c = h.querySelector('.mt-sh-x'); if (c) c.focus();
+  }
+  function closeSheet() { st.sheet = null; renderSheet(); }
+  function refreshSheet() {
+    if (!st.sheet) return;
+    var a = document.activeElement, h = sheetHost();
+    if (a && h.contains(a) && /^(INPUT|TEXTAREA)$/.test(a.tagName)) return;
+    renderSheet();
+  }
+  function infoHtml(r) {
+    var it = r.it, P = st.pub;
+    var eta = (r.etaDays != null && r.status !== 'over' && it.unit === 'truck') ? ' At the recent pace (EST) that is about ' + etaDate(r.etaDays) + '.' : '';
+    var basis = r.status === 'need' ? '' : (it.baseline ? 'No service on record: counted from delivery (' + md(r.lastDate) + ').' : 'Last done ' + ymd(r.lastDate) + (it.last_odo != null ? ' at ' + n0(it.last_odo) + (it.unit === 'trailer' ? ' trailer mi' : ' mi') : '') + '.');
+    return (basis ? '<p>' + esc(basis + eta) + '</p>' : '');
+  }
+  function infoFoot(r) {
+    var it = r.it, srcs = (it.src || []).map(function (k) { return (st.pub.sources || {})[k]; }).filter(Boolean);
+    if (!it.note && !srcs.length) return '';
+    return '<div class="mt-sh-foot"><div class="mt-sub">About this interval</div>' + (it.note ? '<p>' + esc(it.note) + '</p>' : '') +
+      (srcs.length ? '<p class="mt-src">Source: ' + srcs.map(esc).join(' | ') + '</p>' : '') + '</div>';
+  }
+  function histRow(e, withItem) {
+    var priv = !!st.priv || !!e.pending;
+    return '<div class="mt-hrow' + (e.undone ? ' mt-undone' : '') + '"><div class="mt-hrow-m"><b>' + ymd(e.date) + (withItem ? ' | ' + esc(itemName(e.item_id)) : '') + '</b>' +
+      '<span>' + (e.odo != null ? n0(e.odo) + (e.unit === 'trailer' ? ' trailer mi' : ' mi') + (e.odo_est ? ' (EST)' : '') : 'no miles') +
+      (priv && e.cost != null ? ' | ' + m2(e.cost) : '') + (e.vendor ? ' | ' + esc(e.vendor) : '') + '</span>' +
+      (e.note ? '<span class="mt-hnote">' + esc(e.note) + '</span>' : '') +
+      (e.pending ? '<span class="mt-chip mt-chip-unk">Waiting to sync</span>' : '') + (e.undone ? '<span class="mt-chip mt-chip-unk">Undone</span>' : '') + '</div>' +
+      (e.undone ? '<button type="button" class="mt-mini" data-mt-redo="' + esc(e.id) + '">Restore</button>' : '<button type="button" class="mt-mini" data-mt-undo="' + esc(e.id) + '">Undo</button>') + '</div>';
+  }
+  function doneTab(r) {
+    var it = r.it, f = st.sheet.f, isT = it.unit === 'trailer';
+    var mine = effEntries().filter(function (e) { return e.item_id === it.id; }).sort(cmpEntry).reverse();
+    var hint = f.odoTouched ? 'Entered by you.' : 'Prefilled with the current ' + (isT ? 'trailer-mile' : 'odometer') + ' estimate. Change it if you read the real number.';
+    return '<form id="mt-done-form" class="mt-form" autocomplete="off" novalidate>' +
+      '<label>Date done<input id="mt-f-date" type="date" max="' + todayIso() + '" value="' + esc(f.date) + '" /></label>' +
+      '<label>' + (isT ? 'Trailer miles' : 'Odometer (mi)') + (it.int_mi ? '' : ' (optional)') + '<input id="mt-f-odo" type="number" inputmode="numeric" min="0" step="1" value="' + esc(f.odo) + '" /><small>' + esc(hint) + '</small></label>' +
+      '<label>Cost ($, optional)<input id="mt-f-cost" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" value="' + esc(f.cost) + '" /><small>Costs are only sent through the PIN-checked relay.</small></label>' +
+      '<label>Shop or who did it<input id="mt-f-vendor" type="text" maxlength="80" placeholder="Self, shop name" value="' + esc(f.vendor) + '" /></label>' +
+      '<label>Note<textarea id="mt-f-note" rows="2" maxlength="300" placeholder="Parts used, what you saw">' + esc(f.note) + '</textarea></label>' +
+      '<p class="mt-preview" id="mt-preview"></p>' +
+      (st.sheet.err ? '<p class="mt-err" role="alert">' + esc(st.sheet.err) + '</p>' : '') +
+      '<button type="submit" class="btn primary mt-save">Mark done</button>' +
+      (pin() ? '' : '<p class="mt-fine">No PIN on this phone: it will be saved here and sent once you unlock the costs section.</p>') + '</form>' +
+      '<div class="mt-sub">History for this item</div>' +
+      (mine.length ? '<div class="mt-hist">' + mine.map(function (e) { return histRow(e, false); }).join('') + '</div>' : '<p class="mt-fine">No check-offs yet.</p>');
+  }
+  function sopTab(r) {
+    var it = r.it, S = (st.pub.sop || {})[it.id];
+    if (!S) return '<p class="mt-fine">No SOP written for this item yet.</p>';
+    function list(a, cls) { return '<ul class="mt-list ' + (cls || '') + '">' + a.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>'; }
+    var specs = (S.specs || []).map(function (s) {
+      var t = TAG[s[2]] || TAG.g;
+      return '<div class="mt-spec"><div><span>' + esc(s[0]) + '</span><b>' + esc(s[1]) + '</b></div><i class="mt-tag mt-tag-' + t[1] + '">' + esc(t[0]) + '</i></div>';
+    }).join('');
+    return '<div class="mt-sop"><p class="mt-sop-about">' + esc(S.about || '') + '</p>' +
+      '<p class="mt-fine">' + esc(BASIS[S.basis] || BASIS.mixed) + '. Anything tagged General guidance is shop practice, not a manual spec.</p>' +
+      (specs ? '<div class="mt-sub">Specs and intervals</div><div class="mt-specs">' + specs + '</div>' : '') +
+      '<div class="mt-sub">Tools</div>' + list(S.tools || []) +
+      '<div class="mt-sub">Parts and fluids</div>' + list(S.parts || []) +
+      '<div class="mt-sub">Steps</div><ol class="mt-steps">' + (S.steps || []).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ol>' +
+      ((S.safety || []).length ? '<div class="mt-warnbox"><b>Safety</b>' + list(S.safety) + '</div>' : '') +
+      (S.note ? '<p class="mt-fine">' + esc(S.note) + '</p>' : '') +
+      '<button type="button" class="btn primary mt-save" data-mt-tab="done">Done with the job: mark it done</button></div>';
+  }
+  function renderSheet() {
+    var h = sheetHost();
+    if (!st.sheet || !st.pub) {
+      h.hidden = true; h.innerHTML = ''; document.documentElement.classList.remove('mt-noscroll'); return;
+    }
+    var r = rowFor(st.sheet.id); if (!r) { st.sheet = null; renderSheet(); return; }
+    var it = r.it, tone = r.status === 'over' ? 'bad' : (r.status === 'soon' ? 'warn' : (r.status === 'need' ? 'need' : 'ok'));
+    var intv = intervalText(it), tab = st.sheet.tab;
+    var scroll = h.querySelector('.mt-sh-body'), keep = scroll ? scroll.scrollTop : 0;
+    h.hidden = false; document.documentElement.classList.add('mt-noscroll');
+    h.innerHTML = '<div class="mt-sh-bd" data-mt-close="1"></div><div class="mt-sh-p" role="dialog" aria-modal="true" aria-label="' + esc(it.item) + '">' +
+      '<div class="mt-sh-grab" aria-hidden="true"></div>' +
+      '<div class="mt-sh-h"><div><b>' + esc(it.item) + '</b><span>' + (it.unit === 'trailer' ? 'Trailer' : 'Truck') + ' | every ' + esc(intv) + '</span></div>' +
+      '<button type="button" class="mt-sh-x" data-mt-close="1" aria-label="Close">Close</button></div>' +
+      '<div class="mt-sh-body"><div class="mt-sh-info">' + pill(tone, ST_LABEL[r.status]) + dueLine(r) + infoHtml(r) + '</div>' +
+      '<div class="mt-segs mt-tabs" role="tablist"><button type="button" role="tab" class="mt-seg' + (tab === 'done' ? ' on' : '') + '" data-mt-tab="done" aria-selected="' + (tab === 'done') + '">Mark done</button>' +
+      '<button type="button" role="tab" class="mt-seg' + (tab === 'sop' ? ' on' : '') + '" data-mt-tab="sop" aria-selected="' + (tab === 'sop') + '">SOP: how to</button></div>' +
+      (tab === 'sop' ? sopTab(r) : doneTab(r)) + infoFoot(r) + '</div></div>';
+    var nb = h.querySelector('.mt-sh-body'); if (nb) nb.scrollTop = keep;
+    updatePreview();
+  }
+  function intervalText(it) {
+    return (it.int_mi ? n0(it.int_mi) + ' mi' : '') + (it.int_mi && it.int_mo ? ' or ' : '') + (it.int_mo ? (it.int_mo % 12 === 0 && it.int_mo >= 12 ? (it.int_mo / 12) + ' yr' : it.int_mo + ' mo') : '');
+  }
+  function dueLine(r) {
+    if (r.status === 'need') return '<p class="mt-next"><b>No record on file.</b> Mark it done to start the clock.</p>';
+    var a = [];
+    if (r.remMi != null) a.push((r.remMi > 0 ? n0(r.remMi) + ' mi left' : n0(-r.remMi) + ' mi over') + ' (due at ' + n0(r.dueOdo) + ')');
+    if (r.remD != null) a.push(r.remD > 0 ? 'by ' + ymd(r.dueDate) + ' (' + r.remD + ' d)' : 'date passed ' + ymd(r.dueDate));
+    return '<p class="mt-next"><b>' + esc(a.join(' or ')) + '</b></p>';
+  }
+  function updatePreview() {
+    var el = document.getElementById('mt-preview'); if (!el || !st.sheet) return;
+    var it = (st.pub.schedule || []).filter(function (x) { return x.id === st.sheet.id; })[0], f = st.sheet.f, bits = [];
+    var o = Number(f.odo);
+    if (it.int_mi && f.odo !== '' && o >= 0) bits.push('at ' + n0(o + it.int_mi) + (it.unit === 'trailer' ? ' trailer mi' : ' mi'));
+    if (it.int_mo && /^\d{4}-\d{2}-\d{2}$/.test(f.date)) bits.push('by ' + ymd(addMonths(f.date, it.int_mo)));
+    el.textContent = bits.length ? 'Saving resets the next due to ' + bits.join(' or ') + '.' : '';
+  }
+  function saveDone() {
+    var s = st.sheet; if (!s) return;
+    var P = st.pub, it = P.schedule.filter(function (x) { return x.id === s.id; })[0], f = s.f;
+    function fail(m) { s.err = m; renderSheet(); }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(f.date || '') || isNaN(utc(f.date))) return fail('Pick the date it was done.');
+    if (f.date > todayIso()) return fail('That date is in the future.');
+    var odoV = null;
+    if (String(f.odo).trim() !== '') { odoV = Number(f.odo); if (!isFinite(odoV) || odoV < 0 || odoV > 2000000) return fail('Check the miles number.'); odoV = Math.round(odoV); }
+    else if (it.int_mi) return fail('Enter the miles so the next due is right.');
+    var costV = null;
+    if (String(f.cost).trim() !== '') { costV = Number(f.cost); if (!isFinite(costV) || costV < 0 || costV > 100000) return fail('Check the cost.'); costV = Math.round(costV * 100) / 100; }
+    var vendor = String(f.vendor || '').trim().slice(0, 80), note = String(f.note || '').trim().slice(0, 300);
+    if (PII_RE.test(vendor) || PII_RE.test(note)) return fail('Leave phone numbers and emails out of the log.');
+    var entry = { id: newId(), item_id: it.id, unit: it.unit === 'trailer' ? 'trailer' : 'truck', date: f.date, odo: odoV, odo_est: odoV != null && odoV === f.est, cost: costV, vendor: vendor, note: note, at: new Date().toISOString() };
+    addEntry(entry);
+    setToast('Checked off: ' + it.item + '. ' + (pin() ? 'Saving to every device...' : 'Saved on this phone. Unlock with the PIN to sync.'), entry.id);
+    closeSheet(); render(); flush();
+    var d = document.getElementById('mt-due'); if (d && d.scrollIntoView) { /* stay put */ }
+  }
+
   /* ---------- pieces ---------- */
   function card(id, title, sub, body) {
     return '<section class="mt-card" id="' + id + '"><div class="mt-h"><h3>' + title + '</h3>' + (sub ? '<span>' + sub + '</span>' : '') + '</div>' + body + '</section>';
   }
   function pill(cls, t) { return '<span class="mt-pill mt-pill-' + cls + '">' + esc(t) + '</span>'; }
-  function tile(label, big, sub, tone) {
-    return '<div class="mt-tile mt-t-' + (tone || 'ok') + '"><span>' + esc(label) + '</span><b>' + esc(big) + '</b><small>' + esc(sub) + '</small></div>';
+  function tile(label, big, sub, tone, key) {
+    var inner = '<span>' + esc(label) + '</span><b>' + esc(big) + '</b><small>' + esc(sub) + '</small>';
+    if (key) return '<button type="button" class="mt-tile mt-tile-btn mt-t-' + (tone || 'ok') + (st.status === key ? ' on' : '') + '" data-mt-status="' + key + '" aria-pressed="' + (st.status === key ? 'true' : 'false') + '">' + inner + '</button>';
+    return '<div class="mt-tile mt-t-' + (tone || 'ok') + '">' + inner + '</div>';
   }
   function lockIcon() { return '<svg viewBox="0 0 24 24" class="mt-lk" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></g></svg>'; }
   function lockCard(msg) {
@@ -158,7 +441,7 @@
     var L = P.ledger_miles || {};
     var body = '<div class="mt-big">' + n0(O.cur) + ' mi<span>Ram 3500 odometer ' + T + '. ' + (O.est
       ? 'Last reading ' + n0(O.reading) + ' mi on ' + ymd(O.as_of) + ', plus ' + n0(O.since) + ' mi from ' + (L.loads || 0) + ' loads since (a floor).'
-      : 'Read on ' + ymd(O.as_of) + ', entered on this phone.') + '</span></div>' +
+      : (O.fromEntry ? 'Read on ' + ymd(O.as_of) + ' at a check-off.' : 'Read on ' + ymd(O.as_of) + ', entered on this phone.')) + '</span></div>' +
       '<div class="mt-rows"><div class="mt-row"><span>Last real reading</span><b>' + n0(O.reading) + ' mi<small>' + esc(O.source) + '</small></b></div>' +
       '<div class="mt-row"><span>As of</span><b>' + ymd(O.as_of) + '<small>' + (O.local ? 'newer than the records file' : daysBetween(O.as_of, todayIso()) + ' days ago') + '</small></b></div>' +
       '<div class="mt-row"><span>Trailer miles (EST)</span><b>' + n0(O.trailer) + ' mi<small>Loads run since ' + ymd(O.trailerStart) + ' plus truck miles since the reading. The trailer has no odometer.</small></b></div>' +
@@ -173,10 +456,10 @@
     var nxt = rows.filter(function (r) { return r.status !== 'need'; })[0];
     var nSub = nxt ? (nxt.remMi != null ? (nxt.remMi > 0 ? n0(nxt.remMi) + ' mi left' : n0(-nxt.remMi) + ' mi over') : (nxt.remD > 0 ? nxt.remD + ' d left' : -nxt.remD + ' d over')) : '';
     return '<div class="mt-tiles">' +
-      tile('Overdue', String(c.over), c.over ? 'No record, past interval' : 'Nothing past due', c.over ? 'bad' : 'ok') +
-      tile('Due soon', String(c.soon), 'Within the warning window', c.soon ? 'warn' : 'ok') +
-      tile('Need record', String(c.need), 'Annual DOT inspections', c.need ? 'warn' : 'ok') +
-      '</div>' + (nxt ? '<p class="mt-next">Most urgent: <b>' + esc(nxt.it.item) + '</b> (' + (nxt.it.unit === 'trailer' ? 'trailer' : 'truck') + '), ' + esc(nSub) + '</p>' : '');
+      tile('Overdue', String(c.over), c.over ? 'Past the interval. Tap to list' : 'Nothing past due', c.over ? 'bad' : 'ok', 'over') +
+      tile('Due soon', String(c.soon), 'Within the warning window. Tap', c.soon ? 'warn' : 'ok', 'soon') +
+      tile('Need record', String(c.need), 'Annual DOT inspections. Tap', c.need ? 'warn' : 'ok', 'need') +
+      '</div>' + (nxt ? '<p class="mt-next">Most urgent: <b>' + esc(nxt.it.item) + '</b>' + (/\((truck|trailer)\)/.test(nxt.it.item) ? '' : ' (' + (nxt.it.unit === 'trailer' ? 'trailer' : 'truck') + ')') + ', ' + esc(nSub) + '</p>' : '');
   }
   function rowHtml(r) {
     var it = r.it, tone = r.status === 'over' ? 'bad' : (r.status === 'soon' ? 'warn' : (r.status === 'need' ? 'need' : 'ok'));
@@ -188,30 +471,30 @@
       if (r.remD != null) l2 = (r.remD > 0 ? 'or by ' + ymd(r.dueDate) + ' (' + r.remD + ' d)' : 'date passed ' + ymd(r.dueDate));
       if (!l1) { l1 = (r.remD > 0 ? r.remD + ' d left' : -r.remD + ' d over'); l2 = 'Due ' + ymd(r.dueDate); }
     }
-    var eta = (r.etaDays != null && r.status !== 'over' && it.unit === 'truck') ? ' At the recent pace (EST) that is about ' + etaDate(r.etaDays) + '.' : '';
-    var basis = r.status === 'need' ? '' : (it.baseline ? 'No service on record: counted from delivery (' + md(r.lastDate) + ').' : 'Last done ' + ymd(r.lastDate) + (it.last_odo != null ? ' at ' + n0(it.last_odo) + ' mi' : '') + '.');
-    var srcs = (it.src || []).map(function (k) { return (st.pub.sources || {})[k]; }).filter(Boolean);
-    var intv = (it.int_mi ? n0(it.int_mi) + ' mi' : '') + (it.int_mi && it.int_mo ? ' or ' : '') + (it.int_mo ? (it.int_mo % 12 === 0 && it.int_mo >= 12 ? (it.int_mo / 12) + ' yr' : it.int_mo + ' mo') : '');
-    return '<details class="mt-due mt-due-' + tone + '"><summary><div class="mt-due-top"><b>' + esc(it.item) + '</b>' + pill(tone, ST_LABEL[r.status]) + '</div>' +
+    var intv = intervalText(it), ck = it.checked_off;
+    var done = ck ? '<span class="mt-done-tag">Done ' + md(ck.date) + (ck.pending ? ' (syncing)' : '') + '</span>' : '';
+    return '<button type="button" class="mt-due mt-due-' + tone + '" data-mt-item="' + esc(it.id) + '" aria-label="' + esc(it.item + ': open mark done and SOP') + '">' +
+      '<div class="mt-due-top"><b>' + esc(it.item) + '</b>' + pill(tone, ST_LABEL[r.status]) + '</div>' +
       '<div class="mt-due-tag">' + (it.unit === 'trailer' ? 'Trailer' : 'Truck') + ' | every ' + esc(intv) + (r.status !== 'need' && it.baseline ? ' | no record' : '') + '</div>' +
       '<div class="mt-bar"><i style="width:' + pct.toFixed(1) + '%"></i></div>' +
-      '<div class="mt-due-l"><span>' + esc(l1) + '</span><span>' + esc(l2) + '</span></div></summary>' +
-      '<div class="mt-due-more">' + (basis ? '<p>' + esc(basis + eta) + '</p>' : '') + (it.note ? '<p>' + esc(it.note) + '</p>' : '') +
-      (srcs.length ? '<p class="mt-src">Source: ' + srcs.map(esc).join(' | ') + '</p>' : '') + '</div></details>';
+      '<div class="mt-due-l"><span>' + esc(l1) + '</span><span>' + esc(l2) + '</span></div>' +
+      '<div class="mt-due-act">' + done + '<span>Tap: mark done or SOP</span></div></button>';
   }
   function etaDate(days) { var d = new Date(); d.setDate(d.getDate() + days); return MON[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear(); }
+
   function secDue(rows) {
     var seg = ['all', 'truck', 'trailer'].map(function (k) {
       var n = rows.filter(function (r) { return k === 'all' || r.it.unit === k; }).length;
       return '<button type="button" class="mt-seg' + (st.unit === k ? ' on' : '') + '" data-mt-unit="' + k + '" aria-pressed="' + (st.unit === k ? 'true' : 'false') + '">' + (k === 'all' ? 'All' : (k === 'truck' ? 'Truck' : 'Trailer')) + ' ' + n + '</button>';
     }).join('');
-    var list = rows.filter(function (r) { return st.unit === 'all' || r.it.unit === st.unit; });
+    var list = rows.filter(function (r) { return (st.unit === 'all' || r.it.unit === st.unit) && (!st.status || r.status === st.status); });
+    var sf = st.status ? '<p class="mt-filt">Showing ' + esc(ST_LABEL[st.status]) + ' only (' + list.length + ') <button type="button" class="mt-mini" data-mt-status="">Show all</button></p>' : '';
     return card('mt-due', 'Due next', 'Miles or date, whichever comes first',
-      '<div class="mt-segs">' + seg + '</div><div class="mt-dues">' + list.map(rowHtml).join('') + '</div>' +
-      '<p class="mt-fine">Bar = share of the interval used. Tap a row for the last service, the notes and the source. Truck miles use the odometer estimate above. Trailer miles are estimated from loads. Items marked no record have never been logged, so they count from delivery.</p>');
+      '<div class="mt-segs">' + seg + '</div>' + sf + '<div class="mt-dues">' + (list.length ? list.map(rowHtml).join('') : '<p class="mt-fine">Nothing here.</p>') + '</div>' +
+      '<p class="mt-fine">Bar = share of the interval used. Tap any item to mark it done (resets the next due) or open its SOP. Truck miles use the odometer estimate above. Trailer miles are estimated from loads. Items marked no record have never been logged, so they count from delivery.</p>');
   }
 
-  var KIND = { service: 'Service', repair: 'Repair', def: 'DEF', setup: 'Setup', cosmetic: 'Detail', baseline: 'Baseline' };
+  var KIND = { done: 'Check-off', service: 'Service', repair: 'Repair', def: 'DEF', setup: 'Setup', cosmetic: 'Detail', baseline: 'Baseline' };
   function unitName(u) { return u === 'truck' ? 'Truck' : (u === 'trailer' ? 'Trailer' : 'Unit unclear'); }
   function costOf(e) { var p = st.priv; return p && p.costs ? p.costs[e.id] : null; }
   function secLog(P) {
@@ -219,26 +502,27 @@
     var chips = [['all', 'All'], ['truck', 'Truck'], ['trailer', 'Trailer'], ['service', 'Service and repair'], ['def', 'DEF']].map(function (c) {
       return '<button type="button" class="mt-seg' + (f === c[0] ? ' on' : '') + '" data-mt-log="' + c[0] + '" aria-pressed="' + (f === c[0] ? 'true' : 'false') + '">' + c[1] + '</button>';
     }).join('');
-    var list = P.log.slice().reverse().filter(function (e) {
+    var ents = activeEntries().map(function (e) { return { id: e.id, date: e.date, unit: e.unit, kind: 'done', job: 'Done: ' + itemName(e.item_id), odo: e.odo, odoEst: e.odo_est, vendor: e.vendor, note: e.note, ent: e }; });
+    var list = ents.concat(P.log.slice().reverse()).sort(function (a, b) { return a.date < b.date ? 1 : (a.date > b.date ? -1 : 0); }).filter(function (e) {
       if (f === 'all') return true;
       if (f === 'truck' || f === 'trailer') return e.unit === f;
-      if (f === 'service') return e.kind === 'service' || e.kind === 'repair';
+      if (f === 'service') return e.kind === 'service' || e.kind === 'repair' || e.kind === 'done';
       return e.kind === f;
     });
     var priv = !!st.priv;
     var rows = list.map(function (e) {
-      var c = costOf(e);
-      var cost = priv ? (c && c.cost != null ? '<b class="mt-cost">' + m2(c.cost) + (c.est ? '<small>EST</small>' : '') + '</b>' : '<b class="mt-cost mt-unk">unknown</b>') : '<b class="mt-cost mt-lockd">' + lockIcon() + '</b>';
-      var odoTxt = e.odo != null ? n0(e.odo) + ' mi' : 'odometer unknown';
-      var paid = priv ? (c && c.paid_by ? 'Paid by ' + c.paid_by : (e.kind === 'baseline' ? '' : 'Paid by: unknown')) : '';
-      var note = priv && c && c.note ? c.note : e.note;
+      var c = e.ent ? { cost: e.ent.cost, paid_by: '' } : costOf(e);
+      var cost = (priv || e.ent) ? (c && c.cost != null ? '<b class="mt-cost">' + m2(c.cost) + (c.est ? '<small>EST</small>' : '') + '</b>' : '<b class="mt-cost mt-unk">unknown</b>') : '<b class="mt-cost mt-lockd">' + lockIcon() + '</b>';
+      var odoTxt = e.odo != null ? n0(e.odo) + (e.unit === 'trailer' && e.ent ? ' trailer mi' : ' mi') + (e.odoEst ? ' EST' : '') : 'odometer unknown';
+      var paid = (priv && !e.ent) ? (c && c.paid_by ? 'Paid by ' + c.paid_by : (e.kind === 'baseline' ? '' : 'Paid by: unknown')) : '';
+      var note = priv && c && c.note && !e.ent ? c.note : e.note;
       return '<div class="mt-log mt-log-' + esc(e.kind) + '"><div class="mt-log-d"><b>' + md(e.date) + '</b><span>' + String(e.date).slice(0, 4) + '</span></div>' +
         '<div class="mt-log-m"><div class="mt-log-t"><b>' + esc(e.job) + '</b></div>' +
-        '<div class="mt-log-s"><span class="mt-chip mt-u-' + esc(e.unit) + '">' + unitName(e.unit) + '</span><span class="mt-chip">' + esc(KIND[e.kind] || e.kind) + '</span><span class="mt-chip' + (e.odo == null ? ' mt-chip-unk' : '') + '">' + odoTxt + '</span></div>' +
-        '<div class="mt-log-v">' + (e.vendor ? esc(e.vendor) : 'Vendor unknown') + (paid ? ' | ' + esc(paid) : '') + '</div>' +
+        '<div class="mt-log-s"><span class="mt-chip mt-u-' + esc(e.unit) + '">' + unitName(e.unit) + '</span><span class="mt-chip' + (e.ent ? ' mt-chip-done' : '') + '">' + esc(KIND[e.kind] || e.kind) + '</span>' + (e.ent && e.ent.pending ? '<span class="mt-chip mt-chip-unk">Syncing</span>' : '') + '<span class="mt-chip' + (e.odo == null ? ' mt-chip-unk' : '') + '">' + odoTxt + '</span></div>' +
+        '<div class="mt-log-v">' + (e.vendor ? esc(e.vendor) : (e.ent ? 'Shop not entered' : 'Vendor unknown')) + (paid ? ' | ' + esc(paid) : '') + '</div>' +
         (note ? '<p class="mt-log-n">' + esc(note) + '</p>' : '') + '</div>' + cost + '</div>';
     }).join('');
-    return card('mt-log', 'Service log', P.log.length + ' entries from the books',
+    return card('mt-log', 'Service log', (P.log.length + ents.length) + ' entries',
       '<div class="mt-segs mt-segs-wrap">' + chips + '</div><div class="mt-logs">' + (rows || '<p class="mt-fine">Nothing in this filter.</p>') + '</div>' +
       '<p class="mt-fine">Built from the ledger, receipts and the WhatsApp group. Nothing is guessed: a blank odometer, shop or cost means it is not in the records. Tell Grok Bot about any job that is missing.</p>');
   }
@@ -255,6 +539,10 @@
         if (k === 'def') { t.def += c.cost; if (e.date.slice(0, 7) === ym) t.defM += c.cost; }
         else { t.svc += c.cost; t.svcN++; if (e.date.slice(0, 7) === ym) t.svcM += c.cost; }
       } else if ((k === 'setup' || k === 'cosmetic') && c && c.cost) t.excl += c.cost;
+    });
+    activeEntries().forEach(function (e) {
+      if (e.cost == null) return;
+      t.svc += e.cost; t.svcN++; if (String(e.date).slice(0, 7) === ym) t.svcM += e.cost;
     });
     var u = P.units[0], miles = Math.max(O.cur - (u.start_odo || 0), 1);
     var all = t.svc + t.def;
@@ -325,6 +613,18 @@
       '<p class="mt-fine">Our oil change is every 5,000 mi, tighter than the Ram manual (15,000 mi or 12 months maximum) and the severe-duty towing schedule (7,500 mi or 6 months). Heavy towing can justify shorter fluid intervals than the manual lists. Check the manual and your dealer before relying on any date here.</p></section>';
   }
 
+  function secHist() {
+    var all = effEntries().sort(cmpEntry).reverse(), q = queue().length;
+    var sync = q ? '<div class="mt-sync"><span>' + q + ' waiting to sync' + (st.syncMsg ? '. ' + esc(st.syncMsg) : '') + '</span><button type="button" class="mt-mini" id="mt-sync">' + (st.flushing ? 'Sending...' : 'Sync now') + '</button></div>' : '';
+    var body = all.length ? '<div class="mt-hist">' + all.slice(0, 40).map(function (e) { return histRow(e, true); }).join('') + '</div>' : '<p class="mt-fine">Nothing checked off yet. Tap any item under Due next, then Mark done.</p>';
+    return card('mt-hist', 'Check-off history', all.length ? all.length + ' saved' : 'Newest first', sync + body +
+      '<p class="mt-fine">Saved through the PIN-checked relay so they show on every device. Undo puts the item back to its earlier due date.</p>');
+  }
+  function toastHtml() {
+    if (!st.toast) return '';
+    return '<div class="mt-toast" role="status"><span>' + esc(st.toast) + '</span>' + (st.toastUndo ? '<button type="button" class="mt-mini" data-mt-undo-t="' + esc(st.toastUndo) + '">Undo</button>' : '') + '</div>';
+  }
+
   /* ---------- render ---------- */
   function render() {
     var el = root(); if (!el) return;
@@ -338,15 +638,15 @@
       return;
     }
     var O = odo(), rows = allRows();
-    var nav = [['mt-odo', 'Odometer'], ['mt-due', 'Due next'], ['mt-log', 'Log'], ['mt-spend', 'Spend'], ['mt-warr', 'Warranty'], ['mt-chk', 'Checks'], ['mt-need', 'Need']];
+    var nav = [['mt-odo', 'Odometer'], ['mt-due', 'Due next'], ['mt-hist', 'Done'], ['mt-log', 'Log'], ['mt-spend', 'Spend'], ['mt-warr', 'Warranty'], ['mt-chk', 'Checks'], ['mt-need', 'Need']];
     var built = P.built_at ? new Date(P.built_at) : null;
     var stamp = built && !isNaN(built.getTime()) ? ' Records built ' + built.toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + ' CT.' : '';
     el.innerHTML =
       '<div class="mt-top"><div><div class="mt-kicker">Sand Lily Pad LLC</div><h2>Maintenance</h2></div>' +
       '<div class="mt-acts"><button type="button" class="mt-btn" id="mt-refresh" aria-label="Refresh">' + (st.loading ? '...' : 'Refresh') + '</button></div></div>' +
-      secTiles(rows) + secDue(rows) +
+      toastHtml() + secTiles(rows) + secDue(rows) +
       '<nav class="mt-jump">' + nav.map(function (j) { return '<a href="#' + j[0] + '" data-mt-jump="' + j[0] + '">' + j[1] + '</a>'; }).join('') + '</nav>' +
-      secOdo(P, O) + secLog(P) + secSpend(P, O) + secWarranty(P, O) + secChecks(P) + secNeed(P) + secSources(P) +
+      secOdo(P, O) + secHist() + secLog(P) + secSpend(P, O) + secWarranty(P, O) + secChecks(P) + secNeed(P) + secSources(P) +
       '<p class="mt-foot">Estimates are marked EST. Not a mechanic\'s advice.' + esc(stamp) + (st.error && st.error !== 'nopin' && st.error !== 'wrongpin' ? ' ' + esc(st.error) : '') + '</p>';
     bind();
   }
@@ -358,6 +658,12 @@
       var v = (document.getElementById('mt-pin').value || '').trim(); if (!v) return;
       setPin(v); st.error = ''; st.priv = null; fetchPriv(true);
     });
+    el.querySelectorAll('[data-mt-item]').forEach(function (b) { b.addEventListener('click', function () { openSheet(b.getAttribute('data-mt-item'), 'done'); }); });
+    el.querySelectorAll('[data-mt-status]').forEach(function (b) { b.addEventListener('click', function () { var k = b.getAttribute('data-mt-status'); st.status = (k && st.status === k) ? '' : k; render(); if (st.status) { var d = document.getElementById('mt-due'); if (d) d.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }); });
+    el.querySelectorAll('[data-mt-undo]').forEach(function (b) { b.addEventListener('click', function () { undoEntry(b.getAttribute('data-mt-undo')); }); });
+    el.querySelectorAll('[data-mt-redo]').forEach(function (b) { b.addEventListener('click', function () { redoEntry(b.getAttribute('data-mt-redo')); }); });
+    el.querySelectorAll('[data-mt-undo-t]').forEach(function (b) { b.addEventListener('click', function () { st.toast = ''; undoEntry(b.getAttribute('data-mt-undo-t')); }); });
+    var sy = document.getElementById('mt-sync'); if (sy) sy.addEventListener('click', function () { if (!pin()) { st.syncMsg = 'Enter the PIN under Maintenance spend first.'; render(); return; } flush(); fetchPriv(true); });
     var r = document.getElementById('mt-refresh'); if (r) r.addEventListener('click', function () { st.pub = null; loadPublic(); fetchPriv(true); });
     el.querySelectorAll('[data-mt-jump]').forEach(function (a) {
       a.addEventListener('click', function (e) { e.preventDefault(); var t = document.getElementById(a.getAttribute('data-mt-jump')); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
@@ -450,16 +756,56 @@
       '.mt-lock{align-items:center;text-align:center;padding:var(--s-4) var(--s-2)}.mt-lock h3{margin:0;font-size:var(--fs-xl);font-weight:800;color:var(--c-text-1)}' +
       '.mt-lock-ico{width:56px;height:56px;border-radius:50%;background:var(--c-surface-3);color:var(--c-accent-hi);display:grid;place-items:center}.mt-lock-ico svg{width:28px;height:28px}' +
       '.mt-pin{display:flex;gap:var(--s-1);width:100%;max-width:320px}.mt-pin input{flex:1;min-width:0;min-height:var(--tap);padding:0 var(--s-1h);border-radius:var(--radius-sm);border:1px solid var(--c-line-strong);background:var(--c-surface-2);color:var(--c-text-1);font-size:var(--fs-base)}';
+    s.textContent +=
+      '.mt-tile-btn{font:inherit;text-align:left;cursor:pointer;color:inherit;width:100%}.mt-tile-btn.on{border-color:var(--c-gold);box-shadow:0 0 0 1px var(--c-gold) inset}' +
+      '.mt-tile-btn:active,.mt-due:active{transform:scale(.99)}' +
+      'button.mt-due{display:flex;flex-direction:column;gap:6px;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;padding:var(--s-1h);border:0;border-left:4px solid var(--c-take)}' +
+      'button.mt-due.mt-due-warn{border-left-color:var(--c-maybe)}button.mt-due.mt-due-bad{border-left-color:#F87171}button.mt-due.mt-due-need{border-left-color:var(--c-line-strong);border-left-style:dashed}' +
+      '.mt-due-act{display:flex;justify-content:space-between;align-items:center;gap:var(--s-1);font-size:11px;font-weight:800;color:var(--c-accent-hi)}.mt-due-act>span:last-child{margin-left:auto}' +
+      '.mt-done-tag{background:var(--c-take-bg);color:var(--c-take);padding:2px 8px;border-radius:var(--radius-pill)}' +
+      '.mt-filt{margin:0;font-size:var(--fs-xs);font-weight:700;color:var(--c-text-2);display:flex;align-items:center;gap:var(--s-1)}' +
+      '.mt-mini{min-height:34px;padding:0 12px;border-radius:var(--radius-pill);border:1px solid var(--c-line-strong);background:var(--c-surface-3);color:var(--c-text-1);font:inherit;font-size:var(--fs-xs);font-weight:800;cursor:pointer;flex:none}' +
+      '.mt-toast{display:flex;align-items:center;justify-content:space-between;gap:var(--s-1);padding:var(--s-1h);border-radius:var(--radius-md);background:var(--c-take-bg);border:1px solid var(--c-take);color:var(--c-text-1);font-size:var(--fs-sm);font-weight:700}' +
+      '.mt-sync{display:flex;align-items:center;justify-content:space-between;gap:var(--s-1);padding:var(--s-1);border-radius:var(--radius-md);background:var(--c-maybe-bg);color:var(--c-maybe);font-size:var(--fs-xs);font-weight:700}' +
+      '.mt-hist{display:flex;flex-direction:column;gap:6px}' +
+      '.mt-hrow{display:flex;align-items:center;justify-content:space-between;gap:var(--s-1);background:var(--c-surface-2);border-radius:var(--radius-md);padding:var(--s-1) var(--s-1h)}.mt-hrow.mt-undone{opacity:.6}' +
+      '.mt-hrow-m{display:flex;flex-direction:column;gap:3px;min-width:0}.mt-hrow-m b{font-size:var(--fs-sm);color:var(--c-text-1);line-height:1.3}.mt-hrow-m span{font-size:12px;color:var(--c-text-3);font-weight:600}.mt-hrow-m .mt-hnote{color:var(--c-text-2)}' +
+      '.mt-chip-done{background:var(--c-take-bg);color:var(--c-take)}' +
+      '.mt-noscroll,.mt-noscroll body{overflow:hidden}' +
+      '.mt-sheet{position:fixed;inset:0;z-index:2700}.mt-sheet[hidden]{display:none}' +
+      '.mt-sh-bd{position:absolute;inset:0;background:rgba(4,3,8,.66)}' +
+      '.mt-sh-p{position:absolute;left:0;right:0;bottom:0;max-height:92dvh;display:flex;flex-direction:column;background:var(--c-surface-2);border-top:1px solid var(--c-line-strong);border-radius:var(--radius-xl) var(--radius-xl) 0 0;box-shadow:var(--shadow-2);animation:moreUp .18s ease-out;padding-bottom:env(safe-area-inset-bottom)}' +
+      '@media(min-width:720px){.mt-sh-p{left:50%;right:auto;width:560px;transform:translateX(-50%)}}' +
+      '.mt-sh-grab{width:40px;height:4px;border-radius:2px;background:var(--c-line-strong);margin:8px auto 0}' +
+      '.mt-sh-h{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--s-1);padding:var(--s-1h) var(--s-2) var(--s-1)}.mt-sh-h b{display:block;font-size:var(--fs-lg);font-weight:900;color:var(--c-text-1);line-height:1.2}.mt-sh-h span{font-size:var(--fs-xs);color:var(--c-text-3);font-weight:700}' +
+      '.mt-sh-x{min-height:36px;padding:0 14px;border-radius:var(--radius-pill);border:1px solid var(--c-line-strong);background:var(--c-surface-3);color:var(--c-text-1);font:inherit;font-size:var(--fs-sm);font-weight:800;cursor:pointer;flex:none}' +
+      '.mt-sh-body{overflow-y:auto;overscroll-behavior:contain;padding:0 var(--s-2) var(--s-3);display:flex;flex-direction:column;gap:var(--s-1h)}' +
+      '.mt-sh-foot{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--c-line);padding-top:var(--s-1h)}.mt-sh-foot p{margin:0;font-size:var(--fs-sm);color:var(--c-text-2);line-height:1.4}.mt-sh-foot .mt-src{font-size:11px;color:var(--c-text-3)}' +
+      '.mt-sh-info{display:flex;flex-direction:column;gap:6px;align-items:flex-start}.mt-sh-info p{margin:0;font-size:var(--fs-sm);color:var(--c-text-2);line-height:1.4}.mt-sh-info .mt-src{font-size:11px;color:var(--c-text-3)}' +
+      '.mt-tabs .mt-seg{flex:1;min-height:42px}' +
+      '.mt-form{display:flex;flex-direction:column;gap:var(--s-1h)}.mt-form label{display:flex;flex-direction:column;gap:4px;font-size:var(--fs-xs);font-weight:800;color:var(--c-text-2)}' +
+      '.mt-form input,.mt-form textarea{min-height:var(--tap);padding:0 var(--s-1h);border-radius:var(--radius-sm);border:1px solid var(--c-line-strong);background:var(--c-surface-1);color:var(--c-text-1);font:inherit;font-size:16px;font-weight:600}.mt-form textarea{padding:var(--s-1) var(--s-1h);resize:vertical}' +
+      '.mt-form small{font-size:11px;font-weight:600;color:var(--c-text-3)}' +
+      '.mt-preview{margin:0;font-size:var(--fs-sm);font-weight:700;color:var(--c-gold)}.mt-preview:empty{display:none}' +
+      '.mt-err{margin:0;font-size:var(--fs-sm);font-weight:800;color:#FCA5A5}' +
+      '.mt-save{width:100%;min-height:var(--tap)}' +
+      '.mt-sop{display:flex;flex-direction:column;gap:var(--s-1h)}.mt-sop-about{margin:0;font-size:var(--fs-md);font-weight:700;color:var(--c-text-1);line-height:1.4}' +
+      '.mt-specs{display:flex;flex-direction:column;gap:6px}.mt-spec{display:flex;justify-content:space-between;align-items:flex-start;gap:var(--s-1);background:var(--c-surface-1);border-radius:var(--radius-md);padding:var(--s-1) var(--s-1h)}.mt-spec span{display:block;font-size:11px;font-weight:800;color:var(--c-text-3);text-transform:uppercase;letter-spacing:.04em}.mt-spec b{display:block;font-size:var(--fs-sm);color:var(--c-text-1);line-height:1.35;margin-top:2px}' +
+      '.mt-tag{flex:none;font-style:normal;font-size:10px;font-weight:800;padding:2px 8px;border-radius:var(--radius-pill);white-space:nowrap}.mt-tag-m{background:var(--c-take-bg);color:var(--c-take)}.mt-tag-d,.mt-tag-b,.mt-tag-c{background:rgba(96,165,250,.16);color:#93C5FD}.mt-tag-g{background:var(--c-maybe-bg);color:var(--c-maybe)}' +
+      '.mt-steps{margin:0;padding-left:22px;font-size:var(--fs-sm);color:var(--c-text-1);line-height:1.5;display:flex;flex-direction:column;gap:8px}' +
+      '.mt-warnbox{border:1px solid rgba(248,113,113,.5);background:rgba(248,113,113,.08);border-radius:var(--radius-md);padding:var(--s-1h);display:flex;flex-direction:column;gap:6px}.mt-warnbox>b{color:#FCA5A5;font-size:var(--fs-sm)}' +
+      '';
     document.head.appendChild(s);
   }
 
-  function onShow() { loadPublic(); render(); fetchPriv(false); }
+  function onShow() { loadPublic(); render(); fetchPriv(false); flush(); }
   function init() {
     css();
-    document.addEventListener('blackram:tab', function (e) { if (e.detail && e.detail.tab === 'maint') onShow(); });
+    document.addEventListener('blackram:tab', function (e) { if (e.detail && e.detail.tab === 'maint') onShow(); else if (st.sheet) closeSheet(); });
+    window.addEventListener('online', flush);
     if (document.documentElement.getAttribute('data-tab') === 'maint') onShow();
   }
-  window.BlackRamMaintenance = { render: render, refresh: function () { st.pub = null; loadPublic(); fetchPriv(true); } };
+  window.BlackRamMaintenance = { render: render, openItem: openSheet, closeSheet: closeSheet, flush: flush, refresh: function () { st.pub = null; loadPublic(); fetchPriv(true); } };
   window.BlackRamApp = Object.assign(window.BlackRamApp || {}, { maintenance: window.BlackRamMaintenance });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
