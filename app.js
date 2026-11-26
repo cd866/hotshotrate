@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v63';
+  var APP_VERSION = 'v64';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -4367,11 +4367,17 @@
       tap: true
     });
     L.control.attribution({ prefix: false }).addTo(truckMap);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      maxZoom: 19,
-      subdomains: 'abcd',
-      attribution: '&copy; OpenStreetMap &copy; CARTO'
-    }).addTo(truckMap);
+    // CARTO now needs an API key (tiles showed 'API KEY REQUIRED'), so use the
+    // same no-key Esri base plus colored state fills as the other maps.
+    if (TB && TB.tiles) {
+      TB.tiles(truckMap, 16);
+      if (TB.addStates) TB.addStates(truckMap);
+    } else {
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 16,
+        attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a>'
+      }).addTo(truckMap);
+    }
     var truckPin = L.circleMarker([p.lat, p.lon], {
       radius: 10,
       color: '#fff',
