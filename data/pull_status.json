@@ -1,13 +1,13 @@
 {
-  "state": "live",
-  "pct": 100,
-  "origin": "Cottondale, FL",
-  "started_at": "2026-11-25 23:46 CT",
-  "updated_at": "2026-11-25 23:55 CT",
+  "state": "queued",
+  "pct": 5,
+  "origin": "Jacksonville, FL",
+  "started_at": "2026-11-26 14:00 CT",
+  "updated_at": "2026-11-26 14:00 CT",
   "counts": {
-    "truckstop": 40,
-    "df": 343,
-    "fits": 2
+    "truckstop": 0,
+    "df": 0,
+    "fits": 0
   },
-  "message": "Loads are live"
+  "message": "Search queued"
 }
