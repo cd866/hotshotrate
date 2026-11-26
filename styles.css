@@ -5410,3 +5410,20 @@ header.top .rig-stage[data-r360] .rig-floor { transition: opacity 0.5s ease; }
   .r360-wrap, header.top .rig-stage[data-r360] picture { transition: none; }
   .rig-stage[data-view="360"][data-r360-ready]:not([data-r360-touched]) .r360-hint { animation: none; }
 }
+/* v77 360 zoom: +/- and Fit, bottom right of the stage */
+.r360-zoom {
+  position: absolute; right: var(--s-1, 8px); bottom: var(--s-1, 8px); z-index: 5;
+  display: none; flex-direction: row-reverse; gap: 6px; align-items: center;
+}
+.rig-stage[data-view="360"][data-r360-ready] .r360-zoom { display: flex; }
+.r360-zoom button {
+  min-width: 36px; min-height: 36px; padding: 0 10px; position: relative;
+  border-radius: 999px; border: 1px solid var(--c-line, rgba(255,255,255,0.12));
+  background: rgba(10, 9, 16, 0.72); color: var(--c-text-1, #f5f1e6);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  font: inherit; font-size: var(--fs-md, 16px); font-weight: var(--fw-bold, 700); line-height: 1; cursor: pointer;
+}
+.r360-zoom button::before { content: ''; position: absolute; inset: -4px; }
+.r360-zoom .r360-zreset { display: none; min-height: 32px; font-size: var(--fs-xs, 12px); letter-spacing: 0.04em; background: var(--gold, #D4A62A); color: #0f0d17; border-color: transparent; }
+.rig-stage[data-r360-zoomed] .r360-zreset { display: block; }
+.rig-stage[data-r360-zoomed] .r360-hint { opacity: 0 !important; }

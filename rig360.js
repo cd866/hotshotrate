@@ -1,4 +1,4 @@
-/* Black Ram Logistics: Our rig 360 spin (v75, trailer view v76).
+/* Black Ram Logistics: Our rig 360 spin (v75, trailer view v76, zoom v77).
    A low-poly 3D model of our 2026 Ram 3500 dually crew cab (Diamond Black)
    and the Big Tex 25GN-40 gooseneck (40 ft deck incl. 5 ft dovetail, 102 in
    wide, 34 in deck height), built in code with Three.js r170 (vendored at
@@ -8,6 +8,9 @@
    - Three.js only loads after first paint (idle) and once the stage is on screen.
    - Slow auto-spin (about 26 s per turn); drag or swipe to spin by hand;
      auto-spin resumes after 3 s idle.
+   - Zoom: pinch (two fingers also pan), mouse wheel or trackpad pinch, or
+     the +/- buttons, 1x to 5x; double-tap, double-click or Fit resets.
+     Auto-spin waits while zoomed in.
    - prefers-reduced-motion: no auto-spin and no coasting; drag still works.
    - Pauses when the stage is off screen, the tab is hidden, or Photo is on.
    Units in the model are feet. x = length (truck front +x), y = up, z = width. */
@@ -76,7 +79,7 @@
 
     hint = document.createElement('div');
     hint.className = 'r360-hint';
-    hint.textContent = 'Drag to spin';
+    hint.textContent = 'Drag to spin. Pinch to zoom';
     stage.appendChild(hint);
 
     var saved = null;
@@ -171,6 +174,50 @@
     var shown = false;
     var w = 0, h = 0;
 
+    // Zoom: 1 = whole vehicle in frame, up to ZOOM_MAX. Pan is in world feet
+    // along the camera's right/up axes, so zooming stays under the fingers.
+    var ZOOM_MAX = 5;
+    var zoom = 1, panX = 0, panY = 0, baseDist = 80, halfLen = 33.5;
+    var ELEV = THREE.MathUtils.degToRad(11);
+    var upAxis = new THREE.Vector3(0, Math.cos(ELEV), -Math.sin(ELEV));
+
+    function applyCamera() {
+      var maxX = (halfLen + 2) * Math.min(1, (zoom - 1) * 2), maxY = 5 * Math.min(1, (zoom - 1) * 2);
+      panX = Math.max(-maxX, Math.min(maxX, panX));
+      panY = Math.max(-maxY, Math.min(maxY, panY));
+      if (zoom <= 1.001) { panX = 0; panY = 0; }
+      var d = baseDist / zoom;
+      var tx = panX + upAxis.x * panY, ty = 4.6 + upAxis.y * panY, tz = upAxis.z * panY;
+      camera.position.set(tx, ty - 2.2 + Math.sin(ELEV) * d, tz + Math.cos(ELEV) * d);
+      camera.lookAt(tx, ty, tz);
+      camera.updateProjectionMatrix();
+      stage.toggleAttribute('data-r360-zoomed', zoom > 1.02);
+    }
+
+    function feetPerPx() {
+      return 2 * (baseDist / zoom) * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) / Math.max(1, h);
+    }
+
+    // Zoom to z, keeping the stage point (clientX, clientY) fixed on screen.
+    function zoomAt(z, cx, cy) {
+      z = Math.max(1, Math.min(ZOOM_MAX, z));
+      if (cx != null) {
+        var r = canvasWrap.getBoundingClientRect();
+        var sx = cx - (r.left + r.width / 2), sy = (r.top + r.height / 2) - cy;
+        var before = feetPerPx();
+        var after = 2 * (baseDist / z) * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) / Math.max(1, h);
+        panX += sx * (before - after);
+        panY += sy * (before - after);
+      }
+      zoom = z;
+      lastInput = performance.now();
+      applyCamera();
+      render();
+      update();
+    }
+
+    function resetZoom() { zoom = 1; panX = 0; panY = 0; lastInput = performance.now(); applyCamera(); render(); update(); }
+
     function resize() {
       var r = canvasWrap.getBoundingClientRect();
       var nw = Math.max(1, Math.round(r.width)), nh = Math.max(1, Math.round(r.height));
@@ -179,21 +226,18 @@
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       renderer.setSize(w, h, false);
       camera.aspect = w / h;
-      // Fit the 66 ft rig broadside with a little air, from a low 3/4 view.
+      // Fit the whole vehicle broadside with a little air, from a low 3/4 view.
       var hfov = 2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect);
-      var half = subject === 'trailer' ? 26.5 : 33.5;
-      var dist = half / Math.tan(hfov / 2) + (subject === 'trailer' ? 11 : 13);
-      var elev = THREE.MathUtils.degToRad(11);
-      camera.position.set(0, 2.4 + Math.sin(elev) * dist, Math.cos(elev) * dist);
-      camera.lookAt(0, 4.6, 0);
-      camera.updateProjectionMatrix();
+      halfLen = subject === 'trailer' ? 26.5 : 33.5;
+      baseDist = halfLen / Math.tan(hfov / 2) + (subject === 'trailer' ? 11 : 13);
+      applyCamera();
     }
 
     function wantsLoop() {
       if (mode !== '360' || !onScreen || document.hidden) return false;
       if (dragging) return true;
       if (!reduceMotion && Math.abs(velocity) > 0.002) return true;
-      if (!reduceMotion) return true; // auto-spin
+      if (!reduceMotion && zoom <= 1.02) return true; // auto-spin (paused while zoomed)
       return false;
     }
 
@@ -216,7 +260,7 @@
           velocity *= Math.pow(0.04, dt); // coast out a flick
         } else {
           velocity = 0;
-          if (performance.now() - lastInput > IDLE_RESUME_MS) {
+          if (zoom <= 1.02 && performance.now() - lastInput > IDLE_RESUME_MS) {
             var ramp = Math.min(1, (performance.now() - lastInput - IDLE_RESUME_MS) / 1200);
             angle += autoSpeed * ramp * dt;
           }
@@ -237,44 +281,122 @@
       }
     }
 
-    // Drag / swipe to spin. touch-action: pan-y keeps vertical page scroll.
+    // One finger / mouse drag spins. Two fingers pinch to zoom and pan.
+    // Double-tap (or double-click) resets the zoom. touch-action: pan-y
+    // keeps vertical page scroll and hands pinches to us.
+    var pts = {};
+    var pinch = null;
+    var lastTap = 0, lastTapX = 0, lastTapY = 0;
+    function count() { return Object.keys(pts).length; }
+    function pinchState() {
+      var k = Object.keys(pts), a = pts[k[0]], b = pts[k[1]];
+      return { d: Math.max(10, Math.hypot(a.x - b.x, a.y - b.y)), x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    }
     function down(ev) {
       if (mode !== '360' || (ev.button != null && ev.button > 0)) return;
-      if (ev.target.closest && ev.target.closest('.r360-toggle')) return;
-      dragging = true;
-      velocity = 0;
-      lastX = ev.clientX; lastT = performance.now();
-      lastInput = lastT;
+      if (ev.target.closest && ev.target.closest('.r360-toggle, .r360-zoom')) return;
+      pts[ev.pointerId] = { x: ev.clientX, y: ev.clientY };
       try { stage.setPointerCapture(ev.pointerId); } catch (e) { /* ignore */ }
-      stage.classList.add('r360-grab');
       stage.setAttribute('data-r360-touched', '1');
+      var now = performance.now();
+      lastInput = now;
+      velocity = 0;
+      if (count() >= 2) {
+        dragging = false;
+        var ps = pinchState();
+        pinch = { d: ps.d, zoom: zoom, x: ps.x, y: ps.y };
+        stage.classList.remove('r360-grab');
+      } else {
+        if (ev.pointerType !== 'mouse' && now - lastTap < 320 && Math.hypot(ev.clientX - lastTapX, ev.clientY - lastTapY) < 30) {
+          lastTap = 0;
+          resetZoom();
+        } else {
+          lastTap = now; lastTapX = ev.clientX; lastTapY = ev.clientY;
+        }
+        dragging = true;
+        lastX = ev.clientX; lastT = now;
+        stage.classList.add('r360-grab');
+      }
       update();
     }
     function move(ev) {
-      if (!dragging) return;
+      if (!pts[ev.pointerId]) return;
+      pts[ev.pointerId] = { x: ev.clientX, y: ev.clientY };
       var now = performance.now();
+      if (pinch && count() >= 2) {
+        var ps = pinchState();
+        // pan with the pinch midpoint, then zoom about it
+        var fpp = feetPerPx();
+        panX -= (ps.x - pinch.x) * fpp;
+        panY += (ps.y - pinch.y) * fpp;
+        pinch.x = ps.x; pinch.y = ps.y;
+        zoomAt(pinch.zoom * ps.d / pinch.d, ps.x, ps.y);
+        return;
+      }
+      if (!dragging) return;
       var dx = ev.clientX - lastX;
-      var da = dx * (Math.PI * 2) / Math.max(320, w * 1.6);
+      var da = dx * (Math.PI * 2) / Math.max(320, w * 1.6) / Math.sqrt(zoom);
       angle += da;
       var dtm = Math.max(1, now - lastT);
       velocity = velocity * 0.6 + (da / (dtm / 1000)) * 0.4;
       lastX = ev.clientX; lastT = now; lastInput = now;
-      if (reduceMotion) render();
+      if (Math.abs(dx) > 2) lastTap = 0;
+      if (reduceMotion || zoom > 1.02) render();
     }
     function up(ev) {
+      if (!pts[ev.pointerId]) return;
+      delete pts[ev.pointerId];
+      try { stage.releasePointerCapture(ev.pointerId); } catch (e) { /* ignore */ }
+      lastInput = performance.now();
+      if (pinch) {
+        if (count() < 2) { pinch = null; velocity = 0; }
+        // one finger left after a pinch: let it keep spinning from here
+        var k = Object.keys(pts)[0];
+        if (k) { dragging = true; lastX = pts[k].x; lastT = lastInput; }
+        update();
+        return;
+      }
       if (!dragging) return;
       dragging = false;
-      lastInput = performance.now();
       if (lastInput - lastT > 90) velocity = 0;
       velocity = Math.max(-4, Math.min(4, velocity));
+      if (zoom > 1.02) velocity = 0;
       stage.classList.remove('r360-grab');
-      try { stage.releasePointerCapture(ev.pointerId); } catch (e) { /* ignore */ }
       update();
     }
     stage.addEventListener('pointerdown', down);
     stage.addEventListener('pointermove', move);
     stage.addEventListener('pointerup', up);
     stage.addEventListener('pointercancel', up);
+    stage.addEventListener('dblclick', function (ev) {
+      if (mode !== '360' || (ev.target.closest && ev.target.closest('.r360-toggle, .r360-zoom'))) return;
+      resetZoom();
+    });
+    // Desktop: wheel or trackpad pinch zooms toward the cursor. At full
+    // zoom-out, scrolling down falls through to the page.
+    stage.addEventListener('wheel', function (ev) {
+      if (mode !== '360') return;
+      if (!ev.ctrlKey && zoom <= 1.001 && ev.deltaY > 0) return;
+      ev.preventDefault();
+      var dy = ev.deltaMode === 1 ? ev.deltaY * 16 : ev.deltaY;
+      zoomAt(zoom * Math.exp(-dy * (ev.ctrlKey ? 0.01 : 0.0022)), ev.clientX, ev.clientY);
+    }, { passive: false });
+    // +/- buttons
+    var zbar = document.createElement('div');
+    zbar.className = 'r360-zoom';
+    zbar.setAttribute('role', 'group');
+    zbar.setAttribute('aria-label', 'Zoom');
+    zbar.innerHTML = '<button type="button" data-z="in" aria-label="Zoom in">+</button>' +
+      '<button type="button" data-z="out" aria-label="Zoom out">-</button>' +
+      '<button type="button" data-z="reset" class="r360-zreset" aria-label="Reset zoom">Fit</button>';
+    stage.appendChild(zbar);
+    zbar.addEventListener('click', function (ev) {
+      var b = ev.target.closest('button[data-z]');
+      if (!b) return;
+      var z = b.getAttribute('data-z');
+      if (z === 'reset') resetZoom();
+      else zoomAt(zoom * (z === 'in' ? 1.5 : 1 / 1.5));
+    });
     stage.addEventListener('keydown', function (ev) {
       if (mode !== '360') return;
       if (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') {
@@ -293,11 +415,16 @@
         var t = sub === 'trailer';
         rig.truck.visible = !t;
         rig.group.position.x = t ? rig.trailerOffset : rig.rigOffset;
+        zoom = 1; panX = 0; panY = 0;
         w = 0;
         if (shown) { render(); }
         update();
       },
       resize: function () { w = 0; resize(); },
+      zoomTo: function (z, cx, cy) { zoomAt(z, cx, cy); },
+      resetZoom: resetZoom,
+      getZoom: function () { return zoom; },
+      getPan: function () { return [panX, panY]; },
       setAngle: function (a) { angle = a; lastInput = performance.now(); render(); },
       getAngle: function () { return angle; },
       info: function () { return { calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, running: !!raf }; },
