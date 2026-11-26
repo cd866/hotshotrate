@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v50';
+  var APP_VERSION = 'v51';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -2429,6 +2429,7 @@
     if (spin) spin.hidden = !on;
     if (stamp) stamp.textContent = searchUpdatedText();
     if (btn) btn.disabled = !!on;
+    if (typeof updateAppbar === 'function') updateAppbar();
   }
 
   function refreshSearches() {
@@ -3434,6 +3435,7 @@
       state.pullStatus = data;
       state.pullStatusError = '';
       updatePullProgressDom();
+      updateAppbar();
       if (data.state === 'live') {
         var becameLive = !prev || prev.state !== 'live' ||
           String(prev.updated_at || '') !== String(data.updated_at || '');
@@ -4609,7 +4611,10 @@
     }
     var miTile = kmTile('Net $/mi', netMi != null ? esc(rateMoney(netMi, 2)) + '/mi' : 'n/a', mileTone(netMi), esc(miSub), false);
 
-    return '<div class="key-grid">' + netTile + hrTile + dayTile + miTile + '</div>';
+    return '<div class="key-grid km-v51">' +
+      '<div class="km-hero">' + netTile + dayTile + '</div>' +
+      '<div class="km-second">' + hrTile + miTile + '</div>' +
+      '</div>';
   }
 
   function rateCompare(row, nLoads) {
@@ -5345,7 +5350,9 @@
       rows = rows.filter(rowFitsDeck);
     }
     var f = state.searchFilter || 'all';
-    if (f === 'take' || f === 'maybe' || f === 'pass') {
+    if (f === 'combos') {
+      rows = [];
+    } else if (f === 'take' || f === 'maybe' || f === 'pass') {
       rows = rows.filter(function (row) { return String(row.verdict).toLowerCase() === f; });
     } else if (f === 'truckstop') {
       rows = rows.filter(function (row) { return row.board === 'Truckstop'; });
@@ -5833,8 +5840,7 @@
     var el = document.getElementById(id) || document.getElementById('search-list') ||
       document.querySelector('.combo-card, .search-card');
     if (!el) return;
-    var tab = document.querySelector('.tabbar');
-    var offset = (tab ? tab.getBoundingClientRect().height : 0) + 8;
+    var offset = stickyTopOffset();
     var top = el.getBoundingClientRect().top + window.pageYOffset - offset;
     window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
   }
@@ -5863,12 +5869,11 @@
     var alsoHtml = '';
     var comboChip = inComboChipHtml(row, data);
 
-    var badges = typeBadgeHtml('single', 'Single') +
-      (row.board ? '<span class="board-chip">' + esc(row.board) + '</span>' : '') +
+    var badges = (row.board ? '<span class="board-chip">' + esc(row.board) + '</span>' : '') +
       (pu && pu !== 'date not listed' ? '<span class="pu-chip">PU ' + esc(pu) + '</span>' : '') +
       (postedAge ? '<span class="board-chip">Posted ' + esc(postedAge) + '</span>' : '') +
-      wxChipHtml(row) +
       (isNew ? '<span class="new-badge">New</span>' : '');
+    var collapse = verd === 'pass';
 
     var tools = '<button type="button" class="star-btn" data-save-key="' + esc(key) + '" aria-pressed="' + (saved ? 'true' : 'false') + '" aria-label="' + (saved ? 'Remove from shortlist' : 'Save to shortlist') + '">' + (saved ? '&#9733;' : '&#9734;') + '</button>' +
       '<button type="button" class="cmp-btn" data-cmp-key="' + esc(key) + '" aria-pressed="' + (cmp ? 'true' : 'false') + '">' + (cmp ? '&#10003; Compare' : '+ Compare') + '</button>';
@@ -5880,7 +5885,8 @@
       routeBlock(routePayload(row), loadMapsUrl(row), (origin + ' to ' + dest + ' route map')) +
       '</div>';
 
-    return '<article class="search-card ' + esc(verd) + (isNew ? ' is-new' : '') + '" data-load-key="' + esc(key) + '">' +
+    return '<article class="search-card ' + esc(verd) + (isNew ? ' is-new' : '') + (collapse ? ' collapsible is-collapsed' : '') + '" data-load-key="' + esc(key) + '">' +
+      (collapse ? collapsedSummaryHtml(origin + ' to ' + dest, row.net_est, rowNetPerDay(row, 1), row, row.verdict) : '') +
       '<div class="card-top-bar">' +
         '<div class="card-badges">' + badges + '</div>' +
         '<div class="card-tools">' + tools + '</div>' +
@@ -6162,7 +6168,10 @@
       routeBlock(routePayload(combo), comboMapsUrl(combo), kind + ' route map') +
       ((combo.flags && combo.flags.length) ? '<p class="search-flags">' + esc(combo.flags.join(' ')) + '</p>' : '') +
       '</div>';
-    return '<article class="combo-card cc ' + esc(verd) + '"' + (cid ? ' id="' + esc(cid) + '"' : '') + '>' +
+    var cCollapse = verd === 'pass';
+    var cTitle = label + ': ' + comboLoads.map(function (r) { return whyShortLane(r); }).join(' + ');
+    return '<article class="combo-card cc ' + esc(verd) + (cCollapse ? ' collapsible is-collapsed' : '') + '"' + (cid ? ' id="' + esc(cid) + '"' : '') + '>' +
+      (cCollapse ? collapsedSummaryHtml(cTitle, combo.net_est, rowNetPerDay(combo, nLegs), combo, combo.verdict, true) : '') +
       '<div class="cc-rail" aria-hidden="true" style="background:linear-gradient(to bottom, ' +
         comboLoads.map(function (r, i) { return legColor(i) + ' ' + (100 * i / nLegs) + '%, ' + legColor(i) + ' ' + (100 * (i + 1) / nLegs) + '%'; }).join(', ') + ')"></div>' +
       '<div class="cc-head">' +
@@ -6190,10 +6199,12 @@
       el = document.getElementById(id);
     }
     if (!el) return;
-    var tab = document.querySelector('.tabbar');
-    var offset = (tab ? tab.getBoundingClientRect().height : 0) + 8;
+    var offset = stickyTopOffset();
     var top = el.getBoundingClientRect().top + window.pageYOffset - offset;
     window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    el.classList.remove('is-collapsed');
+    var sum = el.querySelector(':scope > .card-summary');
+    if (sum) sum.setAttribute('aria-expanded', 'true');
     el.classList.remove('cc-flash');
     void el.offsetWidth;
     el.classList.add('cc-flash');
@@ -6275,7 +6286,7 @@
 
   function renderSearchGroups(rows, data) {
     if (state.searchSort && state.searchSort !== 'default') {
-      if (!rows.length) return '<p class="fine">No loads match these filters.</p>';
+      if (!rows.length) return emptyStateHtml('No loads match these filters.', 'Try All, or turn off Hide PASS and Fits only.');
       return '<section class="search-group" id="search-group-sorted">' +
         '<h3 class="search-group-head">' + esc(rows.length + ' loads sorted') + '</h3>' +
         rows.map(function (row) { return renderSearchCard(row, data); }).join('') +
@@ -6297,8 +6308,8 @@
       var title = labels[key] + ' (' + list.length + ')';
       var gid = 'search-group-' + key.toLowerCase();
       if (key === 'PASS' && filter !== 'pass' && filter !== 'saved') {
-        var onlyPass = !groups.TAKE.length && !groups.MAYBE.length;
-        html += '<details class="search-group pass-group" id="' + gid + '"' + (onlyPass ? ' open' : '') + '>' +
+        var passOpen = state.passGroupOpen !== false;
+        html += '<details class="search-group pass-group" id="' + gid + '"' + (passOpen ? ' open' : '') + '>' +
           '<summary class="search-group-head pass">' + esc(title) + '</summary>' +
           cards + '</details>';
       } else {
@@ -6307,7 +6318,8 @@
           cards + '</section>';
       }
     });
-    return html || '<p class="fine">No loads in this filter.</p>';
+    if (!html && (state.searchFilter || 'all') === 'combos') return '';
+    return html || emptyStateHtml('No loads in this filter.', 'Try All, or turn off Hide PASS and Fits only.');
   }
 
   function searchToolbar() {
@@ -6320,18 +6332,18 @@
           '<span id="search-updated-text">' + esc(searchUpdatedText()) + '</span>' +
         '</p>' +
         '<div class="search-toolbar-actions">' +
-          '<button type="button" class="btn relay-gear-btn' + (connected ? ' connected' : '') + '" id="relay-gear-btn" aria-expanded="' + (state.relayConnectOpen ? 'true' : 'false') + '" aria-controls="relay-connect-panel">' +
+          '<button type="button" class="btn btn-ghost btn-sm relay-gear-btn' + (connected ? ' connected' : '') + '" id="relay-gear-btn" aria-expanded="' + (state.relayConnectOpen ? 'true' : 'false') + '" aria-controls="relay-connect-panel">' +
             '&#9881; ' + (connected ? 'Connected' : 'Connect') +
           '</button>' +
-          '<button type="button" class="btn" id="search-refresh-btn"' +
-            (state.searchRefreshing ? ' disabled' : '') + '>Refresh</button>' +
+          '<button type="button" class="btn btn-secondary btn-sm" id="search-refresh-btn"' +
+            (state.searchRefreshing ? ' disabled' : '') + ' aria-label="Reload the latest saved scan">Refresh</button>' +
         '</div>' +
       '</div>' +
-      weatherSwitchHtml() +
       renderConnectPanel() +
-      renderFreshPull() +
-      '<p class="fine">Refresh reloads the latest saved scan. Use Pull fresh loads above to start a new scan.</p>' +
-      renderTruckAt();
+      toolFold('pull', 'Pull fresh loads', getRelayPin() ? 'New board scan from GPS or a city' : 'PIN needed',
+        state.freshPullBusy || !!state.freshPullStatus || pullIsActive(state.pullStatus || {}), renderFreshPull()) +
+      toolFold('truck', 'Truck location', (state.truckAt && state.truckAt.label) ? state.truckAt.label : ('Deadhead from ' + searchOriginLabel()),
+        !!(state.truckAt && state.truckAt.lat != null), renderTruckAt());
   }
 
   function bindSearchRefresh() {
@@ -6501,7 +6513,7 @@
       return;
     }
     if (!data) {
-      root.innerHTML = head + '<p class="fine">Loading the latest saved scan...</p>';
+      root.innerHTML = head + loadingSkeletonHtml('Loading the latest saved scan...');
       bindSearchRefresh();
       updateCompareBar();
       return;
@@ -6522,12 +6534,12 @@
     var filter = state.searchFilter || 'all';
     function countTile(name, label, value) {
       var on = filter === name;
-      return '<button type="button" class="search-count" data-filter="' + name +
+      return '<button type="button" class="search-count chip chip-' + name + '" data-filter="' + name +
         '" aria-pressed="' + (on ? 'true' : 'false') +
         '" aria-label="' + label + ', ' + esc(String(value || 0)) +
-        (name === 'all' ? ' loads, show all' : ', show ' + label + ' loads') + '">' +
-        '<div class="n">' + esc(String(value || 0)) + '</div>' +
-        '<div class="l">' + label + '</div></button>';
+        (name === 'all' ? ' loads, show all' : ', show ' + label) + '">' +
+        '<span class="l">' + label + '</span>' +
+        '<span class="n">' + esc(String(value || 0)) + '</span></button>';
     }
 
     var filterRow = [
@@ -6572,26 +6584,32 @@
     var cards = renderSearchGroups(rows, data);
     var combosHtml = renderCombos(data);
     root.innerHTML =
-      head +
       '<div class="searches-hero">' +
-        '<h2>Load Boards</h2>' +
-        '<p class="fine">' + (scanStamp ? 'Scan ' + esc(scanStamp) : 'Latest saved scan') +
-          (data.origin ? ' / from ' + esc(data.origin) : '') +
-          (state.searchOffline ? ' / offline copy' : '') + '</p>' +
+        '<div class="hero-title-row"><h2>Load Boards</h2>' +
+        '<p class="hero-meta">' + (scanStamp ? 'Scan ' + esc(scanStamp) : 'Latest saved scan') +
+          (data.origin ? ' / ' + esc(data.origin) : '') +
+          (state.searchOffline ? ' / offline copy' : '') + '</p></div>' +
         freshnessBar +
-        '<p class="fine">' + esc(formula) + '. ' + esc(bar) + '</p>' +
-        '<div class="search-counts" role="group" aria-label="Filter load boards by verdict">' +
-          countTile('all', 'Loads', counts.total || 0) +
+        '<div class="search-counts chip-row" role="group" aria-label="Filter load boards by verdict">' +
+          countTile('all', 'All', counts.total || 0) +
           countTile('take', 'Take', counts.take || 0) +
           countTile('maybe', 'Maybe', counts.maybe || 0) +
           countTile('pass', 'Pass', counts.pass || 0) +
+          countTile('combos', 'Combos', comboPackages(data).length) +
         '</div>' +
+        '<p class="wx-hint">' + (weatherOn()
+          ? 'Weather ON: drops at 45 F or colder are PASS; snow, ice or 50+ mph gusts turn TAKE into MAYBE.'
+          : 'Weather OFF: verdicts ignore weather; cold and storm warnings show as amber notes.') + '</p>' +
         (Number(data.hidden_heavy || counts.hidden_heavy || 0) > 0
           ? '<p class="fine hidden-heavy">' + esc(String(Number(data.hidden_heavy || counts.hidden_heavy))) +
             ' loads 20,000 lb+ hidden</p>'
           : '') +
-        rateLegend() +
+        '<details class="score-help"><summary>How loads are scored</summary>' +
+          '<p class="fine">' + esc(formula) + '. ' + esc(bar) + '</p>' +
+          rateLegend() +
+        '</details>' +
       '</div>' +
+      head +
       controlsHtml +
       '<div id="search-list">' +
       combosHtml +
@@ -6599,6 +6617,7 @@
       cards +
       '</div>';
     bindSearchRefresh();
+    updateAppbar();
 
     root.querySelectorAll('.search-counts [data-filter]').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -6915,14 +6934,293 @@
     if (rf) rf.addEventListener('click', function () { fetchFinance(true); });
   }
 
-  function showTab(name) {
-    state.tab = name;
-    ['check', 'searches', 'reports', 'kpis', 'targets', 'fin', 'stops'].forEach(function (id) {
-      var on = id === name;
-      $('tab-' + id).setAttribute('aria-selected', on ? 'true' : 'false');
-      $('panel-' + id).hidden = !on;
+
+  // ---- v51 UI shell: design-system helpers, bottom nav + More, sticky app bar ----
+  function collapsedSummaryHtml(title, net, npd, row, verdict, isCombo) {
+    var why = '';
+    try {
+      var w = collectWhy(row, isCombo ? { combo: true } : {});
+      why = (w.reasons && w.reasons[0]) || '';
+    } catch (err) { why = ''; }
+    var v = String(verdict || 'PASS').toLowerCase();
+    return '<button type="button" class="card-summary" aria-expanded="false">' +
+      '<span class="cs-main"><span class="cs-title">' + esc(title) + '</span>' +
+        (why ? '<span class="cs-why">' + esc(why) + '</span>' : '') + '</span>' +
+      '<span class="cs-nums"><b>' + (net != null ? esc(searchMoney(net)) : 'n/a') + '</b>' +
+        (npd != null ? '<small>' + esc(searchMoney(npd)) + '/d</small>' : '') + '</span>' +
+      '<span class="verdict-pill ' + esc(v) + '">' + esc(displayVerdict(verdict || 'PASS')) + '</span>' +
+      '<span class="cs-chev" aria-hidden="true"></span>' +
+      '</button>';
+  }
+
+  function toolFold(id, title, sub, open, body) {
+    var key = 'fold_' + id;
+    var isOpen = state[key] != null ? state[key] : !!open;
+    if (open) isOpen = true;
+    return '<details class="tool-fold" data-fold="' + esc(id) + '"' + (isOpen ? ' open' : '') + '>' +
+      '<summary><span class="tf-title">' + esc(title) + '</span><span class="tf-sub">' + esc(sub || '') + '</span></summary>' +
+      '<div class="tf-body">' + body + '</div></details>';
+  }
+
+  function loadingSkeletonHtml(text) {
+    var card = '<div class="skel-card" aria-hidden="true"><div class="skel skel-line w60"></div>' +
+      '<div class="skel-row"><div class="skel skel-block"></div><div class="skel skel-block"></div></div>' +
+      '<div class="skel skel-line w80"></div></div>';
+    return '<div class="loading-state" role="status" aria-live="polite"><p class="sr-only">' + esc(text || 'Loading') + '</p>' +
+      card + card + card + '</div>';
+  }
+
+  function emptyStateHtml(title, sub) {
+    return '<div class="empty-state" role="status">' +
+      '<svg viewBox="0 0 48 48" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">' +
+      '<rect x="6" y="10" width="36" height="28" rx="5"/><path d="M6 18h36M16 26h16M20 32h8"/></g></svg>' +
+      '<p class="empty-title">' + esc(title) + '</p>' +
+      (sub ? '<p class="empty-sub">' + esc(sub) + '</p>' : '') +
+      '<button type="button" class="btn btn-secondary empty-reset">Show all loads</button></div>';
+  }
+
+  function stickyTopOffset() {
+    var bar = document.getElementById('appbar');
+    return (bar ? bar.getBoundingClientRect().height : 0) + 8;
+  }
+
+  var NAV_PRIMARY = ['check', 'searches', 'reports', 'targets'];
+  var NAV_SHORT = { check: 'Check', searches: 'Boards', reports: 'Reports', targets: 'Targets', kpis: 'KPIs', fin: 'Finance', stops: 'Stops' };
+  var NAV_ICON_PATHS = {
+    check: '<rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M8.5 7h7M8.5 11h2M13.5 11h2M8.5 14.5h2M13.5 14.5h2M8.5 18h2M13.5 18h2"/>',
+    searches: '<path d="M4 6h16M4 12h16M4 18h10"/><circle cx="18.5" cy="17.5" r="2.5"/>',
+    reports: '<path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 13v4M12 10v7M15 15v2"/>',
+    targets: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/>',
+    kpis: '<path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/>',
+    fin: '<rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 15h4"/>',
+    stops: '<path d="M12 21s-6.5-6.2-6.5-11A6.5 6.5 0 0 1 18.5 10c0 4.8-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>',
+    scoreboard: '<path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5v2a3 3 0 0 0 3 3M16 6h3v2a3 3 0 0 1-3 3M12 13v4M8.5 20h7"/>',
+    more: '<circle cx="5.5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18.5" cy="12" r="1.6"/>',
+    def: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/>'
+  };
+  function navIcon(name) {
+    var key = NAV_ICON_PATHS[name] ? name : (/score/i.test(name) ? 'scoreboard' : (/report|pdf/i.test(name) ? 'reports' : 'def'));
+    return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' +
+      NAV_ICON_PATHS[key] + '</g></svg>';
+  }
+
+  function enhanceNav() {
+    var nav = document.querySelector('.tabbar');
+    if (!nav) return;
+    nav.classList.add('bnav');
+    nav.querySelectorAll('button[data-tab]').forEach(function (btn) {
+      var tab = btn.getAttribute('data-tab');
+      if (!btn.querySelector('.tb-ico')) {
+        var full = btn.getAttribute('data-label') || btn.textContent.trim();
+        btn.setAttribute('data-label', full);
+        if (!btn.getAttribute('aria-label')) btn.setAttribute('aria-label', full);
+        btn.innerHTML = '<span class="tb-ico">' + navIcon(tab) + '</span><span class="tb-lbl">' + esc(NAV_SHORT[tab] || full) + '</span>';
+      }
+      btn.classList.toggle('tb-overflow', NAV_PRIMARY.indexOf(tab) < 0);
     });
+    var more = document.getElementById('tab-more');
+    if (!more) {
+      more = document.createElement('button');
+      more.type = 'button';
+      more.id = 'tab-more';
+      more.className = 'tb-more';
+      more.setAttribute('aria-haspopup', 'dialog');
+      more.setAttribute('aria-controls', 'more-sheet');
+      more.setAttribute('aria-label', 'More sections');
+      more.innerHTML = '<span class="tb-ico">' + navIcon('more') + '</span><span class="tb-lbl">More</span>';
+      nav.appendChild(more);
+    } else if (more !== nav.lastElementChild) {
+      nav.appendChild(more);
+    }
+    updateNavActive();
+  }
+
+  function updateNavActive() {
+    var more = document.getElementById('tab-more');
+    if (!more) return;
+    var inMore = false;
+    document.querySelectorAll('.tabbar button.tb-overflow').forEach(function (btn) {
+      if (btn.getAttribute('data-tab') === state.tab) inMore = true;
+    });
+    more.classList.toggle('is-active', inMore);
+    var cur = inMore ? document.querySelector('.tabbar button[data-tab="' + state.tab + '"]') : null;
+    var lbl = more.querySelector('.tb-lbl');
+    if (lbl) lbl.textContent = cur ? (NAV_SHORT[state.tab] || cur.getAttribute('data-label') || 'More') : 'More';
+  }
+
+  function renderMoreSheet() {
+    var box = document.getElementById('more-tabs');
+    if (!box) return;
+    var items = [];
+    document.querySelectorAll('.tabbar button.tb-overflow[data-tab]').forEach(function (btn) {
+      var tab = btn.getAttribute('data-tab');
+      items.push('<button type="button" class="more-item' + (tab === state.tab ? ' is-active' : '') + '" data-goto="' + esc(tab) + '">' +
+        '<span class="mi-ico">' + navIcon(tab) + '</span><span class="mi-lbl">' + esc(btn.getAttribute('data-label') || tab) + '</span></button>');
+    });
+    box.innerHTML = items.join('');
+  }
+
+  function openMoreSheet() {
+    var sheet = document.getElementById('more-sheet');
+    if (!sheet) return;
+    renderMoreSheet();
+    sheet.hidden = false;
+    document.documentElement.classList.add('more-open');
+    var more = document.getElementById('tab-more');
+    if (more) more.setAttribute('aria-expanded', 'true');
+    var first = sheet.querySelector('.more-item');
+    if (first) { try { first.focus({ preventScroll: true }); } catch (err) { first.focus(); } }
+  }
+
+  function closeMoreSheet() {
+    var sheet = document.getElementById('more-sheet');
+    if (!sheet || sheet.hidden) return;
+    sheet.hidden = true;
+    document.documentElement.classList.remove('more-open');
+    var more = document.getElementById('tab-more');
+    if (more) more.setAttribute('aria-expanded', 'false');
+  }
+
+  function updateAppbar() {
+    var txt = document.getElementById('appbar-status-text');
+    var dot = document.getElementById('appbar-status');
+    if (txt && dot) {
+      var st = state.pullStatus || {};
+      var label = 'Last pull --';
+      var cls = 'idle';
+      if (state.freshPullBusy || pullIsActive(st)) {
+        label = 'Pulling loads...';
+        cls = 'busy';
+      } else {
+        var stamp = state.searches && (state.searches.scanned_at || state.searches.as_of);
+        var dt = stamp ? parseScanStamp(String(stamp)) : null;
+        if (dt) {
+          var age = Date.now() - dt.getTime();
+          var h = dt.getHours();
+          var hh = (h % 12 === 0 ? 12 : h % 12) + ':' + (dt.getMinutes() < 10 ? '0' : '') + dt.getMinutes() + (h >= 12 ? ' PM' : ' AM');
+          label = hh + ' \u00b7 ' + formatRelAge(age).replace(/ \d+m ago$/, '').replace(' ago', '');
+          cls = age < 2 * 3600000 ? 'fresh' : (age < 8 * 3600000 ? 'aging' : 'stale');
+        } else if (st.state === 'failed') {
+          label = 'Last pull failed';
+          cls = 'stale';
+        }
+      }
+      txt.textContent = label;
+      dot.setAttribute('data-state', cls);
+    }
+    var sw = document.getElementById('hdr-wx');
+    if (sw) {
+      var on = weatherOn();
+      sw.classList.toggle('on', on);
+      sw.setAttribute('aria-checked', on ? 'true' : 'false');
+      var l = sw.querySelector('.hdr-wx-label');
+      if (l) l.textContent = on ? 'WX ON' : 'WX OFF';
+    }
+  }
+
+  function bindUiShell() {
+    if (state.uiShellBound) return;
+    state.uiShellBound = true;
+    var nav = document.querySelector('.tabbar');
+    if (nav) {
+      nav.addEventListener('click', function (ev) {
+        var btn = ev.target.closest('button');
+        if (!btn || !nav.contains(btn)) return;
+        if (btn.id === 'tab-more') {
+          var sheet = document.getElementById('more-sheet');
+          if (sheet && !sheet.hidden) closeMoreSheet(); else openMoreSheet();
+          return;
+        }
+        var tab = btn.getAttribute('data-tab');
+        if (tab) showTab(tab);
+      });
+      if (typeof MutationObserver === 'function') {
+        new MutationObserver(function () { enhanceNav(); }).observe(nav, { childList: true });
+      }
+    }
+    var sheet = document.getElementById('more-sheet');
+    if (sheet) {
+      sheet.addEventListener('click', function (ev) {
+        if (ev.target.closest('.more-backdrop')) { closeMoreSheet(); return; }
+        var go = ev.target.closest('[data-goto]');
+        if (go) { showTab(go.getAttribute('data-goto')); return; }
+        var cs = ev.target.closest('#more-callsheet');
+        if (cs) { closeMoreSheet(); openCallSheet(); return; }
+        var rig = ev.target.closest('#more-rig');
+        if (rig) {
+          showTab('check');
+          var d = document.querySelector('.rig-specs-panel');
+          if (d) { d.open = true; }
+          var card = document.querySelector('.rig-card');
+          if (card) window.scrollTo({ top: card.getBoundingClientRect().top + window.pageYOffset - stickyTopOffset(), behavior: 'smooth' });
+        }
+        if (ev.target.closest('#about-open')) closeMoreSheet();
+      });
+    }
+    document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') closeMoreSheet(); });
+    var home = document.getElementById('appbar-home');
+    if (home) home.addEventListener('click', function () { showTab('check'); });
+    var stBtn = document.getElementById('appbar-status');
+    if (stBtn) stBtn.addEventListener('click', function () { showTab('searches'); });
+    var sw = document.getElementById('hdr-wx');
+    if (sw) sw.addEventListener('click', function () {
+      state.weatherOn = !weatherOn();
+      saveWeatherSwitch();
+      updateAppbar();
+      if (state.searches) refreshDeadheads(); else if (state.tab === 'searches') renderSearches();
+    });
+    document.addEventListener('click', function (ev) {
+      var sum = ev.target.closest && ev.target.closest('.card-summary');
+      if (sum) {
+        var card = sum.parentNode;
+        var collapsed = card.classList.toggle('is-collapsed');
+        sum.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+        if (!collapsed && typeof observeRouteMaps === 'function') { try { observeRouteMaps(card); } catch (err) { /* ignore */ } }
+        return;
+      }
+      var reset = ev.target.closest && ev.target.closest('.empty-reset');
+      if (reset) {
+        state.searchFilter = 'all';
+        state.hidePass = false;
+        state.fitsOnly = false;
+        renderSearches();
+      }
+    });
+    document.addEventListener('toggle', function (ev) {
+      var d = ev.target;
+      if (d && d.classList && d.classList.contains('pass-group')) { state.passGroupOpen = d.open; return; }
+      if (!d || !d.classList || !d.classList.contains('tool-fold')) return;
+      state['fold_' + d.getAttribute('data-fold')] = d.open;
+      if (d.open) { try { window.dispatchEvent(new Event('resize')); } catch (err) { /* ignore */ } }
+    }, true);
+    updateAppbar();
+    window.setInterval(updateAppbar, 60000);
+    if (!state.searches) { try { refreshSearches(); } catch (err) { /* ignore */ } }
+    if (!state.pullStatus) { try { fetchPullStatus().then(updateAppbar); } catch (err) { /* ignore */ } }
+    window.BlackRamApp = { showTab: showTab, openMore: openMoreSheet, closeMore: closeMoreSheet, updateAppbar: updateAppbar };
+  }
+
+  function showTab(name) {
+    if (!name) return;
+    if (!$('panel-' + name)) name = 'check';
+    state.tab = name;
+    // Generic: every .tabbar button with data-tab="x" pairs with section#panel-x.
+    // New sections (e.g. Reports PDFs, Scoreboard) only need those two pieces and
+    // can listen for the 'blackram:tab' event to render.
+    document.querySelectorAll('.tabbar [data-tab]').forEach(function (btn) {
+      var id = btn.getAttribute('data-tab');
+      var on = id === name;
+      btn.setAttribute('aria-selected', on ? 'true' : 'false');
+      var panel = $('panel-' + id);
+      if (panel) panel.hidden = !on;
+    });
+    document.querySelectorAll('main > section.panel[id^="panel-"]').forEach(function (panel) {
+      panel.hidden = panel.id !== 'panel-' + name;
+    });
+    document.documentElement.setAttribute('data-tab', name);
     document.querySelector('.app').classList.toggle('tab-stops', name === 'stops');
+    closeMoreSheet();
+    updateNavActive();
     if (name === 'reports') {
       renderReports();
       refreshFeed();
@@ -6946,6 +7244,7 @@
     }
     updateCompareBar();
     window.scrollTo(0, 0);
+    try { document.dispatchEvent(new CustomEvent('blackram:tab', { detail: { tab: name } })); } catch (err) { /* old browser */ }
   }
 
 
@@ -7170,9 +7469,8 @@
     $('about-done').addEventListener('click', closeAbout);
     bindCallSheet();
     bindComboJumps();
-    document.querySelectorAll('.tabbar button').forEach(function (btn) {
-      btn.addEventListener('click', function () { showTab(btn.getAttribute('data-tab')); });
-    });
+    enhanceNav();
+    bindUiShell();
     setupPull();
     bindDeliverSheet();
     bindCompareSheet();

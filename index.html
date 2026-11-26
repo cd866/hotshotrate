@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-tab="check">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -18,7 +18,7 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=3" sizes="180x180" />
   <link rel="preload" href="fonts/nunito-sans-variable.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="fonts/oswald-700.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="styles.css?v=50" />
+  <link rel="stylesheet" href="styles.css?v=51" />
   <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
   <script>
     try {
@@ -57,11 +57,24 @@
       </div>
     </div>
 
+    <header class="appbar" id="appbar">
+      <button type="button" class="appbar-brand" id="appbar-home" aria-label="Black Ram home">
+        <svg viewBox="0 0 200 200" aria-hidden="true"><circle cx="100" cy="100" r="94" fill="#0f0d17" stroke="#D4A62A" stroke-width="10"/><path d="M84,72 C46,38 10,62 18,104 C24,140 62,144 64,116 C65,98 46,94 42,108" fill="none" stroke="#D4A62A" stroke-width="15" stroke-linecap="round"/><g transform="translate(200,0) scale(-1,1)"><path d="M84,72 C46,38 10,62 18,104 C24,140 62,144 64,116 C65,98 46,94 42,108" fill="none" stroke="#D4A62A" stroke-width="15" stroke-linecap="round"/></g><polygon points="80,62 120,62 134,96 120,158 100,176 80,158 66,96" fill="#2A2A2E" stroke="#D4A62A" stroke-width="7" stroke-linejoin="round"/></svg>
+        <span>Black Ram</span>
+      </button>
+      <button type="button" class="appbar-status" id="appbar-status" data-state="idle" aria-label="Last pull status. Open Load Boards">
+        <span class="as-dot" aria-hidden="true"></span><span id="appbar-status-text">Last pull --</span>
+      </button>
+      <button type="button" class="hdr-wx on" id="hdr-wx" role="switch" aria-checked="true" aria-label="Weather rules">
+        <span class="hdr-wx-track" aria-hidden="true"><span class="hdr-wx-knob"></span></span><span class="hdr-wx-label">WX ON</span>
+      </button>
+      <button type="button" class="appbar-icon" id="callsheet-open" aria-label="Broker call sheet">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6.6 3.5h2.6l1.4 4-1.9 1.3a11 11 0 0 0 6.5 6.5l1.3-1.9 4 1.4v2.6A2.1 2.1 0 0 1 18.3 20 15.8 15.8 0 0 1 4 5.7a2.1 2.1 0 0 1 2.6-2.2z"/></g></svg>
+      </button>
+    </header>
+
     <header class="top">
-      <div class="top-row">
-        <button type="button" class="about-btn" id="callsheet-open">Call sheet</button>
-        <button type="button" class="about-btn" id="about-open">About</button>
-      </div>
+
       <div class="logo-wrap"><svg role="img" aria-label="Black Ram Logistics" xmlns="http://www.w3.org/2000/svg" width="720" height="190" viewBox="0 0 720 190"><rect width="720" height="190" fill="#0f0d17"/><g transform="translate(10,10) scale(.9)"><circle cx="100" cy="100" r="96" fill="#0f0d17" stroke="#D4A62A" stroke-width="5"/><path d="M84,72 C46,38 10,62 18,104 C24,140 62,144 64,116 C65,98 46,94 42,108" fill="none" stroke="#D4A62A" stroke-width="13" stroke-linecap="round"/><g transform="translate(200,0) scale(-1,1)"><path d="M84,72 C46,38 10,62 18,104 C24,140 62,144 64,116 C65,98 46,94 42,108" fill="none" stroke="#D4A62A" stroke-width="13" stroke-linecap="round"/></g><polygon points="80,62 120,62 134,96 120,158 100,176 80,158 66,96" fill="#2A2A2E" stroke="#D4A62A" stroke-width="5" stroke-linejoin="round"/>
 <polygon points="78,100 94,106 80,112" fill="#F2C94C"/><polygon points="122,100 106,106 120,112" fill="#F2C94C"/>
 <path d="M92,150 L100,160 L108,150" fill="none" stroke="#D4A62A" stroke-width="4"/></g><text x="205" y="105" style="font-family:Oswald,'Antonio',sans-serif;font-weight:700;font-size:78px;letter-spacing:5px" fill="#F5F1E6">BLACK RAM</text><text x="208" y="152" style="font-family:Oswald,'Antonio',sans-serif;font-weight:500;font-size:32px;letter-spacing:10px" fill="#D4A62A">LOGISTICS</text></svg></div>
@@ -129,7 +142,7 @@
       </section>
     </header>
 
-    <nav class="tabbar" role="tablist" aria-label="Sections">
+    <nav class="tabbar bnav" role="tablist" aria-label="Sections">
         <button type="button" id="tab-check" data-tab="check" role="tab" aria-selected="true" aria-controls="panel-check">Load check</button>
         <button type="button" id="tab-searches" data-tab="searches" role="tab" aria-selected="false" aria-controls="panel-searches">Load Boards</button>
         <button type="button" id="tab-stops" data-tab="stops" role="tab" aria-selected="false" aria-controls="panel-stops">Stops</button>
@@ -347,11 +360,24 @@
       <footer class="footer">
         <p><strong>Black Ram Logistics</strong> · DBA of Sand Lily Pad LLC</p>
         <p>Estimates are marked EST. Not a quote and not tax advice.</p>
-        <p class="app-version" id="app-version">v46</p>
+        <p class="app-version" id="app-version">v51</p>
       </footer>
       <div class="pad" aria-hidden="true"></div>
     </main>
 
+  </div>
+  <div id="more-sheet" class="more-sheet" hidden>
+    <button type="button" class="more-backdrop" aria-label="Close menu"></button>
+    <div class="more-panel" role="dialog" aria-modal="true" aria-labelledby="more-title">
+      <div class="more-grip" aria-hidden="true"></div>
+      <h2 class="more-title" id="more-title">More</h2>
+      <div class="more-grid" id="more-tabs"></div>
+      <div class="more-grid more-extras">
+        <button type="button" class="more-item" id="more-callsheet"><span class="mi-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6.6 3.5h2.6l1.4 4-1.9 1.3a11 11 0 0 0 6.5 6.5l1.3-1.9 4 1.4v2.6A2.1 2.1 0 0 1 18.3 20 15.8 15.8 0 0 1 4 5.7a2.1 2.1 0 0 1 2.6-2.2z"/></g></svg></span><span class="mi-lbl">Call sheet</span></button>
+        <button type="button" class="more-item" id="more-rig"><span class="mi-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 15V9h9v6M11 11h5l3 3v1M2 15h19"/><circle cx="6" cy="17" r="2"/><circle cx="16.5" cy="17" r="2"/></g></svg></span><span class="mi-lbl">Our rig</span></button>
+        <button type="button" class="more-item" id="about-open"><span class="mi-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></g></svg></span><span class="mi-lbl">About</span></button>
+      </div>
+    </div>
   </div>
   <div id="callsheet" class="sheet callsheet" role="dialog" aria-modal="true" aria-labelledby="callsheet-title" hidden>
     <div class="sheet-inner">
@@ -482,10 +508,10 @@
   </div>
   <noscript><p class="noscript">Black Ram Logistics needs JavaScript for the load check, stops, and reports.</p></noscript>
   <script src="vendor/leaflet/leaflet.js"></script>
-  <script src="tripplan.js?v=50"></script>
-  <script src="app.js?v=50"></script>
-  <script src="stops.js?v=50"></script>
-  <script src="targets.js?v=50"></script>
+  <script src="tripplan.js?v=51"></script>
+  <script src="app.js?v=51"></script>
+  <script src="stops.js?v=51"></script>
+  <script src="targets.js?v=51"></script>
   <script>
     (function () {
       if (!('serviceWorker' in navigator)) return;
