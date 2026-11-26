@@ -221,7 +221,7 @@
     var used = A.utilizedDays ? A.utilizedDays(m, asOf || (m.month + '-' + String(dim).padStart(2, '0'))) : null;
     var allMi = fig.deadMi == null ? null : fig.loadedMi + fig.deadMi;
     return {
-      month: m.month, asOf: asOf, day: day, dim: dim, fig: fig,
+      month: m.month, asOf: asOf, day: day, dim: dim, fig: fig, mo: m,
       loads: (m.loads || []).length,
       deadPct: allMi ? fig.deadMi / allMi * 100 : null,
       idle: used != null ? day - used : null,
@@ -230,10 +230,11 @@
     };
   }
 
-  function bar(label, actualTxt, targetTxt, ratio, note) {
+  function TA(arg, label) { var T = window.BlackRamTiles; return T ? T.attrs('tg', arg, label + '. Show details') : ''; }
+  function bar(label, actualTxt, targetTxt, ratio, note, tap) {
     var w = Math.max(0, Math.min(100, (isFinite(ratio) ? ratio : 0) * 100));
     var cls = ratio >= 1 ? 'tg-ok' : (ratio >= 0.6 ? 'tg-mid' : 'tg-low');
-    return '<div class="tg-bar ' + cls + '"><div class="tg-bar-top"><span>' + esc(label) + '</span><b>' + actualTxt +
+    return '<div class="tg-bar ' + cls + (tap ? ' tl-tap tl-chev tl-chev-top"' + TA(tap, label) : '"') + '><div class="tg-bar-top"><span>' + esc(label) + '</span><b>' + actualTxt +
       ' <i>/ ' + targetTxt + '</i></b></div><div class="track"><span style="width:' + w.toFixed(1) + '%"></span></div>' +
       (note ? '<div class="tg-note">' + note + '</div>' : '') + '</div>';
   }
@@ -337,10 +338,10 @@
       callouts.push('To hit a <b>20% cash-on-cash</b> return (after Meshach is paid from profit): <b>' + num(plan.loadsWk, 1) + ' loads/wk</b> at <b>' + rpm(+tgt.rpm) + '</b>, or <b>' + rpm(plan.minRpm) + '</b> at ' + num(+tgt.loadsWk, 1) + ' loads/wk. Plan at your inputs: <b>' + pctCoc(plan.coc_after) + '</b> after Meshach (' + pctCoc(plan.coc_before) + ' before).');
     }
 
-    var headline = '<section class="big tg-head"><div class="kicker">Break-even (Totni ' + tgt.fee + '%)</div>' +
+    var headline = '<section class="big tg-head"><div class="tg-be1 tl-tap tl-chev tl-chev-top"' + TA('be', 'Break-even') + '><div class="kicker">Break-even (Totni ' + tgt.fee + '%)</div>' +
       '<span class="n phrase">' + (m.beGross != null ? money(m.beGross) + '/mo gross' : 'Not reachable') + '</span>' +
-      '<p class="sub">' + (m.beLoadsWk != null ? num(m.beLoadsWk, 1) + ' loads/wk | ' + num(m.beMi / WEEKS, 0) + ' loaded mi/wk | bills ' + money(m.fixed) + '/mo' : 'Contribution per mile is negative') + '</p>' +
-      (m.beGrossDriver != null ? '<div class="tg-be2"><div class="kicker">Break-even incl. Meshach ' + money(tgt.driverMo) + '</div><span class="n phrase">' + money(m.beGrossDriver) + '/mo gross</span><p class="sub">' + num(m.beLoadsWkDriver, 1) + ' loads/wk | ' + num(m.beMiDriver / WEEKS, 0) + ' loaded mi/wk | expenses + his pay ' + money(m.fixedDriver) + '/mo</p></div>' : '') +
+      '<p class="sub">' + (m.beLoadsWk != null ? num(m.beLoadsWk, 1) + ' loads/wk | ' + num(m.beMi / WEEKS, 0) + ' loaded mi/wk | bills ' + money(m.fixed) + '/mo' : 'Contribution per mile is negative') + '</p></div>' +
+      (m.beGrossDriver != null ? '<div class="tg-be2 tl-tap tl-chev tl-chev-top"' + TA('bed', 'Break-even including Meshach') + '><div class="kicker">Break-even incl. Meshach ' + money(tgt.driverMo) + '</div><span class="n phrase">' + money(m.beGrossDriver) + '/mo gross</span><p class="sub">' + num(m.beLoadsWkDriver, 1) + ' loads/wk | ' + num(m.beMiDriver / WEEKS, 0) + ' loaded mi/wk | expenses + his pay ' + money(m.fixedDriver) + '/mo</p></div>' : '') +
       cocBlock(coc, plan) + '</section>';
 
     var outs = '<div class="stats">' +
@@ -359,12 +360,12 @@
       var tLoads = m.goalLoadsWk * WEEKS * frac;
       var beG = (m.beGross || 0) * frac;
       acts = '<h2 class="sec">This month vs goal | ' + esc(monLabel(act.month)) + ' 1-' + act.day + '</h2><div class="tg-bars">' +
-        bar('Gross MTD', money(act.fig.gross), money(tGross), act.fig.gross / (tGross || 1), 'Break-even pace ' + money(beG) + ' by today') +
-        bar('Loads MTD', String(act.loads), num(tLoads, 1), act.loads / (tLoads || 1)) +
-        bar('$ / loaded mile', rpm(act.fig.perLoaded), rpm(m.minRpmGoal), (act.fig.perLoaded || 0) / (m.minRpmGoal || 1)) +
-        (act.deadPct != null ? bar('Deadhead %', num(act.deadPct, 0) + '%', '&lt;= ' + tgt.dead + '%', act.deadPct > 0 ? Math.min(1, Number(tgt.dead) / act.deadPct) : 1, 'Lower is better') : '') +
-        (act.idle != null ? bar('Days with a load', String(act.used), num(Number(tgt.daysMo) * frac, 0), act.used / ((Number(tgt.daysMo) * frac) || 1), act.idle + ' idle days so far') : '') +
-        bar('Net before bills / day', money(act.netBeforeFixedPerDay), money((m.fixed + m.goalNet) / 30.4), act.netBeforeFixedPerDay / (((m.fixed + m.goalNet) / 30.4) || 1), 'Gross less ' + tgt.fee + '% fee and fuel, per calendar day') +
+        bar('Gross MTD', money(act.fig.gross), money(tGross), act.fig.gross / (tGross || 1), 'Break-even pace ' + money(beG) + ' by today', act.loads ? 'act:gross' : null) +
+        bar('Loads MTD', String(act.loads), num(tLoads, 1), act.loads / (tLoads || 1), null, act.loads ? 'act:loads' : null) +
+        bar('$ / loaded mile', rpm(act.fig.perLoaded), rpm(m.minRpmGoal), (act.fig.perLoaded || 0) / (m.minRpmGoal || 1), null, act.loads ? 'act:rpm' : null) +
+        (act.deadPct != null ? bar('Deadhead %', num(act.deadPct, 0) + '%', '&lt;= ' + tgt.dead + '%', act.deadPct > 0 ? Math.min(1, Number(tgt.dead) / act.deadPct) : 1, 'Lower is better', 'act:dead') : '') +
+        (act.idle != null ? bar('Days with a load', String(act.used), num(Number(tgt.daysMo) * frac, 0), act.used / ((Number(tgt.daysMo) * frac) || 1), act.idle + ' idle days so far', 'act:util') : '') +
+        bar('Net before bills / day', money(act.netBeforeFixedPerDay), money((m.fixed + m.goalNet) / 30.4), act.netBeforeFixedPerDay / (((m.fixed + m.goalNet) / 30.4) || 1), 'Gross less ' + tgt.fee + '% fee and fuel, per calendar day', act.loads ? 'act:net' : null) +
         '</div>';
     }
 
@@ -427,13 +428,13 @@
     var need = (plan.loadsWk != null)
       ? 'Need <b>' + num(plan.loadsWk, 1) + ' loads/wk</b> at ' + rpm(+tgt.rpm) + ', or <b>' + rpm(plan.minRpm) + '</b> at ' + num(+tgt.loadsWk, 1) + ' loads/wk, after Meshach is paid from profit.'
       : 'Contribution per mile is negative, so a 20% return is not reachable at this $/mi.';
-    return '<div class="tg-be2 tg-coc"><div class="kicker">20% cash-on-cash</div>' +
+    return '<div class="tg-be2 tg-coc tl-tap tl-chev tl-chev-top"' + TA('coc', '20% cash-on-cash. Opens Accounting') + '><div class="kicker">20% cash-on-cash</div>' +
       '<span class="n phrase">' + pctCoc(plan.coc_after) + ' plan after Meshach</span>' +
       '<p class="sub">' + need + ' Cash in ' + money(plan.invested) + '. Target ' + money(plan.needAnn) + '/yr (' + money(plan.needMo) + '/mo leftover). Before Meshach: ' + pctCoc(plan.coc_before) + '.</p></div>';
   }
 
   function metricBox(value, label, sub) {
-    return '<div class="metric"><div class="n">' + value + '</div><div class="l">' + esc(label) + '</div>' +
+    return '<div class="metric tl-tap tl-chev tl-chev-top"' + TA('inputs', label + ' ' + String(value).replace(/<[^>]+>/g, '') + '. Change the targets behind it') + '><div class="n">' + value + '</div><div class="l">' + esc(label) + '</div>' +
       (sub ? '<div class="sub">' + esc(sub) + '</div>' : '') + '</div>';
   }
 
@@ -499,7 +500,45 @@
     });
   }
 
-  window.BlackRamTargets = { render: render, model: model, structures: structures, cocPlan: cocPlan };
+  function billsList() {
+    var s = costs();
+    return [{ label: 'Truck note (Chase)', amount: s.otherFixed }, { label: 'Trailer note (Synchrony)', amount: s.trailer }, { label: 'Insurance (Progressive)', amount: s.insurance }]
+      .concat(Number(tgt.otherMo) ? [{ label: 'Other monthly', amount: Number(tgt.otherMo) }] : []);
+  }
+  function drill(arg) {
+    var T = window.BlackRamTiles, A = app(); if (!T) return;
+    var m = model(), s = costs(), fp = fuelPm(s), keep = 1 - m.feePct / 100;
+    if (arg === 'inputs') {
+      T.jump('tg-in', null, function () { var d = document.querySelector('#tg-in details.tg-inputs'); if (d) d.open = true; });
+      return;
+    }
+    if (arg === 'coc') { T.jump('ac-coc', 'acct'); return; }
+    if (arg === 'be' || arg === 'bed') {
+      var withD = arg === 'bed', fixed = withD ? m.fixedDriver : m.fixed, beMi = withD ? m.beMiDriver : m.beMi;
+      var B = billsList(); if (withD) B.push({ label: 'Meshach (from profit only)', amount: m.driverMo });
+      T.open({ title: withD ? 'Break-even incl. Meshach' : 'Break-even', sub: 'At your Targets inputs', body:
+        T.hero(beMi != null ? money(beMi * Number(tgt.rpm)) + '/mo' : 'Not reachable', beMi != null ? num(beMi / WEEKS / Number(tgt.miLoad), 1) + ' loads/wk | ' + num(beMi / WEEKS, 0) + ' loaded mi/wk' : 'Contribution per mile is negative') +
+        T.sec('Monthly bills to cover') + T.rows(B.map(function (b) { return { t: esc(b.label), v: money(b.amount), vc: 'neg' }; }).concat([{ t: 'Total', v: money(fixed), cls: 'tl-tot' }])) +
+        T.sec('What each loaded mile keeps') + T.rows([
+          { t: 'Rate', v: rpm(Number(tgt.rpm)) },
+          { t: 'Less Totni ' + m.feePct + '%', v: '-' + rpm(Number(tgt.rpm) * (1 - keep)), vc: 'neg' },
+          { t: 'Less fuel + DEF', s: fp.live ? 'Load Boards diesel model' : 'Rate Check flat rate', v: '-' + rpm(fp.loaded + m.deadPerLoaded * fp.dead), vc: 'neg' },
+          { t: 'Less tires + maintenance reserve', v: '-' + rpm((1 + m.deadPerLoaded) * Number(tgt.maint)), vc: 'neg' },
+          { t: 'Keeps per loaded mile', v: rpm(m.contrib), cls: 'tl-tot', vc: m.contrib < 0 ? 'neg' : 'pos' }
+        ]) + T.fine('Break-even miles = bills / keeps per mile. Deadhead ' + tgt.dead + '% of all miles is in the fuel and reserve lines.') +
+        '<div>' + T.btn('Change the inputs', 'tg', 'inputs') + '</div>' });
+      return;
+    }
+    if (/^act:/.test(arg)) {
+      var act = actuals(); if (!act || !A || !A.openLoadsSheet) return;
+      var k = arg.slice(4), mode = { gross: 'gross', loads: 'loads', rpm: 'rpm', dead: 'dead', util: 'util', net: 'net' }[k];
+      var to = act.asOf || (act.month + '-' + String(act.dim).padStart(2, '0'));
+      A.openLoadsSheet({ title: { gross: 'Gross MTD', loads: 'Loads MTD', rpm: '$ / loaded mile', dead: 'Deadhead', util: 'Days with a load', net: 'Net before bills' }[k], sub: monLabel(act.month) + ' 1-' + act.day,
+        entries: (act.mo.loads || []).map(function (l) { return { load: l, pct: act.mo.fee_pct }; }), expenses: act.mo.expenses || [], mode: mode, from: act.month + '-01', to: to });
+    }
+  }
+  if (window.BlackRamTiles) window.BlackRamTiles.on('tg', drill);
+  window.BlackRamTargets = { render: render, model: model, structures: structures, cocPlan: cocPlan, bills: billsList };
   document.addEventListener('blackram:financials', function () { render(); });
   window.addEventListener('storage', function (e) { if (e.key === FIN_KEY || e.key === 'blackram_relay_pin_v1') { cocFin.tried = false; render(); } });
 })();

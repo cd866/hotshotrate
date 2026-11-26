@@ -352,7 +352,7 @@
       '<div class="mt-sub">Steps</div><ol class="mt-steps">' + (S.steps || []).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ol>' +
       ((S.safety || []).length ? '<div class="mt-warnbox"><b>Safety</b>' + list(S.safety) + '</div>' : '') +
       (S.note ? '<p class="mt-fine">' + esc(S.note) + '</p>' : '') +
-      ((S.cite || []).length ? '<div class="mt-sub">Manual and page</div><ul class="mt-list mt-cite">' + S.cite.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' : '') +
+      ((S.cite || []).length ? '<div class="mt-sub">Manual and page</div><ul class="mt-list mt-cite">' + S.cite.map(function (x) { return '<li>' + citeLinks(esc(x)) + '</li>'; }).join('') + '</ul>' : '') +
       '<button type="button" class="btn primary mt-save" data-mt-tab="done">Done with the job: mark it done</button></div>';
   }
   function renderSheet() {
@@ -460,7 +460,7 @@
       tile('Overdue', String(c.over), c.over ? 'Past the interval. Tap to list' : 'Nothing past due', c.over ? 'bad' : 'ok', 'over') +
       tile('Due soon', String(c.soon), 'Within the warning window. Tap', c.soon ? 'warn' : 'ok', 'soon') +
       tile('Need record', String(c.need), 'Annual DOT inspections. Tap', c.need ? 'warn' : 'ok', 'need') +
-      '</div>' + (nxt ? '<p class="mt-next">Most urgent: <b>' + esc(nxt.it.item) + '</b>' + (/\((truck|trailer)\)/.test(nxt.it.item) ? '' : ' (' + (nxt.it.unit === 'trailer' ? 'trailer' : 'truck') + ')') + ', ' + esc(nSub) + '</p>' : '');
+      '</div>' + (nxt ? '<p class="mt-next tl-tap tl-chev"' + (window.BlackRamTiles ? window.BlackRamTiles.attrs('mt', 'item:' + nxt.it.id, 'Most urgent: ' + nxt.it.item + '. Open it') : '') + '>Most urgent: <b>' + esc(nxt.it.item) + '</b>' + (/\((truck|trailer)\)/.test(nxt.it.item) ? '' : ' (' + (nxt.it.unit === 'trailer' ? 'trailer' : 'truck') + ')') + ', ' + esc(nSub) + '</p>' : '');
   }
   function rowHtml(r) {
     var it = r.it, tone = r.status === 'over' ? 'bad' : (r.status === 'soon' ? 'warn' : (r.status === 'need' ? 'need' : 'ok'));
@@ -495,6 +495,16 @@
       '<p class="mt-fine">Bar = share of the interval used. Tap any item to mark it done (resets the next due) or open its SOP. Truck miles use the odometer estimate above. Trailer miles are estimated from loads. Items marked no record have never been logged, so they count from delivery.</p>');
   }
 
+  /* v91: manual page cites open the PDF at that page. Printed page + offset = PDF page (checked against the PDFs). */
+  var CITE_DOC = [[/^Ram OM$/, /Ram .*Owner/i, 2], [/^Big Tex OM$/, /Big Tex .*Owner/i, 1], [/^Dexter/, /Dexter/i, 1]];
+  function citeLinks(html) {
+    var docs = (st.pub && st.pub.manuals && st.pub.manuals.docs) || [];
+    return String(html).replace(/(Ram OM|Big Tex OM|Dexter(?: 9-15K)?) p\. ?(\d{1,3})/g, function (all, name, pg) {
+      var rule = CITE_DOC.filter(function (c) { return c[0].test(name); })[0]; if (!rule) return all;
+      var doc = docs.filter(function (d) { return rule[1].test(d[0]); })[0]; if (!doc || !/^https:\/\//.test(doc[1])) return all;
+      return '<a class="mt-pg-a" href="' + esc(doc[1]) + '#page=' + (Number(pg) + rule[2]) + '" target="_blank" rel="noopener" aria-label="Open ' + esc(name) + ' page ' + pg + '">' + all + '</a>';
+    });
+  }
   var KIND = { done: 'Check-off', service: 'Service', repair: 'Repair', def: 'DEF', setup: 'Setup', cosmetic: 'Detail', baseline: 'Baseline' };
   function unitName(u) { return u === 'truck' ? 'Truck' : (u === 'trailer' ? 'Trailer' : 'Unit unclear'); }
   function costOf(e) { var p = st.priv; return p && p.costs ? p.costs[e.id] : null; }
@@ -552,15 +562,48 @@
     var monthLbl = MON[now.getMonth()];
     return card('mt-spend', 'Maintenance spend', 'PIN-gated',
       '<div class="mt-tiles">' +
-      tile(monthLbl + ' so far', m0(t.svcM + t.defM), m0(t.svcM) + ' service, ' + m0(t.defM) + ' DEF', 'ok') +
-      tile('Since start', m0(all), m0(t.svc) + ' service, ' + m0(t.def) + ' DEF', 'ok') +
-      tile('Cost per mile', '$' + (all / miles).toFixed(3), '$' + (t.svc / miles).toFixed(3) + ' service only', 'ok') +
+      tapT(tile(monthLbl + ' so far', m0(t.svcM + t.defM), m0(t.svcM) + ' service, ' + m0(t.defM) + ' DEF', 'ok'), 'spend:month', monthLbl + ' maintenance spend') +
+      tapT(tile('Since start', m0(all), m0(t.svc) + ' service, ' + m0(t.def) + ' DEF', 'ok'), 'spend:all', 'Maintenance spend since start') +
+      tapT(tile('Cost per mile', '$' + (all / miles).toFixed(3), '$' + (t.svc / miles).toFixed(3) + ' service only', 'ok'), 'spend:cpm', 'Maintenance cost per mile') +
       '</div>' +
-      bars.map(function (b) { return '<div class="mt-sbar"><span>' + b[0] + '</span><div class="mt-sbar-t"><i style="width:' + Math.max(b[1] / mx * 100, b[1] ? 3 : 0).toFixed(1) + '%"></i></div><b>' + m0(b[1]) + '</b></div>'; }).join('') +
+      bars.map(function (b, bi) { return '<div class="mt-sbar' + (b[1] ? ' tl-tap"' + (window.BlackRamTiles ? window.BlackRamTiles.attrs('mt', 'spend:' + ['svc', 'def', 'excl'][bi], b[0] + ' ' + m0(b[1]) + '. Show the jobs') : '') : '"') + '><span>' + b[0] + '</span><div class="mt-sbar-t"><i style="width:' + Math.max(b[1] / mx * 100, b[1] ? 3 : 0).toFixed(1) + '%"></i></div><b>' + m0(b[1]) + '</b></div>'; }).join('') +
       '<p class="mt-fine">Per mile uses ' + n0(miles) + ' miles driven since delivery' + (O.est ? ' (EST, a floor, so cost per mile is a ceiling)' : '') + '. ' +
       (t.est ? 'Includes estimated amounts (oil change, spare swap) until the final invoices are posted. ' : '') +
       (t.unk ? t.unk + ' job' + (t.unk > 1 ? 's' : '') + ' with no cost on file (the 11/11 tire; the warranty may have paid). ' : '') +
       'Fuel and the TrailerGard contract are not maintenance spend. The rate model budgets DEF at $0.034 a mile.</p>');
+  }
+  function tapT(html, arg, label) {
+    var T = window.BlackRamTiles; if (!T) return html;
+    return html.replace('<div class="mt-tile ', '<div' + T.attrs('mt', arg, label + '. Show the jobs') + ' class="tl-tap tl-corner mt-tile ');
+  }
+  function spendLines(kind) {
+    var P = st.pub, priv = st.priv; if (!P || !priv) return [];
+    var out = [];
+    P.log.forEach(function (e) {
+      var c = priv.costs[e.id], k = e.kind;
+      if (!c || c.cost == null) { if (k === 'service' || k === 'repair' || k === 'def') out.push({ e: e, cost: null, k: k === 'def' ? 'def' : 'svc' }); return; }
+      if (k === 'service' || k === 'repair') out.push({ e: e, cost: c.cost, est: c.est, k: 'svc', by: c.paid_by });
+      else if (k === 'def') out.push({ e: e, cost: c.cost, est: c.est, k: 'def', by: c.paid_by });
+      else if (k === 'setup' || k === 'cosmetic') out.push({ e: e, cost: c.cost, est: c.est, k: 'excl', by: c.paid_by });
+    });
+    activeEntries().forEach(function (e) { if (e.cost != null) out.push({ e: { date: e.date, job: 'Done: ' + itemName(e.item_id), unit: e.unit, vendor: e.vendor }, cost: e.cost, k: 'svc' }); });
+    return out.filter(function (x) { return !kind || x.k === kind; }).sort(function (a, b) { return a.e.date < b.e.date ? 1 : -1; });
+  }
+  function drill(arg) {
+    var T = window.BlackRamTiles; if (!T) return;
+    var p = String(arg).split(':'), k = p[0], id = p.slice(1).join(':');
+    if (k === 'item') { openSheet(id); return; }
+    if (k !== 'spend' || !st.priv || !st.pub) return;
+    var now = new Date(), ym = now.getFullYear() + '-' + ('0' + (now.getMonth() + 1)).slice(-2);
+    var L = spendLines(id === 'svc' || id === 'def' || id === 'excl' ? id : null);
+    if (id === 'month') L = L.filter(function (x) { return x.k !== 'excl' && String(x.e.date).slice(0, 7) === ym; });
+    else if (id === 'all' || id === 'cpm') L = L.filter(function (x) { return x.k !== 'excl'; });
+    var tot = L.reduce(function (a, x) { return a + (x.cost || 0); }, 0);
+    var O = odo(), u = st.pub.units[0], miles = O ? Math.max(O.cur - (u.start_odo || 0), 1) : null;
+    var title = { month: MON[now.getMonth()] + ' maintenance spend', all: 'Maintenance spend since start', cpm: 'Maintenance cost per mile', svc: 'Service and repair', def: 'DEF', excl: 'Setup and detail (not counted)' }[id] || 'Spend';
+    T.open({ title: title, sub: 'PIN-gated', body: T.hero(id === 'cpm' && miles ? '$' + (tot / miles).toFixed(3) + '/mi' : m2(tot), id === 'cpm' && miles ? m2(tot) + ' over ' + n0(miles) + ' mi' + (O.est ? ' (EST, a floor)' : '') : L.length + ' jobs') +
+      T.rows(L.map(function (x) { return { d: md(x.e.date), t: esc(x.e.job), s: unitName(x.e.unit) + (x.e.vendor ? ' | ' + esc(x.e.vendor) : '') + (x.by ? ' | paid by ' + esc(x.by) : ''), v: x.cost == null ? 'cost?' : m2(x.cost), vc: x.cost == null ? 'warn' : '', vs: x.est ? 'EST' : '' }; }), 'No jobs with a cost in this view.') +
+      T.fine('Fuel and the TrailerGard contract are not maintenance spend. A job with no cost on file shows cost?.') });
   }
   function secSpend(P, O) {
     if (st.priv) return spendHtml(P, O);
@@ -607,17 +650,17 @@
   function secManuals(P) {
     var M = P.manuals || {};
     if (!M.insights) return '';
-    var rat = (M.ratings || []).map(function (r) { return '<div class="mt-row"><span>' + esc(r[0]) + '</span><b>' + esc(r[1]) + '<small>' + esc(r[2]) + '</small></b></div>'; }).join('');
+    var rat = (M.ratings || []).map(function (r) { return '<div class="mt-row"><span>' + esc(r[0]) + '</span><b>' + esc(r[1]) + '<small>' + citeLinks(esc(r[2])) + '</small></b></div>'; }).join('');
     var F = M.fit || {};
     var fit = (F.rows || []).map(function (r) { return '<div class="mt-row"><span>' + esc(r[0]) + '</span><b>' + esc(r[1]) + '</b></div>'; }).join('');
-    var ins = (M.insights || []).map(function (x) { return '<li><b>' + esc(x[0]) + '.</b> ' + esc(x[1]) + ' <i class="mt-pg">' + esc(x[2]) + '</i></li>'; }).join('');
+    var ins = (M.insights || []).map(function (x) { return '<li><b>' + esc(x[0]) + '.</b> ' + esc(x[1]) + ' <i class="mt-pg">' + citeLinks(esc(x[2])) + '</i></li>'; }).join('');
     var docs = (M.docs || []).map(function (x) { return '<li><a href="' + esc(x[1]) + '" target="_blank" rel="noopener">' + esc(x[0]) + '</a></li>'; }).join('');
     return card('mt-man', 'From the manuals', (M.insights || []).length + ' insights',
       '<div class="mt-in"><div class="mt-in-h"><b>Ratings for our rig</b></div><div class="mt-rows">' + rat + '</div></div>' +
       '<div class="mt-in"><div class="mt-in-h"><b>' + esc(F.title || 'Fit rule check') + '</b>' + pill('warn', 'Agrees if CAT was hitched') + '</div><div class="mt-rows">' + fit + '</div>' +
       (F.note ? '<p class="mt-fine">' + esc(F.note) + '</p>' : '') + '</div>' +
       '<div class="mt-sub">What the manuals say</div><ul class="mt-list mt-ins">' + ins + '</ul>' +
-      '<div class="mt-sub">Manuals</div><ul class="mt-list mt-list-s">' + docs + '</ul>');
+      '<div class="mt-sub">Manuals</div><ul class="mt-list mt-list-s">' + docs + '</ul><p class="mt-fine">Tap a page cite to open that manual at the page.</p>');
   }
   function secNeed(P) {
     return card('mt-need', 'Need from Claudio (' + P.need.length + ')', 'Fills the gaps',
@@ -775,6 +818,8 @@
       '.mt-lock-ico{width:56px;height:56px;border-radius:50%;background:var(--c-surface-3);color:var(--c-accent-hi);display:grid;place-items:center}.mt-lock-ico svg{width:28px;height:28px}' +
       '.mt-pin{display:flex;gap:var(--s-1);width:100%;max-width:320px}.mt-pin input{flex:1;min-width:0;min-height:var(--tap);padding:0 var(--s-1h);border-radius:var(--radius-sm);border:1px solid var(--c-line-strong);background:var(--c-surface-2);color:var(--c-text-1);font-size:var(--fs-base)}';
     s.textContent +=
+      '.mt-pg-a{color:var(--c-accent-hi);text-decoration:underline;text-underline-offset:2px}' +
+      '.mt-next.tl-tap{border-radius:var(--radius-sm)}' +
       '.mt-tile-btn{font:inherit;text-align:left;cursor:pointer;color:inherit;width:100%}.mt-tile-btn.on{border-color:var(--c-gold);box-shadow:0 0 0 1px var(--c-gold) inset}' +
       '.mt-tile-btn:active,.mt-due:active{transform:scale(.99)}' +
       'button.mt-due{display:flex;flex-direction:column;gap:6px;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;padding:var(--s-1h);border:0;border-left:4px solid var(--c-take)}' +
@@ -823,6 +868,7 @@
     window.addEventListener('online', flush);
     if (document.documentElement.getAttribute('data-tab') === 'maint') onShow();
   }
+  if (window.BlackRamTiles) window.BlackRamTiles.on('mt', drill);
   window.BlackRamMaintenance = { render: render, openItem: openSheet, closeSheet: closeSheet, flush: flush, refresh: function () { st.pub = null; loadPublic(); fetchPriv(true); } };
   window.BlackRamApp = Object.assign(window.BlackRamApp || {}, { maintenance: window.BlackRamMaintenance });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();

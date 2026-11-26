@@ -8,40 +8,42 @@
    data/load_searches.json and data/pull_status.json are always fetched with
    cache: 'no-store' and are not precached. A cached copy is used only when
    the network request fails, so live search progress shows without a version bump. */
-var CACHE = 'blackram-v90';
+var CACHE = 'blackram-v91';
 var ASSETS = [
   './',
   './index.html',
   './styles.css',
-  './styles.css?v=90',
+  './styles.css?v=91',
   './app.js',
-  './app.js?v=90',
+  './app.js?v=91',
   './maps.js',
-  './maps.js?v=90',
+  './maps.js?v=91',
   './stops.js',
-  './stops.js?v=90',
+  './stops.js?v=91',
   './targets.js',
   './loadcosts.js',
-  './loadcosts.js?v=90',
+  './loadcosts.js?v=91',
   './tripplan.js',
-  './tripplan.js?v=90',
+  './tripplan.js?v=91',
   './data/pilot_fj.json',
-  './targets.js?v=90',
+  './targets.js?v=91',
   './reports.js',
-  './reports.js?v=90',
+  './reports.js?v=91',
   './scoreboard.js',
   './accounting.js',
-  './accounting.js?v=90',
+  './accounting.js?v=91',
   './insurance.js',
-  './insurance.js?v=90',
+  './insurance.js?v=91',
   './maintenance.js',
-  './maintenance.js?v=90',
+  './maintenance.js?v=91',
   './dotready.js',
-  './dotready.js?v=90',
+  './dotready.js?v=91',
   './rig360.js',
-  './rig360.js?v=90',
+  './tiles.js',
+  './tiles.js?v=91',
+  './rig360.js?v=91',
   './vendor/three/three.module.min.js',
-  './scoreboard.js?v=90',
+  './scoreboard.js?v=91',
   './manifest.json',
   './manifest.json?v=3',
   './manifest.webmanifest',
@@ -98,7 +100,7 @@ function isShell(url, req) {
   var path = url.pathname;
   if (path.endsWith('/sw.js')) return true;
   if (path.endsWith('/index.html') || /\/$/.test(path)) return true;
-  if (path.endsWith('/app.js') || path.endsWith('/styles.css') || path.endsWith('/stops.js') || path.endsWith('/maps.js') || path.endsWith('/targets.js') || path.endsWith('/loadcosts.js') || path.endsWith('/tripplan.js') || path.endsWith('/reports.js') || path.endsWith('/scoreboard.js') || path.endsWith('/accounting.js') || path.endsWith('/insurance.js') || path.endsWith('/maintenance.js') || path.endsWith('/dotready.js') || path.endsWith('/rig360.js')) return true;
+  if (path.endsWith('/app.js') || path.endsWith('/styles.css') || path.endsWith('/stops.js') || path.endsWith('/maps.js') || path.endsWith('/targets.js') || path.endsWith('/loadcosts.js') || path.endsWith('/tripplan.js') || path.endsWith('/reports.js') || path.endsWith('/scoreboard.js') || path.endsWith('/accounting.js') || path.endsWith('/insurance.js') || path.endsWith('/maintenance.js') || path.endsWith('/dotready.js') || path.endsWith('/rig360.js') || path.endsWith('/tiles.js')) return true;
   if (path.endsWith('/manifest.json') || path.endsWith('/manifest.webmanifest')) return true;
   return false;
 }

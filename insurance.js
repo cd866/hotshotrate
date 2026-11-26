@@ -99,8 +99,9 @@
     return '<section class="in-card" id="' + id + '"><div class="in-h"><h3>' + title + '</h3>' + (sub ? '<span>' + sub + '</span>' : '') + '</div>' + body + '</section>';
   }
   function pill(cls, t) { return '<span class="in-pill in-pill-' + cls + '">' + esc(t) + '</span>'; }
-  function tile(label, big, sub, tone) {
-    return '<div class="in-tile in-t-' + (tone || 'ok') + '"><span>' + esc(label) + '</span><b>' + esc(big) + '</b><small>' + esc(sub) + '</small></div>';
+  function tile(label, big, sub, tone, jump) {
+    var T = window.BlackRamTiles, a = jump && T ? T.jumpAttrs('in-jump', jump, label + ' ' + big + '. Go to the details') : '';
+    return '<div class="in-tile in-t-' + (tone || 'ok') + (a ? ' tl-tap tl-corner' : '') + '"' + a + '><span>' + esc(label) + '</span><b>' + esc(big) + '</b><small>' + esc(sub) + '</small></div>';
   }
   function countText(iso) {
     var n = daysTo(iso);
@@ -111,9 +112,9 @@
 
   function secTiles() {
     return '<div class="in-tiles">' +
-      tile('Our policy', 'Active', 'Renews ' + md(OWN.end) + '/' + OWN.end.slice(0, 4) + ' (' + countText(OWN.end) + ')', tones(OWN.end)) +
-      tile('Totni policy', countText(TOTNI.end), 'COI ends ' + ymd(TOTNI.end), tones(TOTNI.end)) +
-      tile('Trailer tires', '7 yr', 'TrailerGard to Oct 2033', 'ok') +
+      tile('Our policy', 'Active', 'Renews ' + md(OWN.end) + '/' + OWN.end.slice(0, 4) + ' (' + countText(OWN.end) + ')', tones(OWN.end), 'in-pols') +
+      tile('Totni policy', countText(TOTNI.end), 'COI ends ' + ymd(TOTNI.end), tones(TOTNI.end), 'in-totni') +
+      tile('Trailer tires', '7 yr', 'TrailerGard to Oct 2033', 'ok', 'in-tire') +
       '</div>';
   }
   function chips(arr) { return '<div class="in-chips">' + arr.map(function (t) { return '<span class="in-chip">' + esc(t) + '</span>'; }).join('') + '</div>'; }
@@ -313,6 +314,7 @@
       '</ul>');
   }
 
+  if (window.BlackRamTiles) window.BlackRamTiles.on('in-jump', function (id) { window.BlackRamTiles.jump(id); });
   function render() {
     var el = root(); if (!el) return;
     if (!st.data && st.error !== 'wrongpin') st.data = fromCache();

@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v90';
+  var APP_VERSION = 'v91';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -465,8 +465,9 @@
     };
   }
 
-  function metric(value, label, sub, small) {
-    return '<div class="metric"><div class="n' + (small ? ' n-small' : '') + '">' + value +
+  function metric(value, label, sub, small, tap) {
+    var ta = tap ? tlAttrs(tap[0], tap[1], String(label).replace(/<[^>]+>/g, '') + ': ' + String(value).replace(/<[^>]+>/g, '') + '. Show details') : '';
+    return '<div class="metric' + (ta ? ' tl-tap tl-chev tl-chev-top' : '') + '"' + ta + '><div class="n' + (small ? ' n-small' : '') + '">' + value +
       '</div><div class="l">' + label + '</div>' +
       (sub ? '<div class="sub">' + sub + '</div>' : '') + '</div>';
   }
@@ -1964,25 +1965,26 @@
 
     var avgs = state.historyAvgs || bookedAverages(feed);
     var chartsHtml = renderReportsCharts(feed, month, months, all, fig);
+    tileCtx.reports = { entries: entries, expenses: expenseList, label: all ? 'All time' : monthTitle(month.month) + ', ' + span, from: all ? fig.start : month.month + '-01', to: asOf };
     root.innerHTML = head +
       renderAvgBanner(avgs) +
-      '<section class="big"><div class="kicker">' + esc(kicker) + '</div>' +
+      '<section class="big tl-tap tl-chev"' + tlAttrs('rp', 'gross', esc(kicker) + ' ' + money0(fig.gross) + '. Show the loads') + '><div class="kicker">' + esc(kicker) + '</div>' +
       '<span class="n">' + money0(fig.gross) + '</span>' +
       '<p class="sub">' + esc(span) + ' | ' + loadCount +
       (loadCount === 1 ? ' load' : ' loads') + ' | net ' + money0(fig.net) + '</p></section>' +
       '<div class="stats">' +
-      metric(money0(fig.fees), 'Totni fees', feeSub) +
-      metric(money0(fig.fuel), 'Fuel', 'DEF and other costs are separate') +
-      metric(money0(fig.other), 'Other expenses', breakout || 'None logged') +
-      metric(money0(fig.net), 'Net kept', 'Gross - fee - fuel - other') +
-      metric(fig.perLoaded == null ? '--' : rpm(fig.perLoaded), '$ / loaded mile', plainNum(fig.loadedMi, 2) + ' loaded mi') +
-      metric(String(loadCount), 'Loads hauled', all ? 'Newest load first' : 'Cancelled loads are listed below') +
-      (pay ? metric(money0(pay.received), 'Collected', 'Settlements received') : '') +
-      (pay ? metric(owedValue, 'Still owed', pay.detail) : '') +
+      metric(money0(fig.fees), 'Totni fees', feeSub, false, ['rp', 'fees']) +
+      metric(money0(fig.fuel), 'Fuel', 'DEF and other costs are separate', false, ['rp', 'fuel']) +
+      metric(money0(fig.other), 'Other expenses', breakout || 'None logged', false, ['rp', 'other']) +
+      metric(money0(fig.net), 'Net kept', 'Gross - fee - fuel - other', false, ['rp', 'net']) +
+      metric(fig.perLoaded == null ? '--' : rpm(fig.perLoaded), '$ / loaded mile', plainNum(fig.loadedMi, 2) + ' loaded mi', false, loadCount ? ['rp', 'rpm'] : null) +
+      metric(String(loadCount), 'Loads hauled', all ? 'Newest load first' : 'Cancelled loads are listed below', false, loadCount ? ['rp-jump', 'rp-loads'] : null) +
+      (pay ? metric(money0(pay.received), 'Collected', 'Settlements received', false, ['rp', 'collected']) : '') +
+      (pay ? metric(owedValue, 'Still owed', pay.detail, false, ['rp', 'owed']) : '') +
       '</div>' +
       chartsHtml +
       '<p class="fine">Load net below shows EST after fuel alongside gross after Totni fee.</p>' +
-      '<h2 class="sec">Loads</h2>' +
+      '<h2 class="sec" id="rp-loads">Loads</h2>' +
       (loads || '<p class="fine">No loads' + (all ? '.' : ' this month.') + '</p>') +
       '<h2 class="sec">Cancelled</h2>' +
       (cancelled || '<p class="fine">No cancelled loads.</p>') +
@@ -2566,21 +2568,24 @@
         Math.round(width) + '"><span style="width:' + width.toFixed(1) + '%"></span></div>' + ins + '</section>';
     }
 
+    tileCtx.kpis = { entries: usedLoads.map(function (l) { return { load: l, pct: all ? (fig.entries.filter(function (e) { return e.load === l; })[0] || {}).pct : fig.feePct }; }), expenses: all ? fig.expenses : (month.expenses || []),
+      label: (all ? 'All time' : monthTitle(month.month)) + ', ' + formatDay(periodStart) + ' - ' + formatDay(asOf), from: periodStart, to: asOf };
+    var hasL = loadCount > 0;
     var cards =
-      metric(fig.perLoaded == null ? '--' : rpm(fig.perLoaded), 'Revenue / loaded mile', plainNum(fig.loadedMi, 2) + ' loaded mi') +
+      metric(fig.perLoaded == null ? '--' : rpm(fig.perLoaded), 'Revenue / loaded mile', plainNum(fig.loadedMi, 2) + ' loaded mi', false, hasL ? ['kp', 'rpm'] : null) +
       (perAll == null
         ? metric('Not enough data', 'Revenue / all-miles', 'Deadhead miles are not on the feed yet.', true)
-        : metric(rpm(perAll), 'Revenue / all-miles', plainNum(allMiles, 1) + ' all-miles')) +
+        : metric(rpm(perAll), 'Revenue / all-miles', plainNum(allMiles, 1) + ' all-miles', false, ['kp', 'allmi'])) +
       (deadPct == null
         ? metric('Not enough data', 'Deadhead %', 'No deadhead miles recorded on these loads.', true)
-        : metric((deadPct * 100).toFixed(1) + '%', 'Deadhead', plainNum(fig.deadMi, 1) + ' empty mi')) +
-      metric(loadsPerWeek == null ? '--' : loadsPerWeek.toFixed(1), 'Loads per week', loadCount + ' loads / ' + days + ' days') +
-      metric(days ? Math.round(used / days * 100) + '%' : '--', 'Truck utilization', used + ' days with a load of ' + days) +
-      metric(margin == null ? '--' : (margin * 100).toFixed(1) + '%', 'Net margin', money(fig.net) + ' of ' + money(fig.gross)) +
-      metric(fuelPer == null ? '--' : rpm(fuelPer), 'Fuel per loaded mile', fig.deadMi == null ? 'All-miles fuel rate needs deadhead' : 'Loaded miles only in this label') +
-      metric(money0(fig.fees), 'Totni fees paid', (fig.feePct == null ? 'Mixed rates' : plainNum(fig.feePct, 2).replace(/\.00$/, '') + '%') + ' | through ' + formatDay(asOf)) +
-      (all && fig.pay ? metric(money(fig.pay.received), 'Collected', 'Settlements received') : '') +
-      (all && fig.pay ? metric((fig.pay.owedEst ? '<span class="est">EST</span> ' : '') + money(fig.pay.owed), 'Still owed', fig.pay.detail) : '');
+        : metric((deadPct * 100).toFixed(1) + '%', 'Deadhead', plainNum(fig.deadMi, 1) + ' empty mi', false, ['kp', 'dead'])) +
+      metric(loadsPerWeek == null ? '--' : loadsPerWeek.toFixed(1), 'Loads per week', loadCount + ' loads / ' + days + ' days', false, hasL ? ['kp', 'lpw'] : null) +
+      metric(days ? Math.round(used / days * 100) + '%' : '--', 'Truck utilization', used + ' days with a load of ' + days, false, days ? ['kp', 'util'] : null) +
+      metric(margin == null ? '--' : (margin * 100).toFixed(1) + '%', 'Net margin', money(fig.net) + ' of ' + money(fig.gross), false, margin == null ? null : ['kp', 'margin']) +
+      metric(fuelPer == null ? '--' : rpm(fuelPer), 'Fuel per loaded mile', fig.deadMi == null ? 'All-miles fuel rate needs deadhead' : 'Loaded miles only in this label', false, fuelPer == null ? null : ['kp', 'fuelmi']) +
+      metric(money0(fig.fees), 'Totni fees paid', (fig.feePct == null ? 'Mixed rates' : plainNum(fig.feePct, 2).replace(/\.00$/, '') + '%') + ' | through ' + formatDay(asOf), false, hasL ? ['kp', 'fees'] : null) +
+      (all && fig.pay ? metric(money(fig.pay.received), 'Collected', 'Settlements received', false, ['kp', 'collected']) : '') +
+      (all && fig.pay ? metric((fig.pay.owedEst ? '<span class="est">EST</span> ' : '') + money(fig.pay.owed), 'Still owed', fig.pay.detail, false, ['kp', 'owed']) : '');
 
     var weeksData = all ? weeksForLoads(usedLoads, periodStart, asOf, fig.expenses, fig.feePct) : weekRows(month);
     var wow = '';
@@ -7438,17 +7443,18 @@
     var range = finState.range;
     var low = range === 60 ? proj.low60 : proj.low30;
 
-    var bal = '<section class="fin-card fin-balance">' +
+    var bal = '<section class="fin-card fin-balance tl-tap tl-chev tl-chev-top"' + tlAttrs('fin', 'bal', 'Bank balance ' + finMoney(acct.available, true) + '. Show transactions') + '>' +
       '<div class="fin-kicker">' + esc(acct.bank + ' ' + acct.name) + ' ...' + esc(acct.last4) + '</div>' +
       '<div class="fin-big">' + finMoney(acct.available, true) + '</div>' +
       '<div class="fin-sub">Available | as of ' + esc(finAsOfText(d.as_of)) + '</div>' +
       '<div class="fin-mini-row">' +
-      '<span>Owed to us <b class="pos">' + finMoney(d.income_pending_total, true) + '</b></span>' +
+      '<span class="fin-owed-link" data-tl="fin" data-tl-arg="owed" role="button" tabindex="0" aria-label="Owed to us. Show money coming in">Owed to us <b class="pos">' + finMoney(d.income_pending_total, true) + '</b></span>' +
       ((d.off_bank || []).map(function (o) { return '<span>' + esc(o.label) + ' <b>' + finMoney(o.amount) + '</b></span>'; }).join('')) +
       '</div></section>';
 
-    var calls = '<div class="fin-callouts">' + (d.callouts || []).map(function (c) {
-      return '<div class="fin-call fin-call-' + esc(c.tone) + '"><b>' + esc(c.text) + '</b><span>' + esc(c.sub || '') + '</span></div>';
+    var calls = '<div class="fin-callouts">' + (d.callouts || []).map(function (c, ci) {
+      var ck = /owed to us/i.test(c.text) ? 'owed' : (/^bills /i.test(c.text) ? 'bills' : 'proj:' + ci);
+      return '<div class="fin-call fin-call-' + esc(c.tone) + ' tl-tap tl-chev tl-chev-top"' + tlAttrs('fin', ck, c.text + '. Show details') + '><b>' + esc(c.text) + '</b><span>' + esc(c.sub || '') + '</span></div>';
     }).join('') + '</div>';
 
     var chart = '<section class="fin-card"><div class="fin-head"><div class="fin-kicker">Cash projection</div>' +
@@ -7463,21 +7469,21 @@
     var bills = (d.bills || []).map(function (b) {
       var dd = b.next ? finDaysFrom(b.next, today) : null;
       var when = b.next ? (finDay(b.next) + (dd != null ? ' | ' + (dd === 0 ? 'today' : dd > 0 ? dd + 'd' : -dd + 'd late') : '')) : 'date?';
-      return '<li class="fin-row"><div class="fin-row-main"><b>' + esc(b.payee) + '</b>' +
+      return '<li class="fin-row tl-tap tl-chev"' + tlAttrs('fin', 'bill:' + b.id, b.payee + '. Show bill details') + '><div class="fin-row-main"><b>' + esc(b.payee) + '</b>' +
         '<span class="fin-row-sub">' + esc(b.freq) + ' | ' + esc(b.from) + (b.paid_note ? ' | ' + esc(b.paid_note) : '') + (b.note ? ' | ' + esc(b.note) : '') + '</span></div>' +
         '<div class="fin-row-end"><b class="neg">' + (b.amount == null ? esc(b.amount_text || 'amount?') : finMoney(b.amount, true)) + '</b>' +
         '<span class="fin-row-sub">' + esc(when) + '</span>' + finStatusChip(b.status) + '</div></li>';
     }).join('');
-    var billsCard = '<section class="fin-card"><div class="fin-kicker">Bills</div><ul class="fin-list">' + bills + '</ul>' +
+    var billsCard = '<section class="fin-card" id="fin-bills"><div class="fin-kicker">Bills</div><ul class="fin-list">' + bills + '</ul>' +
       '<p class="fin-foot">Bluevine Bill Pay: ' + (d.scheduled_bank_payments ? d.scheduled_bank_payments + ' scheduled' : 'nothing scheduled') + '</p></section>';
 
     var inc = (d.income || []).map(function (i) {
       var since = i.delivered ? finDaysFrom(today, i.delivered) : null;
-      return '<li class="fin-row"><div class="fin-row-main"><b>' + esc(i.payer) + '</b>' +
+      return '<li class="fin-row tl-tap tl-chev"' + tlAttrs('fin', 'inc:' + i.id, i.payer + '. Show details') + '><div class="fin-row-main"><b>' + esc(i.payer) + '</b>' +
         '<span class="fin-row-sub">Net via ' + esc(i.via) + ' | delivered ' + finDay(i.delivered) + (since != null ? ' (' + since + 'd ago)' : '') + '</span></div>' +
         '<div class="fin-row-end"><b class="pos">+' + finMoney(i.amount, true) + '</b><span class="fin-row-sub">' + (i.expected ? finDay(i.expected) : 'date?') + '</span>' + finStatusChip(i.status) + '</div></li>';
     }).join('');
-    var incCard = '<section class="fin-card"><div class="fin-kicker">Money coming in</div><ul class="fin-list">' + (inc || '<li class="fin-row">Nothing owed right now.</li>') + '</ul></section>';
+    var incCard = '<section class="fin-card" id="fin-income"><div class="fin-kicker">Money coming in</div><ul class="fin-list">' + (inc || '<li class="fin-row">Nothing owed right now.</li>') + '</ul></section>';
 
     var tx = (d.transactions || []).map(function (t) {
       var pos = t.amount >= 0;
@@ -8030,8 +8036,202 @@
     });
   }
 
+  // ---- v91 tappable tiles: Reports, KPI and Finance drill-downs (sheet lives in tiles.js) ----
+  var tileCtx = {};
+  function tl() { return window.BlackRamTiles || null; }
+  function tlAttrs(key, arg, label) { var T = tl(); return T ? T.attrs(key, arg, label) : ''; }
+  function cityOnly(place) { // city-level only: no street lines or ZIPs in the sheets
+    var t = String(place || '').replace(/\s*\([^)]*\)/g, '').split(',').pop();
+    return t.replace(/\b\d{5}(-\d{4})?\b/g, '').replace(/\s+/g, ' ').trim();
+  }
+  function shortLane(load) {
+    if (load.pickup_place || load.drop_place) return [cityOnly(load.pickup_place), cityOnly(load.drop_place)].filter(Boolean).join(' to ');
+    return cityOnly(String(load.lane || '').split(/ to | \u2192 /)[0]) || String(load.desc || '');
+  }
+  function loadWho(load) { return [load.broker, load.load_no].filter(Boolean).join(' #'); }
+  function dayShort(iso) { if (!iso) return 'date?'; var p = String(iso).slice(0, 10).split('-'); return Number(p[1]) + '/' + Number(p[2]); }
+  function expenseTileRows(list) {
+    return list.slice().sort(byDateDesc).map(function (row) {
+      return { d: dayShort(row.date), t: esc(row.vendor || 'Expense'), s: esc(catName(row.category || 'other')) + (typeof row.gallons === 'number' ? ' | ' + plainNum(row.gallons, 2) + ' gal' : '') + (row.est ? ' | EST' : ''), v: money(row.amount) };
+    });
+  }
+  function loadSpanDays(load, from, to) {
+    var out = [];
+    if (!load.date) return out;
+    var end = load.delivery_date && load.delivery_date >= load.date ? load.delivery_date : load.date;
+    eachDate(load.date, end, function (d) { if ((!from || d >= from) && (!to || d <= to)) out.push(d); });
+    return out;
+  }
+  // opts: { title, sub, entries: [{load, pct}], expenses: [], mode, from, to }
+  function openLoadsSheet(opts) {
+    var T = tl(); if (!T) return;
+    var entries = (opts.entries || []).slice().sort(function (a, b) { return byDateDesc(a.load, b.load); });
+    var exps = opts.expenses || [];
+    var mode = opts.mode || 'loads';
+    var body = '', tot = 0, list = [];
+    function base(e) { var l = e.load; return { d: dayShort(l.date), t: esc(loadWho(l) || l.desc || 'Load'), s: esc(shortLane(l)) }; }
+    if (mode === 'gross' || mode === 'loads') {
+      list = entries.map(function (e) { var r = base(e); var g = Number(e.load.gross) || 0; tot += g; r.v = money0(g); r.vs = e.load.loaded_mi ? plainNum(e.load.loaded_mi, 0) + ' mi' : ''; return r; });
+      body = T.hero(money0(tot), entries.length + (entries.length === 1 ? ' load' : ' loads') + ' | gross') + T.rows(list, 'No loads in this period.');
+    } else if (mode === 'fees') {
+      list = entries.map(function (e) { var r = base(e); var f = loadFee(e.load, e.pct); tot += f; r.v = money(f); r.vs = (e.pct != null ? plainNum(e.pct, 2).replace(/\.00$/, '') + '% of ' : 'of ') + money0(e.load.gross); return r; });
+      body = T.hero(money0(tot), 'Totni fees on ' + entries.length + ' loads') + T.rows(list, 'No loads in this period.') + T.fine('Fee = gross x the month fee %. ELD fees withheld by Totni are logged as expenses.');
+    } else if (mode === 'fuel' || mode === 'fuelmi') {
+      var fl = exps.filter(function (x) { return (x.category || 'other') === 'fuel'; });
+      fl.forEach(function (x) { tot += Number(x.amount) || 0; });
+      var mi = 0; entries.forEach(function (e) { mi += Number(e.load.loaded_mi) || 0; });
+      body = T.hero(money0(tot), fl.length + ' fuel lines' + (mode === 'fuelmi' && mi ? ' | ' + rpm(tot / mi) + ' per loaded mi (' + plainNum(mi, 0) + ' mi)' : '')) + T.rows(expenseTileRows(fl), 'No fuel logged.');
+    } else if (mode === 'other') {
+      var ol = exps.filter(function (x) { return (x.category || 'other') !== 'fuel'; });
+      var byc = {}; ol.forEach(function (x) { var c = x.category || 'other'; byc[c] = (byc[c] || 0) + (Number(x.amount) || 0); tot += Number(x.amount) || 0; });
+      var cats = Object.keys(byc).sort(function (a, b) { return byc[b] - byc[a]; });
+      body = T.hero(money0(tot), ol.length + ' expense lines, not fuel') +
+        T.sec('By category') + T.rows(cats.map(function (c) { return { t: esc(catName(c)), v: money(byc[c]) }; })) +
+        T.sec('Lines') + T.rows(expenseTileRows(ol), 'None logged.');
+    } else if (mode === 'net' || mode === 'margin') {
+      var g = 0, f = 0, fu = 0, ot = 0;
+      entries.forEach(function (e) { g += Number(e.load.gross) || 0; f += loadFee(e.load, e.pct); });
+      exps.forEach(function (x) { if ((x.category || 'other') === 'fuel') fu += Number(x.amount) || 0; else ot += Number(x.amount) || 0; });
+      var n = g - f - fu - ot;
+      body = T.hero(money0(n), mode === 'margin' && g ? (n / g * 100).toFixed(1) + '% of ' + money0(g) + ' gross' : 'Net kept, before truck, trailer and insurance bills', n < 0 ? 'bad' : 'good') +
+        T.rows([
+          { t: 'Gross', s: entries.length + ' loads', v: money(g), vc: 'pos' },
+          { t: 'Totni fees', v: '-' + money(f).replace('-', ''), vc: 'neg' },
+          { t: 'Fuel', s: exps.filter(function (x) { return x.category === 'fuel'; }).length + ' lines', v: '-' + money(fu).replace('-', ''), vc: 'neg' },
+          { t: 'Other expenses', s: exps.filter(function (x) { return x.category !== 'fuel'; }).length + ' lines', v: '-' + money(ot).replace('-', ''), vc: 'neg' },
+          { t: 'Net kept', v: money(n), cls: 'tl-tot', vc: n < 0 ? 'neg' : 'pos' }
+        ]) +
+        T.sec('Each load (net EST after fee and fuel)') +
+        T.rows(entries.map(function (e) { var r = base(e); var sc = scoreLedgerLoad(e.load, e.pct); r.v = sc.netVal == null ? '--' : money0(sc.netVal); r.vc = sc.netVal < 0 ? 'neg' : ''; r.vs = 'gross ' + money0(e.load.gross); return r; }), 'No loads.') +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap">' + T.btn('Fuel lines', 'ld-sub', 'fuel') + T.btn('Other expenses', 'ld-sub', 'other') + '</div>';
+    } else if (mode === 'rpm' || mode === 'allmi') {
+      var gm = 0, lm = 0, dm = 0;
+      list = entries.map(function (e) {
+        var r = base(e), l = e.load, m = Number(l.loaded_mi) || 0, em = ledgerEmpty(l).mi;
+        gm += Number(l.gross) || 0; lm += m; dm += em || 0;
+        if (mode === 'rpm') { r.v = m ? rpm((Number(l.gross) || 0) / m) : '--'; r.vs = plainNum(m, 0) + ' loaded mi'; }
+        else { var all = m + (em || 0); r.v = all ? rpm((Number(l.gross) || 0) / all) : '--'; r.vs = plainNum(m, 0) + ' + ' + (em == null ? '?' : plainNum(em, 0)) + ' empty mi'; }
+        return r;
+      });
+      var den = mode === 'rpm' ? lm : lm + dm;
+      body = T.hero(den ? rpm(gm / den) : '--', money0(gm) + ' gross / ' + plainNum(den, 0) + (mode === 'rpm' ? ' loaded mi' : ' all miles')) + T.rows(list, 'No loads.');
+    } else if (mode === 'dead') {
+      var lm2 = 0, dm2 = 0;
+      list = entries.map(function (e) {
+        var r = base(e), em = ledgerEmpty(e.load);
+        lm2 += Number(e.load.loaded_mi) || 0; dm2 += em.mi || 0;
+        r.v = em.mi == null ? '?' : plainNum(em.mi, 0) + ' mi';
+        r.vs = em.from ? 'from ' + esc(em.from) : (e.load.deadhead_mi != null ? 'logged' : 'EST');
+        return r;
+      });
+      body = T.hero(lm2 + dm2 ? (dm2 / (lm2 + dm2) * 100).toFixed(1) + '%' : '--', plainNum(dm2, 0) + ' empty mi of ' + plainNum(lm2 + dm2, 0) + ' total') + T.rows(list, 'No loads.') +
+        T.fine('Empty miles are the logged deadhead, or the EST from the previous drop or home.');
+    } else if (mode === 'util' || mode === 'idle') {
+      var from = opts.from, to = opts.to, seen = {};
+      list = entries.map(function (e) {
+        var r = base(e), ds = loadSpanDays(e.load, from, to);
+        ds.forEach(function (d) { seen[d] = true; });
+        r.v = ds.length + (ds.length === 1 ? ' day' : ' days'); r.vs = ds.length ? dayShort(ds[0]) + (ds.length > 1 ? '-' + dayShort(ds[ds.length - 1]) : '') : 'outside range';
+        return r;
+      });
+      var runs = [], cur = null, total = 0;
+      if (from && to) eachDate(from, to, function (d) {
+        total++;
+        if (seen[d]) { cur = null; return; }
+        if (cur) { cur.end = d; cur.n++; } else { cur = { start: d, end: d, n: 1 }; runs.push(cur); }
+      });
+      var used = Object.keys(seen).length;
+      body = T.hero(used + ' of ' + total + ' days', 'days with a load (' + (total ? Math.round(used / total * 100) : 0) + '%) | ' + (total - used) + ' idle') +
+        T.sec('Idle stretches') + T.rows(runs.reverse().map(function (r) { return { d: dayShort(r.start), t: r.n === 1 ? dayShort(r.start) : dayShort(r.start) + ' - ' + dayShort(r.end), v: r.n + (r.n === 1 ? ' day' : ' days'), vc: r.n >= 3 ? 'warn' : '' }; }), 'No idle days.') +
+        T.sec('Loaded days') + T.rows(list, 'No loads.');
+    } else if (mode === 'netday') {
+      var netT = 0, dayT = {};
+      list = entries.map(function (e) {
+        var r = base(e), sc = scoreLedgerLoad(e.load, e.pct);
+        netT += sc.netVal || 0; loadSpanDays(e.load, opts.from, opts.to).forEach(function (d) { dayT[d] = true; });
+        r.v = sc.netPerDay == null ? '--' : money0(sc.netPerDay) + '/d'; r.vs = (sc.days || 1) + 'd | net ' + money0(sc.netVal); return r;
+      });
+      body = T.hero(opts.headline || '--', opts.headSub || '') + T.rows(list, 'No loads.') + T.fine('Per load: net EST after fee and fuel / days on the load.');
+    } else if (mode === 'ontime') {
+      list = entries.filter(function (e) { return e.load.delivered_date && e.load.delivery_date; }).map(function (e) {
+        var r = base(e), ok = e.load.delivered_date <= e.load.delivery_date;
+        r.v = ok ? 'On time' : 'Late'; r.vc = ok ? 'pos' : 'neg'; r.vs = 'due ' + dayShort(e.load.delivery_date) + ', dropped ' + dayShort(e.load.delivered_date); return r;
+      });
+      body = T.rows(list, 'No loads with a logged delivered date yet.') + T.fine('Drop date vs the rate con delivery date. Pickup times are not logged yet.');
+    } else if (mode === 'collected' || mode === 'owed') {
+      var sum = 0;
+      list = [];
+      entries.forEach(function (e) {
+        var l = withResolvedStatus(e.load), due = Number(l.net_due), got = Number(l.net_received) || 0;
+        if (!isFinite(due)) return;
+        var r = base(e);
+        if (mode === 'collected') { if (!got) return; sum += got; r.v = money(got); r.vs = l.received_date ? 'paid ' + dayShort(l.received_date) : 'paid'; if (l.net_received_est) r.vs += ' | EST share'; }
+        else { if (due - got <= 0.004) return; sum += due - got; r.v = money(due - got); r.vs = (got ? 'short' : 'unpaid') + (l.net_due_est ? ' | EST' : ''); r.vc = 'warn'; }
+        list.push(r);
+      });
+      body = T.hero(money(sum), mode === 'collected' ? 'settlements received' : 'still owed by Totni') + T.rows(list, mode === 'owed' ? 'Nothing owed.' : 'Nothing collected yet.');
+    }
+    tileCtx.lastSheet = opts;
+    T.open({ title: opts.title, sub: opts.sub ? esc(opts.sub) : '', body: body });
+  }
+  function ctxOpen(scope, mode, title) {
+    var c = tileCtx[scope]; if (!c) return;
+    openLoadsSheet({ title: title, sub: c.label, entries: c.entries, expenses: c.expenses, mode: mode, from: c.from, to: c.to, headline: c.headline && c.headline[mode], headSub: c.headSub && c.headSub[mode] });
+  }
+  var LD_TITLES = { gross: 'Gross', fees: 'Totni fees', fuel: 'Fuel', other: 'Other expenses', net: 'Net kept', rpm: '$ / loaded mile', loads: 'Loads hauled', collected: 'Collected', owed: 'Still owed', allmi: 'Revenue / all-miles', dead: 'Deadhead', lpw: 'Loads per week', util: 'Truck utilization', margin: 'Net margin', fuelmi: 'Fuel per loaded mile' };
+  function initTiles() {
+    var T = tl(); if (!T) return;
+    T.on('rp', function (mode) { ctxOpen('reports', mode, LD_TITLES[mode] || 'Details'); });
+    T.on('kp', function (mode) { ctxOpen('kpis', mode === 'lpw' ? 'loads' : mode, LD_TITLES[mode] || 'Details'); });
+    T.on('ld-sub', function (mode) { var o = tileCtx.lastSheet; if (!o) return; openLoadsSheet(Object.assign({}, o, { mode: mode, title: LD_TITLES[mode] || o.title })); });
+    T.on('rp-jump', function (id) { T.jump(id); });
+    T.on('fin', finTile);
+  }
+  function finTile(arg) {
+    var T = tl(), d = finState.data; if (!T || !d) return;
+    var p = String(arg || '').split(':'), k = p[0], id = p.slice(1).join(':');
+    var today = String(d.as_of).slice(0, 10);
+    if (k === 'bal') {
+      var tx = (d.transactions || []).map(function (t) { return { d: dayShort(t.date), t: esc(t.desc), s: 'balance ' + finMoney(t.balance, true), v: (t.amount >= 0 ? '+' : '') + finMoney(t.amount, true), vc: t.amount >= 0 ? 'pos' : 'neg' }; });
+      T.open({ title: 'Bluevine ...' + esc((d.account || {}).last4), sub: 'Available ' + finMoney((d.account || {}).available, true) + ' | as of ' + esc(finAsOfText(d.as_of)),
+        body: T.sec('Latest transactions') + T.rows(tx, 'No transactions.') + T.sec('Next scheduled bills') + finEventsRows(d, null) });
+    } else if (k === 'owed') {
+      T.jump('fin-income');
+    } else if (k === 'bills') {
+      T.jump('fin-bills');
+    } else if (k === 'proj') {
+      var c = (d.callouts || [])[Number(id)] || {};
+      T.open({ title: c.text || 'Cash projection', sub: 'Bills only, no new loads', body: T.hero(finMoney(d.projection.start, true), 'starting balance', 'good') + finEventsRows(d, null) +
+        T.fine(esc(d.projection.if_paid_note || '') + ' Money coming in: ' + finMoney(d.income_pending_total, true) + ', not counted until it lands.') });
+    } else if (k === 'bill') {
+      var b = (d.bills || []).filter(function (x) { return x.id === id; })[0]; if (!b) return;
+      var dd = b.next ? finDaysFrom(b.next, today) : null;
+      T.open({ title: b.payee, sub: esc(b.freq || ''), body:
+        T.kv([['Amount', b.amount == null ? esc(b.amount_text || 'amount?') : finMoney(b.amount, true)], ['Next', b.next ? finDay(b.next) + (dd != null ? ' (' + (dd === 0 ? 'today' : dd > 0 ? 'in ' + dd + 'd' : -dd + 'd late') + ')' : '') : 'date?'],
+          ['Paid from', esc(b.from || '--'), 'wide'], ['Status', esc(String(b.status || '--').toUpperCase())], ['Hits the bank', b.hits_bank ? 'Yes' : 'No']].concat(b.left ? [['Left', esc(b.left), 'wide']] : [])) +
+        ((b.dates || []).length ? T.sec('Schedule') + T.rows(b.dates.map(function (x) { return { d: dayShort(x[0]), t: finDay(x[0]), v: finMoney(x[1], true), vc: 'neg' }; })) : '') +
+        ((b.paid_note || b.note) ? T.fine(esc([b.paid_note, b.note].filter(Boolean).join(' | '))) : '') });
+    } else if (k === 'inc') {
+      var i = (d.income || []).filter(function (x) { return String(x.id) === id; })[0]; if (!i) return;
+      var since = i.delivered ? finDaysFrom(today, i.delivered) : null;
+      T.open({ title: i.payer, sub: 'Net via ' + esc(i.via), body: T.hero('+' + finMoney(i.amount, true), esc(String(i.status || '').toUpperCase()), 'good') +
+        T.kv([['Delivered', finDay(i.delivered) + (since != null ? ' (' + since + 'd ago)' : '')], ['Expected', i.expected ? finDay(i.expected) : 'date?']]) +
+        T.fine('Owed by Totni after the 13% fee. Lands in Bluevine through ' + esc(i.via) + '.') });
+    }
+  }
+  function finEventsRows(d, until) {
+    var T = tl(), bal = d.projection.start;
+    var ev = (d.projection.events || []).filter(function (e) { return !until || e.date <= until; }).map(function (e) {
+      bal += e.amount;
+      return { d: dayShort(e.date), t: esc(e.label), s: 'balance after ' + finMoney(bal, true), v: finMoney(e.amount, true), vc: e.amount < 0 ? 'neg' : 'pos', cls: bal < 0 ? 'tl-neg' : '' };
+    });
+    return T.rows(ev, 'Nothing scheduled.');
+  }
+
   window.BlackRamApp = Object.assign(window.BlackRamApp || {}, {
     isUshipBid: isUshipBid,
+    ledgerEmpty: ledgerEmpty,
+    openLoadsSheet: openLoadsSheet,
     getFeed: function () { return state.feed; },
     settings: settings,
     monthFigures: monthFigures,
@@ -8043,6 +8243,7 @@
   });
 
   function init() {
+    initTiles();
     loadSettings();
     loadView();
     loadSearchPrefs();

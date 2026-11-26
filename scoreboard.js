@@ -186,6 +186,38 @@
       '<div class="sb-f">' + (o.trend || '<span class="sb-tr"></span>') + (o.spark ? o.spark.replace('#a78bfa', cls === 'g' ? '#34D399' : cls === 'a' ? '#FBBF24' : cls === 'r' ? '#F87171' : '#a78bfa').replace('#a78bfa', cls === 'g' ? '#34D399' : cls === 'a' ? '#FBBF24' : cls === 'r' ? '#F87171' : '#a78bfa') : '') + '</div></article>';
   }
 
+  /* v91: tap a tile for the loads or lines behind it (sheet in tiles.js). */
+  var sbCtx = null;
+  function TA(arg, label) { var T = window.BlackRamTiles; return T ? T.attrs('sb', arg, label + '. Show details') : ''; }
+  var TAP = ' tl-tap tl-chev tl-chev-top';
+  function drill(arg) {
+    var T = window.BlackRamTiles, A = window.BlackRamApp, c = sbCtx;
+    if (!T || !A || !c) return;
+    function ent(list, pct) { return list.map(function (l) { return { load: l, pct: l._pct != null ? l._pct : pct }; }); }
+    var m = { entries: ent(c.loadsM, c.pct), expenses: c.expM, from: c.mStart, to: c.asOf, sub: c.mLabel };
+    var map = {
+      wk: { title: 'Loads this week', mode: 'loads', entries: ent(c.loadsW, c.pct), expenses: c.expW, from: c.wkStart, to: c.wkEnd, sub: 'Week of ' + md(c.wkStart) },
+      mo: { title: 'Loads this month', mode: 'loads' }, gross: { title: 'Gross MTD', mode: 'gross' }, net: { title: 'Net kept MTD', mode: 'net' },
+      rpm: { title: 'Avg $/loaded mi', mode: 'rpm' }, dead: { title: 'Deadhead', mode: 'dead' }, idle: { title: 'Idle days', mode: 'idle' }, util: { title: 'Truck utilization', mode: 'util' },
+      netday: { title: 'Net / loaded day', mode: 'netday', headline: c.netDayTxt, headSub: c.netDaySub },
+      ontime: { title: 'On-time drops', mode: 'ontime', entries: ent(c.withDel, c.pct) }
+    };
+    if (arg === 'drv') { T.jump('ac-driver', 'acct'); return; }
+    if (arg === 'cash') { T.jump('fin-root', 'fin'); return; }
+    if (arg === 'coc') { T.jump('ac-coc', 'acct'); return; }
+    if (arg === 'be') {
+      var B = window.BlackRamTargets && window.BlackRamTargets.bills ? window.BlackRamTargets.bills() : [];
+      var tot = B.reduce(function (a, b) { return a + b.amount; }, 0);
+      T.open({ title: 'Break-even', sub: esc(c.mLabel), body: T.hero(c.beTxt, 'Net kept ' + money(c.net) + ' vs ' + money(c.fixed) + ' monthly bills', c.net >= c.fixed ? 'good' : 'bad') +
+        T.sec('Monthly bills') + T.rows(B.map(function (b) { return { t: esc(b.label), v: money(b.amount), vc: 'neg' }; }).concat([{ t: 'Total bills', v: money(tot || c.fixed), cls: 'tl-tot' }])) +
+        T.sec('Net kept so far') + T.rows([{ t: 'Gross - Totni fee - fuel - other costs', s: c.loadsM.length + ' loads', v: money(c.net), vc: c.net < 0 ? 'neg' : 'pos' }, { t: 'Still to cover', v: money(Math.max(0, c.fixed - c.net)), cls: 'tl-tot' }]) +
+        '<div>' + T.btn('See the loads and costs', 'sb', 'net') + '</div>' + T.fine('Bills come from the Targets tab inputs. Meshach is paid only from profit left after these bills.') });
+      return;
+    }
+    var o = map[arg]; if (!o) return;
+    A.openLoadsSheet(Object.assign({}, m, o));
+  }
+
   function sub(month, from, to) {
     // Synthetic month limited to [from, to] so monthFigures can be reused for weeks / same-day comparisons.
     return {
@@ -303,18 +335,18 @@
     var onTime = withDel.filter(function (l) { return l.delivered_date <= l.delivery_date; }).length;
 
     var tiles = [];
-    tiles.push(tile({ label: 'Loads this week', actual: wkNow.loads, target: t.loadsWk, paceTarget: t.loadsWk * wkDays / 7,
+    tiles.push(tile({ attrs: TA('wk', 'Loads this week'), extraCls: TAP, label: 'Loads this week', actual: wkNow.loads, target: t.loadsWk, paceTarget: t.loadsWk * wkDays / 7,
       value: wkNow.loads + ' <small>/ ' + num(t.loadsWk, 1) + '</small>',
       targetText: 'Target <b>' + num(t.loadsWk, 1) + '/wk</b> - pace ' + num(t.loadsWk * wkDays / 7, 1) + ' by ' + md(addDays(wkNow.start, wkDays - 1)),
       trend: trend(wkNow.loads, wkPrev.loads, 'last wk', function (x) { return num(x, 0); }), spark: spark(col('loads')) }));
-    tiles.push(tile({ label: 'Loads this month', actual: loadsM, target: loadsMoT, paceTarget: loadsMoT * pace,
+    tiles.push(tile({ attrs: TA('mo', 'Loads this month'), extraCls: TAP, label: 'Loads this month', actual: loadsM, target: loadsMoT, paceTarget: loadsMoT * pace,
       value: loadsM + ' <small>/ ' + num(loadsMoT, 0) + '</small>',
       targetText: 'Pace <b>' + num(loadsMoT * pace, 1) + '</b> by ' + md(asOf) + ' - ' + Math.max(0, Math.ceil(loadsMoT - loadsM)) + ' more for the month',
       trend: trend(loadsM, prevLoads, prevLbl, function (x) { return num(x, 0); }) }));
-    tiles.push(tile({ label: 'Gross MTD', actual: fig.gross, target: grossT, paceTarget: grossT * pace,
+    tiles.push(tile({ attrs: TA('gross', 'Gross MTD'), extraCls: TAP, label: 'Gross MTD', actual: fig.gross, target: grossT, paceTarget: grossT * pace,
       value: money(fig.gross), targetText: 'Plan <b>' + money(grossT) + '</b> - pace ' + money(grossT * pace) + (M && M.beGross ? ' - BE ' + money(M.beGross) + ', incl. Meshach ' + money(M.beGrossDriver) : ''),
       trend: trend(fig.gross, prevFig && prevFig.gross, prevLbl, money), spark: spark(col('gross')) }));
-    tiles.push(tile({ label: 'Net kept MTD', actual: fig.net, target: netT, paceTarget: netT != null ? netT * pace : null,
+    tiles.push(tile({ attrs: TA('net', 'Net kept MTD'), extraCls: TAP, label: 'Net kept MTD', actual: fig.net, target: netT, paceTarget: netT != null ? netT * pace : null,
       value: money(fig.net), targetText: 'Plan <b>' + money(netT) + '</b> before bills - pace ' + money(netT != null ? netT * pace : null),
       trend: trend(fig.net, prevFig && prevFig.net, prevLbl, money), spark: spark(col('net')) }));
     // Bills and expenses first; Meshach's $3,000/mo only from actual profit after that (Claudio 11/26 1:24 PM CT).
@@ -323,28 +355,28 @@
     var afterBills = fig.net - billsMo;                                   // profit after ALL expenses incl. notes (month's full bills)
     var wcov = Math.max(0, Math.min(afterBills, wage));
     var wprev = prevFig ? Math.max(0, Math.min(prevFig.net - billsMo, wage)) : null;
-    tiles.push(tile({ label: 'Driver pay this month', actual: wcov, target: wage, paceTarget: wage,
+    tiles.push(tile({ attrs: TA('drv', 'Driver pay this month. Opens Accounting'), extraCls: TAP, label: 'Driver pay this month', actual: wcov, target: wage, paceTarget: wage,
       value: money(wcov) + ' <small>of ' + money(wage) + '</small>',
       targetText: 'Driver pay this month: ' + money(wcov) + ' of ' + money(wage) + '. Profit after all bills ' + money(afterBills) + '. A shortfall is not a debt. Leftover is split in thirds (his third on top of his pay).',
       trend: trend(wcov, wprev, prevLbl, money) }));
-    tiles.push(tile({ label: 'Avg $/loaded mi', actual: fig.perLoaded, target: t.rpm, barMax: Math.max(t.rpm, fig.perLoaded || 0) * 1.15,
+    tiles.push(tile({ attrs: TA('rpm', 'Avg dollars per loaded mile'), extraCls: TAP, label: 'Avg $/loaded mi', actual: fig.perLoaded, target: t.rpm, barMax: Math.max(t.rpm, fig.perLoaded || 0) * 1.15,
       value: rpmT(fig.perLoaded), targetText: 'Target <b>' + rpmT(t.rpm) + '</b> - ' + num(fig.loadedMi, 0) + ' loaded mi',
       trend: trend(fig.perLoaded, prevFig && prevFig.perLoaded, prevLbl, rpmT), spark: spark(col('rpm')) }));
-    tiles.push(tile({ label: 'Deadhead', actual: deadPct == null ? null : deadPct * 100, target: t.dead, lower: true, barMax: 60,
+    tiles.push(tile({ attrs: TA('dead', 'Deadhead'), extraCls: TAP, label: 'Deadhead', actual: deadPct == null ? null : deadPct * 100, target: t.dead, lower: true, barMax: 60,
       value: deadPct == null ? '-' : pct(deadPct), targetText: 'Target <b>' + num(t.dead, 0) + '% or less</b>' + (fig.deadMi != null ? ' - ' + num(fig.deadMi, 0) + ' empty mi' : ''),
       trend: trend(deadPct == null ? null : deadPct * 100, prevDead == null ? null : prevDead * 100, prevLbl, function (x) { return num(x, 0) + ' pts'; }, true),
       spark: spark(col('dead').map(function (x) { return x == null ? null : -x; })) }));
-    tiles.push(tile({ label: 'Idle days', actual: idle, target: idleT, lower: true, barMax: day,
+    tiles.push(tile({ attrs: TA('idle', 'Idle days'), extraCls: TAP, label: 'Idle days', actual: idle, target: idleT, lower: true, barMax: day,
       value: idle + ' <small>of ' + day + '</small>', targetText: 'Target <b>' + num(idleT, 0) + ' or fewer</b> by ' + md(asOf) + ' (' + num(t.daysMo, 0) + ' work days/mo)',
       trend: trend(idle, prevUsed == null ? null : prevDay - prevUsed, prevLbl, function (x) { return num(x, 0); }, true) }));
-    tiles.push(tile({ label: 'Truck utilization', actual: day ? used / day : null, target: utilT, barMax: 1,
+    tiles.push(tile({ attrs: TA('util', 'Truck utilization'), extraCls: TAP, label: 'Truck utilization', actual: day ? used / day : null, target: utilT, barMax: 1,
       value: pct(day ? used / day : null), targetText: 'Target <b>' + pct(utilT) + '</b> - ' + used + ' days loaded of ' + day,
       trend: trend(day ? used / day * 100 : null, prevUsed == null ? null : prevUsed / prevDay * 100, prevLbl, function (x) { return num(x, 0) + ' pts'; }),
       spark: spark(weeks.map(function (w) { return w.days ? w.used / w.days : null; })) }));
-    tiles.push(tile({ label: 'Net / loaded day', actual: netDay, target: netDayT,
+    tiles.push(tile({ attrs: used ? TA('netday', 'Net per loaded day') : '', extraCls: used ? TAP : '', label: 'Net / loaded day', actual: netDay, target: netDayT,
       value: money(netDay), targetText: 'Target <b>' + money(netDayT) + '/day</b> (bills + partner goal / ' + num(t.daysMo, 0) + ' days)',
       trend: trend(netDay, prevFig && prevUsed ? prevFig.net / prevUsed : null, prevLbl, money) }));
-    tiles.push(tile({ label: 'On-time drops', actual: withDel.length ? onTime / withDel.length : null, target: 1, barMax: 1,
+    tiles.push(tile({ attrs: withDel.length ? TA('ontime', 'On-time drops') : '', extraCls: withDel.length ? TAP : '', label: 'On-time drops', actual: withDel.length ? onTime / withDel.length : null, target: 1, barMax: 1,
       cls: withDel.length ? status(onTime / withDel.length, 1) : '',
       value: withDel.length ? onTime + ' <small>of ' + withDel.length + '</small>' : 'No data',
       targetText: withDel.length ? 'Target <b>100%</b> - drop date vs rate con. Pickup times not logged yet.' : 'Delivered dates are not logged yet.',
@@ -355,7 +387,7 @@
     if (fin.data && fin.data.account) {
       var fn = fin.data.projection && fin.data.projection.first_negative;
       var low = fin.data.projection && fin.data.projection.low30;
-      finTile = tile({ label: 'Bluevine cash', actual: fin.data.account.available, target: fixed, cls: fn ? 'r' : 'g', noBar: false, barMax: Math.max(fixed || 1, fin.data.account.available || 0),
+      finTile = tile({ attrs: TA('cash', 'Bluevine cash. Opens Finance'), extraCls: TAP, label: 'Bluevine cash', actual: fin.data.account.available, target: fixed, cls: fn ? 'r' : 'g', noBar: false, barMax: Math.max(fixed || 1, fin.data.account.available || 0),
         value: money(fin.data.account.available), targetText: 'One month of bills <b>' + money(fixed) + '</b>' + (fn ? ' - goes negative ' + md(fn.date.slice(0, 10)) : '') + (low ? ' - 30-day low ' + money(low.balance) : ''),
         trend: '<span class="sb-tr">PIN-gated, as of ' + esc(String(fin.data.as_of || '').slice(5, 10).replace('-', '/')) + '</span>' });
     } else {
@@ -392,7 +424,7 @@
       var needLine = (plan && plan.loadsWk != null)
         ? '20% needs <b>' + num(plan.loadsWk, 1) + ' loads/wk</b> at your $/mi, or <b>' + rpmT(plan.minRpm) + '/mi</b> at ' + num(tg().loadsWk, 1) + ' loads/wk.'
         : '20% target is <b>' + money(need.ann_after) + '/yr</b> leftover after Meshach is paid from profit.';
-      cocTile = '<article class="sb-t wide sb-coc ' + cls + '"><div class="sb-l"><span>Cash on cash</span><span class="sb-dot">' + (SLABEL[cls] || 'NO DATA') + '</span></div>' +
+      cocTile = '<article class="sb-t wide sb-coc ' + cls + TAP + '"' + TA('coc', 'Cash on cash. Opens Accounting') + '><div class="sb-l"><span>Cash on cash</span><span class="sb-dot">' + (SLABEL[cls] || 'NO DATA') + '</span></div>' +
         '<div class="sb-v">' + pctCoc(after) + '</div>' +
         '<p class="sb-tg">Target <b>' + pctCoc(target) + '</b> - since start, after Meshach pay. Before Meshach: <b>' + pctCoc(s.coc_before) + '</b>.</p>' +
         '<div class="sb-coc-rows">' + rows + '</div>' +
@@ -409,7 +441,7 @@
     var beCls = beRatio == null ? '' : status(beRatio, pace);
     var ringCol = beCls === 'g' ? '#34D399' : beCls === 'a' ? '#FBBF24' : '#F87171';
     var paceAng = pace * 2 * Math.PI - Math.PI / 2;
-    var hero = '<section class="sb-hero"><svg viewBox="0 0 118 118" role="img" aria-label="Break-even ' + pct(beRatio) + '">' +
+    var hero = '<section class="sb-hero' + (fixed ? TAP : '') + '"' + (fixed ? TA('be', 'Break-even') : '') + '><svg viewBox="0 0 118 118" role="img" aria-label="Break-even ' + pct(beRatio) + '">' +
       '<circle cx="59" cy="59" r="' + R + '" fill="none" stroke="#2a2440" stroke-width="12"/>' +
       '<circle cx="59" cy="59" r="' + R + '" fill="none" stroke="' + ringCol + '" stroke-width="12" stroke-linecap="round" stroke-dasharray="' + (C * be).toFixed(1) + ' ' + C.toFixed(1) + '" transform="rotate(-90 59 59)"/>' +
       '<line x1="' + (59 + 40 * Math.cos(paceAng)).toFixed(1) + '" y1="' + (59 + 40 * Math.sin(paceAng)).toFixed(1) + '" x2="' + (59 + 56 * Math.cos(paceAng)).toFixed(1) + '" y2="' + (59 + 56 * Math.sin(paceAng)).toFixed(1) + '" stroke="#f2f0f7" stroke-width="2.5"/>' +
@@ -431,6 +463,11 @@
     if (beRatio != null && beRatio < 1) calls.push('<b>' + money(fixed - fig.net) + '</b> of bills still uncovered with ' + (dim - day) + ' days left.');
     if (!calls.length) calls.push('Every KPI is on pace. Keep it rolling.');
 
+    var wkSm = allSub(months, wkNow.start, wkNow.end);
+    sbCtx = { pct: cur.fee_pct, loadsM: cur.loads || [], expM: cur.expenses || [], mStart: mStart, asOf: asOf, mLabel: MON[p[1] - 1] + ' 1-' + day,
+      loadsW: wkSm.loads, expW: wkSm.expenses, wkStart: wkNow.start, wkEnd: wkNow.end < ref ? wkNow.end : ref, withDel: withDel,
+      netDayTxt: money(netDay) + '/day', netDaySub: money(fig.net) + ' net kept / ' + used + ' loaded days | target ' + money(netDayT),
+      net: fig.net, fixed: fixed, beTxt: (beRatio != null && beRatio >= 1 ? 'Past break-even' : money(fixed - fig.net) + ' to go') };
     root.innerHTML = '<div class="sb-h"><h2>Scoreboard</h2><span>' + esc(MON[p[1] - 1] + ' 1-' + day + ' - week of ' + md(wk0) + ' - targets from Targets tab') + '</span></div>' +
       hero + '<section class="sb-calls">' + calls.slice(0, 3).map(function (c) { return '<p>' + c + '</p>'; }).join('') + '</section>' +
       '<div class="sb-grid">' + tiles.join('') + '</div>' +
@@ -445,6 +482,7 @@
   var tmr = null;
   function soon() { if (tmr) clearTimeout(tmr); tmr = setTimeout(function () { if (visible()) { loadFin(); render(); } }, 60); }
   function init() {
+    if (window.BlackRamTiles) window.BlackRamTiles.on('sb', drill);
     var p = $('panel-kpis');
     if (!p) return;
     new MutationObserver(soon).observe(p, { attributes: true, attributeFilter: ['hidden'] });

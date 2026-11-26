@@ -23,6 +23,7 @@
   function pin() { try { return (localStorage.getItem(PIN_KEY) || localStorage.getItem('blackram_fresh_pull_code') || '').trim(); } catch (e) { return ''; } }
   function setPin(v) { try { if (v) localStorage.setItem(PIN_KEY, v); else localStorage.removeItem(PIN_KEY); } catch (e) { /* private mode */ } }
   function root() { return document.getElementById('acct-root'); }
+  function ta(arg, label) { var T = window.BlackRamTiles; return T ? T.attrs('ac', arg, label) : ''; }
   function inMonth(iso) { return st.sel === 'all' || String(iso || '').slice(0, 7) === st.sel; }
 
   /* ---------- data ---------- */
@@ -135,11 +136,11 @@
 
   function secPL(A) {
     var p = A.pl[st.sel], cats = A.cats, rows = [];
-    rows.push('<div class="ac-l ac-l-rev"><span>Gross revenue <small>' + p.loads + ' load' + (p.loads === 1 ? '' : 's') + '</small></span><b>' + m2(p.gross) + '</b></div>');
+    rows.push('<div class="ac-l ac-l-rev tl-tap tl-chev-row"' + ta('rev', 'Gross revenue ' + m2(p.gross) + '. Show the loads') + '><span>Gross revenue <small>' + p.loads + ' load' + (p.loads === 1 ? '' : 's') + '</small></span><b>' + m2(p.gross) + '</b></div>');
     cats.forEach(function (c) {
       var v = p.lines[c.key] || 0;
       if (c.key === 'notes') rows.push('<div class="ac-l ac-l-sub"><span>Operating net (before notes)</span><b class="' + (p.op_net < 0 ? 'neg' : 'pos') + '">' + m2(p.op_net) + '</b></div>');
-      rows.push('<div class="ac-l"><span><i style="background:' + COL[c.key] + '"></i>' + esc(c.label) + '</span><b>' + (v ? '-' + m2(v).replace('-', '') : '$0.00') + '</b></div>');
+      rows.push('<div class="ac-l' + (v ? ' tl-tap tl-chev-row"' + ta('cat:' + c.key, c.label + ' ' + m2(v) + '. Show the lines') : '"') + '><span><i style="background:' + COL[c.key] + '"></i>' + esc(c.label) + '</span><b>' + (v ? '-' + m2(v).replace('-', '') : '$0.00') + '</b></div>');
     });
     var wf = p.waterfall;
     rows.push('<div class="ac-l ac-l-net"><span>Net after all expenses</span><b class="' + (p.net < 0 ? 'neg' : 'pos') + '">' + m2(p.net) + '</b></div>');
@@ -163,20 +164,20 @@
       call(p.op_net < 0 ? 'bad' : 'good', 'Before notes: <b>' + m0(p.op_net) + '</b>') + '</div>';
     return card('Profit and loss', esc(monLbl(st.sel)) + ' | cash basis',
       plChart(A) + '<div class="ac-legend"><span><i style="background:var(--c-take)"></i>Revenue</span><span><i style="background:#F87171"></i>Costs</span><span>Net under each month. Tap a month.</span></div>' +
-      callouts + '<div class="ac-pl">' + rows.join('') + '</div>' + (diff.length ? '<p class="ac-fine">' + diff.join(' ') + '</p>' : ''), 'ac-pl');
+      callouts + '<div class="ac-pl">' + rows.join('') + '</div><p class="ac-fine tl-hint">Tap a line to see what makes it up.</p>' + (diff.length ? '<p class="ac-fine">' + diff.join(' ') + '</p>' : ''), 'ac-pl');
   }
 
   function wfChart(w) {
     var W = 340, H = 196, L = 6, R = 6, T = 22, B = 44;
     var lvl = 0, bars = [], lo = 0, hi = 1;
     w.steps.forEach(function (x, i) {
-      if (i === 0) { bars.push({ a: 0, b: x.amount, k: 'total', v: x.amount, t: 'Gross' }); lvl = x.amount; }
-      else { bars.push({ a: lvl, b: lvl + x.amount, k: 'neg', v: x.amount, t: i === 1 ? 'Totni+ELD' : (i === 2 ? 'Truck costs' : 'Notes') }); lvl += x.amount; }
+      if (i === 0) { bars.push({ a: 0, b: x.amount, k: 'total', v: x.amount, t: 'Gross', d: 'rev' }); lvl = x.amount; }
+      else { bars.push({ a: lvl, b: lvl + x.amount, k: 'neg', v: x.amount, t: i === 1 ? 'Totni+ELD' : (i === 2 ? 'Truck costs' : 'Notes'), d: i === 1 ? 'wf:fee' : (i === 2 ? 'wf:ops' : 'cat:notes') }); lvl += x.amount; }
       lo = Math.min(lo, lvl); hi = Math.max(hi, lvl);
     });
-    bars.push({ a: 0, b: w.net, k: w.net >= 0 ? 'sub' : 'short', v: w.net, t: 'Net after exp.' });
-    bars.push({ a: Math.max(w.net, 0), b: Math.max(w.net, 0) - w.driver_pay, k: 'drv', v: -w.driver_pay, t: 'Meshach' });
-    bars.push({ a: 0, b: w.left, k: 'left', v: w.left, t: '1/3 each' });
+    bars.push({ a: 0, b: w.net, k: w.net >= 0 ? 'sub' : 'short', v: w.net, t: 'Net after exp.', d: 'jump:ac-pl' });
+    bars.push({ a: Math.max(w.net, 0), b: Math.max(w.net, 0) - w.driver_pay, k: 'drv', v: -w.driver_pay, t: 'Meshach', d: 'jump:ac-driver' });
+    bars.push({ a: 0, b: w.left, k: 'left', v: w.left, t: '1/3 each', d: 'jump:ac-partners' });
     hi = Math.max(hi, 1);
     var n = bars.length, gap = (W - L - R) / n, bw = gap - 6;
     function Y(v) { return T + (hi - v) / Math.max(hi - lo, 1) * (H - T - B); }
@@ -185,11 +186,13 @@
     o.push('<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(0) + '" y2="' + Y(0) + '" stroke="var(--c-line-strong)"/>');
     bars.forEach(function (b, i) {
       var x = L + gap * i + 3, y1 = Y(Math.max(b.a, b.b)), y2 = Y(Math.min(b.a, b.b));
+      o.push('<g class="tl-tap"' + ta(b.d, b.t + ' ' + m0(b.v) + '. Show details') + '><rect x="' + (x - 2) + '" y="2" width="' + (bw + 4) + '" height="' + (H - 4) + '" rx="6" fill="transparent"/>');
       o.push('<rect x="' + x + '" y="' + y1 + '" width="' + bw + '" height="' + Math.max(y2 - y1, 2) + '" rx="4" fill="' + COLR[b.k] + '"' + (b.k === 'drv' || b.k === 'left' ? ' opacity="' + (b.v ? 1 : 0.5) + '"' : '') + '/>');
       o.push('<text x="' + (x + bw / 2) + '" y="' + (Math.min(y1, y2) - 4) + '" text-anchor="middle" font-size="9.5" font-weight="800" fill="var(--c-text-1)">' + m0(b.v) + '</text>');
       var words = b.t.split(' ');
       o.push('<text x="' + (x + bw / 2) + '" y="' + (H - 26) + '" text-anchor="middle" font-size="8.5" font-weight="700" fill="var(--c-text-3)">' + esc(words[0]) + '</text>');
       if (words[1]) o.push('<text x="' + (x + bw / 2) + '" y="' + (H - 15) + '" text-anchor="middle" font-size="8.5" font-weight="700" fill="var(--c-text-3)">' + esc(words[1]) + '</text>');
+      o.push('</g>');
     });
     o.push('</svg>');
     return o.join('');
@@ -203,7 +206,7 @@
     var tgt = w.target || 0;
     var need = w.net < 0 ? Math.ceil(-w.net / 0.87 / 10) * 10 : 0;
     var needD = tgt && (w.net - tgt) < 0 ? Math.ceil((tgt - w.net) / 0.87 / 10) * 10 : 0;
-    var body = wfChart(w) +
+    var body = wfChart(w) + '<p class="ac-fine tl-hint">Tap a bar to see what makes it up.</p>' +
       '<div class="ac-calls">' +
       (w.net < 0 ? call('bad', 'Net after ALL expenses is <b>' + m0(w.net) + '</b> in ' + esc(lab) + '. Nothing is left to pay Meshach or the partners.') :
         call('good', 'Net after all expenses <b>' + m0(w.net) + '</b>')) +
@@ -256,7 +259,7 @@
     }).join('');
     var parts = (c.partners || []).map(function (p) {
       var w = c.invested ? (p.amount / c.invested * 100) : 0;
-      return '<div class="ac-xr"><span class="ac-xv">' + esc(p.name) + '</span><span class="ac-coc-bar"><i style="width:' + w.toFixed(1) + '%"></i></span><b>' + m2(p.amount) + '</b></div>';
+      return '<div class="ac-xr tl-tap tl-chev-row"' + ta('cap:' + p.name, p.name + ' cash in ' + m2(p.amount) + '. Show contributions') + '><span class="ac-xv">' + esc(p.name) + '</span><span class="ac-coc-bar"><i style="width:' + w.toFixed(1) + '%"></i></span><b>' + m2(p.amount) + '</b></div>';
     }).join('');
     var needLine = (plan && plan.loadsWk != null)
       ? 'To hit 20% after Meshach is paid from profit: <b>' + (plan.loadsWk.toFixed(1)) + ' loads/wk</b> at your Targets $/mi, or the $/mi on the Targets tab at your loads/wk. Leftover needed: ' + m0(need.mo_after) + '/mo (' + m0(need.ann_after) + '/yr).'
@@ -286,7 +289,7 @@
     var tg = 0, td = 0, tdep = 0;
     var rows = R.map(function (r) {
       tg += r.gross; td += r.net_due; tdep += r.dep_amount || 0;
-      return '<div class="ac-rv"><div class="ac-rv-t"><b>' + esc(r.load) + '</b><span class="ac-rv-b">' + esc(r.broker) + '</span>' + statusPill(r.status) + '</div>' +
+      return '<div class="ac-rv tl-tap tl-chev tl-chev-top"' + ta('load:' + r.load, 'Load ' + r.load + ' ' + r.broker + '. Show load money') + '><div class="ac-rv-t"><b>' + esc(r.load) + '</b><span class="ac-rv-b">' + esc(r.broker) + '</span>' + statusPill(r.status) + '</div>' +
         '<div class="ac-rv-g"><div><span>Gross</span><b>' + m2(r.gross) + '</b></div><div><span>Fee</span><b>-' + m2(r.fee).replace('-', '') + '</b></div>' +
         '<div><span>Net due</span><b>' + m2(r.net_due) + '</b></div><div><span>' + (r.dep_amount != null ? 'Paid ' + esc(day(r.dep_date)) : 'Paid') + '</span><b class="' + (r.dep_amount == null ? 'dim' : '') + '">' + (r.dep_amount != null ? m2(r.dep_amount) : '--') + '</b></div></div>' +
         (r.via ? '<p class="ac-fine">' + esc(r.via) + '</p>' : '') + '</div>';
@@ -302,7 +305,7 @@
     parts.sort(function (a, b) { return b.v - a.v; });
     var bySrc = {}; X.forEach(function (x) { var s = x.source; bySrc[s] = (bySrc[s] || 0) + x.amount; });
     var leg = parts.filter(function (q) { return q.v > 0; }).map(function (q) {
-      return '<div class="ac-lg"><i style="background:' + q.c + '"></i><span>' + esc(q.l) + '</span><em>' + Math.round(q.v / total * 100) + '%</em><b>' + m0(q.v) + '</b></div>';
+      return '<div class="ac-lg tl-tap tl-chev-row"' + ta('cat:' + q.k, q.l + ' ' + m0(q.v) + '. Show the lines') + '><i style="background:' + q.c + '"></i><span>' + esc(q.l) + '</span><em>' + Math.round(q.v / total * 100) + '%</em><b>' + m0(q.v) + '</b></div>';
     }).join('');
     var src = Object.keys(bySrc).sort(function (a, b) { return bySrc[b] - bySrc[a]; }).map(function (s) { return '<span>' + srcTag(s) + ' ' + m0(bySrc[s]) + '</span>'; }).join('');
     var list = X.slice().sort(function (a, b) { return a.date < b.date ? 1 : -1; }).map(function (x) {
@@ -338,10 +341,10 @@
     var ar = A.ar, max = Math.max(1, ar.total);
     var bars = Object.keys(ar.buckets).map(function (k) {
       var v = ar.buckets[k];
-      return '<div class="ac-ag"><span>' + k + ' days</span><div class="ac-agb"><i style="width:' + (v / max * 100).toFixed(1) + '%"></i></div><b>' + m0(v) + '</b></div>';
+      return '<div class="ac-ag' + (v ? ' tl-tap"' + ta('ar:' + k, k + ' days ' + m0(v) + '. Show the loads') : '"') + '><span>' + k + ' days</span><div class="ac-agb"><i style="width:' + (v / max * 100).toFixed(1) + '%"></i></div><b>' + m0(v) + '</b></div>';
     }).join('');
     var items = ar.items.map(function (i) {
-      return '<div class="ac-xr"><span class="ac-xd">' + i.days + 'd</span><span class="ac-xv">' + esc(i.broker) + ' ' + esc(i.load) + '<small>Delivered ' + day(i.delivered) + '</small></span><b>' + m2(i.net_due) + '</b></div>';
+      return '<div class="ac-xr tl-tap tl-chev-row"' + ta('load:' + i.load, 'Load ' + i.load + '. Show load money') + '><span class="ac-xd">' + i.days + 'd</span><span class="ac-xv">' + esc(i.broker) + ' ' + esc(i.load) + '<small>Delivered ' + day(i.delivered) + '</small></span><b>' + m2(i.net_due) + '</b></div>';
     }).join('');
     var oldest = ar.items.reduce(function (a, b) { return !a || b.days > a.days ? b : a; }, null);
     return card('Accounts receivable', 'Owed by Totni, not deposited yet',
@@ -360,13 +363,13 @@
     }).join('');
     var ax = b.amex;
     var loans = b.loans.map(function (l) {
-      return '<div class="ac-loan"><div><b>' + esc(l.name) + '</b><span>' + esc(l.what) + ' | ' + l.apr + '% | due the ' + l.due_day + 'th</span></div><div class="r"><b>' + m0(l.balance) + '</b><span>' + m2(l.monthly) + '/mo</span></div></div>';
+      return '<div class="ac-loan tl-tap tl-chev"' + ta('loan:' + l.name, l.name + ' balance ' + m0(l.balance) + '. Show loan details') + '><div><b>' + esc(l.name) + '</b><span>' + esc(l.what) + ' | ' + l.apr + '% | due the ' + l.due_day + 'th</span></div><div class="r"><b>' + m0(l.balance) + '</b><span>' + m2(l.monthly) + '/mo</span></div></div>';
     }).join('');
     var wh = b.withheld.map(function (w) { return esc(w.payee) + ' ' + (w.amount != null ? m2(w.amount) : esc(w.amount_text || 'varies')); }).join('; ');
     return card('Bills and payables', 'Next 60 days',
-      '<div class="ac-calls">' + call('bad', '<b>' + m0(t30) + '</b> due in the next 30 days') + call('ok', 'AmEx about <b>' + m0(ax.est_balance) + '</b> EST, due date?') + '</div>' +
+      '<div class="ac-calls"><div class="tl-tap tl-chev"' + ta('bills30', m0(t30) + ' due in the next 30 days. Show the bills') + '>' + call('bad', '<b>' + m0(t30) + '</b> due in the next 30 days') + '</div>' + call('ok', 'AmEx about <b>' + m0(ax.est_balance) + '</b> EST, due date?') + '</div>' +
       rows + '<div class="ac-sub">Company AmEx</div>' +
-      '<div class="ac-tot"><div><span>Charged (receipts)</span><b>' + m0(ax.charges_logged) + '</b></div><div><span>Paid down</span><b>' + m0(ax.paid_total) + '</b></div><div><span>Balance EST</span><b>' + m0(ax.est_balance) + '</b></div></div>' +
+      '<div class="ac-tot"><div class="tl-tap tl-corner"' + ta('amex:charges', 'AmEx charged ' + m0(ax.charges_logged) + '. Show charges') + '><span>Charged (receipts)</span><b>' + m0(ax.charges_logged) + '</b></div><div><span>Paid down</span><b>' + m0(ax.paid_total) + '</b></div><div class="tl-tap tl-corner"' + ta('amex:bal', 'AmEx balance EST ' + m0(ax.est_balance) + '. Show the math') + '><span>Balance EST</span><b>' + m0(ax.est_balance) + '</b></div></div>' +
       '<p class="ac-fine">' + esc(ax.note) + '</p>' +
       '<div class="ac-sub">Loans</div>' + loans +
       '<p class="ac-fine">Insurance: ' + b.insurance_payments_left + ' payments, ' + m2(b.insurance_left) + ' left. Taken out of load pay (Totni fees, not company bills): ' + wh + '.</p>', 'ac-bills');
@@ -375,7 +378,7 @@
   function secCash(A) {
     var c = A.cash, fn = c.first_negative, low = c.low30;
     var ev = (c.events30 || []).map(function (e) { return '<div class="ac-xr"><span class="ac-xd">' + day(e.date) + '</span><span class="ac-xv">' + esc(e.label) + '</span><b>' + m2(e.amount) + '</b></div>'; }).join('');
-    var mo = st.sel !== 'all' ? '<div class="ac-tot"><div><span>In (' + esc(monShort(st.sel)) + ')</span><b>' + m0(c.in_month[st.sel] || 0) + '</b></div><div><span>Out</span><b>' + m0(c.out_month[st.sel] || 0) + '</b></div><div><span>Held by Meshach</span><b>' + m0(c.held) + (c.held_est ? '*' : '') + '</b></div></div>' : '';
+    var mo = st.sel !== 'all' ? '<div class="ac-tot"><div class="tl-tap tl-corner"' + ta('cash:in', 'Cash in ' + m0(c.in_month[st.sel] || 0) + '. Show deposits') + '><span>In (' + esc(monShort(st.sel)) + ')</span><b>' + m0(c.in_month[st.sel] || 0) + '</b></div><div class="tl-tap tl-corner"' + ta('cash:out', 'Cash out ' + m0(c.out_month[st.sel] || 0) + '. Show payments') + '><span>Out</span><b>' + m0(c.out_month[st.sel] || 0) + '</b></div><div><span>Held by Meshach</span><b>' + m0(c.held) + (c.held_est ? '*' : '') + '</b></div></div>' : '';
     return card('Cash flow', 'Bluevine ...' + esc(c.last4) + ' | ' + m2(c.balance) + ' on ' + day(c.as_of),
       cashChart(c) + '<div class="ac-legend"><span><i style="background:var(--c-accent-hi)"></i>Bank balance</span><span><i style="background:var(--c-gold)"></i>30-day, no new loads</span><span><i style="background:var(--c-take)"></i>If unpaid loads land</span></div>' +
       '<div class="ac-calls">' + (fn ? call('bad', 'Goes negative <b>' + day(fn.date) + '</b> (' + m0(fn.balance) + ')') : call('good', 'Stays positive 30 days')) +
@@ -399,7 +402,14 @@
 
   function secBalance(A) {
     var b = A.balance;
-    function list(a) { return a.map(function (x) { return '<div class="ac-l"><span>' + esc(x.label) + '</span><b>' + m2(x.amount) + '</b></div>'; }).join(''); }
+    function bsKey(lbl) {
+      var ln = (A.bills.loans || []).filter(function (l) { return lbl.indexOf(l.name) === 0; })[0];
+      if (ln) return 'loan:' + ln.name;
+      if (/receivable/i.test(lbl)) return 'jump:ac-ar';
+      if (/^bluevine/i.test(lbl)) return 'jump:ac-cash';
+      return '';
+    }
+    function list(a) { return a.map(function (x) { var k = bsKey(x.label); return '<div class="ac-l' + (k ? ' tl-tap tl-chev-row"' + ta(k, x.label + ' ' + m2(x.amount) + '. Show details') : '"') + '><span>' + esc(x.label) + '</span><b>' + m2(x.amount) + '</b></div>'; }).join(''); }
     var debt = b.total_liabilities, as = b.total_assets, w = Math.max(as, debt, 1);
     return card('Balance sheet', 'Snapshot ' + day(A.as_of),
       '<div class="ac-bs"><div><span>Assets</span><div class="ac-agb"><i style="width:' + (as / w * 100).toFixed(1) + '%;background:var(--c-take)"></i></div><b>' + m0(as) + '</b></div>' +
@@ -410,6 +420,103 @@
       '<div class="ac-l ac-l-net"><span>Equity (assets less debts)</span><b class="' + (b.equity < 0 ? 'neg' : 'pos') + '">' + m2(b.equity) + '</b></div></div>' +
       '<p class="ac-fine">' + esc(b.note) + '</p>', 'ac-bs');
   }
+
+  /* ---------- tap drill-downs (v91). Only reads the PIN-unlocked payload already in st.data. ---------- */
+  function catLabel(A, k) { return ((A.cats || []).filter(function (c) { return c.key === k; })[0] || {}).label || SHORT[k] || k; }
+  function xRows(list) {
+    return list.slice().sort(function (a, b) { return a.date < b.date ? 1 : -1; }).map(function (x) {
+      return { d: day(x.date), t: esc(x.vendor || x.desc || '') + (x.est ? ' <em>EST</em>' : ''), s: esc(x.source + (x.partner ? ' - ' + x.partner : '')) + (x.deductible_amount != null ? ' | deductible ' + m2(x.deductible_amount) : ''), v: m2(x.amount) };
+    });
+  }
+  function sumOf(list, k) { return list.reduce(function (s, x) { return s + (Number(x[k || 'amount']) || 0); }, 0); }
+  function lbl() { return esc(monLbl(st.sel)); }
+  function drill(arg) {
+    var T = window.BlackRamTiles, D = st.data, A = D && D.accounting;
+    if (!T || !A) return;
+    var p = String(arg || '').split(':'), k = p[0], id = p.slice(1).join(':');
+    var X = A.expenses.filter(function (x) { return inMonth(x.date) && !x.capex; });
+    var R = A.revenue.filter(function (r) { return inMonth(r.pickup); });
+    if (k === 'jump') { T.jump(id); return; }
+    if (k === 'rev') {
+      T.open({ title: 'Gross revenue', sub: lbl(), body: T.hero(m2(sumOf(R, 'gross')), R.length + ' loads') +
+        T.rows(R.map(function (r) { return { d: day(r.pickup), t: esc(r.broker) + ' #' + esc(r.load), s: esc(r.status), v: m2(r.gross), vs: 'net due ' + m2(r.net_due) }; }), 'No loads.') +
+        T.fine('Tap a load in Revenue by load for its fuel, fees and pay.') });
+    } else if (k === 'cat' || (k === 'wf' && id !== 'fee' && id !== 'ops')) {
+      var key = id, L;
+      if (key === 'fee') {
+        L = R.filter(function (r) { return r.fee; });
+        T.open({ title: catLabel(A, 'fee'), sub: lbl(), body: T.hero(m2(sumOf(L, 'fee')), '13% of gross, withheld by Totni') +
+          T.rows(L.map(function (r) { return { d: day(r.pickup), t: esc(r.broker) + ' #' + esc(r.load), s: 'gross ' + m2(r.gross), v: m2(r.fee) }; })) });
+        return;
+      }
+      L = X.filter(function (x) { return x.cat === key; });
+      T.open({ title: catLabel(A, key), sub: lbl() + ' | cash basis', body: T.hero(m2(sumOf(L)), L.length + ' line' + (L.length === 1 ? '' : 's')) + T.rows(xRows(L), 'No lines this period.') +
+        (key === 'meals' ? T.fine('Business meals: 50% deductible (IRS Pub 463).') : '') });
+    } else if (k === 'wf') {
+      if (id === 'fee') {
+        var fees = sumOf(R, 'fee'), E = X.filter(function (x) { return x.cat === 'eld'; });
+        T.open({ title: 'Totni + ELD', sub: lbl(), body: T.hero(m2(fees + sumOf(E)), 'taken out of load pay') +
+          T.sec('Totni 13%') + T.rows(R.filter(function (r) { return r.fee; }).map(function (r) { return { d: day(r.pickup), t: esc(r.broker) + ' #' + esc(r.load), v: m2(r.fee) }; })) +
+          T.sec('ELD fees withheld') + T.rows(xRows(E), 'None this period.') });
+      } else {
+        var O = X.filter(function (x) { return x.cat !== 'eld' && x.cat !== 'notes'; }), by = {};
+        O.forEach(function (x) { by[x.cat] = (by[x.cat] || 0) + x.amount; });
+        T.open({ title: 'Truck costs', sub: lbl() + ' | before the notes', body: T.hero(m2(sumOf(O)), O.length + ' lines') +
+          T.rows(Object.keys(by).sort(function (a, b) { return by[b] - by[a]; }).map(function (c) { return { t: '<i style="display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px;background:' + COL[c] + '"></i>' + esc(catLabel(A, c)), v: m2(by[c]) }; })) +
+          T.sec('Lines') + T.rows(xRows(O)) });
+      }
+    } else if (k === 'cap') {
+      var P = A.partners.filter(function (x) { return x.name === id; })[0]; if (!P) return;
+      T.open({ title: P.name + ' - capital put in', sub: esc(P.share) + ' owner', body: T.hero(m2(P.capital_total), P.capital.length + ' contributions') +
+        T.rows(P.capital.slice().sort(function (a, b) { return a.date < b.date ? 1 : -1; }).map(function (i) { return { d: day(i.date), t: esc(i.label), v: m2(i.amount) }; }), 'None.') +
+        (P.repaid.length ? T.sec('Paid back (not distributions)') + T.rows(P.repaid.map(function (i) { return { d: day(i.date), t: esc(i.note), v: m2(i.amount) }; })) : '') +
+        T.kv([['This month\'s third', m2(P.third_month)], ['All-time third', m2(P.third_all)]]) });
+    } else if (k === 'load') {
+      var r = A.revenue.filter(function (x) { return String(x.load) === id; })[0];
+      var lc = D.load_costs && D.load_costs.loads ? D.load_costs.loads[id] : null;
+      if (!r) return;
+      var fuel = lc ? (lc.fuel_total || 0) : null, def = lc ? (lc.def_total || 0) : null, oth = lc ? (lc.other_total || 0) : null;
+      var kept = r.net_due - (r.eld || 0) - (fuel || 0) - (def || 0) - (oth || 0);
+      var lines = lc ? [].concat(lc.fuel || [], lc.def || [], lc.other || []).map(function (c) { return { d: day(c.d), t: esc(c.v), s: esc(c.c || '') + (c.by ? ' | ' + esc(c.by) : ''), v: m2(c.a) }; }) : [];
+      T.open({ title: r.broker + ' #' + r.load, sub: 'Picked up ' + day(r.pickup) + (r.delivered ? ' | delivered ' + day(r.delivered) : ''), body:
+        T.rows([{ t: 'Gross', v: m2(r.gross), vc: 'pos' }, { t: 'Totni 13%', v: '-' + m2(r.fee).replace('-', ''), vc: 'neg' }, { t: 'Net due', v: m2(r.net_due), cls: 'tl-tot' }]
+          .concat(r.eld ? [{ t: 'ELD withheld' + (r.eld_est ? ' (EST)' : ''), v: '-' + m2(r.eld).replace('-', ''), vc: 'neg' }] : [])
+          .concat(lc ? [{ t: 'Fuel', v: '-' + m2(fuel).replace('-', ''), vc: 'neg' }, { t: 'DEF', v: '-' + m2(def).replace('-', ''), vc: 'neg' }, { t: 'Other load costs', v: '-' + m2(oth).replace('-', ''), vc: 'neg' }, { t: 'Kept after load costs', v: m2(kept), cls: 'tl-tot', vc: kept < 0 ? 'neg' : 'pos' }] : [])) +
+        T.kv([['Status', esc(r.status)], ['Paid', r.dep_amount != null ? m2(r.dep_amount) + ' on ' + day(r.dep_date) : '--']]) +
+        (lines.length ? T.sec('Costs tied to this load') + T.rows(lines) : '') + (r.via ? T.fine(esc(r.via)) : '') +
+        T.fine('Before the truck and trailer notes, insurance and other monthly bills.') });
+    } else if (k === 'ar') {
+      var it = A.ar.items.filter(function (i) { return i.bucket === id; });
+      T.open({ title: 'Owed ' + id + ' days', sub: 'Accounts receivable', body: T.hero(m2(sumOf(it, 'net_due')), it.length + ' loads') +
+        T.rows(it.map(function (i) { return { d: i.days + 'd', t: esc(i.broker) + ' ' + esc(i.load), s: 'Delivered ' + day(i.delivered), v: m2(i.net_due) }; }), 'Nothing in this bucket.') });
+    } else if (k === 'bills30') {
+      var asOf = String(A.as_of).slice(0, 10), z = Date.UTC(+asOf.slice(0, 4), +asOf.slice(5, 7) - 1, +asOf.slice(8, 10));
+      var up = A.bills.upcoming.filter(function (x) { var a = Date.UTC(+x.date.slice(0, 4), +x.date.slice(5, 7) - 1, +x.date.slice(8, 10)); return (a - z) / 864e5 <= 30; });
+      T.open({ title: 'Due in the next 30 days', sub: 'From ' + day(asOf), body: T.hero(m2(sumOf(up)), up.length + ' bills', 'bad') +
+        T.rows(up.map(function (x) { return { d: day(x.date), t: esc(x.payee), s: esc(x.from || ''), v: m2(x.amount), vc: 'neg' }; })) });
+    } else if (k === 'amex') {
+      var ax = A.bills.amex;
+      var ch = A.expenses.filter(function (x) { return /amex/i.test(x.source); });
+      var body = T.kv([['Charged (receipts)', m0(ax.charges_logged)], ['Paid down', m0(ax.paid_total)], ['Balance EST', m0(ax.est_balance)], ['Statement', ax.statement_balance != null ? m0(ax.statement_balance) : '--'], ['Due', ax.due_date ? day(ax.due_date) : 'date?', 'wide']]);
+      if (id === 'charges') body += T.sec('Charges on the card (' + ch.length + ')') + T.rows(xRows(ch), 'None logged.');
+      body += T.fine(esc(ax.note || ''));
+      if (id !== 'charges') body += '<div>' + T.btn('See the ' + ch.length + ' charges', 'ac', 'amex:charges') + '</div>';
+      T.open({ title: 'Company AmEx', sub: id === 'charges' ? 'Charges from receipts | ' + m2(sumOf(ch)) : 'Balance EST', body: body });
+    } else if (k === 'loan') {
+      var l = A.bills.loans.filter(function (x) { return x.name === id; })[0]; if (!l) return;
+      var pays = A.expenses.filter(function (x) { return x.cat === 'notes' && x.vendor === l.name; });
+      T.open({ title: l.name, sub: esc(l.what), body: T.hero(m0(l.balance), 'balance' + (l.balance_date ? ' on ' + day(l.balance_date) : '')) +
+        T.kv([['Payment', m2(l.monthly) + '/mo'], ['Due', 'the ' + l.due_day + 'th'], ['APR', l.apr + '%'], ['Paid after stmt', l.paid_after != null ? m2(l.paid_after) : '--']]) +
+        T.sec('Payments in the books') + T.rows(xRows(pays), 'None logged yet.') + (l.note ? T.fine(esc(l.note)) : '') });
+    } else if (k === 'cash') {
+      var J = A.journal.filter(function (j) { return j.type === 'Bank' && inMonth(j.date) && (id === 'in' ? j.amount > 0 : j.amount < 0); });
+      var c = A.cash;
+      T.open({ title: id === 'in' ? 'Cash in' : 'Cash out', sub: 'Bluevine ...' + esc(c.last4) + ' | ' + lbl(), body:
+        T.hero(m0(id === 'in' ? c.in_month[st.sel] || 0 : c.out_month[st.sel] || 0), id === 'in' ? 'deposits' : 'payments out of the bank') +
+        T.rows(J.map(function (j) { return { d: day(j.date), t: esc(j.desc), v: m2(Math.abs(j.amount)), vc: id === 'in' ? 'pos' : 'neg' }; }), 'No bank lines this month.') });
+    }
+  }
+  function regDrill() { if (window.BlackRamTiles && !regDrill.done) { regDrill.done = true; window.BlackRamTiles.on('ac', drill); } }
 
   /* ---------- CSV ---------- */
   function csvCell(v) { var s = String(v == null ? '' : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
@@ -600,6 +707,7 @@
   function onShow() { render(); fetchData(false); }
   function init() {
     css();
+    regDrill();
     document.addEventListener('blackram:tab', function (e) { if (e.detail && e.detail.tab === 'acct') onShow(); });
     if (document.documentElement.getAttribute('data-tab') === 'acct') onShow();
   }
