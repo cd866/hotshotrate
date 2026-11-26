@@ -8,18 +8,18 @@
    data/load_searches.json and data/pull_status.json are always fetched with
    cache: 'no-store' and are not precached. A cached copy is used only when
    the network request fails, so live search progress shows without a version bump. */
-var CACHE = 'blackram-v44';
+var CACHE = 'blackram-v45';
 var ASSETS = [
   './',
   './index.html',
   './styles.css',
-  './styles.css?v=44',
+  './styles.css?v=45',
   './app.js',
-  './app.js?v=44',
+  './app.js?v=45',
   './stops.js',
-  './stops.js?v=44',
+  './stops.js?v=45',
   './targets.js',
-  './targets.js?v=44',
+  './targets.js?v=45',
   './manifest.json',
   './manifest.json?v=3',
   './manifest.webmanifest',

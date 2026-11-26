@@ -219,7 +219,7 @@
       if (!reachable) callouts.push('That goal is about ' + num(m.goalAllMiWk, 0) + ' total mi/wk, past what one truck and driver can legally run (about 3,000). Raise $/mi or lower the goal.');
     }
     if (act && act.fig.perLoaded != null) {
-      callouts.push('This month so far: ' + act.loads + ' loads at ' + rpm(act.fig.perLoaded) + ' loaded. ' + (act.fig.perLoaded < m.minRpmBE ? 'That is below break-even $/mi.' : 'That clears break-even $/mi.'));
+      callouts.push('This month so far: ' + act.loads + ' loads at ' + rpm(act.fig.perLoaded) + ' loaded. ' + (Math.abs(act.fig.perLoaded - m.minRpmBE) < 0.05 ? 'That is right at break-even $/mi, so every load needs more.' : (act.fig.perLoaded < m.minRpmBE ? 'That is below break-even $/mi.' : 'That clears break-even $/mi.')));
     }
 
     var headline = '<section class="big tg-head"><div class="kicker">Break-even (Totni ' + tgt.fee + '%)</div>' +
