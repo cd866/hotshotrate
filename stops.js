@@ -390,10 +390,10 @@
       }));
     }
     layers.push(L.circleMarker([here.lat, here.lng], {
-      radius: 7,
-      color: '#F5F1E6',
+      radius: 8,
+      color: '#FFFFFF',
       weight: 3,
-      fillColor: '#D4A62A',
+      fillColor: '#0EA5E9',
       fillOpacity: 1
     }));
     state.you = L.layerGroup(layers).addTo(state.map);
@@ -404,10 +404,22 @@
     if (state.line) state.map.removeLayer(state.line);
     state.line = null;
     if (!geometry) return;
-    state.line = L.geoJSON(geometry, {
-      pane: 'route',
-      style: { color: '#F2C94C', weight: 5, opacity: 0.95 }
-    }).addTo(state.map);
+    var B = window.BRMap;
+    var group = L.layerGroup();
+    L.geoJSON(geometry, { pane: 'route', style: { color: B ? B.COL.casing : '#0A0714', weight: 11, opacity: 0.92, lineCap: 'round', lineJoin: 'round' } }).addTo(group);
+    L.geoJSON(geometry, { pane: 'route', style: { color: B ? B.COL.route : '#F2C94C', weight: 6, opacity: 1, lineCap: 'round', lineJoin: 'round' } }).addTo(group);
+    // Green start and red end pins (city level: the route ends are rounded to 0.01 degree).
+    var rt = state.route;
+    if (B && rt && rt.from && rt.to) {
+      function endPin(pt, kind) {
+        return L.marker([Math.round(pt.lat * 100) / 100, Math.round(pt.lng * 100) / 100], {
+          pane: 'route', icon: B.pin(kind, kind === 'pickup' ? 'A' : 'B'), keyboard: false, interactive: false
+        });
+      }
+      endPin(rt.from, 'pickup').addTo(group);
+      endPin(rt.to, 'drop').addTo(group);
+    }
+    state.line = group.addTo(state.map);
   }
 
   function syncChrome() {
@@ -490,16 +502,28 @@
       el.innerHTML = '<p class="fine map-fallback">The map did not load. The stop list below still works.</p>';
       return;
     }
-    state.map = L.map(el, { zoomControl: false, attributionControl: true }).setView([31.8, -90.5], 5);
+    var B = window.BRMap;
+    state.map = L.map(el, { zoomControl: false, attributionControl: false }).setView([31.8, -90.5], 5);
     L.control.zoom({ position: 'topright' }).addTo(state.map);
+    L.control.attribution({ prefix: false, position: 'bottomright' }).addTo(state.map);
     state.map.createPane('route');
     var routePane = state.map.getPane('route');
     routePane.style.zIndex = 650;
     routePane.style.pointerEvents = 'none';
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-      maxZoom: 16,
-      attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a> &mdash; Esri, TomTom, Garmin, FAO, NOAA, USGS'
-    }).addTo(state.map);
+    if (B) {
+      B.tiles(state.map, 16);
+      B.addStates(state.map);
+      B.homeMarker(state.map, false);
+      B.legendControl(state.map, '<div class="br-lg">' +
+        '<span><i class="br-sw"></i>Route</span>' +
+        '<span><i class="br-dot p"></i>Start</span><span><i class="br-dot dr"></i>End</span>' +
+        '<span><i class="br-dot y"></i>You</span><span><i class="br-dot h"></i>Home base</span></div>');
+    } else {
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 16,
+        attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a>'
+      }).addTo(state.map);
+    }
     state.map.on('moveend', function () {
       if (listMode() === 'view' && state.data) render();
     });

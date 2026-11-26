@@ -8,29 +8,31 @@
    data/load_searches.json and data/pull_status.json are always fetched with
    cache: 'no-store' and are not precached. A cached copy is used only when
    the network request fails, so live search progress shows without a version bump. */
-var CACHE = 'blackram-v58';
+var CACHE = 'blackram-v59';
 var ASSETS = [
   './',
   './index.html',
   './styles.css',
-  './styles.css?v=58',
+  './styles.css?v=59',
   './app.js',
-  './app.js?v=58',
+  './app.js?v=59',
+  './maps.js',
+  './maps.js?v=59',
   './stops.js',
-  './stops.js?v=58',
+  './stops.js?v=59',
   './targets.js',
   './loadcosts.js',
-  './loadcosts.js?v=58',
+  './loadcosts.js?v=59',
   './tripplan.js',
-  './tripplan.js?v=58',
+  './tripplan.js?v=59',
   './data/pilot_fj.json',
-  './targets.js?v=58',
+  './targets.js?v=59',
   './reports.js',
-  './reports.js?v=58',
+  './reports.js?v=59',
   './scoreboard.js',
   './accounting.js',
-  './accounting.js?v=58',
-  './scoreboard.js?v=58',
+  './accounting.js?v=59',
+  './scoreboard.js?v=59',
   './manifest.json',
   './manifest.json?v=3',
   './manifest.webmanifest',
@@ -82,7 +84,7 @@ function isShell(url, req) {
   var path = url.pathname;
   if (path.endsWith('/sw.js')) return true;
   if (path.endsWith('/index.html') || /\/$/.test(path)) return true;
-  if (path.endsWith('/app.js') || path.endsWith('/styles.css') || path.endsWith('/stops.js') || path.endsWith('/targets.js') || path.endsWith('/loadcosts.js') || path.endsWith('/tripplan.js') || path.endsWith('/reports.js') || path.endsWith('/scoreboard.js')) return true;
+  if (path.endsWith('/app.js') || path.endsWith('/styles.css') || path.endsWith('/stops.js') || path.endsWith('/maps.js') || path.endsWith('/targets.js') || path.endsWith('/loadcosts.js') || path.endsWith('/tripplan.js') || path.endsWith('/reports.js') || path.endsWith('/scoreboard.js')) return true;
   if (path.endsWith('/manifest.json') || path.endsWith('/manifest.webmanifest')) return true;
   return false;
 }

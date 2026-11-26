@@ -4173,33 +4173,39 @@
     }
     el.hidden = false;
     el.innerHTML = '';
+    var TB = window.BRMap;
     truckMap = L.map(el, {
       scrollWheelZoom: false,
-      attributionControl: true,
+      attributionControl: false,
       tap: true
     });
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    L.control.attribution({ prefix: false }).addTo(truckMap);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
       maxZoom: 19,
-      attribution: '&copy; OpenStreetMap'
+      subdomains: 'abcd',
+      attribution: '&copy; OpenStreetMap &copy; CARTO'
     }).addTo(truckMap);
     var truckPin = L.circleMarker([p.lat, p.lon], {
-      radius: 9,
-      color: '#D4A62A',
-      weight: 2,
-      fillColor: '#6B3FA0',
+      radius: 10,
+      color: '#fff',
+      weight: 3,
+      fillColor: '#0EA5E9',
       fillOpacity: 1
     }).addTo(truckMap).bindPopup(p.label || 'Truck');
     nearbyPickupPins(p).forEach(function (pin) {
       if (pin.mi > 150) return;
       var m = L.circleMarker([pin.lat, pin.lon], {
-        radius: 6,
-        color: '#c9c4d6',
-        weight: 1,
-        fillColor: '#c9c4d6',
-        fillOpacity: 0.85
+        radius: 7,
+        color: '#fff',
+        weight: 2,
+        fillColor: '#16A34A',
+        fillOpacity: 1
       }).addTo(truckMap);
       m.bindPopup(pin.label + (pin.mi != null ? ' · ' + Math.round(pin.mi) + ' mi' : ''));
     });
+    if (TB) {
+      TB.legendControl(truckMap, '<div class="br-lg"><span><i class="br-dot y"></i>Truck</span><span><i class="br-dot p"></i>Pickups nearby</span></div>');
+    }
     // Stay zoomed on the truck so a street or city pin is readable. Nearby
     // pickup dots remain on the map if he zooms out.
     truckMap.setView([p.lat, p.lon], 13);
@@ -5575,24 +5581,43 @@
     return points.some(function (pt) { return pt && pt.lat != null && pt.lon != null; });
   }
 
-  function routeBlock(route, mapsHref, label) {
+  function comboLegColors(combo, route) {
+    // v58: colors for each drive leg and pin, matching the combo card's A/B/C chips.
+    try {
+      var stops = comboStopModel(combo);
+      var legs = (route && route.legs) || [];
+      if (!stops.length || legs.length !== stops.length) return null;
+      return {
+        leg: stops.map(function (st) { return st.deckBefore.map(legColor); }),
+        pin: stops.map(function (st) { return st.leg >= 0 ? legColor(st.leg) : ''; })
+      };
+    } catch (err) { return null; }
+  }
+
+  function routeBlock(route, mapsHref, label, combo) {
     state.routeMapSeq = (state.routeMapSeq || 0) + 1;
     var id = 'rmap-' + state.routeMapSeq;
     state.routePayloads = state.routePayloads || {};
     var canDraw = hasRouteToDraw(route);
-    if (canDraw) state.routePayloads[id] = route;
+    var cc = (canDraw && combo) ? comboLegColors(combo, route) : null;
+    if (canDraw) state.routePayloads[id] = cc ? { legs: route.legs, points: route.points, cc: cc } : route;
     var maps = mapsHref
       ? '<a class="open-maps" href="' + esc(mapsHref) + '" target="_blank" rel="noopener noreferrer">Open in Google Maps</a>'
       : '';
     if (!canDraw && !maps) {
       return '<p class="route-missing">Map unavailable for this load.</p>';
     }
+    var safeLabel = (window.BRMap ? String(label || 'Route map').split(' to ').map(BRMap.cityLabel).join(' to ') : 'Route map');
     var map = canDraw
-      ? '<div class="route-map" id="' + id + '" data-route-id="' + id + '" role="img" aria-label="' + esc(label || 'Route map') + '"></div>'
+      ? '<div class="route-map" id="' + id + '" data-route-id="' + id + '" role="img" aria-label="' + esc(safeLabel) + '"></div>'
       : '<p class="route-missing">Map unavailable for this load.</p>';
-    return '<div class="route-wrap">' + map + maps +
-      (canDraw ? '<p class="route-legend"><span class="swatch deadhead"></span> Empty miles <span class="swatch loaded"></span> Loaded</p>' : '') +
-      '</div>';
+    var legend = '';
+    if (canDraw) {
+      legend = window.BRMap
+        ? BRMap.legendHtml({ legs: combo ? (combo.loads || []).map(function (r, i) { return legColor(i); }) : null })
+        : '<p class="route-legend"><span class="swatch deadhead"></span> Empty miles <span class="swatch loaded"></span> Loaded</p>';
+    }
+    return '<div class="route-wrap">' + map + maps + legend + '</div>';
   }
 
   function destroyRouteMaps() {
@@ -5650,48 +5675,78 @@
     var payload = state.routePayloads && state.routePayloads[el.getAttribute('data-route-id')];
     if (!payload) return;
     el.setAttribute('data-mounted', '1');
+    var B = window.BRMap;
     var map = L.map(el, {
       scrollWheelZoom: false,
       dragging: true,
       tap: true,
-      attributionControl: true,
-      zoomControl: true
+      attributionControl: false,
+      zoomControl: false,
+      maxZoom: B ? 11 : 18
     });
+    L.control.zoom({ position: 'topright' }).addTo(map);
+    L.control.attribution({ prefix: false, position: 'bottomright' }).addTo(map);
     bindMapGestures(map, el);
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-      maxZoom: 16,
-      attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a> &mdash; Esri, TomTom, Garmin, FAO, NOAA, USGS'
-    }).addTo(map);
+    if (B) {
+      B.tiles(map, 11);
+      B.addStates(map);
+    } else {
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 16,
+        attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a>'
+      }).addTo(map);
+    }
     var bounds = [];
-    (payload.legs || []).forEach(function (leg) {
+    var cc = payload.cc;
+    (payload.legs || []).forEach(function (leg, li) {
       if (!leg || !leg.path || leg.path.length < 2) return;
       var isDead = leg.kind === 'deadhead';
-      var line = L.polyline(leg.path, {
-        color: isDead ? '#E8E0C8' : '#C4B5FD',
-        weight: isDead ? 3 : 4,
-        opacity: isDead ? 0.95 : 0.95,
-        dashArray: isDead ? '7 7' : null
-      }).addTo(map);
-      line.getLatLngs().forEach(function (ll) { bounds.push(ll); });
+      var cols = (!isDead && cc && cc.leg[li] && cc.leg[li].length) ? cc.leg[li] : null;
+      var line;
+      if (B) {
+        line = B.cased(map, leg.path, isDead
+          ? { color: B.COL.dead, weight: 5, dash: '9 9' }
+          : { color: B.COL.loaded, colors: cols, weight: 6 });
+        leg.path.forEach(function (ll) { bounds.push(ll); });
+      } else {
+        line = L.polyline(leg.path, {
+          color: isDead ? '#E8E0C8' : '#C4B5FD', weight: isDead ? 3 : 4, opacity: 0.95, dashArray: isDead ? '7 7' : null
+        }).addTo(map);
+        line.getLatLngs().forEach(function (ll) { bounds.push(ll); });
+      }
     });
-    (payload.points || []).forEach(function (pt) {
+    var havePoint = [];
+    (payload.points || []).forEach(function (pt, pi) {
       if (!pt || pt.lat == null || pt.lon == null) return;
-      bounds.push([pt.lat, pt.lon]);
-      var isHome = pt.kind === 'truck' || (pt.label || '') === 'Home base (Jacksonville)';
-      var label = isHome ? 'H' : (pt.n != null ? String(pt.n) : '');
-      var title = isHome ? (pt.label || 'Home base (Jacksonville)') : ((pt.kind === 'pickup' ? 'Pickup · ' : (pt.kind === 'drop' ? 'Drop · ' : (pt.kind === 'empty' ? 'Empty miles · ' : ''))) + (pt.label || ''));
-      var icon = L.divIcon({
-        className: 'route-pin-wrap',
-        html: '<div class="route-pin ' + esc(pt.kind || '') + '">' + esc(label) + '</div>',
-        iconSize: [26, 26],
-        iconAnchor: [13, 13]
-      });
-      L.marker([pt.lat, pt.lon], { icon: icon, keyboard: false, title: title })
+      // City level only: round to 0.01 degree (about 0.7 mi) and strip street parts of the label.
+      var lat = Math.round(pt.lat * 100) / 100;
+      var lon = Math.round(pt.lon * 100) / 100;
+      bounds.push([lat, lon]);
+      var place = B ? B.cityLabel(pt.label || '') : (pt.label || '');
+      var isHome = (pt.label || '') === 'Home base (Jacksonville)' || (pt.kind === 'truck' && /jacksonville|home/i.test(pt.label || ''));
+      var kind = isHome ? 'home' : (pt.kind === 'pickup' ? 'pickup' : (pt.kind === 'drop' ? 'drop' : 'start'));
+      var label = isHome ? 'H' : (kind === 'start' ? 'S' : (pt.n != null ? String(pt.n) : ''));
+      var title = isHome ? 'Home base (Jacksonville, FL)' : ((pt.kind === 'pickup' ? 'Pickup · ' : (pt.kind === 'drop' ? 'Drop · ' : 'Start (empty from) · ')) + place);
+      var icon;
+      if (B) {
+        icon = B.pin(kind, label);
+      } else {
+        icon = L.divIcon({ className: 'route-pin-wrap', html: '<div class="route-pin ' + esc(pt.kind || '') + '">' + esc(label) + '</div>', iconSize: [26, 26], iconAnchor: [13, 13] });
+      }
+      if (isHome) havePoint.push([lat, lon]);
+      var mk = L.marker([lat, lon], { icon: icon, keyboard: false, title: title, zIndexOffset: isHome ? 300 : (kind === 'start' ? 0 : 100) })
         .addTo(map)
         .bindTooltip(title, { direction: 'top', opacity: 0.95 });
+      var pc = cc && cc.pin[pi - 1];
+      if (pc && mk._icon) mk._icon.firstChild.style.setProperty('--lc', pc);
     });
+    if (B && !havePoint.length && bounds.length) {
+      // Mark Jacksonville when the route passes near it (or starts there), without stretching the view.
+      var near = bounds.some(function (ll) { return Math.abs(ll[0] - B.HOME.lat) < 0.6 && Math.abs(ll[1] - B.HOME.lon) < 0.6; });
+      if (near) B.homeMarker(map, false);
+    }
     if (bounds.length) {
-      map.fitBounds(bounds, { padding: [22, 22], maxZoom: 10 });
+      map.fitBounds(bounds, { padding: [26, 26], maxZoom: 10 });
     } else {
       map.setView([30.3, -82], 5);
     }
@@ -6165,7 +6220,7 @@
       fuelLine(currentFuel(combo.loads && combo.loads[0] ? combo.loads[0] : combo)) +
       (combo.math ? '<p class="search-math">' + esc(combo.math) + '</p>' : '') +
       (combo.timing_note ? '<p class="search-meta">Timing: ' + esc(combo.timing_note) + '</p>' : '') +
-      routeBlock(routePayload(combo), comboMapsUrl(combo), kind + ' route map') +
+      routeBlock(routePayload(combo), comboMapsUrl(combo), kind + ' route map', combo) +
       ((combo.flags && combo.flags.length) ? '<p class="search-flags">' + esc(combo.flags.join(' ')) + '</p>' : '') +
       '</div>';
     var cCollapse = verd === 'pass';
