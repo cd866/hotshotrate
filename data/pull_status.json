@@ -3,10 +3,14 @@
   "pct": 25,
   "origin": "Cottondale, FL",
   "started_at": "2026-11-25 23:46 CT",
+<<<<<<< Updated upstream
   "updated_at": "2026-11-25 23:46 CT",
+=======
+  "updated_at": "2026-11-25 23:50 CT",
+>>>>>>> Stashed changes
   "counts": {
     "truckstop": 40,
-    "df": 20,
+    "df": 0,
     "fits": 2
   },
   "message": "Searching Truckstop"
