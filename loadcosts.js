@@ -1,6 +1,6 @@
 /* Black Ram Logistics - Delivered-load cost breakdown (v52+).
-   Self-contained: adds a fold inside each delivered or paid load card on the ledger.
-   Public view = estimates only (fuel 8 mpg x EIA PADD price + pump premium, DEF per mile).
+   Self-contained: adds a Net Due tile and a cost-breakdown fold on each delivered or paid load card.
+   Public view = expected net due and fuel/DEF estimates only.
    After the app PIN is entered, actual receipt detail comes from the relay /financials
    (KV payload key load_costs). Nothing private is stored in this repo. ASCII text only. */
 (function () {
@@ -120,6 +120,70 @@
     };
   }
 
+
+  function payFromPriv(l, priv) {
+    if (!priv) return null;
+    var id = loadId(l);
+    if (priv.pay && priv.pay.loads && priv.pay.loads[id]) return priv.pay.loads[id];
+    if (priv.loads && priv.loads[id] && priv.loads[id].pay) return priv.loads[id].pay;
+    return null;
+  }
+  function dueOf(l, priv) {
+    var gross = num(l.gross) || 0, pct = feePct();
+    var fee = r2(gross * pct / 100);
+    var eld = 0, eldEst = false, eldKnown = false;
+    var recPay = payFromPriv(l, priv);
+    var rec = priv && priv.loads ? priv.loads[loadId(l)] : null;
+    if (recPay && recPay.eld > 0.004) { eld = recPay.eld; eldEst = !!recPay.eld_est; eldKnown = true; }
+    else if (rec && rec.eld) { eld = rec.eld.a; eldEst = !!rec.eld.est; eldKnown = true; }
+    else if (num(l.eld_fee_withheld)) { eld = Number(l.eld_fee_withheld); eldEst = !!l.eld_fee_est; eldKnown = true; }
+    else if (num(l.net_received) != null && Number(l.net_received) > 0 && r2(gross - fee - Number(l.net_received)) > 0.004) {
+      eld = r2(gross - fee - Number(l.net_received)); eldEst = !!l.payment_est; eldKnown = true;
+    }
+    var expected = r2(gross - fee - eld);
+    var kind = 'pend', title = 'Pending', sub = '', pin = !!recPay;
+    if (recPay) {
+      expected = recPay.expected;
+      eld = recPay.eld || 0; eldEst = !!recPay.eld_est; eldKnown = eld > 0.004;
+      if (recPay.status === 'pending') {
+        kind = 'pend'; title = 'Pending';
+        if (recPay.expected_date) sub = 'Expected ' + dayTxt(recPay.expected_date);
+      } else if (recPay.status === 'short' && !(recPay.eld > 0.004)) {
+        kind = 'short'; title = 'Short by ' + m2(recPay.short);
+        if (recPay.deposited != null) sub = (recPay.date ? 'Deposited ' + dayTxt(recPay.date) + ' · ' : 'Deposited ') + m2(recPay.deposited);
+      } else {
+        kind = recPay.eld > 0.004 ? 'eld' : 'ok';
+        title = recPay.eld > 0.004
+          ? 'Paid - ELD fees (' + m2(recPay.eld) + ')' + (recPay.eld_est ? ' EST' : '')
+          : 'Deposited';
+        var bits = [];
+        if (recPay.date) bits.push(dayTxt(recPay.date) + ' · ' + m2(recPay.deposited));
+        else if (recPay.period) bits.push(recPay.period.replace(/(\d{4})-(\d{2})-(\d{2})/g, function (_, y, m, d) { return Number(m) + '/' + Number(d); }) + ' · ' + m2(recPay.deposited));
+        else if (recPay.deposited != null) bits.push(m2(recPay.deposited));
+        if (recPay.via) bits.push(recPay.via);
+        if (recPay.combined) bits.push('share of ' + m2(recPay.combined.total) + (recPay.combined.est ? ' EST' : ''));
+        if (recPay.ledger_est) bits.push('amount EST');
+        sub = bits.join(' · ');
+      }
+    } else {
+      var recv = num(l.net_received);
+      var unpaid = l.pay_status === 'unpaid' || recv == null || recv <= 0;
+      if (unpaid) { kind = 'pend'; title = 'Pending'; }
+      else if (eldKnown && eld > 0.004) {
+        kind = 'eld'; title = 'Paid - ELD fees (' + m2(eld) + ')' + (eldEst ? ' EST' : '');
+      } else { kind = 'ok'; title = 'Deposited'; }
+    }
+    return { id: loadId(l), expected: expected, kind: kind, title: title, sub: sub, pin: pin, eld: eld, eldEst: eldEst, who: (l.broker || '').replace(' LLC', '').replace(' Inc.', '').split(',')[0].trim() };
+  }
+  function dueHtml(d) {
+    return '<div class="lc-due-main"><span class="lc-due-k">Net due</span><b>' + m2(d.expected) + '</b></div>' +
+      '<div class="lc-due-st lc-due-' + d.kind + '">' + esc(d.title) +
+      (d.sub ? '<small>' + esc(d.sub) + '</small>' : '') + '</div>';
+  }
+  function dueRows(priv) {
+    priv = priv || (readFinCache() && fin.load_costs);
+    return feedLoads().filter(function (l) { return eligible(l, ''); }).map(function (l) { return dueOf(l, priv); });
+  }
   /* ---------- view ---------- */
   var SEG = [
     { k: 'net', c: 'var(--c-take)', t: 'Net kept' },
@@ -237,16 +301,47 @@
     var keepPin = wrap.querySelector('.lc-pin input'), had = keepPin && keepPin.value;
     b.innerHTML = body(c, fin);
     if (had) { var ni = wrap.querySelector('.lc-pin input'); if (ni) ni.value = had; }
+    var d = dueOf(l, readFinCache() && fin.load_costs);
+    var due = card.querySelector(':scope > .lc-due');
+    if (!due) {
+      due = document.createElement('div');
+      due.className = 'lc-due';
+      due.setAttribute('data-lc-due', id);
+      due.addEventListener('click', function (e) { e.stopPropagation(); });
+      var lane = card.querySelector(':scope > p.lane') || card.querySelector(':scope > h3');
+      if (lane && lane.nextSibling) card.insertBefore(due, lane.nextSibling);
+      else card.insertBefore(due, wrap);
+    }
+    due.innerHTML = dueHtml(d);
     card.setAttribute('data-lc', '1');
+  }
+  function renderPending() {
+    var root = document.getElementById('reports-root');
+    if (!root) return;
+    var rows = dueRows();
+    var pending = rows.filter(function (r) { return r.kind === 'pend'; });
+    var total = pending.reduce(function (s, r) { return s + r.expected; }, 0);
+    var el = document.getElementById('lc-pend');
+    if (!pending.length) { if (el) el.remove(); return; }
+    if (!el) { el = document.createElement('section'); el.id = 'lc-pend'; el.className = 'lc-pend'; }
+    var names = pending.map(function (r) { return (r.who ? r.who + ' ' : '') + '#' + r.id; }).join(' · ');
+    el.innerHTML = '<div class="lc-due-main"><span class="lc-due-k">Still to be deposited</span><b>' + m2(total) + '</b></div>' +
+      '<p>' + pending.length + (pending.length === 1 ? ' load' : ' loads') + ' expected, not yet in. ' + esc(names) + '.</p>';
+    var h2 = null;
+    root.querySelectorAll('h2.sec').forEach(function (h) { if (/^Loads/i.test(h.textContent || '')) h2 = h; });
+    if (h2) h2.parentNode.insertBefore(el, h2);
+    else if (!el.parentNode) root.insertBefore(el, root.firstChild);
   }
   function scan() {
     document.querySelectorAll('article.load[data-load-id]').forEach(function (card) {
-      if (card.getAttribute('data-lc') === '1' && card.querySelector(':scope > details.lc')) return;
+      if (card.getAttribute('data-lc') === '1' && card.querySelector(':scope > details.lc') && card.querySelector(':scope > .lc-due')) return;
       build(card);
     });
+    renderPending();
   }
   function refreshAll() {
     document.querySelectorAll('article.load[data-load-id]').forEach(function (card) { build(card); });
+    renderPending();
   }
   var timer = null;
   function schedule() { if (timer) return; timer = setTimeout(function () { timer = null; ensureDiesel().then(scan); }, 60); }
@@ -297,7 +392,8 @@
       '.lc-pin{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s-1);font-size:var(--fs-xs);color:var(--c-text-3)}' +
       '.lc-pin span{flex:1 1 100%}' +
       '.lc-pin input{flex:1;min-width:0;min-height:var(--tap);padding:0 var(--s-1h);border-radius:var(--radius-sm);border:1px solid var(--c-line-strong);background:var(--c-surface-2);color:var(--c-text-1);font-size:var(--fs-base)}' +
-      '.lc-pin em{flex:1 1 100%;color:#FCA5A5;font-style:normal}';
+      '.lc-pin em{flex:1 1 100%;color:#FCA5A5;font-style:normal}' +
+      ".lc-due{display:flex;align-items:center;justify-content:space-between;gap:var(--s-1h);margin:var(--s-1) 0 0;padding:var(--s-1h) var(--s-2);border:1px solid var(--c-line-strong);border-radius:var(--radius-md);background:var(--c-surface-2);min-height:var(--tap)}.lc-due-main{display:flex;flex-direction:column;gap:2px;min-width:0}.lc-due-k{font-size:var(--fs-xs);font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--c-text-3)}.lc-due b{font-size:var(--fs-2xl);font-weight:800;line-height:1.05;color:var(--c-gold)}.lc-due-st{flex:none;max-width:58%;text-align:right;font-size:var(--fs-sm);font-weight:800;line-height:1.25;padding:6px 10px;border-radius:var(--radius-sm)}.lc-due-st small{display:block;font-size:11px;font-weight:600;opacity:.9}.lc-due-ok{background:var(--c-take-bg);color:var(--c-take)}.lc-due-pend{background:var(--c-maybe-bg);color:var(--c-maybe)}.lc-due-eld,.lc-due-short{background:var(--c-maybe-bg);color:var(--c-maybe)}.lc-pend{display:flex;flex-direction:column;gap:4px;margin:0 0 var(--s-2);padding:var(--s-1h) var(--s-2);border:1px solid var(--c-line-strong);border-radius:var(--radius-lg);background:var(--c-surface-2)}.lc-pend .lc-due-k{color:var(--c-maybe)}.lc-pend b{font-size:var(--fs-3xl);font-weight:800;line-height:1;color:var(--c-gold)}.lc-pend p{margin:0;font-size:var(--fs-sm);color:var(--c-text-2);font-weight:600}";
     document.head.appendChild(s);
   }
 
@@ -306,9 +402,11 @@
     new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true });
     schedule();
     window.addEventListener('blackram:tab', schedule);
+    var pin = getPin();
+    if (pin && !readFinCache()) fetchFin(pin);
   }
   window.BlackRamLoadCosts = {
-    compute: compute, readFin: readFinCache, ready: ensureDiesel,
+    compute: compute, dueOf: dueOf, dueRows: dueRows, readFin: readFinCache, ready: ensureDiesel,
     rows: function () { return feedLoads().filter(function (l) { return eligible(l, ''); }).map(function (l) { return compute(l, readFinCache() && fin.load_costs); }); },
     useFin: function (j) { fin = j; refreshAll(); }
   };
