@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v36';
+  var APP_VERSION = 'v37';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -3740,10 +3740,10 @@
     }
     if (row.weight_lb == null) flags.push('weight not listed');
     var keepFlags = (row.fit_flags || []).filter(function (f) {
-      return /infeasible|cannot haul|misses the|pickup is only/i.test(String(f));
+      return /infeasible|cannot haul|misses the|pickup is only|too cold at drop/i.test(String(f));
     });
     flags = flags.concat(keepFlags);
-    if (keepFlags.length) hard = true;
+    if (keepFlags.some(function (f) { return /infeasible|cannot haul|misses the|pickup is only/i.test(String(f)); })) hard = true;
     row.net_est = net;
     row.fuel = fuel;
     if (fuelMath) row.math = fuelMath.math;
@@ -3769,6 +3769,15 @@
       flags.push('net per day under $300');
       if (verdict === 'TAKE') verdict = 'MAYBE';
     }
+    var dropLow = row.drop_low_f;
+    var tooCold = flags.some(function (f) { return String(f).indexOf('too cold at drop') !== -1; });
+    if (!tooCold && dropLow != null && isFinite(Number(dropLow)) && Math.round(Number(dropLow)) <= 45) {
+      var src = String(row.drop_low_source || '');
+      var lowTxt = (src === 'normal' ? 'normal low ' : 'low ') + Math.round(Number(dropLow)) + ' F';
+      flags.push('too cold at drop - ' + lowTxt + ', would idle overnight');
+      tooCold = true;
+    }
+    if (tooCold) verdict = 'PASS';
     row.fit_flags = flags;
     row.verdict = verdict;
     delete row.reason;
@@ -3815,6 +3824,21 @@
         combo.verdict = 'MAYBE';
         combo.reason = 'Clears the combo bar, but net per day is under $300.';
       }
+    }
+    var cLow = combo.drop_low_f;
+    var cFlags = combo.flags || [];
+    var comboCold = cFlags.some(function (f) { return String(f).indexOf('too cold at drop') !== -1; });
+    if (!comboCold && cLow != null && isFinite(Number(cLow)) && Math.round(Number(cLow)) <= 45) {
+      var cSrc = String(combo.drop_low_source || '');
+      var cTxt = (cSrc === 'normal' ? 'normal low ' : 'low ') + Math.round(Number(cLow)) + ' F';
+      cFlags = cFlags.concat(['too cold at drop - ' + cTxt + ', would idle overnight']);
+      combo.flags = cFlags;
+      comboCold = true;
+    }
+    if (comboCold) {
+      combo.verdict = 'PASS';
+      var coldFlag = (combo.flags || []).filter(function (f) { return String(f).indexOf('too cold at drop') !== -1; })[0];
+      if (coldFlag) combo.reason = /[.]$/.test(coldFlag) ? coldFlag : coldFlag + '.';
     }
     return combo;
   }
@@ -4446,6 +4470,15 @@
     return '';
   }
 
+  function wxChipHtml(row) {
+    if (!row || row.drop_low_f == null || !isFinite(Number(row.drop_low_f))) return '';
+    var n = Math.round(Number(row.drop_low_f));
+    var label = 'Low ' + n + ' F at drop';
+    if (String(row.drop_low_source || '') === 'normal') label += ' (normal low)';
+    var cls = n <= 45 ? 'wx-chip cold' : 'wx-chip';
+    return '<span class="' + cls + '">' + esc(label) + '</span>';
+  }
+
   function fitBadgesHtml(row) {
     var badges = [];
     badges.push(weightFitBadge(row.weight_lb));
@@ -4471,6 +4504,8 @@
     }
     var avgBadge = avgHintBadge(row, 1);
     if (avgBadge) badges.push(avgBadge);
+    var wx = wxChipHtml(row);
+    if (wx) badges.push(wx);
     return '<div class="fit-row">' + badges.join('') + '</div>';
   }
 
@@ -4492,6 +4527,10 @@
         return 'Clears the net bar, but weight is 12,501-15,300 lb (scale check, load centered just ahead of trailer axles).';
       }
       return 'Clears the net bar, but check fit before you book.';
+    }
+    if (flags.some(function (f) { return String(f).indexOf('too cold at drop') !== -1; })) {
+      var cold = String(flags.filter(function (f) { return String(f).indexOf('too cold at drop') !== -1; })[0]);
+      return /[.]$/.test(cold) ? cold : cold + '.';
     }
     if (hard.length) {
       var text = String(hard[0]);
@@ -5246,6 +5285,7 @@
       (row.board ? '<span class="board-chip">' + esc(row.board) + '</span>' : '') +
       (pu && pu !== 'date not listed' ? '<span class="pu-chip">PU ' + esc(pu) + '</span>' : '') +
       (postedAge ? '<span class="board-chip">Posted ' + esc(postedAge) + '</span>' : '') +
+      wxChipHtml(row) +
       (isNew ? '<span class="new-badge">New</span>' : '');
 
     var tools = '<button type="button" class="star-btn" data-save-key="' + esc(key) + '" aria-pressed="' + (saved ? 'true' : 'false') + '" aria-label="' + (saved ? 'Remove from shortlist' : 'Save to shortlist') + '">' + (saved ? '&#9733;' : '&#9734;') + '</button>' +
@@ -5321,6 +5361,7 @@
       '<span class="fit-badge neutral">' + esc(len) + '</span>' +
       (cDays != null ? '<span class="fit-badge neutral">' + esc(formatDays(cDays)) + ' days</span>' : '') +
       avgHintBadge(combo, nLegs) +
+      wxChipHtml(combo) +
       '</div>';
     var detailsHtml = '<div class="search-details" hidden>' +
       fuelLine(currentFuel(combo.loads && combo.loads[0] ? combo.loads[0] : combo)) +

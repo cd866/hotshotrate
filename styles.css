@@ -3011,6 +3011,25 @@ article.load {
   color: #FCA5A5;
 }
 
+.wx-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  background: rgba(167, 139, 250, 0.08);
+  border: 1px solid var(--line);
+  color: var(--cream);
+}
+.wx-chip.cold {
+  background: rgba(248, 113, 113, 0.14);
+  border-color: rgba(248, 113, 113, 0.55);
+  color: #FCA5A5;
+  font-weight: 600;
+}
+
 /* Search sort & filter bar */
 .search-controls {
   background: var(--surface);

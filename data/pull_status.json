@@ -3,11 +3,11 @@
   "pct": 100,
   "origin": "Cottondale, FL",
   "started_at": "2026-11-25 17:55 CT",
-  "updated_at": "2026-11-25 18:15 CT",
+  "updated_at": "2026-11-25 18:25 CT",
   "counts": {
     "truckstop": 40,
     "df": 20,
-    "fits": 5
+    "fits": 2
   },
   "message": "Loads are live"
 }
