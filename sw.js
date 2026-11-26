@@ -8,25 +8,27 @@
    data/load_searches.json and data/pull_status.json are always fetched with
    cache: 'no-store' and are not precached. A cached copy is used only when
    the network request fails, so live search progress shows without a version bump. */
-var CACHE = 'blackram-v52';
+var CACHE = 'blackram-v53';
 var ASSETS = [
   './',
   './index.html',
   './styles.css',
-  './styles.css?v=52',
+  './styles.css?v=53',
   './app.js',
-  './app.js?v=52',
+  './app.js?v=53',
   './stops.js',
-  './stops.js?v=52',
+  './stops.js?v=53',
   './targets.js',
+  './loadcosts.js',
+  './loadcosts.js?v=53',
   './tripplan.js',
-  './tripplan.js?v=52',
+  './tripplan.js?v=53',
   './data/pilot_fj.json',
-  './targets.js?v=52',
+  './targets.js?v=53',
   './reports.js',
-  './reports.js?v=52',
+  './reports.js?v=53',
   './scoreboard.js',
-  './scoreboard.js?v=52',
+  './scoreboard.js?v=53',
   './manifest.json',
   './manifest.json?v=3',
   './manifest.webmanifest',
@@ -78,7 +80,7 @@ function isShell(url, req) {
   var path = url.pathname;
   if (path.endsWith('/sw.js')) return true;
   if (path.endsWith('/index.html') || /\/$/.test(path)) return true;
-  if (path.endsWith('/app.js') || path.endsWith('/styles.css') || path.endsWith('/stops.js') || path.endsWith('/targets.js') || path.endsWith('/tripplan.js') || path.endsWith('/reports.js') || path.endsWith('/scoreboard.js')) return true;
+  if (path.endsWith('/app.js') || path.endsWith('/styles.css') || path.endsWith('/stops.js') || path.endsWith('/targets.js') || path.endsWith('/loadcosts.js') || path.endsWith('/tripplan.js') || path.endsWith('/reports.js') || path.endsWith('/scoreboard.js')) return true;
   if (path.endsWith('/manifest.json') || path.endsWith('/manifest.webmanifest')) return true;
   return false;
 }
