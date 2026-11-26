@@ -48,6 +48,7 @@
       .catch(function (e) { st.pubErr = 'Could not load the DOT checklist (' + (e && e.message ? e.message : 'offline') + ').'; })
       .then(function () { st.pubLoading = false; render(); if (st.pub && pin()) fetchSrv(); });
   }
+  function ping() { try { document.dispatchEvent(new CustomEvent('blackram:dot')); } catch (e) { /* ignore */ } }
   function maintIds() {
     var m = {}; ((st.pub && st.pub.items) || []).forEach(function (it) { (it.maint || []).forEach(function (x) { m[x] = 1; }); });
     return m;
@@ -477,6 +478,7 @@
 
   /* ---------- page ---------- */
   function render() {
+    ping();
     var el = root(); if (!el) return;
     if (st.pubErr) { el.innerHTML = '<section class="dr-card"><p class="dr-p">' + esc(st.pubErr) + '</p></section>'; return; }
     if (!st.pub) { el.innerHTML = '<section class="dr-card"><p class="dr-p">Loading the DOT checklist...</p></section>'; return; }
@@ -590,7 +592,7 @@
     window.addEventListener('online', flush);
     if (document.documentElement.getAttribute('data-tab') === 'dot') onShow();
   }
-  window.BlackRamDot = { render: render, openItem: openSheet, closeSheet: closeSheet, flush: flush, score: function () { return score(rows()); }, refresh: function () { st.pub = null; st.srv = null; loadPublic(); fetchSrv(); } };
+  window.BlackRamDot = { ready: function () { return !!st.pub; }, load: loadPublic, status: function (id) { var it = itemById(id); if (!it) return null; var r = calc(it); return { s: r.s, label: r.label, date: r.date, exp: r.exp, t: it.t, cfr: it.cfr }; }, render: render, openItem: openSheet, closeSheet: closeSheet, flush: flush, score: function () { return score(rows()); }, refresh: function () { st.pub = null; st.srv = null; loadPublic(); fetchSrv(); } };
   window.BlackRamApp = Object.assign(window.BlackRamApp || {}, { dot: window.BlackRamDot });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

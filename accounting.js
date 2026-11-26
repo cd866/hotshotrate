@@ -711,7 +711,7 @@
     document.addEventListener('blackram:tab', function (e) { if (e.detail && e.detail.tab === 'acct') onShow(); });
     if (document.documentElement.getAttribute('data-tab') === 'acct') onShow();
   }
-  window.BlackRamAccounting = { render: render, refresh: function () { fetchData(true); }, exportCsv: exportCsv };
+  window.BlackRamAccounting = { drill: function (a) { if (!st.data) { var c = fromCache(); if (c) st.data = c; } regDrill(); drill(a); }, render: render, refresh: function () { fetchData(true); }, exportCsv: exportCsv };
   window.BlackRamApp = Object.assign(window.BlackRamApp || {}, { accounting: window.BlackRamAccounting });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
