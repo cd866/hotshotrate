@@ -1,6 +1,6 @@
 {
   "schema": 2,
-  "as_of": "2026-11-26 01:10 CT",
+  "as_of": "2026-11-26 01:32 CT",
   "scanned_at": "2026-11-25 23:46 CT",
   "origin": "Cottondale, FL",
   "origin_coord": {
@@ -82,25 +82,29 @@
           "action": "pickup",
           "place": "Defuniak Springs, FL",
           "lane": "Defuniak Springs, FL -> Milaca, MN",
-          "window": "11/26, 4:00 PM - 11/30, 12:00 PM"
+          "window": "11/26, 4:00 PM - 11/30, 12:00 PM",
+          "miles_from_prev": 54.0
         },
         {
           "action": "pickup",
           "place": "Greenville, AL",
           "lane": "Greenville, AL -> Sparta, WI",
-          "window": "11/25, 12:00 AM - 12/2, 11:59 PM"
+          "window": "11/25, 12:00 AM - 12/2, 11:59 PM",
+          "miles_from_prev": 94.2
         },
         {
           "action": "drop",
           "place": "Sparta, WI",
           "lane": "Greenville, AL -> Sparta, WI",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 1064.0
         },
         {
           "action": "drop",
           "place": "Milaca, MN",
           "lane": "Defuniak Springs, FL -> Milaca, MN",
-          "window": "12/2, 3:00 PM - 12/3, 12:00 PM"
+          "window": "12/2, 3:00 PM - 12/3, 12:00 PM",
+          "miles_from_prev": 224.9
         }
       ],
       "loads": [
@@ -288,25 +292,29 @@
           "action": "pickup",
           "place": "Midway, FL",
           "lane": "Midway, FL -> Ozark, MO",
-          "window": "11/25, 12:00 AM - 11/25, 11:59 PM"
+          "window": "11/25, 12:00 AM - 11/25, 11:59 PM",
+          "miles_from_prev": 73.0
         },
         {
           "action": "pickup",
           "place": "Defuniak Springs, FL",
           "lane": "Defuniak Springs, FL -> Milaca, MN",
-          "window": "11/26, 4:00 PM - 11/30, 12:00 PM"
+          "window": "11/26, 4:00 PM - 11/30, 12:00 PM",
+          "miles_from_prev": 122.0
         },
         {
           "action": "drop",
           "place": "Ozark, MO",
           "lane": "Midway, FL -> Ozark, MO",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 711.1
         },
         {
           "action": "drop",
           "place": "Milaca, MN",
           "lane": "Defuniak Springs, FL -> Milaca, MN",
-          "window": "12/2, 3:00 PM - 12/3, 12:00 PM"
+          "window": "12/2, 3:00 PM - 12/3, 12:00 PM",
+          "miles_from_prev": 727.0
         }
       ],
       "loads": [
@@ -501,37 +509,43 @@
           "action": "pickup",
           "place": "Dothan, AL",
           "lane": "Dothan, AL -> Oakwood, OH",
-          "window": "11/25, 12:00 AM - 11/25, 11:59 PM"
+          "window": "11/25, 12:00 AM - 11/25, 11:59 PM",
+          "miles_from_prev": 31.0
         },
         {
           "action": "pickup",
           "place": "Pensacola, FL",
           "lane": "Pensacola, FL -> Hookstown, PA",
-          "window": "11/23, 12:00 AM - 11/25, 11:59 PM"
+          "window": "11/23, 12:00 AM - 11/25, 11:59 PM",
+          "miles_from_prev": 144.0
         },
         {
           "action": "pickup",
           "place": "Monroeville, AL",
           "lane": "Monroeville, AL -> Danville, VA",
-          "window": "Ships 11/25"
+          "window": "Ships 11/25",
+          "miles_from_prev": 91.0
         },
         {
           "action": "drop",
           "place": "Danville, VA",
           "lane": "Monroeville, AL -> Danville, VA",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 640.0
         },
         {
           "action": "drop",
           "place": "Hookstown, PA",
           "lane": "Pensacola, FL -> Hookstown, PA",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 331.8
         },
         {
           "action": "drop",
           "place": "Oakwood, OH",
           "lane": "Dothan, AL -> Oakwood, OH",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 252.6
         }
       ],
       "loads": [
@@ -771,37 +785,43 @@
           "action": "pickup",
           "place": "Tallahassee, FL",
           "lane": "Tallahassee, FL -> Birmingham, AL",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 79.0
         },
         {
           "action": "pickup",
           "place": "Montgomery, AL",
           "lane": "Montgomery, AL -> Franklin, OH",
-          "window": "11/24, 12:00 AM - 11/25, 11:59 PM"
+          "window": "11/24, 12:00 AM - 11/25, 11:59 PM",
+          "miles_from_prev": 217.1
         },
         {
           "action": "pickup",
           "place": "Montgomery, AL",
           "lane": "Montgomery, AL -> Franklin, OH",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 0.0
         },
         {
           "action": "drop",
           "place": "Birmingham, AL",
           "lane": "Tallahassee, FL -> Birmingham, AL",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 100.8
         },
         {
           "action": "drop",
           "place": "Franklin, OH",
           "lane": "Montgomery, AL -> Franklin, OH",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 526.7
         },
         {
           "action": "drop",
           "place": "Franklin, OH",
           "lane": "Montgomery, AL -> Franklin, OH",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 0.0
         }
       ],
       "loads": [
@@ -1026,37 +1046,43 @@
           "action": "pickup",
           "place": "Tallahassee, FL",
           "lane": "Tallahassee, FL -> Birmingham, AL",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 79.0
         },
         {
           "action": "pickup",
           "place": "Dothan, AL",
           "lane": "Dothan, AL -> Oakwood, OH",
-          "window": "11/25, 12:00 AM - 11/25, 11:59 PM"
+          "window": "11/25, 12:00 AM - 11/25, 11:59 PM",
+          "miles_from_prev": 104.5
         },
         {
           "action": "pickup",
           "place": "Montgomery, AL",
           "lane": "Montgomery, AL -> Franklin, OH",
-          "window": "11/24, 12:00 AM - 11/25, 11:59 PM"
+          "window": "11/24, 12:00 AM - 11/25, 11:59 PM",
+          "miles_from_prev": 115.8
         },
         {
           "action": "drop",
           "place": "Birmingham, AL",
           "lane": "Tallahassee, FL -> Birmingham, AL",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 100.8
         },
         {
           "action": "drop",
           "place": "Franklin, OH",
           "lane": "Montgomery, AL -> Franklin, OH",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 526.7
         },
         {
           "action": "drop",
           "place": "Oakwood, OH",
           "lane": "Dothan, AL -> Oakwood, OH",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 128.1
         }
       ],
       "loads": [
@@ -1295,37 +1321,43 @@
           "action": "pickup",
           "place": "Tallahassee, FL",
           "lane": "Tallahassee, FL -> Birmingham, AL",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 79.0
         },
         {
           "action": "pickup",
           "place": "Dothan, AL",
           "lane": "Dothan, AL -> Oakwood, OH",
-          "window": "11/25, 12:00 AM - 11/25, 11:59 PM"
+          "window": "11/25, 12:00 AM - 11/25, 11:59 PM",
+          "miles_from_prev": 104.5
         },
         {
           "action": "pickup",
           "place": "Dothan, AL",
           "lane": "Dothan, AL -> Oakwood, OH",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 0.0
         },
         {
           "action": "drop",
           "place": "Birmingham, AL",
           "lane": "Tallahassee, FL -> Birmingham, AL",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 215.1
         },
         {
           "action": "drop",
           "place": "Oakwood, OH",
           "lane": "Dothan, AL -> Oakwood, OH",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 647.4
         },
         {
           "action": "drop",
           "place": "Oakwood, OH",
           "lane": "Dothan, AL -> Oakwood, OH",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 0.0
         }
       ],
       "loads": [
@@ -1564,37 +1596,43 @@
           "action": "pickup",
           "place": "Tallahassee, FL",
           "lane": "Tallahassee, FL -> Birmingham, AL",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 79.0
         },
         {
           "action": "pickup",
           "place": "Dothan, AL",
           "lane": "Dothan, AL -> Oakwood, OH",
-          "window": "11/25, 12:00 AM - 11/25, 11:59 PM"
+          "window": "11/25, 12:00 AM - 11/25, 11:59 PM",
+          "miles_from_prev": 104.5
         },
         {
           "action": "pickup",
           "place": "Montgomery, AL",
           "lane": "Montgomery, AL -> Franklin, OH",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 115.8
         },
         {
           "action": "drop",
           "place": "Birmingham, AL",
           "lane": "Tallahassee, FL -> Birmingham, AL",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 100.8
         },
         {
           "action": "drop",
           "place": "Franklin, OH",
           "lane": "Montgomery, AL -> Franklin, OH",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 526.7
         },
         {
           "action": "drop",
           "place": "Oakwood, OH",
           "lane": "Dothan, AL -> Oakwood, OH",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 128.1
         }
       ],
       "loads": [
@@ -1833,25 +1871,29 @@
           "action": "pickup",
           "place": "Tallahassee, FL",
           "lane": "Tallahassee, FL -> Birmingham, AL",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 79.0
         },
         {
           "action": "pickup",
           "place": "Defuniak Springs, FL",
           "lane": "Defuniak Springs, FL -> Milaca, MN",
-          "window": "11/26, 4:00 PM - 11/30, 12:00 PM"
+          "window": "11/26, 4:00 PM - 11/30, 12:00 PM",
+          "miles_from_prev": 136.7
         },
         {
           "action": "drop",
           "place": "Birmingham, AL",
           "lane": "Tallahassee, FL -> Birmingham, AL",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 234.1
         },
         {
           "action": "drop",
           "place": "Milaca, MN",
           "lane": "Defuniak Springs, FL -> Milaca, MN",
-          "window": "12/2, 3:00 PM - 12/3, 12:00 PM"
+          "window": "12/2, 3:00 PM - 12/3, 12:00 PM",
+          "miles_from_prev": 1105.4
         }
       ],
       "loads": [
@@ -2054,37 +2096,43 @@
           "action": "pickup",
           "place": "Midway, FL",
           "lane": "Midway, FL -> Ozark, MO",
-          "window": "11/25, 12:00 AM - 11/25, 11:59 PM"
+          "window": "11/25, 12:00 AM - 11/25, 11:59 PM",
+          "miles_from_prev": 73.0
         },
         {
           "action": "pickup",
           "place": "Montgomery, AL",
           "lane": "Montgomery, AL -> Franklin, OH",
-          "window": "11/24, 12:00 AM - 11/25, 11:59 PM"
+          "window": "11/24, 12:00 AM - 11/25, 11:59 PM",
+          "miles_from_prev": 203.8
         },
         {
           "action": "pickup",
           "place": "Montgomery, AL",
           "lane": "Montgomery, AL -> Franklin, OH",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 0.0
         },
         {
           "action": "drop",
           "place": "Franklin, OH",
           "lane": "Montgomery, AL -> Franklin, OH",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 586.0
         },
         {
           "action": "drop",
           "place": "Franklin, OH",
           "lane": "Montgomery, AL -> Franklin, OH",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 0.0
         },
         {
           "action": "drop",
           "place": "Ozark, MO",
           "lane": "Midway, FL -> Ozark, MO",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 615.5
         }
       ],
       "loads": [
@@ -2312,25 +2360,29 @@
           "action": "pickup",
           "place": "Montgomery, AL",
           "lane": "Montgomery, AL -> Des Moines, IA",
-          "window": "11/27, 12:00 AM - 12/1, 11:59 PM"
+          "window": "11/27, 12:00 AM - 12/1, 11:59 PM",
+          "miles_from_prev": 140.0
         },
         {
           "action": "pickup",
           "place": "Greenville, AL",
           "lane": "Greenville, AL -> Sparta, WI",
-          "window": "11/25, 12:00 AM - 12/2, 11:59 PM"
+          "window": "11/25, 12:00 AM - 12/2, 11:59 PM",
+          "miles_from_prev": 51.6
         },
         {
           "action": "drop",
           "place": "Des Moines, IA",
           "lane": "Montgomery, AL -> Des Moines, IA",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 934.4
         },
         {
           "action": "drop",
           "place": "Sparta, WI",
           "lane": "Greenville, AL -> Sparta, WI",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 258.8
         }
       ],
       "loads": [
@@ -2519,37 +2571,43 @@
           "action": "pickup",
           "place": "Monroeville, AL",
           "lane": "Monroeville, AL -> Danville, VA",
-          "window": "Ships 11/25"
+          "window": "Ships 11/25",
+          "miles_from_prev": 162.0
         },
         {
           "action": "pickup",
           "place": "Montgomery, AL",
           "lane": "Montgomery, AL -> Franklin, OH",
-          "window": "11/24, 12:00 AM - 11/25, 11:59 PM"
+          "window": "11/24, 12:00 AM - 11/25, 11:59 PM",
+          "miles_from_prev": 101.6
         },
         {
           "action": "pickup",
           "place": "Montgomery, AL",
           "lane": "Montgomery, AL -> Franklin, OH",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 0.0
         },
         {
           "action": "drop",
           "place": "Franklin, OH",
           "lane": "Montgomery, AL -> Franklin, OH",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 586.0
         },
         {
           "action": "drop",
           "place": "Franklin, OH",
           "lane": "Montgomery, AL -> Franklin, OH",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 0.0
         },
         {
           "action": "drop",
           "place": "Danville, VA",
           "lane": "Monroeville, AL -> Danville, VA",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 400.9
         }
       ],
       "loads": [
@@ -2782,37 +2840,43 @@
           "action": "pickup",
           "place": "Headland, AL",
           "lane": "Headland, AL -> Houston, TX",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 43.0
         },
         {
           "action": "pickup",
           "place": "Milton, FL",
           "lane": "Milton, FL -> Houston, TX",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 134.7
         },
         {
           "action": "pickup",
           "place": "Pensacola, FL",
           "lane": "Pensacola, FL -> Houston, TX",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 23.5
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Headland, AL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 531.0
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Pensacola, FL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 0.0
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Milton, FL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 0.0
         }
       ],
       "loads": [
@@ -3019,37 +3083,43 @@
           "action": "pickup",
           "place": "Midway, FL",
           "lane": "Midway, FL -> Houston, TX",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 73.0
         },
         {
           "action": "pickup",
           "place": "Headland, AL",
           "lane": "Headland, AL -> Houston, TX",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 94.7
         },
         {
           "action": "pickup",
           "place": "Milton, FL",
           "lane": "Milton, FL -> Houston, TX",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 134.7
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Headland, AL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 550.0
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Milton, FL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 0.0
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Midway, FL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 0.0
         }
       ],
       "loads": [
@@ -3257,37 +3327,43 @@
           "action": "pickup",
           "place": "Midway, FL",
           "lane": "Midway, FL -> Houston, TX",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 73.0
         },
         {
           "action": "pickup",
           "place": "Headland, AL",
           "lane": "Headland, AL -> Houston, TX",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 94.7
         },
         {
           "action": "pickup",
           "place": "Pensacola, FL",
           "lane": "Pensacola, FL -> Houston, TX",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 155.2
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Headland, AL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 531.0
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Pensacola, FL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 0.0
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Midway, FL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 0.0
         }
       ],
       "loads": [
@@ -3495,37 +3571,43 @@
           "action": "pickup",
           "place": "Headland, AL",
           "lane": "Headland, AL -> Houston, TX",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 43.0
         },
         {
           "action": "pickup",
           "place": "Pensacola, FL",
           "lane": "Pensacola, FL -> Houston, TX",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 155.2
         },
         {
           "action": "pickup",
           "place": "Pensacola, FL",
           "lane": "Pensacola, FL -> Houston, TX",
-          "window": "11/27"
+          "window": "11/27",
+          "miles_from_prev": 0.0
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Headland, AL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 531.0
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Pensacola, FL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 0.0
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Pensacola, FL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 0.0
         }
       ],
       "loads": [
@@ -3732,37 +3814,43 @@
           "action": "pickup",
           "place": "Headland, AL",
           "lane": "Headland, AL -> Houston, TX",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 43.0
         },
         {
           "action": "pickup",
           "place": "Milton, FL",
           "lane": "Milton, FL -> Houston, TX",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 134.7
         },
         {
           "action": "pickup",
           "place": "Pensacola, FL",
           "lane": "Pensacola, FL -> Houston, TX",
-          "window": "11/27"
+          "window": "11/27",
+          "miles_from_prev": 23.5
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Headland, AL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 531.0
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Milton, FL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 0.0
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Pensacola, FL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 0.0
         }
       ],
       "loads": [
@@ -3969,25 +4057,29 @@
           "action": "pickup",
           "place": "Americus, GA",
           "lane": "Americus, GA -> Forest, MS",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 135.0
         },
         {
           "action": "pickup",
           "place": "Defuniak Springs, FL",
           "lane": "Defuniak Springs, FL -> Milaca, MN",
-          "window": "11/26, 4:00 PM - 11/30, 12:00 PM"
+          "window": "11/26, 4:00 PM - 11/30, 12:00 PM",
+          "miles_from_prev": 174.3
         },
         {
           "action": "drop",
           "place": "Forest, MS",
           "lane": "Americus, GA -> Forest, MS",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 269.8
         },
         {
           "action": "drop",
           "place": "Milaca, MN",
           "lane": "Defuniak Springs, FL -> Milaca, MN",
-          "window": "12/2, 3:00 PM - 12/3, 12:00 PM"
+          "window": "12/2, 3:00 PM - 12/3, 12:00 PM",
+          "miles_from_prev": 1145.3
         }
       ],
       "loads": [
@@ -4184,37 +4276,43 @@
           "action": "pickup",
           "place": "Headland, AL",
           "lane": "Headland, AL -> Houston, TX",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 43.0
         },
         {
           "action": "pickup",
           "place": "Headland, AL",
           "lane": "Headland, AL -> Phoenix, AZ",
-          "window": "11/25, 12:00 AM - 11/25, 11:59 PM"
+          "window": "11/25, 12:00 AM - 11/25, 11:59 PM",
+          "miles_from_prev": 0.0
         },
         {
           "action": "pickup",
           "place": "Milton, FL",
           "lane": "Milton, FL -> Houston, TX",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 134.7
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Headland, AL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 550.0
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Milton, FL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 0.0
         },
         {
           "action": "drop",
           "place": "Phoenix, AZ",
           "lane": "Headland, AL -> Phoenix, AZ",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 1215.1
         }
       ],
       "loads": [
@@ -4435,37 +4533,43 @@
           "action": "pickup",
           "place": "Headland, AL",
           "lane": "Headland, AL -> Houston, TX",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 43.0
         },
         {
           "action": "pickup",
           "place": "Headland, AL",
           "lane": "Headland, AL -> Phoenix, AZ",
-          "window": "11/25, 12:00 AM - 11/25, 11:59 PM"
+          "window": "11/25, 12:00 AM - 11/25, 11:59 PM",
+          "miles_from_prev": 0.0
         },
         {
           "action": "pickup",
           "place": "Pensacola, FL",
           "lane": "Pensacola, FL -> Houston, TX",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 155.2
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Headland, AL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 531.0
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Pensacola, FL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 0.0
         },
         {
           "action": "drop",
           "place": "Phoenix, AZ",
           "lane": "Headland, AL -> Phoenix, AZ",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 1215.1
         }
       ],
       "loads": [
@@ -4686,37 +4790,43 @@
           "action": "pickup",
           "place": "Midway, FL",
           "lane": "Midway, FL -> Houston, TX",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 73.0
         },
         {
           "action": "pickup",
           "place": "Headland, AL",
           "lane": "Headland, AL -> Houston, TX",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 94.7
         },
         {
           "action": "pickup",
           "place": "Pensacola, FL",
           "lane": "Pensacola, FL -> Houston, TX",
-          "window": "11/27"
+          "window": "11/27",
+          "miles_from_prev": 155.2
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Headland, AL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 531.0
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Midway, FL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 0.0
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Pensacola, FL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 0.0
         }
       ],
       "loads": [
@@ -4924,37 +5034,43 @@
           "action": "pickup",
           "place": "Tallahassee, FL",
           "lane": "Tallahassee, FL -> Birmingham, AL",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 79.0
         },
         {
           "action": "pickup",
           "place": "Dothan, AL",
           "lane": "Dothan, AL -> Oakwood, OH",
-          "window": "11/25, 12:00 AM - 11/25, 11:59 PM"
+          "window": "11/25, 12:00 AM - 11/25, 11:59 PM",
+          "miles_from_prev": 104.5
         },
         {
           "action": "pickup",
           "place": "Dothan, AL",
           "lane": "Dothan, AL -> Peebles, OH",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 0.0
         },
         {
           "action": "drop",
           "place": "Birmingham, AL",
           "lane": "Tallahassee, FL -> Birmingham, AL",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 215.1
         },
         {
           "action": "drop",
           "place": "Peebles, OH",
           "lane": "Dothan, AL -> Peebles, OH",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 508.0
         },
         {
           "action": "drop",
           "place": "Oakwood, OH",
           "lane": "Dothan, AL -> Oakwood, OH",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 186.2
         }
       ],
       "loads": [
@@ -5193,25 +5309,29 @@
           "action": "pickup",
           "place": "Greenville, AL",
           "lane": "Greenville, AL -> Sparta, WI",
-          "window": "11/25, 12:00 AM - 12/2, 11:59 PM"
+          "window": "11/25, 12:00 AM - 12/2, 11:59 PM",
+          "miles_from_prev": 122.0
         },
         {
           "action": "pickup",
           "place": "Montgomery, AL",
           "lane": "Montgomery, AL -> Franklin, OH",
-          "window": "11/24, 12:00 AM - 11/25, 11:59 PM"
+          "window": "11/24, 12:00 AM - 11/25, 11:59 PM",
+          "miles_from_prev": 51.6
         },
         {
           "action": "drop",
           "place": "Franklin, OH",
           "lane": "Montgomery, AL -> Franklin, OH",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 586.0
         },
         {
           "action": "drop",
           "place": "Sparta, WI",
           "lane": "Greenville, AL -> Sparta, WI",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 543.3
         }
       ],
       "loads": [
@@ -5418,37 +5538,43 @@
           "action": "pickup",
           "place": "Headland, AL",
           "lane": "Headland, AL -> Houston, TX",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 43.0
         },
         {
           "action": "pickup",
           "place": "Midway, FL",
           "lane": "Midway, FL -> Ozark, MO",
-          "window": "11/25, 12:00 AM - 11/25, 11:59 PM"
+          "window": "11/25, 12:00 AM - 11/25, 11:59 PM",
+          "miles_from_prev": 94.7
         },
         {
           "action": "pickup",
           "place": "Midway, FL",
           "lane": "Midway, FL -> Houston, TX",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 0.0
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Headland, AL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 709.0
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Midway, FL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 0.0
         },
         {
           "action": "drop",
           "place": "Ozark, MO",
           "lane": "Midway, FL -> Ozark, MO",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 634.8
         }
       ],
       "loads": [
@@ -5668,37 +5794,43 @@
           "action": "pickup",
           "place": "Headland, AL",
           "lane": "Headland, AL -> Houston, TX",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 43.0
         },
         {
           "action": "pickup",
           "place": "Headland, AL",
           "lane": "Headland, AL -> Phoenix, AZ",
-          "window": "11/25, 12:00 AM - 11/25, 11:59 PM"
+          "window": "11/25, 12:00 AM - 11/25, 11:59 PM",
+          "miles_from_prev": 0.0
         },
         {
           "action": "pickup",
           "place": "Milton, FL",
           "lane": "Milton, FL -> Houston, TX",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 134.7
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Headland, AL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 550.0
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Milton, FL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 0.0
         },
         {
           "action": "drop",
           "place": "Phoenix, AZ",
           "lane": "Headland, AL -> Phoenix, AZ",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 1215.1
         }
       ],
       "loads": [
@@ -5919,37 +6051,43 @@
           "action": "pickup",
           "place": "Midway, FL",
           "lane": "Midway, FL -> Houston, TX",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 73.0
         },
         {
           "action": "pickup",
           "place": "Headland, AL",
           "lane": "Headland, AL -> Houston, TX",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 94.7
         },
         {
           "action": "pickup",
           "place": "Headland, AL",
           "lane": "Headland, AL -> Phoenix, AZ",
-          "window": "11/25, 12:00 AM - 11/25, 11:59 PM"
+          "window": "11/25, 12:00 AM - 11/25, 11:59 PM",
+          "miles_from_prev": 0.0
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Headland, AL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 686.0
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Midway, FL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 0.0
         },
         {
           "action": "drop",
           "place": "Phoenix, AZ",
           "lane": "Headland, AL -> Phoenix, AZ",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 1215.1
         }
       ],
       "loads": [
@@ -6170,37 +6308,43 @@
           "action": "pickup",
           "place": "Headland, AL",
           "lane": "Headland, AL -> Houston, TX",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 43.0
         },
         {
           "action": "pickup",
           "place": "Headland, AL",
           "lane": "Headland, AL -> Phoenix, AZ",
-          "window": "11/25, 12:00 AM - 11/25, 11:59 PM"
+          "window": "11/25, 12:00 AM - 11/25, 11:59 PM",
+          "miles_from_prev": 0.0
         },
         {
           "action": "pickup",
           "place": "Pensacola, FL",
           "lane": "Pensacola, FL -> Houston, TX",
-          "window": "11/27"
+          "window": "11/27",
+          "miles_from_prev": 155.2
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Headland, AL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 531.0
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Pensacola, FL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 0.0
         },
         {
           "action": "drop",
           "place": "Phoenix, AZ",
           "lane": "Headland, AL -> Phoenix, AZ",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 1215.1
         }
       ],
       "loads": [
@@ -6421,25 +6565,29 @@
           "action": "pickup",
           "place": "Greenville, AL",
           "lane": "Greenville, AL -> Sparta, WI",
-          "window": "11/25, 12:00 AM - 12/2, 11:59 PM"
+          "window": "11/25, 12:00 AM - 12/2, 11:59 PM",
+          "miles_from_prev": 122.0
         },
         {
           "action": "pickup",
           "place": "Montgomery, AL",
           "lane": "Montgomery, AL -> Franklin, OH",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 51.6
         },
         {
           "action": "drop",
           "place": "Franklin, OH",
           "lane": "Montgomery, AL -> Franklin, OH",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 586.0
         },
         {
           "action": "drop",
           "place": "Sparta, WI",
           "lane": "Greenville, AL -> Sparta, WI",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 543.3
         }
       ],
       "loads": [
@@ -6646,37 +6794,43 @@
           "action": "pickup",
           "place": "Midway, FL",
           "lane": "Midway, FL -> Ozark, MO",
-          "window": "11/25, 12:00 AM - 11/25, 11:59 PM"
+          "window": "11/25, 12:00 AM - 11/25, 11:59 PM",
+          "miles_from_prev": 73.0
         },
         {
           "action": "pickup",
           "place": "Headland, AL",
           "lane": "Headland, AL -> Houston, TX",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 94.7
         },
         {
           "action": "pickup",
           "place": "Milton, FL",
           "lane": "Milton, FL -> Houston, TX",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 134.7
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Headland, AL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 550.0
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Milton, FL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 0.0
         },
         {
           "action": "drop",
           "place": "Ozark, MO",
           "lane": "Midway, FL -> Ozark, MO",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 634.8
         }
       ],
       "loads": [
@@ -6897,37 +7051,43 @@
           "action": "pickup",
           "place": "Midway, FL",
           "lane": "Midway, FL -> Ozark, MO",
-          "window": "11/25, 12:00 AM - 11/25, 11:59 PM"
+          "window": "11/25, 12:00 AM - 11/25, 11:59 PM",
+          "miles_from_prev": 73.0
         },
         {
           "action": "pickup",
           "place": "Headland, AL",
           "lane": "Headland, AL -> Houston, TX",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 94.7
         },
         {
           "action": "pickup",
           "place": "Pensacola, FL",
           "lane": "Pensacola, FL -> Houston, TX",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 155.2
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Headland, AL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 531.0
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Pensacola, FL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 0.0
         },
         {
           "action": "drop",
           "place": "Ozark, MO",
           "lane": "Midway, FL -> Ozark, MO",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 634.8
         }
       ],
       "loads": [
@@ -7148,25 +7308,29 @@
           "action": "pickup",
           "place": "Pensacola, FL",
           "lane": "Pensacola, FL -> Hookstown, PA",
-          "window": "11/23, 12:00 AM - 11/25, 11:59 PM"
+          "window": "11/23, 12:00 AM - 11/25, 11:59 PM",
+          "miles_from_prev": 146.0
         },
         {
           "action": "pickup",
           "place": "Montgomery, AL",
           "lane": "Montgomery, AL -> Franklin, OH",
-          "window": "11/24, 12:00 AM - 11/25, 11:59 PM"
+          "window": "11/24, 12:00 AM - 11/25, 11:59 PM",
+          "miles_from_prev": 174.3
         },
         {
           "action": "drop",
           "place": "Franklin, OH",
           "lane": "Montgomery, AL -> Franklin, OH",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 586.0
         },
         {
           "action": "drop",
           "place": "Hookstown, PA",
           "lane": "Pensacola, FL -> Hookstown, PA",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 259.1
         }
       ],
       "loads": [
@@ -7368,37 +7532,43 @@
           "action": "pickup",
           "place": "Midway, FL",
           "lane": "Midway, FL -> Ozark, MO",
-          "window": "11/25, 12:00 AM - 11/25, 11:59 PM"
+          "window": "11/25, 12:00 AM - 11/25, 11:59 PM",
+          "miles_from_prev": 73.0
         },
         {
           "action": "pickup",
           "place": "Headland, AL",
           "lane": "Headland, AL -> Houston, TX",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 94.7
         },
         {
           "action": "pickup",
           "place": "Milton, FL",
           "lane": "Milton, FL -> Houston, TX",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 134.7
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Headland, AL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 550.0
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Milton, FL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 0.0
         },
         {
           "action": "drop",
           "place": "Ozark, MO",
           "lane": "Midway, FL -> Ozark, MO",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 634.8
         }
       ],
       "loads": [
@@ -7619,37 +7789,43 @@
           "action": "pickup",
           "place": "Midway, FL",
           "lane": "Midway, FL -> Ozark, MO",
-          "window": "11/25, 12:00 AM - 11/25, 11:59 PM"
+          "window": "11/25, 12:00 AM - 11/25, 11:59 PM",
+          "miles_from_prev": 73.0
         },
         {
           "action": "pickup",
           "place": "Headland, AL",
           "lane": "Headland, AL -> Houston, TX",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 94.7
         },
         {
           "action": "pickup",
           "place": "Pensacola, FL",
           "lane": "Pensacola, FL -> Houston, TX",
-          "window": "11/27"
+          "window": "11/27",
+          "miles_from_prev": 155.2
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Headland, AL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 531.0
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Pensacola, FL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 0.0
         },
         {
           "action": "drop",
           "place": "Ozark, MO",
           "lane": "Midway, FL -> Ozark, MO",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 634.8
         }
       ],
       "loads": [
@@ -7870,25 +8046,29 @@
           "action": "pickup",
           "place": "Montgomery, AL",
           "lane": "Montgomery, AL -> Franklin, OH",
-          "window": "11/24, 12:00 AM - 11/25, 11:59 PM"
+          "window": "11/24, 12:00 AM - 11/25, 11:59 PM",
+          "miles_from_prev": 140.0
         },
         {
           "action": "pickup",
           "place": "Montgomery, AL",
           "lane": "Montgomery, AL -> Franklin, OH",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 0.0
         },
         {
           "action": "drop",
           "place": "Franklin, OH",
           "lane": "Montgomery, AL -> Franklin, OH",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 586.0
         },
         {
           "action": "drop",
           "place": "Franklin, OH",
           "lane": "Montgomery, AL -> Franklin, OH",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 0.0
         }
       ],
       "loads": [
@@ -8067,25 +8247,29 @@
           "action": "pickup",
           "place": "Pensacola, FL",
           "lane": "Pensacola, FL -> Hookstown, PA",
-          "window": "11/23, 12:00 AM - 11/25, 11:59 PM"
+          "window": "11/23, 12:00 AM - 11/25, 11:59 PM",
+          "miles_from_prev": 146.0
         },
         {
           "action": "pickup",
           "place": "Montgomery, AL",
           "lane": "Montgomery, AL -> Franklin, OH",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 174.3
         },
         {
           "action": "drop",
           "place": "Franklin, OH",
           "lane": "Montgomery, AL -> Franklin, OH",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 586.0
         },
         {
           "action": "drop",
           "place": "Hookstown, PA",
           "lane": "Pensacola, FL -> Hookstown, PA",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 259.1
         }
       ],
       "loads": [
@@ -8287,25 +8471,29 @@
           "action": "pickup",
           "place": "Dothan, AL",
           "lane": "Dothan, AL -> Oakwood, OH",
-          "window": "11/25, 12:00 AM - 11/25, 11:59 PM"
+          "window": "11/25, 12:00 AM - 11/25, 11:59 PM",
+          "miles_from_prev": 31.0
         },
         {
           "action": "pickup",
           "place": "Montgomery, AL",
           "lane": "Montgomery, AL -> Franklin, OH",
-          "window": "11/24, 12:00 AM - 11/25, 11:59 PM"
+          "window": "11/24, 12:00 AM - 11/25, 11:59 PM",
+          "miles_from_prev": 115.8
         },
         {
           "action": "drop",
           "place": "Franklin, OH",
           "lane": "Montgomery, AL -> Franklin, OH",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 586.0
         },
         {
           "action": "drop",
           "place": "Oakwood, OH",
           "lane": "Dothan, AL -> Oakwood, OH",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 128.1
         }
       ],
       "loads": [
@@ -8508,25 +8696,29 @@
           "action": "pickup",
           "place": "Pensacola, FL",
           "lane": "Pensacola, FL -> Hookstown, PA",
-          "window": "11/23, 12:00 AM - 11/25, 11:59 PM"
+          "window": "11/23, 12:00 AM - 11/25, 11:59 PM",
+          "miles_from_prev": 146.0
         },
         {
           "action": "pickup",
           "place": "Milton, FL",
           "lane": "Milton, FL -> Shippensburg, PA",
-          "window": "11/25, 12:00 AM - 11/25, 11:59 PM"
+          "window": "11/25, 12:00 AM - 11/25, 11:59 PM",
+          "miles_from_prev": 23.5
         },
         {
           "action": "drop",
           "place": "Hookstown, PA",
           "lane": "Pensacola, FL -> Hookstown, PA",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 932.0
         },
         {
           "action": "drop",
           "place": "Shippensburg, PA",
           "lane": "Milton, FL -> Shippensburg, PA",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 188.9
         }
       ],
       "loads": [
@@ -8726,37 +8918,43 @@
           "action": "pickup",
           "place": "Headland, AL",
           "lane": "Headland, AL -> Phoenix, AZ",
-          "window": "11/25, 12:00 AM - 11/25, 11:59 PM"
+          "window": "11/25, 12:00 AM - 11/25, 11:59 PM",
+          "miles_from_prev": 43.0
         },
         {
           "action": "pickup",
           "place": "Montgomery, AL",
           "lane": "Montgomery, AL -> Franklin, OH",
-          "window": "11/24, 12:00 AM - 11/25, 11:59 PM"
+          "window": "11/24, 12:00 AM - 11/25, 11:59 PM",
+          "miles_from_prev": 109.2
         },
         {
           "action": "pickup",
           "place": "Montgomery, AL",
           "lane": "Montgomery, AL -> Franklin, OH",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 0.0
         },
         {
           "action": "drop",
           "place": "Franklin, OH",
           "lane": "Montgomery, AL -> Franklin, OH",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 586.0
         },
         {
           "action": "drop",
           "place": "Franklin, OH",
           "lane": "Montgomery, AL -> Franklin, OH",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 0.0
         },
         {
           "action": "drop",
           "place": "Phoenix, AZ",
           "lane": "Headland, AL -> Phoenix, AZ",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 1909.7
         }
       ],
       "loads": [
@@ -8989,25 +9187,29 @@
           "action": "pickup",
           "place": "Midway, FL",
           "lane": "Midway, FL -> Ozark, MO",
-          "window": "11/25, 12:00 AM - 11/25, 11:59 PM"
+          "window": "11/25, 12:00 AM - 11/25, 11:59 PM",
+          "miles_from_prev": 73.0
         },
         {
           "action": "pickup",
           "place": "Montgomery, AL",
           "lane": "Montgomery, AL -> Des Moines, IA",
-          "window": "11/27, 12:00 AM - 12/1, 11:59 PM"
+          "window": "11/27, 12:00 AM - 12/1, 11:59 PM",
+          "miles_from_prev": 203.8
         },
         {
           "action": "drop",
           "place": "Ozark, MO",
           "lane": "Midway, FL -> Ozark, MO",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 607.0
         },
         {
           "action": "drop",
           "place": "Des Moines, IA",
           "lane": "Montgomery, AL -> Des Moines, IA",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 380.9
         }
       ],
       "loads": [
@@ -9203,25 +9405,29 @@
           "action": "pickup",
           "place": "Dothan, AL",
           "lane": "Dothan, AL -> Oakwood, OH",
-          "window": "11/25, 12:00 AM - 11/25, 11:59 PM"
+          "window": "11/25, 12:00 AM - 11/25, 11:59 PM",
+          "miles_from_prev": 31.0
         },
         {
           "action": "pickup",
           "place": "Dothan, AL",
           "lane": "Dothan, AL -> Oakwood, OH",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 0.0
         },
         {
           "action": "drop",
           "place": "Oakwood, OH",
           "lane": "Dothan, AL -> Oakwood, OH",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 819.0
         },
         {
           "action": "drop",
           "place": "Oakwood, OH",
           "lane": "Dothan, AL -> Oakwood, OH",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 0.0
         }
       ],
       "loads": [
@@ -9424,25 +9630,29 @@
           "action": "pickup",
           "place": "Dothan, AL",
           "lane": "Dothan, AL -> Oakwood, OH",
-          "window": "11/25, 12:00 AM - 11/25, 11:59 PM"
+          "window": "11/25, 12:00 AM - 11/25, 11:59 PM",
+          "miles_from_prev": 31.0
         },
         {
           "action": "pickup",
           "place": "Montgomery, AL",
           "lane": "Montgomery, AL -> Franklin, OH",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 115.8
         },
         {
           "action": "drop",
           "place": "Franklin, OH",
           "lane": "Montgomery, AL -> Franklin, OH",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 586.0
         },
         {
           "action": "drop",
           "place": "Oakwood, OH",
           "lane": "Dothan, AL -> Oakwood, OH",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 128.1
         }
       ],
       "loads": [
@@ -9645,25 +9855,29 @@
           "action": "pickup",
           "place": "Headland, AL",
           "lane": "Headland, AL -> Houston, TX",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 43.0
         },
         {
           "action": "pickup",
           "place": "Headland, AL",
           "lane": "Headland, AL -> Houston, TX",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 0.0
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Headland, AL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 686.0
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Headland, AL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 0.0
         }
       ],
       "loads": [
@@ -9838,37 +10052,43 @@
           "action": "pickup",
           "place": "Americus, GA",
           "lane": "Americus, GA -> Forest, MS",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 135.0
         },
         {
           "action": "pickup",
           "place": "Headland, AL",
           "lane": "Headland, AL -> Houston, TX",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 98.4
         },
         {
           "action": "pickup",
           "place": "Headland, AL",
           "lane": "Headland, AL -> Phoenix, AZ",
-          "window": "11/25, 12:00 AM - 11/25, 11:59 PM"
+          "window": "11/25, 12:00 AM - 11/25, 11:59 PM",
+          "miles_from_prev": 0.0
         },
         {
           "action": "drop",
           "place": "Forest, MS",
           "lane": "Americus, GA -> Forest, MS",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 302.6
         },
         {
           "action": "drop",
           "place": "Houston, TX",
           "lane": "Headland, AL -> Houston, TX",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 483.0
         },
         {
           "action": "drop",
           "place": "Phoenix, AZ",
           "lane": "Headland, AL -> Phoenix, AZ",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 1215.1
         }
       ],
       "loads": [
@@ -10089,25 +10309,29 @@
           "action": "pickup",
           "place": "Dothan, AL",
           "lane": "Dothan, AL -> Oakwood, OH",
-          "window": "11/25"
+          "window": "11/25",
+          "miles_from_prev": 31.0
         },
         {
           "action": "pickup",
           "place": "Montgomery, AL",
           "lane": "Montgomery, AL -> Franklin, OH",
-          "window": "11/24, 12:00 AM - 11/25, 11:59 PM"
+          "window": "11/24, 12:00 AM - 11/25, 11:59 PM",
+          "miles_from_prev": 115.8
         },
         {
           "action": "drop",
           "place": "Franklin, OH",
           "lane": "Montgomery, AL -> Franklin, OH",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 586.0
         },
         {
           "action": "drop",
           "place": "Oakwood, OH",
           "lane": "Dothan, AL -> Oakwood, OH",
-          "window": ""
+          "window": "",
+          "miles_from_prev": 128.1
         }
       ],
       "loads": [
@@ -11779,6 +12003,16 @@
             "source": "normal"
           },
           {
+            "place": "Auburn, KY",
+            "date": "2026-11-25",
+            "high_f": null,
+            "low_f": 42,
+            "precip": "",
+            "precip_chance": null,
+            "gust_mph": null,
+            "source": "normal"
+          },
+          {
             "place": "Sandborn, IN",
             "date": "2026-11-26",
             "high_f": 44,
@@ -12270,6 +12504,16 @@
             "date": "2026-11-25",
             "high_f": null,
             "low_f": 45,
+            "precip": "",
+            "precip_chance": null,
+            "gust_mph": null,
+            "source": "normal"
+          },
+          {
+            "place": "Auburn, KY",
+            "date": "2026-11-25",
+            "high_f": null,
+            "low_f": 42,
             "precip": "",
             "precip_chance": null,
             "gust_mph": null,
@@ -12816,6 +13060,16 @@
             "source": "normal"
           },
           {
+            "place": "Mer Rouge, LA",
+            "date": "2026-11-25",
+            "high_f": null,
+            "low_f": 50,
+            "precip": "",
+            "precip_chance": null,
+            "gust_mph": null,
+            "source": "normal"
+          },
+          {
             "place": "Linden, TX",
             "date": "2026-11-26",
             "high_f": 50,
@@ -13287,6 +13541,16 @@
             "date": "2026-11-25",
             "high_f": null,
             "low_f": 51,
+            "precip": "",
+            "precip_chance": null,
+            "gust_mph": null,
+            "source": "normal"
+          },
+          {
+            "place": "Delta, AL",
+            "date": "2026-11-25",
+            "high_f": null,
+            "low_f": 46,
             "precip": "",
             "precip_chance": null,
             "gust_mph": null,

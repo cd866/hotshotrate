@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v48';
+  var APP_VERSION = 'v49';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -4991,10 +4991,10 @@
           });
           var lane = whyShortLane(leg);
           lines.forEach(function (line) {
-            addReason('Leg ' + (i + 1) + (lane ? ' (' + lane + ')' : '') + ': ' + line);
+            addReason('Leg ' + legLetter(i) + (lane ? ' (' + lane + ')' : '') + ': ' + line);
           });
           (part.notes || []).forEach(function (line) {
-            addNote('Leg ' + (i + 1) + (lane ? ' (' + lane + ')' : '') + ': ' + line);
+            addNote('Leg ' + legLetter(i) + (lane ? ' (' + lane + ')' : '') + ': ' + line);
           });
         });
       }
@@ -5021,8 +5021,15 @@
     var verd = String(why.verdict || 'PASS').toLowerCase();
     var title = verd === 'take' ? 'Why TAKE' : (verd === 'maybe' ? 'Why MAYBE' : 'Why PASS');
     var extra = why.reasons.length > WHY_VISIBLE ? why.reasons.length - WHY_VISIBLE : 0;
+    function whyLine(line) {
+      var m = /^Leg ([A-C])\b(.*)$/.exec(line);
+      if (!m) return { cls: '', style: '', html: esc(line) };
+      var col = legColor(m[1].charCodeAt(0) - 65);
+      return { cls: ' why-leg', style: ' style="--lc:' + col + '"', html: '<span class="why-legchip">Leg ' + m[1] + '</span>' + esc(m[2]) };
+    }
     var items = why.reasons.map(function (line, i) {
-      return '<li' + (i >= WHY_VISIBLE ? ' class="why-extra" hidden' : '') + '>' + esc(line) + '</li>';
+      var wl = whyLine(line);
+      return '<li class="' + (i >= WHY_VISIBLE ? 'why-extra' : '') + wl.cls + '"' + wl.style + (i >= WHY_VISIBLE ? ' hidden' : '') + '>' + wl.html + '</li>';
     }).join('');
     var more = extra > 0
       ? '<button type="button" class="why-more-btn" aria-expanded="false">' + extra + ' more</button>'
@@ -5032,7 +5039,8 @@
       notes = '<div class="why-notes">' +
         '<div class="why-notes-title">Notes</div>' +
         '<ul class="why-list">' + why.notes.map(function (line) {
-          return '<li>' + esc(line) + '</li>';
+          var wl = whyLine(line);
+          return '<li class="' + wl.cls.trim() + '"' + wl.style + '>' + wl.html + '</li>';
         }).join('') + '</ul></div>';
     }
     if (!items && !notes) return '';
@@ -5852,8 +5860,8 @@
     if (row.broker_dot) bits.push('DOT ' + row.broker_dot);
     if (row.load_number) bits.push('Load # ' + row.load_number);
     if (row.notes) bits.push(row.notes);
-    var also = alsoInLabels(row, data);
-    var alsoHtml = also.length ? '<p class="also-in">Also in ' + esc(also.join(', ')) + '</p>' : '';
+    var alsoHtml = '';
+    var comboChip = inComboChipHtml(row, data);
 
     var badges = typeBadgeHtml('single', 'Single') +
       (row.board ? '<span class="board-chip">' + esc(row.board) + '</span>' : '') +
@@ -5877,6 +5885,7 @@
         '<div class="card-badges">' + badges + '</div>' +
         '<div class="card-tools">' + tools + '</div>' +
       '</div>' +
+      (comboChip ? '<div class="in-combo-row">' + comboChip + '</div>' : '') +
       '<div class="verdict-row">' +
         '<div class="lane">' + esc(origin) + ' to ' + esc(dest) + '</div>' +
         '<span class="verdict-pill ' + esc(verd) + '">' + esc(displayVerdict(row.verdict || 'PASS')) + '</span>' +
@@ -5893,73 +5902,333 @@
       '</article>';
   }
 
-  function renderComboCard(combo, pkg) {
-    var verd = String(combo.verdict || 'MAYBE').toLowerCase();
-    var stops = (combo.stop_order || []).map(function (stop) {
-      return '<li><span class="act">' + esc(stop.action) + '</span> ' + esc(stop.place) +
-        (stop.lane ? ' <span class="lane-mini">(' + esc(stop.lane) + ')</span>' : '') +
-        (stop.window ? ' · ' + esc(stop.window) : '') + '</li>';
-    }).join('');
-    var comboLoads = combo.loads || [];
-    var nLegs = comboLoads.length;
-    var legs = comboLoads.map(function (row, i) {
-      return renderLegBox(row, i, nLegs);
-    }).join('');
+  // ---- v49 combo cards: one connected trip (timeline, leg colors, header line) ----
+  var LEG_COLORS = ['#38BDF8', '#F472B6', '#2DD4BF'];
+  function legLetter(i) { return String.fromCharCode(65 + (i % 26)); }
+  function legColor(i) { return LEG_COLORS[i % LEG_COLORS.length]; }
+
+  function fmtDriveTime(h) {
+    if (h == null || !isFinite(h) || h <= 0) return '';
+    var m = Math.round(h * 60);
+    var hh = Math.floor(m / 60);
+    var mm = m % 60;
+    if (hh === 0) return mm + 'm';
+    return hh + 'h ' + (mm < 10 ? '0' : '') + mm + 'm';
+  }
+
+  function fmtWhen(d) {
+    if (!d || isNaN(d.getTime())) return '';
+    var days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    var h = d.getHours();
+    var ap = h >= 12 ? 'PM' : 'AM';
+    var h12 = h % 12 === 0 ? 12 : h % 12;
+    var mi = d.getMinutes();
+    return days[d.getDay()] + ' ' + (d.getMonth() + 1) + '/' + d.getDate() + ' ' + h12 + ':' + (mi < 10 ? '0' : '') + mi + ' ' + ap;
+  }
+
+  function fmtWaitHrs(h) {
+    if (h < 24) return Math.round(h) + ' h';
+    var d = Math.round(h / 24);
+    return d + ' day' + (d === 1 ? '' : 's');
+  }
+
+  function comboStopModel(combo) {
+    var loads = combo.loads || [];
+    var order = combo.stop_order || [];
+    var usedP = {};
+    var usedD = {};
+    var pN = 0;
+    var dN = 0;
+    var stops = order.map(function (st, idx) {
+      var isDrop = String(st.action) === 'drop';
+      var leg = -1;
+      for (var i = 0; i < loads.length; i++) {
+        var lane = (loads[i].origin || '') + ' -> ' + (loads[i].destination || '');
+        var used = isDrop ? usedD : usedP;
+        if (!used[i] && lane === (st.lane || '')) { leg = i; used[i] = true; break; }
+      }
+      if (leg < 0) {
+        for (var j = 0; j < loads.length; j++) {
+          var u2 = isDrop ? usedD : usedP;
+          if (!u2[j] && (isDrop ? loads[j].destination === st.place : loads[j].origin === st.place)) { leg = j; u2[j] = true; break; }
+        }
+      }
+      if (isDrop) dN += 1; else pN += 1;
+      return {
+        n: idx + 1,
+        drop: isDrop,
+        place: st.place || '',
+        window: st.window || '',
+        leg: leg,
+        tag: (isDrop ? 'D' : 'P') + (isDrop ? dN : pN),
+        mi: (st.miles_from_prev != null && isFinite(Number(st.miles_from_prev))) ? Number(st.miles_from_prev) : null,
+        approx: false
+      };
+    });
+    // The first drive follows the truck location, so prefer the live deadhead on that load.
+    if (stops.length && stops[0].leg >= 0 && loads[stops[0].leg] && loads[stops[0].leg].origin_dh_mi != null &&
+        isFinite(Number(loads[stops[0].leg].origin_dh_mi))) {
+      stops[0].mi = Number(loads[stops[0].leg].origin_dh_mi);
+      stops[0].approx = false;
+    }
+    // Fill missing miles (older feeds): spread what is left over the unknown segments.
+    var known = 0;
+    var unknown = 0;
+    stops.forEach(function (s) { if (s.mi == null) unknown += 1; else known += s.mi; });
+    if (unknown) {
+      var tot = combo.total_mi != null ? Number(combo.total_mi) : (Number(combo.loaded_mi || 0) + Number(combo.deadhead_mi || 0));
+      var each = Math.max(0, (tot - known) / unknown);
+      stops.forEach(function (s, i) {
+        if (s.mi == null) { s.mi = i === 0 && loads[0] && loads[0].origin_dh_mi != null ? Number(loads[0].origin_dh_mi) : each; s.approx = true; }
+      });
+    }
+    // Deck tracking: a segment is loaded when something is on the deck at its start.
+    var deck = [];
+    stops.forEach(function (s) {
+      s.deckBefore = deck.slice();
+      s.loaded = deck.length > 0;
+      s.hrs = (s.mi || 0) / PER_HOUR_MPH;
+      if (s.leg >= 0) {
+        if (s.drop) deck = deck.filter(function (x) { return x !== s.leg; });
+        else if (deck.indexOf(s.leg) < 0) deck.push(s.leg);
+      }
+    });
+    return stops;
+  }
+
+  // Waits inside the trip: walk the stops at 50 mph (10 h rest per 11 h driven, 1 h per stop).
+  // The start is slid later (never past a pickup window's close) so we are not early at a drop;
+  // idle time before the first pickup is not trip time and is not drawn. Waits of 6 h or more
+  // after that first pickup show as a dashed segment.
+  function comboWaits(stops, year) {
+    var wins = stops.map(function (s) { return s.window ? parseWindow(s.window, year) : null; });
+    var now = Date.now();
+    var HR = 3600000;
+    function run(t0) {
+      var t = t0;
+      var out = [];
+      stops.forEach(function (s, i) {
+        var hrs = s.hrs || 0;
+        var rest = hrs > 11 ? Math.floor((hrs - 0.001) / 11) * 10 : 0;
+        var arrive = t + (hrs + rest) * HR;
+        var ws = wins[i] && wins[i][0] ? wins[i][0].getTime() : null;
+        var we = wins[i] && wins[i][1] ? wins[i][1].getTime() : null;
+        var wait = 0;
+        if (ws != null && arrive < ws) { wait = ws - arrive; arrive = ws; }
+        out.push({ wait: wait / HR, ws: ws, we: we, arrive: arrive, drop: s.drop });
+        t = arrive + HR;
+      });
+      return out;
+    }
+    var shift = 0;
+    var res = run(now);
+    for (var it = 0; it < 8; it++) {
+      var worst = 0;
+      res.forEach(function (r, i) { if (i > 0 && r.wait > worst) worst = r.wait; });
+      if (worst <= 1) break;
+      var slack = Infinity;
+      res.forEach(function (r) {
+        if (!r.drop && r.we != null) slack = Math.min(slack, (r.we - r.arrive) / HR);
+      });
+      var step = Math.min(worst, Math.max(0, slack));
+      if (step <= 0.25) break;
+      shift += step;
+      res = run(now + shift * HR);
+    }
+    return res.map(function (r, i) { return { wait: i === 0 ? 0 : r.wait, ws: r.ws }; });
+  }
+
+  function comboTimelineHtml(combo) {
+    var stops = comboStopModel(combo);
+    if (!stops.length) return '';
+    var scanDt = parseScanStamp(String((state.searches && (state.searches.scanned_at || state.searches.as_of)) || ''));
+    var year = scanDt ? scanDt.getFullYear() : new Date().getFullYear();
+    var waits = comboWaits(stops, year);
+    var startName = (state.truckAt && state.truckAt.label) ? state.truckAt.label : searchOriginLabel();
+    var html = '<ol class="cc-tl" aria-label="Trip timeline">';
+    html += '<li class="cc-stop cc-first"><span class="cc-dot cc-start">S</span>' +
+      '<div class="cc-stop-main"><div class="cc-place">' + esc(startName) + '</div>' +
+      '<div class="cc-stop-sub"><span class="cc-act">START</span></div></div></li>';
+    stops.forEach(function (s, i) {
+      var w = waits[i];
+      var lc = s.deckBefore.map(legColor);
+      var segStyle = '';
+      if (s.loaded) {
+        var stopsPct = lc.map(function (c, k) {
+          return c + ' ' + (100 * k / lc.length) + '%, ' + c + ' ' + (100 * (k + 1) / lc.length) + '%';
+        }).join(', ');
+        segStyle = ' style="--seg:linear-gradient(to right, ' + stopsPct + ')"';
+      }
+      if (s.mi > 0.05) {
+        var onDeck = s.deckBefore.map(legLetter).join('+');
+        html += '<li class="cc-seg ' + (s.loaded ? 'loaded' : 'empty') + '"' + segStyle + '><span class="cc-seg-label">' +
+          '<b>' + (s.loaded ? 'Loaded' : 'Empty') + '</b> ' + (s.approx ? '~' : '') + esc(plainNum(s.mi, 0)) + ' mi, ' + esc(fmtDriveTime(s.hrs)) +
+          (s.loaded && onDeck ? ' <i>(' + esc(onDeck) + ' on deck)</i>' : '') + '</span></li>';
+      } else {
+        html += '<li class="cc-seg same ' + (s.loaded ? 'loaded' : 'empty') + '"' + segStyle + '><span class="cc-seg-label"><i>same stop</i></span></li>';
+      }
+      if (w.wait >= 6) {
+        html += '<li class="cc-seg wait"><span class="cc-seg-label"><b>Wait ~' + esc(fmtWaitHrs(w.wait)) + '</b> ' +
+          (s.drop ? 'drop' : 'pickup') + ' opens ' + esc(fmtWhen(new Date(w.ws))) + '</span></li>';
+      }
+      var col = s.leg >= 0 ? legColor(s.leg) : '#c4b5fd';
+      var last = i === stops.length - 1;
+      html += '<li class="cc-stop' + (last ? ' cc-last' : '') + '" style="--lc:' + col + '">' +
+        '<span class="cc-dot ' + (s.drop ? 'drop' : 'pickup') + '">' + s.n + '</span>' +
+        '<div class="cc-stop-main"><div class="cc-place">' + esc(s.place) + '</div>' +
+        '<div class="cc-stop-sub"><span class="cc-act">' + esc(s.tag) + ' ' + (s.drop ? 'DROP' : 'PICKUP') + '</span>' +
+        (s.leg >= 0 ? '<span class="cc-legchip">Leg ' + legLetter(s.leg) + '</span>' : '') +
+        (s.window ? '<span class="cc-win">' + esc(s.window) + '</span>' : '') +
+        '</div></div></li>';
+    });
+    html += '</ol>';
+    html += '<p class="cc-key"><span class="k-solid"></span>pickup <span class="k-ring"></span>drop ' +
+      '<span class="k-line empty"></span>empty <span class="k-line loaded"></span>loaded <span class="k-line wait"></span>wait</p>';
+    return html;
+  }
+
+  function comboLegRowsHtml(combo) {
+    var loads = combo.loads || [];
+    return '<div class="cc-legs">' + loads.map(function (row, i) {
+      var wt = row.weight_lb != null ? plainNum(row.weight_lb, 0) + ' lb' : 'weight n/a';
+      var meta = [];
+      meta.push(row.broker || (row.board === 'Direct Freight' ? 'Broker on DF' : 'Broker n/a'));
+      meta.push(wt);
+      if (row.length_ft != null) meta.push(plainNum(row.length_ft, 0) + ' ft');
+      var mi = rowLoadedMiles(row);
+      if (mi) meta.push(plainNum(mi, 0) + ' mi');
+      if (row.board) meta.push(row.board);
+      var tel = brokerTel(row);
+      var mail = brokerMailto(row);
+      var acts = '<button type="button" class="call-sheet-btn cc-mini">Call sheet</button>' +
+        (tel ? '<a class="cc-mini cc-call" href="' + esc(tel) + '">Call</a>' : '') +
+        (mail ? '<a class="cc-mini cc-call" href="' + esc(mail) + '">Email</a>' : '');
+      return '<div class="cc-leg" style="--lc:' + legColor(i) + '">' +
+        '<span class="cc-legbadge">' + legLetter(i) + '</span>' +
+        '<div class="cc-leg-body">' +
+          '<div class="cc-leg-route">' + esc((row.origin || 'Origin') + ' to ' + (row.destination || 'Destination')) + '</div>' +
+          '<div class="cc-leg-meta">' + esc(meta.join(' | ')) + '</div>' +
+        '</div>' +
+        '<span class="cc-rate">' + (row.posted_rate != null ? esc(money(row.posted_rate)) : 'n/a') + '</span>' +
+        '<div class="cc-leg-actions">' + acts + '</div>' +
+        '</div>';
+    }).join('') + '</div>';
+  }
+
+  function comboHeaderLine(combo, nLegs) {
     var rateSum = 0;
     var rateOk = nLegs > 0;
-    comboLoads.forEach(function (row) {
+    (combo.loads || []).forEach(function (row) {
       if (row.posted_rate == null || !isFinite(Number(row.posted_rate))) rateOk = false;
       else rateSum += Number(row.posted_rate);
     });
-    var wt = combo.combined_weight_lb != null ? plainNum(combo.combined_weight_lb, 0) + ' lb' : 'n/a';
-    if (combo.weight_unknown) wt += ' (some not listed)';
-    var totalBits = [];
-    if (combo.loaded_mi != null) totalBits.push(plainNum(combo.loaded_mi, 0) + ' mi');
-    else if (combo.total_mi != null) totalBits.push(plainNum(combo.total_mi, 0) + ' mi');
-    if (combo.combined_weight_lb != null) totalBits.push(plainNum(combo.combined_weight_lb, 0) + ' lb');
-    if (rateOk) totalBits.push(money(rateSum));
-    else if (combo.posted_rate != null) totalBits.push(money(combo.posted_rate));
-    if (combo.net_est != null) totalBits.push('Net EST ' + money(combo.net_est));
-    var totalLine = '<div class="combo-total">' +
-      '<div class="combo-total-kicker">Combined total</div>' +
-      '<div class="combo-total-stats">' +
-        (totalBits.length ? totalBits.map(function (bit) { return '<span>' + esc(bit) + '</span>'; }).join('') : '') +
-      '</div></div>';
+    var rate = rateOk ? rateSum : (combo.posted_rate != null ? Number(combo.posted_rate) : null);
+    var days = rowDays(combo, nLegs);
+    var npd = rowNetPerDay(combo, nLegs);
+    var verd = String(combo.verdict || 'MAYBE').toLowerCase();
+    function cell(label, val, cls) {
+      return '<div class="cc-cell' + (cls ? ' ' + cls : '') + '"><span>' + label + '</span><b>' + val + '</b></div>';
+    }
+    return '<div class="cc-summary" role="group" aria-label="Combo summary">' +
+      cell('Rate', rate != null ? esc(money(rate)) : 'n/a') +
+      cell('Net EST', combo.net_est != null ? esc(searchMoney(combo.net_est)) : 'n/a', 'net') +
+      cell('Days', days != null ? esc(formatDays(days)) : 'n/a') +
+      cell('$/day', npd != null ? esc(searchMoney(npd)) : 'n/a', npd != null && npd < MIN_NET_PER_DAY ? 'low' : '') +
+      '<div class="cc-cell cc-verd"><span>Verdict</span><span class="verdict-pill ' + esc(verd) + '">' + esc(displayVerdict(combo.verdict || 'MAYBE')) + '</span></div>' +
+      '</div>';
+  }
+
+  function renderComboCard(combo, pkg) {
+    var verd = String(combo.verdict || 'MAYBE').toLowerCase();
+    var comboLoads = combo.loads || [];
+    var nLegs = comboLoads.length;
+    var label = (pkg && pkg.label) ? pkg.label : 'Combo';
+    var cid = pkg ? ((pkg.chain ? 'chain-' : 'combo-') + pkg.n) : '';
+    var kind = combo.kind === 'shared' ? 'Shared deck' : 'Sequential chain';
     var len = combo.combined_length_ft != null ? plainNum(combo.combined_length_ft, 1) + ' ft' : 'n/a';
     if (combo.length_unknown) len += ' (some not listed)';
-    var kind = combo.kind === 'shared' ? 'Shared deck' : 'Sequential chain';
-    var nameHtml = (pkg && pkg.label) ? '<span class="combo-name">' + esc(pkg.label) + '</span>' : '';
-    var cDays = rowDays(combo, nLegs);
     var fitRow = '<div class="fit-row">' +
       weightFitBadge(combo.combined_weight_lb) +
       '<span class="fit-badge neutral">' + esc(len) + '</span>' +
-      (cDays != null ? '<span class="fit-badge neutral">' + esc(formatDays(cDays)) + ' days</span>' : '') +
       avgHintBadge(combo, nLegs) +
       wxChipHtml(combo) +
       '</div>';
     var detailsHtml = '<div class="search-details" hidden>' +
+      netBlock(combo.net_est, perHourValue(combo, nLegs), netPerMileValue(combo), '', combo, nLegs) +
+      milesStrip(combo.loaded_mi, combo.deadhead_mi, { emptyFrom: searchOriginLabel() + ', all legs' }) +
       fuelLine(currentFuel(combo.loads && combo.loads[0] ? combo.loads[0] : combo)) +
       (combo.math ? '<p class="search-math">' + esc(combo.math) + '</p>' : '') +
       (combo.timing_note ? '<p class="search-meta">Timing: ' + esc(combo.timing_note) + '</p>' : '') +
       routeBlock(routePayload(combo), comboMapsUrl(combo), kind + ' route map') +
-      '<p class="combo-label">Stop order</p><ol class="combo-stops">' + stops + '</ol>' +
-      '<div class="combo-legs">' + legs + totalLine + '</div>' +
       ((combo.flags && combo.flags.length) ? '<p class="search-flags">' + esc(combo.flags.join(' ')) + '</p>' : '') +
       '</div>';
-    return '<article class="combo-card ' + esc(verd) + '">' +
-      '<div class="type-badge-row">' + packageTypeBadge(combo) + nameHtml + '</div>' +
-      '<div class="verdict-row">' +
-        '<div class="lane">' + esc(kind) + ' (' + nLegs + ' legs)</div>' +
-        '<span class="verdict-pill ' + esc(verd) + '">' + esc(displayVerdict(combo.verdict || 'MAYBE')) + '</span>' +
+    return '<article class="combo-card cc ' + esc(verd) + '"' + (cid ? ' id="' + esc(cid) + '"' : '') + '>' +
+      '<div class="cc-rail" aria-hidden="true" style="background:linear-gradient(to bottom, ' +
+        comboLoads.map(function (r, i) { return legColor(i) + ' ' + (100 * i / nLegs) + '%, ' + legColor(i) + ' ' + (100 * (i + 1) / nLegs) + '%'; }).join(', ') + ')"></div>' +
+      '<div class="cc-head">' +
+        '<span class="combo-name cc-badge">' + esc(label) + '</span>' +
+        '<span class="cc-kind">' + esc(kind) + ' / ' + nLegs + ' loads</span>' +
       '</div>' +
-      netBlock(combo.net_est, perHourValue(combo, nLegs), netPerMileValue(combo), '', combo, nLegs) +
-      milesStrip(combo.loaded_mi, combo.deadhead_mi, { emptyFrom: searchOriginLabel() + ', all legs' }) +
+      comboHeaderLine(combo, nLegs) +
       fitRow +
+      comboTimelineHtml(combo) +
+      comboLegRowsHtml(combo) +
       whyBoxHtml(combo, { combo: true }) +
       routeWxHtml(combo) +
-      '<div class="search-actions"><button type="button" class="call-sheet-btn">Call sheet</button><button type="button" class="details-toggle-btn" aria-expanded="false">Legs, stops &amp; map</button></div>' +
+      '<div class="search-actions"><button type="button" class="call-sheet-btn">Call sheet</button><button type="button" class="details-toggle-btn" aria-expanded="false">Map &amp; math</button></div>' +
       detailsHtml +
       '</article>';
+  }
+
+  function jumpToCombo(id) {
+    var el = document.getElementById(id);
+    if (!el) {
+      state.searchFilter = 'all';
+      state.hidePass = false;
+      state.maxDeadhead = 0;
+      renderSearches();
+      el = document.getElementById(id);
+    }
+    if (!el) return;
+    var tab = document.querySelector('.tabbar');
+    var offset = (tab ? tab.getBoundingClientRect().height : 0) + 8;
+    var top = el.getBoundingClientRect().top + window.pageYOffset - offset;
+    window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    el.classList.remove('cc-flash');
+    void el.offsetWidth;
+    el.classList.add('cc-flash');
+    window.setTimeout(function () { el.classList.remove('cc-flash'); }, 2200);
+  }
+
+  function inComboChipHtml(row, data) {
+    var key = loadKey(row);
+    if (!key) return '';
+    var combos = [];
+    var chains = [];
+    comboPackages(data).forEach(function (pkg) {
+      var legs = pkg.combo.loads || [];
+      for (var i = 0; i < legs.length; i++) {
+        if (loadKey(legs[i]) === key) { (pkg.chain ? chains : combos).push(pkg); break; }
+      }
+    });
+    function chip(word, list, prefix) {
+      if (!list.length) return '';
+      return '<span class="in-combo"><span class="in-combo-word">In ' + word + '</span> ' + list.map(function (pkg, i) {
+        return '<span class="icj"><button type="button" class="in-combo-jump" data-jump="' + prefix + pkg.n + '" aria-label="Jump to ' + esc(pkg.label) + '">' + pkg.n + '</button>' + (i < list.length - 1 ? ',' : '') + '</span>';
+      }).join(' ') + '</span>';
+    }
+    return chip('Combo', combos, 'combo-') + chip('Chain', chains, 'chain-');
+  }
+
+  function bindComboJumps() {
+    if (state.comboJumpBound) return;
+    state.comboJumpBound = true;
+    document.addEventListener('click', function (event) {
+      var btn = event.target.closest && event.target.closest('.in-combo-jump');
+      if (!btn) return;
+      event.preventDefault();
+      jumpToCombo(btn.getAttribute('data-jump'));
+    });
   }
 
   function renderCombos(data) {
@@ -6418,7 +6687,7 @@
         var open = pane.hidden;
         pane.hidden = !open;
         btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-        btn.textContent = open ? 'Hide details' : (card.classList.contains('combo-card') ? 'Legs, stops & map' : 'Details & map');
+        btn.textContent = open ? 'Hide details' : (card.classList.contains('combo-card') ? 'Map & math' : 'Details & map');
         if (open) observeRouteMaps(pane);
       });
     });
@@ -6900,6 +7169,7 @@
     $('about-close').addEventListener('click', closeAbout);
     $('about-done').addEventListener('click', closeAbout);
     bindCallSheet();
+    bindComboJumps();
     document.querySelectorAll('.tabbar button').forEach(function (btn) {
       btn.addEventListener('click', function () { showTab(btn.getAttribute('data-tab')); });
     });
