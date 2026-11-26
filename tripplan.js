@@ -1,12 +1,15 @@
-/* Black Ram Logistics - Trip plan (v47-v48).
+/* Black Ram Logistics - Trip plan (v47-v50).
    Adds a "Trip plan" button to every load and combo card and builds a
    day-by-day driver itinerary on the phone:
    - deadhead from the saved truck location (or the scan origin) to pickup;
    - drive legs inside HOS (11 hr drive, 14 hr window, 30 min break after
      8 hr driving, 10 hr off), about 50 mph, 1 hr load and 1 hr unload;
    - pickup and drop ETAs against their windows (early waits, late flags);
-   - fuel stops on the route at Love's / TA / Petro (data/stops.json) with
-     EIA diesel for the state, overnight town + truck stops each night;
+   - fuel stops on the route at Love's / TA / Petro (data/stops.json),
+     31 gal fills (32 gal tank, 2026 Ram 3500 DRW spec) about every 250 mi,
+     priced with the same diesel as the card: EIA weekly PADD for the
+     origin state plus the pump premium from our receipts;
+   - overnight town + truck stops each night;
    - weather per day (Open-Meteo, else the cached route weather).
    Routing: public OSRM demo; geocoding: OpenStreetMap Nominatim; extra
    truck stops (Pilot / Flying J): data/pilot_fj.json, pulled once from OSM
@@ -23,8 +26,9 @@
   var DOCK_HRS = 1;            // 1 hr load, 1 hr unload
   var FUEL_STOP_HRS = 0.5;     // fuel stop doubles as the 30 min break
   var MPG = 8;
-  var TANK_GAL = 34;
-  var FUEL_EVERY = 250;        // 34 gal x 8 mpg = 272 mi; fill around 250 mi so the tank never runs dry
+  var TANK_GAL = 32;           // Stellantis 2026 Ram HD fleet guide: Crew Cab 8 ft box DRW, NFX 32 gal
+  var FILL_GAL = 31;           // usable fill; 31 gal x 8 mpg = 248 mi
+  var FUEL_EVERY = FILL_GAL * MPG;  // about 250 mi range towing
   var DEF_PER_MI = 0.034;
   var COLD_F = 45;
   var STOP_NEAR_MI = 15;       // truck stop counts as "on route" within this many miles of the line
@@ -334,7 +338,7 @@
       dutyStart = t; drive = 0; sinceBreak = 0;
     }
     function fuelUp(atNight) {
-      fuels.push({ t: t, mile: mile, miles: sinceFuel, gal: sinceFuel / MPG, atNight: !!atNight });
+      fuels.push({ t: t, mile: mile, miles: sinceFuel, gal: Math.min(FILL_GAL, sinceFuel / MPG), atNight: !!atNight });
       events.push({ type: 'fuel', t: t, mile: mile, fuelIdx: fuels.length - 1, atNight: !!atNight });
       sinceFuel = 0;
       if (!atNight) { t += FUEL_STOP_HRS * HR; sinceBreak = 0; }
@@ -536,15 +540,52 @@
         var sim = planSchedule(stops, legs, nowMs);
         var totalMi = legs.reduce(function (a, b) { return a + b; }, 0);
         var onRoute = pts ? stopsOnRoute(pts, cum, stopData, scale) : [];
-        var priceFor = function (st) {
+        // Same $/gal as the card and the feed: EIA PADD for the origin
+        // state plus the receipt-calibrated pump premium. Do not switch
+        // to another state's EIA mid-route, or the fuel total would
+        // disagree with net EST. Premium is already in diesel_usd_gal.
+        // Combo legs in the feed often omit the fuel block, so also look
+        // up the published load, then the origin state's EIA + premium.
+        function matchLoadFuel(row) {
+          if (row && row.fuel && row.fuel.diesel_usd_gal != null) return row.fuel;
+          var loads = (data && data.loads) || [];
+          var origin = String((row && row.origin) || '').toLowerCase();
+          var dest = String((row && row.destination) || '').toLowerCase();
+          var ln = String((row && row.load_number) || '').toLowerCase();
+          var i, r;
+          for (i = 0; i < loads.length; i++) {
+            r = loads[i];
+            if (!r || !r.fuel) continue;
+            if (ln && String(r.load_number || '').toLowerCase() === ln &&
+                String(r.origin || '').toLowerCase() === origin) return r.fuel;
+            if (!ln && String(r.origin || '').toLowerCase() === origin &&
+                String(r.destination || '').toLowerCase() === dest) return r.fuel;
+          }
+          return null;
+        }
+        function eiaPriceForState(st) {
           var region = diesel && diesel.state_to_region ? diesel.state_to_region[st] : null;
           var reg = region && diesel.eia && diesel.eia.regions ? diesel.eia.regions[region] : null;
           var prem = diesel && isFinite(Number(diesel.pump_premium_usd_gal)) ? Number(diesel.pump_premium_usd_gal) : 0;
-          if (reg && isFinite(Number(reg.usd_gal))) return { price: Number(reg.usd_gal) + prem, src: 'EIA ' + reg.name };
-          var f = (item.isCombo ? (item.combo.loads && item.combo.loads[0] && item.combo.loads[0].fuel) : item.row.fuel) || {};
-          if (f.diesel_usd_gal) return { price: Number(f.diesel_usd_gal), src: f.diesel_source || 'card diesel' };
-          return { price: 5.6, src: 'EST' };
+          if (reg && isFinite(Number(reg.usd_gal))) {
+            return { price: Number(reg.usd_gal) + prem, src: 'EIA ' + reg.name + ' + pump premium ' + (prem < 0 ? '' : '+') + prem.toFixed(3) };
+          }
+          return null;
+        }
+        var firstLeg = item.isCombo ? ((item.combo.loads || [])[0] || null) : item.row;
+        var cardFuel = (item.isCombo && item.combo && item.combo.fuel) || matchLoadFuel(firstLeg) || (firstLeg && firstLeg.fuel) || {};
+        var originSt = stateOf((firstLeg && firstLeg.origin) || (data && data.origin) || (item.row && item.row.origin) || '');
+        var defPerMi = DEF_PER_MI;
+        if (cardFuel.def_per_mi != null && isFinite(Number(cardFuel.def_per_mi))) {
+          defPerMi = Number(cardFuel.def_per_mi);
+        }
+        var priceFor = function () {
+          if (cardFuel.diesel_usd_gal != null && isFinite(Number(cardFuel.diesel_usd_gal))) {
+            return { price: Number(cardFuel.diesel_usd_gal), src: cardFuel.diesel_source || 'EIA + pump premium' };
+          }
+          return eiaPriceForState(originSt) || eiaPriceForState('FL') || { price: 5.36, src: 'EST' };
         };
+
         var wxPts = (item.isCombo ? item.combo : item.row).route_wx;
         wxPts = wxPts && wxPts.points ? wxPts.points : [];
         function placeAt(mile, lo, hi, wantNight) {
@@ -599,7 +640,7 @@
             var lastPr = priceFor(lastSt);
             var fuelBought = sim.fuels.reduce(function (a, f) { return a + f.cost; }, 0);
             var refill = Math.max(0, leftMi) / MPG * lastPr.price;
-            var def = (sim.totals.loadedMi + sim.totals.emptyMi) * DEF_PER_MI;
+            var def = (sim.totals.loadedMi + sim.totals.emptyMi) * defPerMi;
             var src = item.isCombo ? item.combo : item.row;
             var feedDays = src.days_span != null ? Number(src.days_span) : (src.days != null ? Number(src.days) : null);
             var planDays = Math.round((startOfDay(sim.end) - startOfDay(sim.depart)) / (24 * HR)) + 1;
@@ -825,7 +866,7 @@
       row('$/day', money(T.perDay) + (T.perPlanDay != null && T.planDays !== T.feedDays ? ' (' + money(T.perPlanDay) + ' on plan days)' : '')) +
       '</dl></div>';
     var notes = plan.notes.slice();
-    notes.push('Times are CT on the phone clock. Fuel every ~' + FUEL_EVERY + ' mi (' + TANK_GAL + ' gal x ' + MPG + ' mpg = ' + (TANK_GAL * MPG) + ' mi range), EIA diesel by state. Truck stops: Love\'s/TA/Petro locator list, Pilot/Flying J from OpenStreetMap. Weather: Open-Meteo for each night town. Check parking and road conditions before rolling.');
+    notes.push('Times are CT on the phone clock. Tank 32 gal (2026 Ram 3500 DRW spec), about 250 mi range towing. Fills 31 gal about every ' + FUEL_EVERY + ' mi at ' + MPG + ' mpg. Diesel is the same figure as the card: EIA weekly PADD for the origin plus our receipt pump premium. Truck stops: Love\'s/TA/Petro locator list, Pilot/Flying J from OpenStreetMap. Weather: Open-Meteo for each night town. Check parking and road conditions before rolling.');
     h += '<p class="tp-note">' + esc(notes.join(' ')) + '</p>';
     return h;
     function row(k, v) { return '<div><dt>' + esc(k) + '</dt><dd>' + esc(v) + '</dd></div>'; }
