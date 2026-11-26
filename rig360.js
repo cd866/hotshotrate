@@ -1,9 +1,10 @@
-/* Black Ram Logistics: Our rig 360 spin (v75).
+/* Black Ram Logistics: Our rig 360 spin (v75, trailer view v76).
    A low-poly 3D model of our 2026 Ram 3500 dually crew cab (Diamond Black)
    and the Big Tex 25GN-40 gooseneck (40 ft deck incl. 5 ft dovetail, 102 in
    wide, 34 in deck height), built in code with Three.js r170 (vendored at
    vendor/three/three.module.min.js, MIT). The real photo stays as the poster
-   and as the "Photo" toggle.
+   and as the "Photo" toggle. "Trailer" spins the Big Tex 25GN-40D5A-MRBK on
+   its own (unhitched, resting on its drop-leg jacks).
    - Three.js only loads after first paint (idle) and once the stage is on screen.
    - Slow auto-spin (about 26 s per turn); drag or swipe to spin by hand;
      auto-spin resumes after 3 s idle.
@@ -19,6 +20,7 @@
 
   var stage, canvasWrap, canvas, toggle, hint;
   var mode = '360';
+  var subject = 'rig'; // 'rig' (truck + trailer hitched) or 'trailer' (Big Tex on its own)
   var reduceMotion = false;
   var onScreen = true;
   var started = false;
@@ -27,16 +29,20 @@
 
   function $(sel, root) { return (root || document).querySelector(sel); }
 
-  function setMode(next, save) {
+  function setMode(next, save, subj) {
     mode = next === 'photo' ? 'photo' : '360';
+    if (subj === 'rig' || subj === 'trailer') subject = subj;
     if (!stage) return;
     stage.setAttribute('data-view', mode);
+    stage.setAttribute('data-subject', subject);
     var btns = toggle ? toggle.querySelectorAll('button') : [];
     for (var i = 0; i < btns.length; i++) {
-      var on = btns[i].getAttribute('data-view') === mode;
+      var on = btns[i].getAttribute('data-view') === mode &&
+        (mode === 'photo' || btns[i].getAttribute('data-subject') === subject);
       btns[i].setAttribute('aria-pressed', on ? 'true' : 'false');
     }
-    if (save) { try { localStorage.setItem(MODE_KEY, mode); } catch (e) { /* ignore */ } }
+    if (save) { try { localStorage.setItem(MODE_KEY, mode === 'photo' ? 'photo' : (subject === 'trailer' ? 'trailer' : '360')); } catch (e) { /* ignore */ } }
+    if (view) view.setSubject(subject);
     if (mode === '360') maybeStart();
     if (view) view.update();
   }
@@ -59,12 +65,13 @@
     toggle.className = 'r360-toggle';
     toggle.setAttribute('role', 'group');
     toggle.setAttribute('aria-label', 'Rig view');
-    toggle.innerHTML = '<button type="button" data-view="360" aria-pressed="true">360</button>' +
+    toggle.innerHTML = '<button type="button" data-view="360" data-subject="rig" aria-pressed="true" aria-label="Truck and trailer 360">Rig 360</button>' +
+      '<button type="button" data-view="360" data-subject="trailer" aria-pressed="false" aria-label="Big Tex trailer 360">Trailer</button>' +
       '<button type="button" data-view="photo" aria-pressed="false">Photo</button>';
     stage.appendChild(toggle);
     toggle.addEventListener('click', function (ev) {
       var b = ev.target.closest('button[data-view]');
-      if (b) setMode(b.getAttribute('data-view'), true);
+      if (b) setMode(b.getAttribute('data-view'), true, b.getAttribute('data-subject'));
     });
 
     hint = document.createElement('div');
@@ -74,7 +81,7 @@
 
     var saved = null;
     try { saved = localStorage.getItem(MODE_KEY); } catch (e) { saved = null; }
-    setMode(saved === 'photo' ? 'photo' : '360', false);
+    setMode(saved === 'photo' ? 'photo' : '360', false, saved === 'trailer' ? 'trailer' : 'rig');
 
     if (typeof IntersectionObserver === 'function') {
       new IntersectionObserver(function (entries) {
@@ -103,6 +110,7 @@
     var go = function () {
       import(THREE_URL).then(function (THREE) {
         view = createView(THREE);
+        view.setSubject(subject);
         view.update();
       }).catch(function (err) {
         try { console.warn('rig360', err); } catch (e) { /* ignore */ }
@@ -150,7 +158,6 @@
     scene.add(turntable);
     var rig = buildRig(THREE);
     turntable.add(rig.group);
-    turntable.add(rig.shadow);
     var floor = buildFloor(THREE);
     scene.add(floor);
 
@@ -174,7 +181,8 @@
       camera.aspect = w / h;
       // Fit the 66 ft rig broadside with a little air, from a low 3/4 view.
       var hfov = 2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect);
-      var dist = 33.5 / Math.tan(hfov / 2) + 13;
+      var half = subject === 'trailer' ? 26.5 : 33.5;
+      var dist = half / Math.tan(hfov / 2) + (subject === 'trailer' ? 11 : 13);
       var elev = THREE.MathUtils.degToRad(11);
       camera.position.set(0, 2.4 + Math.sin(elev) * dist, Math.cos(elev) * dist);
       camera.lookAt(0, 4.6, 0);
@@ -281,6 +289,14 @@
 
     var api = {
       update: update,
+      setSubject: function (sub) {
+        var t = sub === 'trailer';
+        rig.truck.visible = !t;
+        rig.group.position.x = t ? rig.trailerOffset : rig.rigOffset;
+        w = 0;
+        if (shown) { render(); }
+        update();
+      },
       resize: function () { w = 0; resize(); },
       setAngle: function (a) { angle = a; lastInput = performance.now(); render(); },
       getAngle: function () { return angle; },
@@ -392,13 +408,13 @@
   }
 
   function blobTex(THREE) {
-    return canvasTex(THREE, 512, 96, function (g, w, h) {
-      g.filter = 'blur(10px)';
-      g.fillStyle = 'rgba(0,0,0,0.85)';
-      // truck (right) and trailer (left) footprints, 66 ft x 9 ft scale
-      g.fillRect(w * 0.66, h * 0.22, w * 0.32, h * 0.56);
-      g.fillRect(w * 0.03, h * 0.18, w * 0.66, h * 0.64);
-      g.filter = 'none';
+    return canvasTex(THREE, 256, 64, function (g, w, h) {
+      // shadowBlur (works in every Safari) instead of ctx.filter
+      g.shadowColor = 'rgba(0,0,0,0.85)';
+      g.shadowBlur = 12;
+      g.shadowOffsetY = -1000;
+      g.fillStyle = '#000';
+      g.fillRect(w * 0.08, h * 0.24 + 1000, w * 0.84, h * 0.52);
     }, false);
   }
 
@@ -605,7 +621,8 @@
     var BALL_X = -6.9;
     add(new THREE.Mesh(new THREE.SphereGeometry(0.16, 14, 10), M.chrome), BALL_X, 3.12, 0);
 
-    /* ---- Big Tex 25GN-40: 35 ft main deck + 5 ft dovetail ---- */
+    var truckCount = group.children.length;
+    /* ---- Big Tex 25GN-40D5A-MRBK: 35 ft main deck + 5 ft dovetail ---- */
     var DECK_Y = 34 / 12, HALF_W = 102 / 24;
     var D0 = -15.6, D1 = D0 - 35, DV = D1 - 5; // deck front, dovetail start, rear
     // Gooseneck neck (side profile), coupler tube, header
@@ -698,12 +715,24 @@
     // Center the rig on the turntable. Front of truck +11.3, back of dovetail DV.
     var front = 11.35, back = DV - 0.2;
     var mid = (front + back) / 2;
-    group.position.x = -mid;
-
-    var shadow = new THREE.Mesh(new THREE.PlaneGeometry(front - back + 4, 12), new THREE.MeshBasicMaterial({ map: blobTex(THREE), transparent: true, depthWrite: false, opacity: 0.9 }));
-    shadow.rotation.x = -Math.PI / 2;
-    shadow.position.set(0, 0.02, 0);
-    return { group: group, shadow: shadow };
+    var parts = group.children.slice();
+    var truck = new THREE.Group(), trailer = new THREE.Group();
+    parts.forEach(function (c, i) { (i < truckCount ? truck : trailer).add(c); });
+    group.add(truck, trailer);
+    // Soft contact shadows, one per vehicle so the trailer can show alone.
+    var blob = new THREE.MeshBasicMaterial({ map: blobTex(THREE), transparent: true, depthWrite: false, opacity: 0.85 });
+    function shadowUnder(parent, x0, x1, wz) {
+      var m = new THREE.Mesh(new THREE.PlaneGeometry((x0 - x1) * 1.12, wz * 1.6), blob);
+      m.rotation.x = -Math.PI / 2;
+      m.position.set((x0 + x1) / 2, 0.02, 0);
+      parent.add(m);
+    }
+    shadowUnder(truck, front, BX0 - 0.4, 8.2);
+    shadowUnder(trailer, -12.5, back, HALF_W * 2);
+    var trailerFront = -4.9;
+    var res = { group: group, truck: truck, trailer: trailer, rigOffset: -mid, trailerOffset: -(trailerFront + back) / 2 };
+    group.position.x = res.rigOffset;
+    return res;
   }
 
   function buildFloor(THREE) {
