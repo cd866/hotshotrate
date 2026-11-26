@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v51';
+  var APP_VERSION = 'v52';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -6985,7 +6985,7 @@
   }
 
   var NAV_PRIMARY = ['check', 'searches', 'reports', 'targets'];
-  var NAV_SHORT = { check: 'Check', searches: 'Boards', reports: 'Reports', targets: 'Targets', kpis: 'KPIs', fin: 'Finance', stops: 'Stops' };
+  var NAV_SHORT = { check: 'Check', searches: 'Boards', reports: 'Reports', targets: 'Targets', kpis: 'Scoreboard', fin: 'Finance', stops: 'Stops', pdfs: 'PDFs' };
   var NAV_ICON_PATHS = {
     check: '<rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M8.5 7h7M8.5 11h2M13.5 11h2M8.5 14.5h2M13.5 14.5h2M8.5 18h2M13.5 18h2"/>',
     searches: '<path d="M4 6h16M4 12h16M4 18h10"/><circle cx="18.5" cy="17.5" r="2.5"/>',
@@ -6994,6 +6994,7 @@
     kpis: '<path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/>',
     fin: '<rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 15h4"/>',
     stops: '<path d="M12 21s-6.5-6.2-6.5-11A6.5 6.5 0 0 1 18.5 10c0 4.8-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>',
+    pdfs: '<path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M12 10v7M9 14l3 3 3-3"/>',
     scoreboard: '<path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5v2a3 3 0 0 0 3 3M16 6h3v2a3 3 0 0 1-3 3M12 13v4M8.5 20h7"/>',
     more: '<circle cx="5.5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18.5" cy="12" r="1.6"/>',
     def: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/>'
@@ -7197,7 +7198,8 @@
     window.setInterval(updateAppbar, 60000);
     if (!state.searches) { try { refreshSearches(); } catch (err) { /* ignore */ } }
     if (!state.pullStatus) { try { fetchPullStatus().then(updateAppbar); } catch (err) { /* ignore */ } }
-    window.BlackRamApp = { showTab: showTab, openMore: openMoreSheet, closeMore: closeMoreSheet, updateAppbar: updateAppbar };
+    // v52: merge, do not replace - targets.js and scoreboard.js read getFeed/monthFigures/settings from here.
+    window.BlackRamApp = Object.assign(window.BlackRamApp || {}, { showTab: showTab, openMore: openMoreSheet, closeMore: closeMoreSheet, updateAppbar: updateAppbar });
   }
 
   function showTab(name) {

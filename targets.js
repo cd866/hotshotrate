@@ -22,6 +22,22 @@
   var LEASE_PCT = 25;          // typical hotshot lease-on keeps 20-30% (Landstar/AEL 30%, Adams 25%, KHB/OLO 20-25%)
   var tgt = load();
 
+  (function injectStepCss() {
+    if (document.getElementById('tg-step-css')) return;
+    var st = document.createElement('style');
+    st.id = 'tg-step-css';
+    st.textContent =
+      '.tg-sl{display:block;margin:10px 0 4px}' +
+      '.tg-sl-row{display:flex;align-items:center;gap:8px}' +
+      '.tg-sl-row input[type=range]{flex:1 1 auto;min-width:0;width:auto;margin:0}' +
+      '.tg-step{flex:0 0 44px;width:44px;height:44px;min-width:44px;min-height:44px;border-radius:var(--radius-md,12px);border:1px solid var(--c-line,#2e2940);' +
+      'background:var(--c-surface-2,#14111f);color:var(--c-gold,#F2C94C);font:800 24px/1 var(--body,system-ui);display:inline-flex;align-items:center;' +
+      'justify-content:center;padding:0;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;cursor:pointer}' +
+      '.tg-step:active{background:var(--c-gold,#F2C94C);color:var(--c-gold-ink,#0f0d17)}' +
+      '.tg-step:focus-visible{outline:2px solid var(--c-accent-hi,#c4b5fd);outline-offset:2px}';
+    document.head.appendChild(st);
+  })();
+
   function load() {
     var out = {};
     var saved = {};
@@ -134,8 +150,10 @@
   }
 
   function slider(id, label, min, max, step, val, fmt) {
-    return '<label class="tg-sl"><span class="tg-sl-top"><span>' + esc(label) + '</span><b id="tgv-' + id + '">' + fmt(val) + '</b></span>' +
-      '<input type="range" id="tg-' + id + '" data-k="' + id + '" min="' + min + '" max="' + max + '" step="' + step + '" value="' + val + '"></label>';
+    return '<div class="tg-sl"><label class="tg-sl-top" for="tg-' + id + '"><span>' + esc(label) + '</span><b id="tgv-' + id + '">' + fmt(val) + '</b></label>' +
+      '<div class="tg-sl-row"><button type="button" class="tg-step" data-step-k="' + id + '" data-dir="-1" aria-label="Decrease ' + esc(label) + '">&minus;</button>' +
+      '<input type="range" id="tg-' + id + '" data-k="' + id + '" min="' + min + '" max="' + max + '" step="' + step + '" value="' + val + '">' +
+      '<button type="button" class="tg-step" data-step-k="' + id + '" data-dir="1" aria-label="Increase ' + esc(label) + '">+</button></div></div>';
   }
   var FMT = {
     goal: function (v) { return money(+v) + '/mo each'; },
@@ -314,6 +332,45 @@
         save();
         if (raf) cancelAnimationFrame(raf);
         raf = requestAnimationFrame(render);
+      });
+    });
+    // v52: minus/plus steppers. One step per tap, clamped; press-and-hold repeats.
+    // Fires the slider's own input + change events so projections, localStorage and Scoreboard update.
+    root.querySelectorAll('button.tg-step[data-step-k]').forEach(function (btn) {
+      var inp = $('tg-' + btn.getAttribute('data-step-k'));
+      if (!inp) return;
+      var dir = Number(btn.getAttribute('data-dir'));
+      var holdT = null, repT = null, usedPointer = false;
+      function stepOnce() {
+        var min = Number(inp.min), max = Number(inp.max), st = Number(inp.step) || 1;
+        var dec = (String(inp.step).split('.')[1] || '').length;
+        var n = Math.round((Number(inp.value) - min) / st) + dir;
+        var v = Math.min(max, Math.max(min, min + n * st));
+        v = Number(v.toFixed(dec));
+        if (v === Number(inp.value)) { stop(); return; }
+        inp.value = String(v);
+        inp.dispatchEvent(new Event('input', { bubbles: true }));
+        inp.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      function stop() {
+        if (holdT) clearTimeout(holdT);
+        if (repT) clearInterval(repT);
+        holdT = repT = null;
+      }
+      btn.addEventListener('pointerdown', function (ev) {
+        if (ev.button != null && ev.button !== 0) return;
+        ev.preventDefault();
+        usedPointer = true;
+        stop();
+        stepOnce();
+        holdT = setTimeout(function () { repT = setInterval(stepOnce, 90); }, 420);
+      });
+      ['pointerup', 'pointerleave', 'pointercancel', 'blur'].forEach(function (t) { btn.addEventListener(t, stop); });
+      btn.addEventListener('contextmenu', function (ev) { ev.preventDefault(); });
+      btn.addEventListener('click', function (ev) {
+        // Keyboard (Enter/Space) activation; pointer taps already stepped on pointerdown.
+        if (usedPointer) { usedPointer = false; return; }
+        stepOnce();
       });
     });
     var reset = $('tg-reset');
