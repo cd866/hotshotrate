@@ -1,4 +1,4 @@
-/* Black Ram Logistics - Trip plan (v45).
+/* Black Ram Logistics - Trip plan (v47-v48).
    Adds a "Trip plan" button to every load and combo card and builds a
    day-by-day driver itinerary on the phone:
    - deadhead from the saved truck location (or the scan origin) to pickup;
@@ -874,8 +874,8 @@
 
   // ---------- sheet UI ----------
   var CSS = '' +
-    '.trip-plan-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:6px 10px;border-radius:8px;border:1px solid var(--purple,#a78bfa);background:transparent;color:var(--purple-hi,#c4b5fd);font:inherit;font-weight:700;cursor:pointer}' +
-    '.trip-plan-btn svg{width:16px;height:16px}' +
+    '.search-actions .trip-plan-btn,.trip-plan-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:8px 12px;border-radius:10px;border:1px solid var(--purple,#a78bfa);background:rgba(167,139,250,0.12);color:var(--purple-hi,#c4b5fd);font-family:var(--body);font-size:14px;font-weight:600;white-space:nowrap;cursor:pointer}' +
+    '.trip-plan-btn svg{width:16px;height:16px;flex:0 0 16px}' +
     '#tripplan .sheet-inner{padding-bottom:28px}' +
     '#tripplan h2{margin-bottom:4px}' +
     '.tp-sub{color:var(--muted,#b9b3cc)!important;font-size:14px!important;margin:4px 0 10px}' +
@@ -903,13 +903,17 @@
     '@media print{html.tp-print body>*:not(#tripplan){display:none!important}html.tp-print #tripplan{position:static!important;background:#fff!important;color:#000!important;padding:0!important;overflow:visible!important}' +
     'html.tp-print #tripplan *{color:#000!important;background:transparent!important;border-color:#999!important}html.tp-print .tp-actions,html.tp-print .sheet-top{display:none!important}html.tp-print .tp-day{break-inside:avoid}}';
 
-  function ensureSheet() {
-    var el = document.getElementById('tripplan');
-    if (el) return el;
+  function injectCss() {
+    if (document.getElementById('tripplan-css')) return;
     var st = document.createElement('style');
     st.id = 'tripplan-css';
     st.textContent = CSS;
     document.head.appendChild(st);
+  }
+  function ensureSheet() {
+    var el = document.getElementById('tripplan');
+    if (el) return el;
+    injectCss();
     el = document.createElement('div');
     el.id = 'tripplan';
     el.className = 'sheet tripplan';
@@ -1048,6 +1052,7 @@
     }
   }
   function init() {
+    injectCss();
     document.addEventListener('click', function (e) {
       var btn = e.target && e.target.closest ? e.target.closest('.trip-plan-btn') : null;
       if (!btn) return;
