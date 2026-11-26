@@ -363,7 +363,7 @@
     if (!A) {
       if (st.error === 'wrongpin') el.innerHTML = lockView('Wrong PIN. Try again.');
       else if (st.error === 'nopin') el.innerHTML = lockView('P&L, deposits, partner capital and the balance sheet. Enter the app PIN to see them.');
-      else if (st.loading) el.innerHTML = '<section class="ac-card"><p class="ac-fine">Loading accounting...</p></section>';
+      else if (st.loading) el.innerHTML = (window.BlackRamApp && window.BlackRamApp.skeleton) ? window.BlackRamApp.skeleton('Loading accounting') : '<section class="ac-card"><p class="ac-fine">Loading accounting...</p></section>';
       else el.innerHTML = '<section class="ac-card"><p class="ac-fine">' + esc(st.error || 'Loading...') + '</p></section>';
       bind(); return;
     }

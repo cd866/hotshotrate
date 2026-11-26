@@ -132,8 +132,9 @@
       return;
     }
     if (!st.idx) {
-      root.innerHTML = '<section class="dr-card">' + head + '<p class="dr-meta">' +
-        esc(st.loading ? 'Loading reports...' : (st.error || 'Loading reports...')) + '</p></section>';
+      var sk = (!st.error && window.BlackRamApp && window.BlackRamApp.skeleton) ? window.BlackRamApp.skeleton('Loading reports') : '';
+      root.innerHTML = sk || ('<section class="dr-card">' + head + '<p class="dr-meta">' +
+        esc(st.loading ? 'Loading reports...' : (st.error || 'Loading reports...')) + '</p></section>');
       return;
     }
     var reps = st.idx.reports || [];

@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v65';
+  var APP_VERSION = 'v66';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -2417,7 +2417,7 @@
     var feed = state.feed;
     var months = feed ? sortedMonths(feed) : [];
     if (!months.length) {
-      root.innerHTML = '<p class="fine">' + esc(state.error || 'Loading KPIs...') + '</p>';
+      root.innerHTML = state.error ? '<p class="fine">' + esc(state.error) + '</p>' : loadingSkeletonHtml('Loading KPIs');
       return;
     }
     var all = viewingAll(feed);
@@ -7104,7 +7104,7 @@
       if (finState.error === 'nopin') root.innerHTML = finPinForm('Enter the app PIN to see the bank balance, bills and cash-flow projection.');
       else if (finState.error === 'wrongpin') root.innerHTML = finPinForm('Wrong PIN. Try again.');
       else if (finState.error) root.innerHTML = '<p class="fine">' + esc(finState.error) + '</p>';
-      else root.innerHTML = '<p class="fine">Loading financials...</p>';
+      else root.innerHTML = loadingSkeletonHtml('Loading financials');
       bindFinance();
       return;
     }
@@ -7707,7 +7707,8 @@
     getFeed: function () { return state.feed; },
     settings: settings,
     monthFigures: monthFigures,
-    utilizedDays: utilizedDays
+    utilizedDays: utilizedDays,
+    skeleton: function (t) { return loadingSkeletonHtml(t); }
   };
 
   function init() {
