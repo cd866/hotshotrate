@@ -5381,13 +5381,15 @@ header.top .rig-stage[data-r360] .rig-floor { transition: opacity 0.5s ease; }
 .rig-stage.r360-grab { cursor: grabbing; }
 .r360-toggle {
   position: absolute; top: var(--s-1, 8px); right: var(--s-1, 8px); z-index: 5;
-  display: inline-flex; padding: 2px; gap: 2px;
+  display: inline-flex; padding: 2px; gap: 1px;
   border-radius: 999px; border: 1px solid var(--c-line, rgba(255,255,255,0.12));
   background: rgba(10, 9, 16, 0.72);
   -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  max-width: calc(100% - 16px);
 }
+.rig-stage[data-r360-adjusted] .r360-toggle { max-width: calc(100% - 88px); }
 .r360-toggle button {
-  min-width: 52px; min-height: 32px; padding: 0 12px;
+  min-width: 44px; min-height: 32px; padding: 0 8px;
   border: 0; border-radius: 999px; background: transparent;
   color: var(--c-text-3, #a9a3b8); font: inherit; font-size: var(--fs-xs, 12px);
   font-weight: var(--fw-bold, 700); letter-spacing: 0.04em; cursor: pointer;

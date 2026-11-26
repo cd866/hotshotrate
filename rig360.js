@@ -1,16 +1,17 @@
-/* Black Ram Logistics: Our rig 360 spin (v75, trailer view v76, zoom v77, arrows v79).
+/* Black Ram Logistics: Our rig 360 spin (v75, trailer v76, zoom v77, arrows v79, auto-spin resume and truck view v81).
    A low-poly 3D model of our 2026 Ram 3500 dually crew cab (Diamond Black)
    and the Big Tex 25GN-40 gooseneck (40 ft deck incl. 5 ft dovetail, 102 in
    wide, 34 in deck height), built in code with Three.js r170 (vendored at
    vendor/three/three.module.min.js, MIT). The real photo stays as the poster
-   and as the "Photo" toggle. "Trailer" spins the Big Tex 25GN-40D5A-MRBK on
-   its own (unhitched, resting on its drop-leg jacks).
+   and as the "Photo" toggle. "Truck" spins the Ram alone; "Trailer" spins the
+   Big Tex 25GN-40D5A-MRBK on its own (unhitched, on its drop-leg jacks).
    - Three.js only loads after first paint (idle) and once the stage is on screen.
-   - Slow auto-spin (about 26 s per turn); drag or swipe to spin by hand;
-     auto-spin resumes after 3 s idle.
+   - Slow auto-spin (about 26 s per turn) starts as soon as the 360 is ready
+     on the Rig, Truck and Trailer views. After any touch, drag, arrow, zoom
+     or pan, auto-spin always resumes about 3 s later, even if the view is
+     still zoomed, panned or tilted (zoom and tilt stay as they are).
    - Zoom: pinch (two fingers also pan), mouse wheel or trackpad pinch, or
      the +/- buttons, 1x to 5x; double-tap, double-click or Reset resets.
-     Auto-spin waits while zoomed in.
    - Arrow pad (v79): left/right rotate, up/down tilt the camera 2-62 deg;
      press and hold keeps moving. Reset puts zoom, pan and tilt back.
    - prefers-reduced-motion: no auto-spin and no coasting; drag still works.
@@ -25,7 +26,7 @@
 
   var stage, canvasWrap, canvas, toggle, hint;
   var mode = '360';
-  var subject = 'rig'; // 'rig' (truck + trailer hitched) or 'trailer' (Big Tex on its own)
+  var subject = 'rig'; // 'rig' (hitched), 'truck' (Ram alone), or 'trailer' (Big Tex alone)
   var reduceMotion = false;
   var onScreen = true;
   var started = false;
@@ -36,7 +37,7 @@
 
   function setMode(next, save, subj) {
     mode = next === 'photo' ? 'photo' : '360';
-    if (subj === 'rig' || subj === 'trailer') subject = subj;
+    if (subj === 'rig' || subj === 'truck' || subj === 'trailer') subject = subj;
     if (!stage) return;
     stage.setAttribute('data-view', mode);
     stage.setAttribute('data-subject', subject);
@@ -46,7 +47,7 @@
         (mode === 'photo' || btns[i].getAttribute('data-subject') === subject);
       btns[i].setAttribute('aria-pressed', on ? 'true' : 'false');
     }
-    if (save) { try { localStorage.setItem(MODE_KEY, mode === 'photo' ? 'photo' : (subject === 'trailer' ? 'trailer' : '360')); } catch (e) { /* ignore */ } }
+    if (save) { try { localStorage.setItem(MODE_KEY, mode === 'photo' ? 'photo' : (subject === 'rig' ? '360' : subject)); } catch (e) { /* ignore */ } }
     if (view) view.setSubject(subject);
     if (mode === '360') maybeStart();
     if (view) view.update();
@@ -71,6 +72,7 @@
     toggle.setAttribute('role', 'group');
     toggle.setAttribute('aria-label', 'Rig view');
     toggle.innerHTML = '<button type="button" data-view="360" data-subject="rig" aria-pressed="true" aria-label="Truck and trailer 360">Rig 360</button>' +
+      '<button type="button" data-view="360" data-subject="truck" aria-pressed="false" aria-label="Ram 3500 truck 360">Truck</button>' +
       '<button type="button" data-view="360" data-subject="trailer" aria-pressed="false" aria-label="Big Tex trailer 360">Trailer</button>' +
       '<button type="button" data-view="photo" aria-pressed="false">Photo</button>';
     stage.appendChild(toggle);
@@ -86,7 +88,7 @@
 
     var saved = null;
     try { saved = localStorage.getItem(MODE_KEY); } catch (e) { saved = null; }
-    setMode(saved === 'photo' ? 'photo' : '360', false, saved === 'trailer' ? 'trailer' : 'rig');
+    setMode(saved === 'photo' ? 'photo' : '360', false, saved === 'truck' ? 'truck' : saved === 'trailer' ? 'trailer' : 'rig');
 
     if (typeof IntersectionObserver === 'function') {
       new IntersectionObserver(function (entries) {
@@ -236,8 +238,8 @@
       camera.aspect = w / h;
       // Fit the whole vehicle broadside with a little air, from a low 3/4 view.
       var hfov = 2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect);
-      halfLen = subject === 'trailer' ? 26.5 : 33.5;
-      baseDist = halfLen / Math.tan(hfov / 2) + (subject === 'trailer' ? 11 : 13);
+      halfLen = subject === 'trailer' ? 26.5 : subject === 'truck' ? 13 : 33.5;
+      baseDist = halfLen / Math.tan(hfov / 2) + (subject === 'trailer' ? 11 : subject === 'truck' ? 9 : 13);
       applyCamera();
     }
 
@@ -245,7 +247,7 @@
       if (mode !== '360' || !onScreen || document.hidden) return false;
       if (dragging || held) return true;
       if (!reduceMotion && Math.abs(velocity) > 0.002) return true;
-      if (!reduceMotion && zoom <= 1.02) return true; // auto-spin (paused while zoomed)
+      if (!reduceMotion) return true; // auto-spin, including while zoomed, panned or tilted
       return false;
     }
 
@@ -272,7 +274,7 @@
           velocity *= Math.pow(0.04, dt); // coast out a flick
         } else {
           velocity = 0;
-          if (zoom <= 1.02 && performance.now() - lastInput > IDLE_RESUME_MS) {
+          if (performance.now() - lastInput > IDLE_RESUME_MS) {
             var ramp = Math.min(1, (performance.now() - lastInput - IDLE_RESUME_MS) / 1200);
             angle += autoSpeed * ramp * dt;
           }
@@ -411,7 +413,7 @@
     zreset.addEventListener('click', function () { resetZoom(); });
     stage.appendChild(zbar);
     // Arrow pad: left/right rotate, up/down tilt. Press and hold keeps
-    // moving; a tap (or Enter/Space) moves one step. Auto-spin waits.
+    // moving; a tap (or Enter/Space) moves one step. Auto-spin pauses while held, then resumes after idle.
     var ICON = {
       left: 'M15 5l-7 7 7 7', right: 'M9 5l7 7-7 7', up: 'M5 15l7-7 7 7', down: 'M5 9l7 7 7-7'
     };
@@ -486,9 +488,10 @@
     var api = {
       update: update,
       setSubject: function (sub) {
-        var t = sub === 'trailer';
+        var t = sub === 'trailer', k = sub === 'truck';
         rig.truck.visible = !t;
-        rig.group.position.x = t ? rig.trailerOffset : rig.rigOffset;
+        rig.trailer.visible = !k;
+        rig.group.position.x = t ? rig.trailerOffset : k ? rig.truckOffset : rig.rigOffset;
         zoom = 1; panX = 0; panY = 0; ELEV = ELEV0;
         w = 0;
         if (shown) { render(); }
@@ -499,6 +502,7 @@
       resetZoom: resetZoom,
       getZoom: function () { return zoom; },
       getTilt: function () { return THREE.MathUtils.radToDeg(ELEV); },
+      idleMs: function () { return performance.now() - lastInput; },
       getPan: function () { return [panX, panY]; },
       setAngle: function (a) { angle = a; lastInput = performance.now(); render(); },
       getAngle: function () { return angle; },
@@ -932,7 +936,7 @@
     shadowUnder(truck, front, BX0 - 0.4, 8.2);
     shadowUnder(trailer, -12.5, back, HALF_W * 2);
     var trailerFront = -4.9;
-    var res = { group: group, truck: truck, trailer: trailer, rigOffset: -mid, trailerOffset: -(trailerFront + back) / 2 };
+    var res = { group: group, truck: truck, trailer: trailer, rigOffset: -mid, trailerOffset: -(trailerFront + back) / 2, truckOffset: -(front + BX0 - 0.4) / 2 };
     group.position.x = res.rigOffset;
     return res;
   }
