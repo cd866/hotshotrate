@@ -3,11 +3,11 @@
   "pct": 100,
   "origin": "Jacksonville, FL",
   "started_at": "2026-11-26 14:00 CT",
-  "updated_at": "2026-11-26 14:03 CT",
+  "updated_at": "2026-11-26 14:09 CT",
   "counts": {
-    "truckstop": 0,
+    "truckstop": 25,
     "df": 20,
-    "fits": 0
+    "fits": 1
   },
   "message": "Loads are live"
 }
