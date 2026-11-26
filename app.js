@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v38';
+  var APP_VERSION = 'v39';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -4236,27 +4236,22 @@
   }
 
   function bindRigPhoto() {
-    var card = document.querySelector('details.rig-card');
     var img = $('rig-photo');
     var reflect = $('rig-reflect');
-    function load() {
-      if (!img || img.getAttribute('src')) return;
+    function apply(el, fallbackSrc) {
+      if (!el) return;
+      var srcset = el.getAttribute('data-srcset');
+      var src = el.getAttribute('data-src') || fallbackSrc || '';
+      if (srcset && !el.getAttribute('srcset')) el.srcset = srcset;
+      if (src && !el.getAttribute('src')) el.src = src;
+    }
+    if (img) {
       var sources = img.parentNode ? img.parentNode.querySelectorAll('source[data-srcset]') : [];
       for (var i = 0; i < sources.length; i++) {
-        sources[i].srcset = sources[i].getAttribute('data-srcset') || '';
+        if (!sources[i].srcset) sources[i].srcset = sources[i].getAttribute('data-srcset') || '';
       }
-      if (img.getAttribute('data-srcset')) img.srcset = img.getAttribute('data-srcset');
-      img.src = img.getAttribute('data-src') || '';
-      if (reflect) {
-        if (img.getAttribute('data-srcset')) reflect.srcset = img.getAttribute('data-srcset');
-        reflect.src = img.getAttribute('data-src') || '';
-      }
-    }
-    if (card && card.open) load();
-    if (card) {
-      card.addEventListener('toggle', function () {
-        if (card.open) load();
-      });
+      apply(img);
+      apply(reflect, img.getAttribute('src') || img.getAttribute('data-src') || '');
     }
   }
 
