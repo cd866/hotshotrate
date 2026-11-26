@@ -1,13 +1,13 @@
 {
-  "state": "live",
-  "pct": 100,
+  "state": "truckstop",
+  "pct": 20,
   "origin": "Jacksonville, FL",
-  "started_at": "2026-11-26 14:00 CT",
-  "updated_at": "2026-11-26 14:09 CT",
+  "started_at": "2026-11-26 14:31 CT",
+  "updated_at": "2026-11-26 14:31 CT",
   "counts": {
-    "truckstop": 25,
-    "df": 20,
-    "fits": 1
+    "truckstop": 0,
+    "df": 0,
+    "fits": 0
   },
-  "message": "Loads are live"
+  "message": "Searching Truckstop"
 }
