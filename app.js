@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v82';
+  var APP_VERSION = 'v83';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -1606,6 +1606,7 @@
       'safety equipment': 'Safety',
       parking: 'Parking',
       meals: 'Meals',
+      'Business meals (50% deductible)': 'Business meals (50%)',
       'legal/LLC admin': 'Legal'
     };
     return known[cat] || cat;

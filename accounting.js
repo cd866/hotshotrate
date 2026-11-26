@@ -10,8 +10,8 @@
   var FIN_KEY = 'blackram_fin_session_v1';
   var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var COL = { fee: '#a78bfa', eld: '#c4b5fd', fuel: '#F2C94C', def: '#F5D76A', tolls: '#60A5FA', repairs: '#FB923C',
-    insurance: '#F472B6', driver: '#FDBA74', notes: '#F87171', software: '#34D399', overhead: '#8a84a3' };
-  var SHORT = { fee: 'Totni 13%', eld: 'ELD fees', fuel: 'Fuel', def: 'DEF', tolls: 'Tolls/scales', repairs: 'Repairs', insurance: 'Insurance', driver: 'Driver pay', notes: 'Loan notes', software: 'Software', overhead: 'Overhead' };
+    insurance: '#F472B6', driver: '#FDBA74', notes: '#F87171', software: '#34D399', meals: '#E8B86D', overhead: '#8a84a3' };
+  var SHORT = { fee: 'Totni 13%', eld: 'ELD fees', fuel: 'Fuel', def: 'DEF', tolls: 'Tolls/scales', repairs: 'Repairs', insurance: 'Insurance', driver: 'Driver pay', notes: 'Loan notes', software: 'Software', meals: 'Meals (50%)', overhead: 'Overhead' };
   var st = { data: null, loading: false, error: '', sel: null, fetchedAt: 0, openExp: false };
 
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -211,7 +211,7 @@
       (needD ? call('ok', 'Needs about <b>' + m0(needD) + '</b> more gross (after Totni 13%) to cover expenses AND Meshach\'s ' + m0(tgt) + ' target') : '') +
       call(w.left > 0 ? 'good' : 'ok', 'Left to split three ways: <b>' + m0(w.left) + '</b> (' + m0(w.third || 0) + ' each)') + '</div>' +
       '<div class="ac-tot' + (w.left > 0 ? '' : ' ac-dim') + '">' + thirds + '</div>' +
-      '<p class="ac-fine">Order: all bills and expenses first (Totni, ELD, fuel, DEF, tolls, repairs, insurance, software, overhead and the truck and trailer notes) = net after expenses. Meshach\'s $' + D.monthly.toLocaleString('en-US') + '/mo comes ONLY from actual profit left after that. A shortfall is not accrued and is not a debt. The remainder is split in thirds among Claudio, Ben and Meshach. Meshach\'s third is on top of his pay.</p>';
+      '<p class="ac-fine">Order: all bills and expenses first (Totni, ELD, fuel, DEF, tolls, repairs, insurance, software, meals, overhead and the truck and trailer notes) = net after expenses. Meshach\'s $' + D.monthly.toLocaleString('en-US') + '/mo comes ONLY from actual profit left after that. A shortfall is not accrued and is not a debt. The remainder is split in thirds among Claudio, Ben and Meshach. Meshach\'s third is on top of his pay.</p>';
     return card('Profit waterfall', esc(monLbl(st.sel)), body, 'ac-wf');
   }
   function pctCoc(n) {
@@ -306,14 +306,31 @@
     }).join('');
     var src = Object.keys(bySrc).sort(function (a, b) { return bySrc[b] - bySrc[a]; }).map(function (s) { return '<span>' + srcTag(s) + ' ' + m0(bySrc[s]) + '</span>'; }).join('');
     var list = X.slice().sort(function (a, b) { return a.date < b.date ? 1 : -1; }).map(function (x) {
+      var tax = '';
+      if (x.deductible_amount != null) {
+        tax = 'Tax deductible ' + m2(x.deductible_amount) + ' (50%)' + (x.attendees_purpose ? '. ' + esc(x.attendees_purpose) : '');
+      }
       return '<div class="ac-xr"><span class="ac-xd">' + day(x.date) + '</span><span class="ac-xv">' + esc(x.vendor) + (x.est ? ' <em>EST</em>' : '') +
-        '<small><i style="background:' + COL[x.cat] + '"></i>' + esc((A.cats.filter(function (c) { return c.key === x.cat; })[0] || {}).label || x.cat) + ' ' + srcTag(x.source + (x.partner ? ' - ' + x.partner : '')) + '</small></span><b>' + m2(x.amount) + '</b></div>';
+        '<small><i style="background:' + COL[x.cat] + '"></i>' + esc((A.cats.filter(function (c) { return c.key === x.cat; })[0] || {}).label || x.cat) + ' ' + srcTag(x.source + (x.partner ? ' - ' + x.partner : '')) + (tax ? '<br>' + tax : '') + '</small></span><b>' + m2(x.amount) + '</b></div>';
     }).join('');
     var capex = A.expenses.filter(function (x) { return inMonth(x.date) && x.capex; });
     var cx = capex.length ? '<p class="ac-fine">Equipment not in the P&amp;L (on the balance sheet): ' + capex.map(function (x) { return esc(x.vendor) + ' ' + m2(x.amount) + ' (' + esc(x.partner || x.source) + ')'; }).join('; ') + '.</p>' : '';
+    var mealAmt = 0, mealDed = 0;
+    X.forEach(function (x) {
+      if (x.cat === 'meals') {
+        mealAmt += x.amount;
+        mealDed += (x.deductible_amount != null ? x.deductible_amount : x.amount * 0.5);
+      }
+    });
+    var taxNote = '';
+    if (mealAmt > 0) {
+      var rule = (A.meals_tax && A.meals_tax.rule) ? A.meals_tax.rule : 'IRS Pub 463: 50% of business meal cost deductible; needs who/where/purpose.';
+      taxNote = '<p class="ac-fine">Business meals in this period: ' + m2(mealAmt) + ' in the cash books; tax-deductible ' + m2(mealDed) + ' (50%). ' + esc(rule) + '</p>';
+    }
     return card('Expenses by category', m0(total) + ' | ' + X.length + ' items',
       '<div class="ac-dn">' + donut(parts, total, m0(total)) + '<div class="ac-lgs">' + leg + '</div></div>' +
       '<div class="ac-srcs">' + src + '</div>' + (p.lines.fee ? '<p class="ac-fine">Totni 13% (' + m0(p.lines.fee) + ') is shown in the P&amp;L, not here.</p>' : '') +
+      taxNote +
       '<details class="ac-more"' + (st.openExp ? ' open' : '') + ' id="ac-exp-d"><summary>All ' + X.length + ' expense lines</summary>' + list + '</details>' + cx, 'ac-exp');
   }
 
@@ -398,8 +415,10 @@
   function csvCell(v) { var s = String(v == null ? '' : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
   function exportCsv() {
     var A = st.data && st.data.accounting; if (!A) return;
-    var rows = [['date', 'type', 'description', 'category', 'amount', 'source', 'in_pnl']];
-    A.journal.filter(function (j) { return inMonth(j.date); }).forEach(function (j) { rows.push([j.date, j.type, j.desc, j.cat, Number(j.amount).toFixed(2), j.source, j.pnl ? 'yes' : 'no']); });
+    var rows = [['date', 'type', 'description', 'category', 'amount', 'source', 'in_pnl', 'tax_deductible']];
+    A.journal.filter(function (j) { return inMonth(j.date); }).forEach(function (j) {
+      rows.push([j.date, j.type, j.desc, j.cat, Number(j.amount).toFixed(2), j.source, j.pnl ? 'yes' : 'no', j.tax_deductible != null ? Number(j.tax_deductible).toFixed(2) : '']);
+    });
     var blob = new Blob([rows.map(function (r) { return r.map(csvCell).join(','); }).join('\r\n') + '\r\n'], { type: 'text/csv' });
     var a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
