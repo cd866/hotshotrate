@@ -15,7 +15,7 @@
   var DOT_SHORT = { 'd-cdl': 'Class A CDL', 'd-med': 'Med card', 'd-dq': 'DQ file (Totni)', 'd-da': 'Drug and alcohol pool', 'd-eld': 'ELD login', 'd-hos': 'HOS logs', 'd-eldpack': 'ELD packet in cab', 'd-blank': 'Blank paper logs', 't-pre': 'Pre-trip habit', 't-dvir': 'DVIR / post-trip' };
   /* Safety log: high level only. No claim numbers, amounts or other parties' names in public. */
   var EVENTS = [
-    { date: '2026-11-11', kind: 'tire', t: 'Tire replaced under warranty', s: 'Unit unclear (truck or trailer). Shop and cost not on file.', fault: 'n/a', status: 'Closed' },
+    { date: '2026-11-11', kind: 'tire', t: 'Tire exchanged under warranty', s: 'Exchanged at Big Tex in Jacksonville, FL after Meshach returned. Unit (truck or trailer) still unclear. Cost not on file.', fault: 'n/a', status: 'Closed' },
     { date: '2026-11-06', kind: 'accident', t: 'Another vehicle hit the truck', s: 'Truck mirror only. Not at fault. No claim on our policy.', fault: 'Not at fault', status: 'Closed', priv: 'Settled directly with the other party under a confidential agreement (signed 11/19). Terms stay in the signed copy, not in the app.' },
     { date: '2026-11-03', kind: 'tire', t: 'Trailer flat from a nail', s: 'Spare swapped at a Love\'s in Houston, load still delivered next day.', fault: 'Road hazard', status: 'Closed' }
   ];

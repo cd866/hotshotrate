@@ -1,6 +1,6 @@
 {
  "schema": 1,
- "built_at": "2026-11-26T16:03:49-06:00",
+ "built_at": "2026-11-26T17:40:30-06:00",
  "units": [
   {
    "id": "truck",
@@ -156,11 +156,11 @@
    "date": "2026-11-11",
    "unit": "unconfirmed",
    "kind": "repair",
-   "job": "Tire replaced (new tire, warranty claim)",
+   "job": "Tire exchanged under warranty at Big Tex, Jacksonville FL",
    "odo": null,
-   "vendor": null,
-   "note": "Meshach 11/11: 'Truck tire is fixed' then 'New tire and they paid directly so the warranty will payback Big Tex trailer'. Unit is unclear (he said truck, but the warranty is the trailer's TrailerGard). Shop, tire, claim number, cost and who paid are not on file. Not in the ledger.",
-   "src": "WhatsApp Accounting/Legal group 11/11 12:39 and 12:54 PM"
+   "vendor": "Big Tex, Jacksonville FL",
+   "note": "Exchanged under warranty at Big Tex in Jacksonville, FL after Meshach returned (Claudio 11/26). Meshach 11/11 reported it done; no shop invoice date is on file. Unit is still unclear (he said truck; the warranty on file is the trailer's TrailerGard). Which tire, claim number and cost are not on file. This is a separate event from the 11/3 nail flat and spare swap at Love's in Houston.",
+   "src": "WhatsApp Accounting/Legal group 11/11 12:39 and 12:54 PM; Claudio 11/26 (exchanged at Big Tex in Jacksonville after he returned)"
   },
   {
    "id": "def-1113",
@@ -814,7 +814,7 @@
  "need": [
   "A photo of the truck dash odometer today (the app only has the 10/26 reading, 4,074 mi, plus an estimate from loads).",
   "The final 10/26 oil change invoice: shop name, total, and whether tires were rotated or filters changed.",
-  "11/11 tire: truck or trailer, which tire, which shop, the cost, who paid, and the TrailerGard claim number.",
+  "11/11 tire: exchanged at Big Tex in Jacksonville, FL after Meshach returned (Claudio 11/26). Still need: truck or trailer, which tire, the cost, who paid, and the TrailerGard claim number. The 11/11 date is Meshach's report, not a shop invoice.",
   "What happened to the nail-flat trailer tire from 11/3 (repaired, replaced, or still carrying the spare)?",
   "Trailer axle tag: maker (Dexter?), brake type (manual or self-adjust), and whether hubs are grease or oil bath.",
   "Annual DOT inspection reports for the truck and trailer from Totni (or book one).",
