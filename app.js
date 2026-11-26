@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v41';
+  var APP_VERSION = 'v42';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -18,6 +18,7 @@
   var SEEN_LOADS_KEY = 'blackram_seen_loads_v1';
   var COMPARE_KEY = 'blackram_compare_v1';
   var SEARCH_PREFS_KEY = 'blackram_search_prefs_v1';
+  var WEATHER_SWITCH_KEY = 'blackram_weather_on_v1';
   var SPLASH_KEY = 'blackram_splash_seen';
   var ALL_TIME = 'all';
 
@@ -33,6 +34,7 @@
     searchSort: 'default',
     hidePass: false,
     fitsOnly: false,
+    weatherOn: true,
     savedLoads: null,
     compareKeys: null,
     seenLoads: null,
@@ -3297,6 +3299,8 @@
     }
     if (st.state === 'live' && fresh) {
       var fits = st.counts && st.counts.fits != null ? Number(st.counts.fits) : null;
+      var viewD = viewSearches();
+      if (!weatherOn() && viewD && viewD.counts) fits = Number(viewD.counts.take || 0) + Number(viewD.counts.maybe || 0);
       var banner = 'Loads updated' + (updated ? ' ' + updated : '');
       if (fits != null && isFinite(fits)) banner += ' - ' + fits + ' fit' + (fits === 1 ? '' : 's');
       html += '<p class="pull-progress-banner ok">' + esc(banner) + '</p>';
@@ -3752,9 +3756,17 @@
       hard = true;
     }
     if (row.weight_lb == null) flags.push('weight not listed');
+    var wxOn = weatherOn();
+    var wxNotes = [];
     var keepFlags = (row.fit_flags || []).filter(function (f) {
       return /infeasible|cannot haul|misses the|pickup is only|too cold at drop|ice or snow on route|gusts 50\+/i.test(String(f));
     });
+    if (!wxOn) {
+      keepFlags = keepFlags.filter(function (f) {
+        if (isWxFlag(f)) { pushUnique(wxNotes, String(f)); return false; }
+        return true;
+      });
+    }
     flags = flags.concat(keepFlags);
     if (keepFlags.some(function (f) { return /infeasible|cannot haul|misses the|pickup is only/i.test(String(f)); })) hard = true;
     row.net_est = net;
@@ -3784,13 +3796,18 @@
     }
     var dropLow = row.drop_low_f;
     var tooCold = flags.some(function (f) { return String(f).indexOf('too cold at drop') !== -1; });
+    var coldNote = '';
     if (!tooCold && dropLow != null && isFinite(Number(dropLow)) && Math.round(Number(dropLow)) <= 45) {
       var src = String(row.drop_low_source || '');
       var lowTxt = (src === 'normal' ? 'normal low ' : 'low ') + Math.round(Number(dropLow)) + ' F';
-      flags.push('too cold at drop - ' + lowTxt + ', would idle overnight');
-      tooCold = true;
+      coldNote = 'too cold at drop - ' + lowTxt + ', would idle overnight';
+      if (wxOn) {
+        flags.push(coldNote);
+        tooCold = true;
+      }
     }
-    if (tooCold) verdict = 'PASS';
+    if (wxOn && tooCold) verdict = 'PASS';
+    if (!wxOn && coldNote) pushUnique(wxNotes, coldNote);
     var iceSnow = flags.some(function (f) { return String(f).indexOf('ice or snow on route') !== -1; });
     var gust50 = flags.some(function (f) { return String(f).indexOf('gusts 50+') !== -1; });
     var pts = (row.route_wx && row.route_wx.points) ? row.route_wx.points : [];
@@ -3799,9 +3816,17 @@
       if (hz.indexOf('ice') !== -1 || hz.indexOf('snow') !== -1) iceSnow = true;
       if (pt.gust_mph != null && Number(pt.gust_mph) >= 50) gust50 = true;
     });
-    if (iceSnow && flags.indexOf('ice or snow on route') === -1) flags.push('ice or snow on route');
-    if (gust50 && flags.indexOf('gusts 50+ mph on route') === -1) flags.push('gusts 50+ mph on route');
-    if (verdict === 'TAKE' && (iceSnow || gust50)) verdict = 'MAYBE';
+    if (wxOn) {
+      if (iceSnow && flags.indexOf('ice or snow on route') === -1) flags.push('ice or snow on route');
+      if (gust50 && flags.indexOf('gusts 50+ mph on route') === -1) flags.push('gusts 50+ mph on route');
+      if (verdict === 'TAKE' && (iceSnow || gust50)) verdict = 'MAYBE';
+    } else {
+      if (wxNotes.some(function (f) { return /ice or snow/i.test(f); })) iceSnow = true;
+      if (wxNotes.some(function (f) { return /gusts 50/i.test(f); })) gust50 = true;
+      if (iceSnow) pushUnique(wxNotes, 'ice or snow on route');
+      if (gust50) pushUnique(wxNotes, 'gusts 50+ mph on route');
+    }
+    row.weather_flags = wxOn ? flags.filter(isWxFlag) : wxNotes;
     row.fit_flags = flags;
     row.verdict = verdict;
     delete row.reason;
@@ -3810,6 +3835,18 @@
   }
 
   function rescoreCombo(combo, origCombo) {
+    var wxOn = weatherOn();
+    var comboWxNotes = [];
+    if (!wxOn) {
+      // Weather OFF: go back to the pre-weather verdict the feed saved.
+      (combo.flags || []).forEach(function (f) { if (isWxFlag(f)) pushUnique(comboWxNotes, String(f)); });
+      combo.flags = (combo.flags || []).filter(function (f) { return !isWxFlag(f); });
+      if (combo.base_verdict) {
+        combo.verdict = combo.base_verdict;
+        if (combo.base_reason != null) combo.reason = combo.base_reason;
+        else delete combo.reason;
+      }
+    }
     var loads = combo.loads || [];
     var origLoads = (origCombo && origCombo.loads) || [];
     var first = loads[0];
@@ -3852,26 +3889,37 @@
     var cLow = combo.drop_low_f;
     var cFlags = combo.flags || [];
     var comboCold = cFlags.some(function (f) { return String(f).indexOf('too cold at drop') !== -1; });
+    var cColdTxt = '';
     if (!comboCold && cLow != null && isFinite(Number(cLow)) && Math.round(Number(cLow)) <= 45) {
       var cSrc = String(combo.drop_low_source || '');
       var cTxt = (cSrc === 'normal' ? 'normal low ' : 'low ') + Math.round(Number(cLow)) + ' F';
-      cFlags = cFlags.concat(['too cold at drop - ' + cTxt + ', would idle overnight']);
-      combo.flags = cFlags;
-      comboCold = true;
+      cColdTxt = 'too cold at drop - ' + cTxt + ', would idle overnight';
+      if (wxOn) {
+        cFlags = cFlags.concat([cColdTxt]);
+        combo.flags = cFlags;
+        comboCold = true;
+      }
+    }
+    var cPts = (combo.route_wx && combo.route_wx.points) ? combo.route_wx.points : [];
+    var cIce = cFlags.some(function (f) { return String(f).indexOf('ice or snow on route') !== -1; });
+    var cGust = cFlags.some(function (f) { return String(f).indexOf('gusts 50+') !== -1; });
+    cPts.forEach(function (pt) {
+      var hz = pt.hazards || [];
+      if (hz.indexOf('ice') !== -1 || hz.indexOf('snow') !== -1) cIce = true;
+      if (pt.gust_mph != null && Number(pt.gust_mph) >= 50) cGust = true;
+    });
+    if (!wxOn) {
+      if (cColdTxt) pushUnique(comboWxNotes, cColdTxt);
+      if (cIce) pushUnique(comboWxNotes, 'ice or snow on route');
+      if (cGust) pushUnique(comboWxNotes, 'gusts 50+ mph on route');
+      combo.weather_flags = comboWxNotes;
+      return combo;
     }
     if (comboCold) {
       combo.verdict = 'PASS';
       var coldFlag = (combo.flags || []).filter(function (f) { return String(f).indexOf('too cold at drop') !== -1; })[0];
       if (coldFlag) combo.reason = /[.]$/.test(coldFlag) ? coldFlag : coldFlag + '.';
     } else {
-      var cPts = (combo.route_wx && combo.route_wx.points) ? combo.route_wx.points : [];
-      var cIce = cFlags.some(function (f) { return String(f).indexOf('ice or snow on route') !== -1; });
-      var cGust = cFlags.some(function (f) { return String(f).indexOf('gusts 50+') !== -1; });
-      cPts.forEach(function (pt) {
-        var hz = pt.hazards || [];
-        if (hz.indexOf('ice') !== -1 || hz.indexOf('snow') !== -1) cIce = true;
-        if (pt.gust_mph != null && Number(pt.gust_mph) >= 50) cGust = true;
-      });
       if (cIce && cFlags.indexOf('ice or snow on route') === -1) cFlags.push('ice or snow on route');
       if (cGust && cFlags.indexOf('gusts 50+ mph on route') === -1) cFlags.push('gusts 50+ mph on route');
       combo.flags = cFlags;
@@ -3882,6 +3930,7 @@
           : 'Clears the combo bar, but gusts of 50+ mph are on the route.';
       }
     }
+    combo.weather_flags = (combo.flags || []).filter(isWxFlag);
     return combo;
   }
 
@@ -4512,7 +4561,8 @@
     var n = Math.round(Number(row.drop_low_f));
     var label = 'Low ' + n + ' F at drop';
     if (String(row.drop_low_source || '') === 'normal') label += ' (normal low)';
-    var cls = n <= 45 ? 'wx-chip cold' : 'wx-chip';
+    var cls = n <= 45 ? (weatherOn() ? 'wx-chip cold' : 'wx-chip warn') : 'wx-chip';
+    if (n <= 45 && !weatherOn()) label += ' (note only)';
     return '<span class="' + cls + '">' + esc(label) + '</span>';
   }
 
@@ -4840,6 +4890,39 @@
     if (p.sort) state.searchSort = p.sort;
     state.hidePass = !!p.hidePass;
     state.fitsOnly = !!p.fitsOnly;
+  }
+
+  // Weather switch (v42). ON (default): cold drops are PASS, ice/snow or 50+ mph
+  // gusts turn TAKE into MAYBE. OFF: verdicts ignore weather; weather shows as notes.
+  var WX_FLAG_RE = /too cold at drop|ice or snow on route|gusts 50\+/i;
+
+  function isWxFlag(f) { return WX_FLAG_RE.test(String(f)); }
+
+  function weatherOn() { return state.weatherOn !== false; }
+
+  function loadWeatherSwitch() {
+    try {
+      var raw = localStorage.getItem(WEATHER_SWITCH_KEY);
+      state.weatherOn = raw === null ? true : raw !== 'off';
+    } catch (err) { state.weatherOn = true; }
+  }
+
+  function saveWeatherSwitch() {
+    try { localStorage.setItem(WEATHER_SWITCH_KEY, state.weatherOn === false ? 'off' : 'on'); } catch (err) { /* ignore */ }
+  }
+
+  function pushUnique(list, text) {
+    if (list.indexOf(text) === -1) list.push(text);
+  }
+
+  function wxNoteChipsHtml(row) {
+    if (weatherOn() || !row) return '';
+    var notes = (row.weather_flags || []).filter(function (f) { return !/too cold at drop/i.test(String(f)); });
+    if (!notes.length) return '';
+    return '<div class="wx-notes">' + notes.map(function (f) {
+      var label = /ice or snow/i.test(String(f)) ? 'Ice or snow on route' : (/gusts 50/i.test(String(f)) ? 'Gusts 50+ mph on route' : String(f));
+      return '<span class="wx-chip warn">' + esc(label + ' (note only)') + '</span>';
+    }).join('') + '</div>';
   }
 
   function filteredSearches(data) {
@@ -5409,6 +5492,7 @@
       fitBadgesHtml(row) +
       alsoHtml +
       (reason ? '<p class="search-reason">' + esc(reason) + '</p>' : '') +
+      wxNoteChipsHtml(row) +
       routeWxHtml(row) +
       searchActions(row, true) +
       detailsHtml +
@@ -5479,6 +5563,7 @@
       milesStrip(combo.loaded_mi, combo.deadhead_mi, { emptyFrom: searchOriginLabel() + ', all legs' }) +
       fitRow +
       (reason ? '<p class="search-reason">' + esc(reason) + '</p>' : '') +
+      wxNoteChipsHtml(combo) +
       routeWxHtml(combo) +
       '<div class="search-actions"><button type="button" class="call-sheet-btn">Call sheet</button><button type="button" class="details-toggle-btn" aria-expanded="false">Legs, stops &amp; map</button></div>' +
       detailsHtml +
@@ -5581,6 +5666,7 @@
             (state.searchRefreshing ? ' disabled' : '') + '>Refresh</button>' +
         '</div>' +
       '</div>' +
+      weatherSwitchHtml() +
       renderConnectPanel() +
       renderFreshPull() +
       '<p class="fine">Refresh reloads the latest saved scan. Use Pull fresh loads above to start a new scan.</p>' +
@@ -5593,6 +5679,12 @@
     bindConnectPanel();
     bindTruckAt();
     bindFreshPull();
+    var wxSw = $('wx-switch');
+    if (wxSw) wxSw.addEventListener('click', function () {
+      state.weatherOn = !weatherOn();
+      saveWeatherSwitch();
+      if (state.searches) refreshDeadheads(); else renderSearches();
+    });
   }
 
   function findRowByKey(key, data) {
@@ -5720,6 +5812,19 @@
         closeCompareSheet();
       }
     });
+  }
+
+  function weatherSwitchHtml() {
+    var on = weatherOn();
+    return '<div class="wx-switch-row">' +
+      '<button type="button" id="wx-switch" class="wx-switch' + (on ? ' on' : '') + '" role="switch" aria-checked="' + (on ? 'true' : 'false') + '" aria-label="Weather rules">' +
+        '<span class="wx-switch-track"><span class="wx-switch-knob"></span></span>' +
+        '<span class="wx-switch-label">Weather ' + (on ? 'ON' : 'OFF') + '</span>' +
+      '</button>' +
+      '<span class="wx-switch-hint">' + (on
+        ? 'Cold drops (low 45 F or colder) are PASS. Snow/ice or 50+ mph gusts turn TAKE into MAYBE.'
+        : 'Verdicts ignore weather. Cold and storm warnings show as amber notes only.') + '</span>' +
+      '</div>';
   }
 
   function renderSearches() {
@@ -6363,6 +6468,7 @@
     loadSettings();
     loadView();
     loadSearchPrefs();
+    loadWeatherSwitch();
     $('offer').addEventListener('submit', function (event) { event.preventDefault(); });
     $('offer').addEventListener('input', renderCheck);
     $('settings').addEventListener('input', function () {

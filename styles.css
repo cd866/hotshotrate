@@ -3942,3 +3942,69 @@ article.load {
 .fin-foot .linkish { background: none; border: 0; color: var(--purple-hi); font: 700 12px var(--body); text-decoration: underline; padding: 0 4px; }
 .fin-lock .fin-pin-row { display: flex; gap: 8px; margin-top: 10px; }
 .fin-lock input { flex: 1; min-height: 44px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); padding: 0 12px; font: 600 16px var(--body); }
+
+
+/* v42 Weather switch */
+.wx-switch-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 8px 0 10px;
+}
+.wx-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 4px 14px 4px 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.wx-switch.on {
+  border-color: rgba(242, 201, 76, 0.7);
+  background: rgba(242, 201, 76, 0.12);
+}
+.wx-switch-track {
+  position: relative;
+  width: 46px;
+  height: 26px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+  transition: background 0.15s ease;
+}
+.wx-switch.on .wx-switch-track { background: #F2C94C; }
+.wx-switch-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.15s ease;
+}
+.wx-switch.on .wx-switch-knob { transform: translateX(20px); }
+.wx-switch:focus-visible { outline: 2px solid #F2C94C; outline-offset: 2px; }
+.wx-switch-hint {
+  flex: 1 1 200px;
+  font-size: 12px;
+  opacity: 0.8;
+}
+.wx-chip.warn {
+  background: rgba(245, 158, 11, 0.14);
+  border-color: rgba(245, 158, 11, 0.55);
+  color: #FBBF24;
+  font-weight: 600;
+}
+.wx-notes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0 2px;
+}
