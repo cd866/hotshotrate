@@ -5212,3 +5212,138 @@ header.top .rig-specs-toggle {
 }
 #panel-check details.settings input:focus { border-color: var(--c-gold); box-shadow: 0 0 0 3px rgba(242, 201, 76, 0.22); outline: 0; }
 #panel-check details.settings .lbl { font-family: var(--body); font-size: var(--fs-xs); font-weight: var(--fw-bold); letter-spacing: 0.04em; text-transform: uppercase; color: var(--c-text-3); }
+
+/* Our rig: brochure diagram, features, gear, tap-to-zoom */
+.rig-h3 {
+  margin: var(--s-3) 0 var(--s-1);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-black, 800);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--c-text-3, var(--muted));
+}
+.rig-block { margin: 0; }
+.rig-list {
+  margin: 0;
+  padding: 0 0 0 1.15em;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--c-text-1, var(--cream));
+}
+.rig-list li { margin: 0 0 var(--s-1); }
+.rig-list li:last-child { margin-bottom: 0; }
+.rig-diagram {
+  margin: var(--s-3) 0 0;
+  padding: 0;
+}
+.rig-diagram-frame {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--c-line, var(--line));
+  border-radius: var(--radius-md, 12px);
+  background: #fff;
+}
+.rig-diagram-open {
+  display: block;
+  position: relative;
+  width: 100%;
+  min-height: var(--tap, 44px);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: #fff;
+  text-align: left;
+  cursor: zoom-in;
+}
+.rig-diagram-open picture { display: block; }
+.rig-diagram-img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.rig-diagram-hint {
+  position: absolute;
+  right: var(--s-1, 8px);
+  bottom: var(--s-1, 8px);
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: var(--radius-pill, 999px);
+  background: rgba(15, 13, 23, 0.88);
+  color: var(--c-text-1, #f2f0f7);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-black, 800);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+.rig-diagram figcaption {
+  margin: var(--s-1) 0 0;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--c-text-3, var(--muted));
+}
+.rig-zoom {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  display: flex;
+  flex-direction: column;
+  background: #0f0d17;
+}
+html.rig-zoom-open nav.tabbar.bnav,
+html.rig-zoom-open .appbar {
+  visibility: hidden;
+  pointer-events: none;
+}
+.rig-zoom[hidden] { display: none !important; }
+.rig-zoom-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1, 8px);
+  flex: 0 0 auto;
+  padding: calc(var(--s-1, 8px) + env(safe-area-inset-top)) var(--s-2, 16px) var(--s-1, 8px);
+  border-bottom: 1px solid var(--c-line, var(--line));
+  background: var(--c-surface-1, var(--chrome));
+}
+.rig-zoom-title {
+  flex: 1 1 auto;
+  margin: 0;
+  min-width: 0;
+  font-size: var(--fs-md);
+  font-weight: var(--fw-black, 800);
+  color: var(--c-text-1, var(--cream));
+}
+.rig-zoom-btn {
+  flex: 0 0 auto;
+  min-width: var(--tap, 44px);
+  min-height: var(--tap, 44px);
+  padding: 0 var(--s-1h, 12px);
+  border: 1px solid var(--c-line-strong, var(--line));
+  border-radius: var(--radius-md, 12px);
+  background: var(--c-surface-3, var(--surface));
+  color: var(--c-text-1, var(--cream));
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-black, 800);
+  line-height: 1;
+}
+.rig-zoom-close { font-size: var(--fs-sm); font-weight: 700; }
+.rig-zoom-stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: none;
+  overscroll-behavior: contain;
+}
+.rig-zoom-stage picture { display: block; width: max-content; }
+.rig-zoom-stage img {
+  display: block;
+  max-width: none;
+  height: auto;
+  background: #fff;
+  transform-origin: 0 0;
+  user-select: none;
+  -webkit-user-drag: none;
+}

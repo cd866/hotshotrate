@@ -18,7 +18,7 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=3" sizes="180x180" />
   <link rel="preload" href="fonts/nunito-sans-variable.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="fonts/oswald-700.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="styles.css?v=68" />
+  <link rel="stylesheet" href="styles.css?v=69" />
   <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
   <script>
     try {
@@ -95,13 +95,13 @@
           <div class="rig-specs-body">
             <h2 class="rig-specs-title">Our rig</h2>
             <dl class="rig-spec-grid">
-              <div class="rig-spec">
+              <div class="rig-spec rig-spec-wide">
                 <dt>Truck</dt>
-                <dd>2026 Ram 3500 dually</dd>
+                <dd>2026 Ram 3500 Mega Cab 4x4 DRW Cummins HO Laramie, Diamond Black, 32 gal tank</dd>
               </div>
-              <div class="rig-spec">
+              <div class="rig-spec rig-spec-wide">
                 <dt>Trailer</dt>
-                <dd>40 ft Big Tex 25GN gooseneck</dd>
+                <dd>Big Tex 25GN-40D5A-MRBK gooseneck</dd>
               </div>
               <div class="rig-spec">
                 <dt>Deck</dt>
@@ -109,11 +109,19 @@
               </div>
               <div class="rig-spec">
                 <dt>Dovetail</dt>
-                <dd>About 5 ft</dd>
+                <dd>About 5 ft, with mega ramps</dd>
               </div>
               <div class="rig-spec">
                 <dt>Trailer GVWR</dt>
                 <dd>25,900 lb</dd>
+              </div>
+              <div class="rig-spec">
+                <dt>Empty / capacity</dt>
+                <dd>8,770 lb empty, 17,130 lb capacity</dd>
+              </div>
+              <div class="rig-spec rig-spec-wide">
+                <dt>Axles</dt>
+                <dd>Tandem 12,000 lb dual-wheel electric-brake (25GN-40D5A standard). The 22GN/25GN brochure lists 10,000 or 12,000 lb.</dd>
               </div>
               <div class="rig-spec">
                 <dt>Truck GVWR</dt>
@@ -124,10 +132,6 @@
                 <dd>About 15,000 lb</dd>
               </div>
               <div class="rig-spec">
-                <dt>Equipment</dt>
-                <dd>Tarps and straps</dd>
-              </div>
-              <div class="rig-spec">
                 <dt>Lease</dt>
                 <dd>Totni 13%</dd>
               </div>
@@ -136,6 +140,58 @@
                 <dd>Up to 12,500 lb is OK. 12,501-15,300 lb is Maybe, with a scale check and the load centered just ahead of the trailer axles. Over 15,300 lb is a Pass.</dd>
               </div>
             </dl>
+
+            <figure class="rig-diagram">
+              <div class="rig-diagram-frame">
+                <button type="button" class="rig-diagram-open" id="rig-diagram-open" data-rig-zoom aria-haspopup="dialog" aria-controls="rig-zoom" aria-label="Open the labeled trailer diagram full size">
+                  <picture>
+                    <source type="image/webp" srcset="brand/trailer-diagram.webp">
+                    <img class="rig-diagram-img" alt="Labeled Big Tex 22GN and 25GN gooseneck trailer diagram, with callouts for the coupler, frame, ramps, axles, lights, and other features." width="4400" height="2688" src="brand/trailer-diagram.png" decoding="async">
+                  </picture>
+                  <span class="rig-diagram-hint">Tap to zoom</span>
+                </button>
+              </div>
+              <figcaption>Big Tex 22GN / 25GN labeled features. Our trailer is the 25GN-40D5A-MRBK.</figcaption>
+            </figure>
+
+            <section class="rig-block" aria-labelledby="rig-features-h">
+              <h3 id="rig-features-h" class="rig-h3">Trailer features</h3>
+              <ul class="rig-list">
+                <li>2-5/16 in Demco EZ Latch gooseneck coupler</li>
+                <li>12 in x 19 lb I-beam neck risers and low-profile pierced I-beam frame</li>
+                <li>34 in deck height, 102 in width</li>
+                <li>6 in channel outer frame</li>
+                <li>Treated wood floor</li>
+                <li>Mega ramps with hold-down latches</li>
+                <li>Chain spools, rubrail, and stake pockets</li>
+                <li>Lockable mega front storage box with chain holder</li>
+                <li>Sliding winch track</li>
+                <li>Retractable side steps</li>
+                <li>Dual 2-speed 50K landing gear</li>
+                <li>30K HD adjustable suspension</li>
+                <li>ST235/80R16 LR-E radials on black steel wheels</li>
+                <li>Spare tire and mount</li>
+                <li>Tandem electric-brake axles with forward self-adjusting brakes (brochure: 10,000 or 12,000 lb; our 25GN-40D5A is 12,000 lb)</li>
+                <li>Valcrum oil caps</li>
+                <li>Flushmount LED lights and integrated work lights</li>
+                <li>Sealed cold-weather wiring harness</li>
+                <li>Zip breakaway cable</li>
+                <li>TwistGuard frame</li>
+              </ul>
+            </section>
+
+            <section class="rig-block" aria-labelledby="rig-gear-h">
+              <h3 id="rig-gear-h" class="rig-h3">Our gear</h3>
+              <ul class="rig-list">
+                <li>CURT 60638 gooseneck ball (38,000 lb, 9,500 lb pin) in the Ram factory puck system, with safety chain anchors</li>
+                <li>8 flat hook straps with sewn loops</li>
+                <li>1 Demco EZ Latch gooseneck coupler lock</li>
+                <li>1 flatbed GN hotshot kit (kit contents qty TBD)</li>
+                <li>2 tarps</li>
+                <li>Gloves, safety vest, and rain jacket and pants (qty TBD)</li>
+              </ul>
+            </section>
+
             <p class="rig-note">The $/hr estimate is net estimate divided by hours. Hours are (loaded miles + empty miles) / 50 mph, plus 2 hours to load and unload for each load. The net $/mi estimate is net estimate divided by (loaded miles + empty miles).</p>
           </div>
         </details>
@@ -420,7 +476,7 @@
       <footer class="footer">
         <p><strong>Black Ram Logistics</strong> | DBA of Sand Lily Pad LLC</p>
         <p>Estimates are marked EST. Not a quote and not tax advice.</p>
-        <p class="app-version" id="app-version">v68</p>
+        <p class="app-version" id="app-version">v69</p>
       </footer>
       <div class="pad" aria-hidden="true"></div>
     </main>
@@ -566,17 +622,31 @@
       <div id="stop-body"></div>
     </div>
   </div>
+  <div id="rig-zoom" class="rig-zoom" hidden role="dialog" aria-modal="true" aria-labelledby="rig-zoom-title">
+    <div class="rig-zoom-bar">
+      <h2 id="rig-zoom-title" class="rig-zoom-title">Trailer diagram</h2>
+      <button type="button" class="rig-zoom-btn" id="rig-zoom-out" aria-label="Zoom out">-</button>
+      <button type="button" class="rig-zoom-btn" id="rig-zoom-in" aria-label="Zoom in">+</button>
+      <button type="button" class="rig-zoom-btn rig-zoom-close" id="rig-zoom-close">Close</button>
+    </div>
+    <div class="rig-zoom-stage" id="rig-zoom-stage">
+      <picture>
+        <source type="image/webp" srcset="brand/trailer-diagram.webp">
+        <img id="rig-zoom-img" alt="Labeled Big Tex 22GN and 25GN gooseneck trailer diagram, with callouts for the coupler, frame, ramps, axles, lights, and other features." width="4400" height="2688" src="brand/trailer-diagram.png">
+      </picture>
+    </div>
+  </div>
   <noscript><p class="noscript">Black Ram Logistics needs JavaScript for Rate Check, stops, and reports.</p></noscript>
   <script src="vendor/leaflet/leaflet.js"></script>
-  <script src="maps.js?v=68"></script>
-  <script src="tripplan.js?v=68"></script>
-  <script src="app.js?v=68"></script>
-  <script src="stops.js?v=68"></script>
-  <script src="targets.js?v=68"></script>
-  <script src="loadcosts.js?v=68"></script>
-  <script src="reports.js?v=68"></script>
-  <script src="scoreboard.js?v=68"></script>
-  <script src="accounting.js?v=68"></script>
+  <script src="maps.js?v=69"></script>
+  <script src="tripplan.js?v=69"></script>
+  <script src="app.js?v=69"></script>
+  <script src="stops.js?v=69"></script>
+  <script src="targets.js?v=69"></script>
+  <script src="loadcosts.js?v=69"></script>
+  <script src="reports.js?v=69"></script>
+  <script src="scoreboard.js?v=69"></script>
+  <script src="accounting.js?v=69"></script>
   <script>
     (function () {
       if (!('serviceWorker' in navigator)) return;

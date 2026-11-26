@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v68';
+  var APP_VERSION = 'v69';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -4687,6 +4687,190 @@
     return state.scoredSearches || state.searches;
   }
 
+
+  function bindRigDiagram() {
+    var overlay = $('rig-zoom');
+    var stage = $('rig-zoom-stage');
+    var img = $('rig-zoom-img');
+    var btnIn = $('rig-zoom-in');
+    var btnOut = $('rig-zoom-out');
+    var btnClose = $('rig-zoom-close');
+    var openBtn = $('rig-diagram-open');
+    if (!overlay || !stage || !img) return;
+
+    var scale = 1;
+    var minScale = 0.1;
+    var maxScale = 1.25;
+    var lastFocus = null;
+    var pointers = {};
+    var pinch = null;
+    var pan = null;
+
+    function natural() {
+      return {
+        w: img.naturalWidth || 4400,
+        h: img.naturalHeight || 2688
+      };
+    }
+
+    function fitScale() {
+      var n = natural();
+      var sw = stage.clientWidth || 1;
+      var sh = stage.clientHeight || 1;
+      return Math.min(sw / n.w, sh / n.h);
+    }
+
+    function readableScale() {
+      var n = natural();
+      var targetW = Math.min(n.w, Math.max(1200, (stage.clientWidth || 390) * 3));
+      return Math.min(1, targetW / n.w);
+    }
+
+    function applyScale() {
+      var n = natural();
+      img.style.width = (n.w * scale) + 'px';
+      img.style.height = (n.h * scale) + 'px';
+    }
+
+    function setScale(next, cx, cy) {
+      var prev = scale;
+      scale = Math.max(minScale, Math.min(maxScale, next));
+      var n = natural();
+      var sx = stage.scrollLeft;
+      var sy = stage.scrollTop;
+      var px = (cx != null) ? cx : (sx + stage.clientWidth / 2);
+      var py = (cy != null) ? cy : (sy + stage.clientHeight / 2);
+      var ratio = scale / (prev || scale);
+      applyScale();
+      stage.scrollLeft = px * ratio - (cx != null ? (cx - sx) : stage.clientWidth / 2);
+      stage.scrollTop = py * ratio - (cy != null ? (cy - sy) : stage.clientHeight / 2);
+    }
+
+    function openZoom() {
+      lastFocus = document.activeElement;
+      overlay.hidden = false;
+      document.documentElement.classList.add('sheet-open');
+      document.documentElement.classList.add('rig-zoom-open');
+      function start() {
+        minScale = Math.max(0.05, fitScale());
+        maxScale = Math.max(1.25, minScale * 6);
+        scale = Math.max(minScale, readableScale());
+        applyScale();
+        var n = natural();
+        stage.scrollLeft = 0;
+        stage.scrollTop = 0;
+        if (btnClose) btnClose.focus();
+      }
+      if (img.complete && img.naturalWidth) start();
+      else img.addEventListener('load', start, { once: true });
+    }
+
+    function closeZoom() {
+      if (overlay.hidden) return;
+      overlay.hidden = true;
+      document.documentElement.classList.remove('sheet-open');
+      document.documentElement.classList.remove('rig-zoom-open');
+      pointers = {};
+      pinch = null;
+      pan = null;
+      if (lastFocus && typeof lastFocus.focus === 'function') {
+        try { lastFocus.focus(); } catch (err) { /* ignore */ }
+      }
+    }
+
+    if (openBtn) {
+      openBtn.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        openZoom();
+      });
+    }
+    if (btnClose) btnClose.addEventListener('click', closeZoom);
+    if (btnIn) btnIn.addEventListener('click', function () { setScale(scale * 1.35); });
+    if (btnOut) btnOut.addEventListener('click', function () { setScale(scale / 1.35); });
+
+    overlay.addEventListener('click', function (ev) {
+      if (ev.target === overlay) closeZoom();
+    });
+    document.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Escape' && !overlay.hidden) {
+        ev.preventDefault();
+        closeZoom();
+      }
+    });
+
+    stage.addEventListener('wheel', function (ev) {
+      if (overlay.hidden) return;
+      ev.preventDefault();
+      var rect = stage.getBoundingClientRect();
+      var cx = ev.clientX - rect.left + stage.scrollLeft;
+      var cy = ev.clientY - rect.top + stage.scrollTop;
+      var factor = ev.deltaY < 0 ? 1.12 : 1 / 1.12;
+      setScale(scale * factor, cx, cy);
+    }, { passive: false });
+
+    stage.addEventListener('pointerdown', function (ev) {
+      if (overlay.hidden) return;
+      stage.setPointerCapture(ev.pointerId);
+      pointers[ev.pointerId] = { x: ev.clientX, y: ev.clientY };
+      var ids = Object.keys(pointers);
+      if (ids.length === 2) {
+        var a = pointers[ids[0]], b = pointers[ids[1]];
+        var dx = a.x - b.x, dy = a.y - b.y;
+        pinch = {
+          dist: Math.sqrt(dx * dx + dy * dy) || 1,
+          scale: scale,
+          midX: (a.x + b.x) / 2,
+          midY: (a.y + b.y) / 2
+        };
+        pan = null;
+      } else if (ids.length === 1) {
+        pan = { x: ev.clientX, y: ev.clientY, sl: stage.scrollLeft, st: stage.scrollTop };
+      }
+    });
+
+    stage.addEventListener('pointermove', function (ev) {
+      if (overlay.hidden || !pointers[ev.pointerId]) return;
+      pointers[ev.pointerId] = { x: ev.clientX, y: ev.clientY };
+      var ids = Object.keys(pointers);
+      if (pinch && ids.length >= 2) {
+        ev.preventDefault();
+        var a = pointers[ids[0]], b = pointers[ids[1]];
+        var dx = a.x - b.x, dy = a.y - b.y;
+        var dist = Math.sqrt(dx * dx + dy * dy) || 1;
+        var rect = stage.getBoundingClientRect();
+        var midX = (a.x + b.x) / 2 - rect.left + stage.scrollLeft;
+        var midY = (a.y + b.y) / 2 - rect.top + stage.scrollTop;
+        setScale(pinch.scale * (dist / pinch.dist), midX, midY);
+      } else if (pan && ids.length === 1) {
+        ev.preventDefault();
+        stage.scrollLeft = pan.sl - (ev.clientX - pan.x);
+        stage.scrollTop = pan.st - (ev.clientY - pan.y);
+      }
+    });
+
+    function endPointer(ev) {
+      delete pointers[ev.pointerId];
+      var ids = Object.keys(pointers);
+      if (ids.length < 2) pinch = null;
+      if (ids.length === 1) {
+        var p = pointers[ids[0]];
+        pan = { x: p.x, y: p.y, sl: stage.scrollLeft, st: stage.scrollTop };
+      } else {
+        pan = null;
+      }
+    }
+    stage.addEventListener('pointerup', endPointer);
+    stage.addEventListener('pointercancel', endPointer);
+    stage.addEventListener('pointerleave', function (ev) {
+      if (pointers[ev.pointerId]) endPointer(ev);
+    });
+
+    window.BlackRamApp = Object.assign(window.BlackRamApp || {}, {
+      openRigDiagram: openZoom,
+      closeRigDiagram: closeZoom
+    });
+  }
+
   function bindRigPhoto() {
     var img = $('rig-photo');
     var reflect = $('rig-reflect');
@@ -7831,6 +8015,7 @@
     recallTruckAt();
     watchTabbar();
     bindRigPhoto();
+    bindRigDiagram();
     loadDieselPrices();
     var ver = $('app-version');
     if (ver) ver.textContent = APP_VERSION;
