@@ -1,0 +1,605 @@
+{
+ "schema": 1,
+ "built_at": "2026-11-26T13:55:40-06:00",
+ "units": [
+  {
+   "id": "truck",
+   "name": "Ram 3500",
+   "full": "2026 Ram 3500 Mega Cab DRW Cummins HO Laramie, Diamond Black",
+   "in_service": "2026-09-30",
+   "start_odo": 16,
+   "start_note": "Picked up about 9/30 at 16 mi"
+  },
+  {
+   "id": "trailer",
+   "name": "Big Tex trailer",
+   "full": "Big Tex 25GN-40D5A-MRBK gooseneck, 40 ft, tandem dual 12K axles, ST235/80R16 LRE at 80 psi cold",
+   "in_service": "2026-10-05",
+   "start_odo": 0,
+   "start_note": "Bought new 10/5. Has no odometer: miles are estimated from loads run since 10/5"
+  }
+ ],
+ "odometer": {
+  "unit": "truck",
+  "value": 4074,
+  "as_of": "2026-10-26",
+  "source": "Ram dealer oil change work order, mileage 4,074 (data.json expenses 2026-10-26 and day note 10/26)",
+  "update_how": "Edit odometer.value / as_of / source in maintenance.json, or tap Update odometer in the app (saved on that phone only)."
+ },
+ "ledger_miles": {
+  "since": "2026-10-26",
+  "loaded": 1796.8,
+  "deadhead": 239.1,
+  "loads": 5,
+  "est_since": 2036,
+  "trailer_before": {
+   "loaded": 1499.6,
+   "deadhead": 0,
+   "loads": 5,
+   "est": 1500
+  },
+  "note": "Floor estimate: loaded miles plus known deadhead from ledger loads. Empty miles between loads that were not logged are not counted, so the real odometer is higher."
+ },
+ "log": [
+  {
+   "id": "base-truck",
+   "date": "2026-09-30",
+   "unit": "truck",
+   "kind": "baseline",
+   "job": "Delivered new (baseline, no service)",
+   "odo": 16,
+   "vendor": "Mark Dodge Chrysler Jeep (LA dealer)",
+   "note": "",
+   "src": "Day notes and Claudio: picked up about 9/30 at 16 mi"
+  },
+  {
+   "id": "detail-1002",
+   "date": "2026-10-02",
+   "unit": "truck",
+   "kind": "cosmetic",
+   "job": "Detailing supplies (wash, clay, polish)",
+   "odo": null,
+   "vendor": "Walmart La Marque TX",
+   "note": "Detailing items only (not a repair). Not counted in maintenance totals.",
+   "src": "walmart-lamarque-detailing-346.01.png; report-extras.json Claudio capital"
+  },
+  {
+   "id": "base-trailer",
+   "date": "2026-10-05",
+   "unit": "trailer",
+   "kind": "baseline",
+   "job": "Bought new (baseline, no service)",
+   "odo": null,
+   "vendor": "All Pro / Big Tex Trailer World, Jacksonville FL",
+   "note": "",
+   "src": "Invoice 335967"
+  },
+  {
+   "id": "gn-chain-1005",
+   "date": "2026-10-05",
+   "unit": "trailer",
+   "kind": "setup",
+   "job": "GN safety chain anchor and ball (added at pickup)",
+   "odo": null,
+   "vendor": "Big Tex Trailer World, Jacksonville FL (INV 434-850844)",
+   "note": "Setup add-on, not counted in maintenance totals.",
+   "src": "receipts/2026-10-05-bigtex-inv-434-850844-gn-chain-ball-PRIVATE.jpg"
+  },
+  {
+   "id": "def-1014",
+   "date": "2026-10-14",
+   "unit": "truck",
+   "kind": "def",
+   "job": "DEF fill (BlueDEF)",
+   "odo": null,
+   "vendor": "Love's #490 Jasper TN",
+   "note": "",
+   "src": "data.json expense 2026-10-14"
+  },
+  {
+   "id": "def-1020",
+   "date": "2026-10-20",
+   "unit": "truck",
+   "kind": "def",
+   "job": "DEF fill (BlueDEF Platinum)",
+   "odo": null,
+   "vendor": "TA Earle AR #0033",
+   "note": "",
+   "src": "data.json expense 2026-10-20"
+  },
+  {
+   "id": "def-1025",
+   "date": "2026-10-25",
+   "unit": "truck",
+   "kind": "def",
+   "job": "DEF fill (2.5 gal)",
+   "odo": null,
+   "vendor": "QuikTrip #07019 McAlester OK",
+   "note": "",
+   "src": "data.json expense 2026-10-25"
+  },
+  {
+   "id": "oil-1026",
+   "date": "2026-10-26",
+   "unit": "truck",
+   "kind": "service",
+   "job": "Engine oil and filter change (10W-30) with multi-point inspection",
+   "odo": 4074,
+   "vendor": "Ram dealer (name not on file)",
+   "note": "Cost is an estimate (final invoice not on file). Inspection results, tire rotation and filters not on file.",
+   "src": "data.json expense 2026-10-26 and day note"
+  },
+  {
+   "id": "tire-spare-1103",
+   "date": "2026-11-03",
+   "unit": "trailer",
+   "kind": "repair",
+   "job": "Nail flat: spare tire swapped on",
+   "odo": null,
+   "vendor": "Love's, Houston TX",
+   "note": "Cost is an estimate (final receipt not posted). The flat tire's repair or replacement is not on file.",
+   "src": "data.json expense 2026-11-03, day note 11/3"
+  },
+  {
+   "id": "def-1104",
+   "date": "2026-11-04",
+   "unit": "truck",
+   "kind": "def",
+   "job": "DEF fill",
+   "odo": null,
+   "vendor": "Circle K, Pensacola FL",
+   "note": "",
+   "src": "data.json expense 2026-11-04"
+  },
+  {
+   "id": "tire-1111",
+   "date": "2026-11-11",
+   "unit": "unconfirmed",
+   "kind": "repair",
+   "job": "Tire replaced (new tire, warranty claim)",
+   "odo": null,
+   "vendor": null,
+   "note": "Meshach 11/11: 'Truck tire is fixed' then 'New tire and they paid directly so the warranty will payback Big Tex trailer'. Unit is unclear (he said truck, but the warranty is the trailer's TrailerGard). Shop, tire, claim number, cost and who paid are not on file. Not in the ledger.",
+   "src": "WhatsApp Accounting/Legal group 11/11 12:39 and 12:54 PM"
+  },
+  {
+   "id": "def-1113",
+   "date": "2026-11-13",
+   "unit": "truck",
+   "kind": "def",
+   "job": "DEF fill (Blue DEF)",
+   "odo": null,
+   "vendor": "Pilot #087 Baldwin FL",
+   "note": "",
+   "src": "data.json expense 2026-11-13"
+  }
+ ],
+ "schedule": [
+  {
+   "id": "t-oil",
+   "unit": "truck",
+   "group": "Engine",
+   "item": "Engine oil + filter",
+   "int_mi": 5000,
+   "int_mo": 6,
+   "last_odo": 4074,
+   "last_date": "2026-10-26",
+   "src": [
+    "co-oil",
+    "sev",
+    "om"
+   ],
+   "note": "Cartridge filter Mopar 68677810AA or Fleetguard LF16453. Ram-specified oil only (10W-30 or 5W-40).",
+   "soon_mi": 750,
+   "soon_d": 21
+  },
+  {
+   "id": "t-rot",
+   "unit": "truck",
+   "group": "Tires and brakes",
+   "item": "Tire rotation and tire check",
+   "int_mi": 7500,
+   "int_mo": null,
+   "baseline": true,
+   "src": [
+    "om"
+   ],
+   "note": "Rotate at first sign of uneven wear. No rotation on file (dealer 10/26 inspection details not on file).",
+   "soon_mi": 750
+  },
+  {
+   "id": "t-fuel",
+   "unit": "truck",
+   "group": "Filters and fluids",
+   "item": "Fuel filters (both engine-mounted)",
+   "int_mi": 15000,
+   "int_mo": null,
+   "baseline": true,
+   "src": [
+    "om"
+   ],
+   "note": "Use Mopar 3 micron filters. 2025-26 canisters can trap air: prime and check for hard starting after a change.",
+   "soon_mi": 1000
+  },
+  {
+   "id": "t-air",
+   "unit": "truck",
+   "group": "Filters and fluids",
+   "item": "Engine air filter",
+   "int_mi": 15000,
+   "int_mo": 24,
+   "baseline": true,
+   "src": [
+    "om"
+   ],
+   "note": "Inspect at each oil change in dust. Never past 15,000 mi or 24 months.",
+   "soon_mi": 1000,
+   "soon_d": 45
+  },
+  {
+   "id": "t-cabin",
+   "unit": "truck",
+   "group": "Filters and fluids",
+   "item": "Cabin air filter",
+   "int_mi": 12000,
+   "int_mo": null,
+   "baseline": true,
+   "src": [
+    "om"
+   ],
+   "note": "",
+   "soon_mi": 1000
+  },
+  {
+   "id": "t-front",
+   "unit": "truck",
+   "group": "Tires and brakes",
+   "item": "Front end, CV and U-joints, suspension check",
+   "int_mi": 7500,
+   "int_mo": null,
+   "baseline": true,
+   "src": [
+    "om"
+   ],
+   "note": "Lubricate front end if fittings are serviceable. Suspension and tie rod ends at 15,000 mi.",
+   "soon_mi": 750
+  },
+  {
+   "id": "t-brake",
+   "unit": "truck",
+   "group": "Tires and brakes",
+   "item": "Brake linings and parking brake inspection",
+   "int_mi": 22500,
+   "int_mo": null,
+   "baseline": true,
+   "src": [
+    "om"
+   ],
+   "note": "Manual says inspect at each oil change too. Heavy towing wears pads faster than this.",
+   "soon_mi": 1500
+  },
+  {
+   "id": "t-belt",
+   "unit": "truck",
+   "group": "Engine",
+   "item": "Drive belt inspection",
+   "int_mi": 22500,
+   "int_mo": null,
+   "baseline": true,
+   "src": [
+    "om"
+   ],
+   "note": "",
+   "soon_mi": 1500
+  },
+  {
+   "id": "t-axle",
+   "unit": "truck",
+   "group": "Filters and fluids",
+   "item": "Front and rear axle fluid (change, frequent towing)",
+   "int_mi": 22500,
+   "int_mo": null,
+   "baseline": true,
+   "src": [
+    "om"
+   ],
+   "note": "Manual: change for frequent trailer towing. DRW rear axle takes pre-mixed Mopar 75W-140. Big Tex dealer advised 15,000 mi for the trailer axles; not confirmed whether that covers the Ram.",
+   "soon_mi": 1500
+  },
+  {
+   "id": "t-whl",
+   "unit": "truck",
+   "group": "Tires and brakes",
+   "item": "Wheel bearings inspection",
+   "int_mi": 30000,
+   "int_mo": null,
+   "baseline": true,
+   "src": [
+    "om"
+   ],
+   "note": "",
+   "soon_mi": 2000
+  },
+  {
+   "id": "t-tcase",
+   "unit": "truck",
+   "group": "Filters and fluids",
+   "item": "Transfer case fluid (change, frequent towing)",
+   "int_mi": 30000,
+   "int_mo": null,
+   "baseline": true,
+   "src": [
+    "om"
+   ],
+   "note": "Mopar BW44-44 fluid. Manual: inspect at 30,000 and change for frequent trailer towing; routine change at 60,000.",
+   "soon_mi": 2000
+  },
+  {
+   "id": "t-trans",
+   "unit": "truck",
+   "group": "Filters and fluids",
+   "item": "Transmission fluid and filter (ATF 818)",
+   "int_mi": 60000,
+   "int_mo": null,
+   "baseline": true,
+   "src": [
+    "om"
+   ],
+   "note": "Manual interval is 60,000 mi. Heavy towing: ask the dealer about going earlier. Also ask if this VIN needs the Ram 2026 Cummins transmission software update.",
+   "soon_mi": 3000
+  },
+  {
+   "id": "t-ccv",
+   "unit": "truck",
+   "group": "Engine",
+   "item": "Crankcase ventilation (CCV) filter",
+   "int_mi": 75000,
+   "int_mo": null,
+   "baseline": true,
+   "src": [
+    "om"
+   ],
+   "note": "Also when the cluster shows Perform Service. No DEF filter interval is listed in the owner's manual.",
+   "soon_mi": 3000
+  },
+  {
+   "id": "t-ps",
+   "unit": "truck",
+   "group": "Filters and fluids",
+   "item": "Power steering fluid flush",
+   "int_mi": 97500,
+   "int_mo": null,
+   "baseline": true,
+   "src": [
+    "om"
+   ],
+   "note": "",
+   "soon_mi": 4000
+  },
+  {
+   "id": "t-cool",
+   "unit": "truck",
+   "group": "Engine",
+   "item": "Coolant flush (Mopar OAT 10 yr / 150K)",
+   "int_mi": 150000,
+   "int_mo": 120,
+   "baseline": true,
+   "src": [
+    "om"
+   ],
+   "note": "Dealer recommended for cooling system work.",
+   "soon_mi": 5000,
+   "soon_d": 120
+  },
+  {
+   "id": "t-dot",
+   "unit": "truck",
+   "group": "Inspections",
+   "item": "Annual DOT inspection (truck)",
+   "int_mi": null,
+   "int_mo": 12,
+   "need_record": true,
+   "src": [
+    "cfr"
+   ],
+   "note": "No annual inspection report on file. Totni (the carrier) should hold it. Ask Totni, or get one at a shop that does 396.17 inspections.",
+   "soon_d": 30
+  },
+  {
+   "id": "r-brake",
+   "unit": "trailer",
+   "group": "Trailer brakes and bearings",
+   "item": "Brake check and adjust",
+   "int_mi": 3000,
+   "int_mo": 3,
+   "baseline": true,
+   "src": [
+    "dex",
+    "tr"
+   ],
+   "note": "If the axles have manual-adjust brakes. Self-adjusting brakes need inspection only. Axle maker not confirmed.",
+   "soon_mi": 300,
+   "soon_d": 14
+  },
+  {
+   "id": "r-hub",
+   "unit": "trailer",
+   "group": "Trailer brakes and bearings",
+   "item": "Hub bearings: repack, or change axle gear oil (80/90)",
+   "int_mi": 15000,
+   "int_mo": 12,
+   "baseline": true,
+   "src": [
+    "dex",
+    "bt"
+   ],
+   "note": "Dexter: repack every 12 months or 12,000 mi. Big Tex dealer: gear oil at 15,000 mi. Do both at the earlier one. Inspect brake linings and magnets at the same time.",
+   "soon_mi": 1000,
+   "soon_d": 30
+  },
+  {
+   "id": "r-gn",
+   "unit": "trailer",
+   "group": "Hitch and structure",
+   "item": "Gooseneck coupler, latch, safety chains, breakaway",
+   "int_mi": 3000,
+   "int_mo": 3,
+   "baseline": true,
+   "src": [
+    "tr"
+   ],
+   "note": "Grease the coupler, check latch pin and lock, chain hooks, breakaway cable and battery.",
+   "soon_mi": 300,
+   "soon_d": 14
+  },
+  {
+   "id": "r-lights",
+   "unit": "trailer",
+   "group": "Hitch and structure",
+   "item": "Lights and wiring inspection",
+   "int_mi": 12000,
+   "int_mo": 12,
+   "baseline": true,
+   "src": [
+    "dex"
+   ],
+   "note": "Check every trip too (checklist below).",
+   "soon_mi": 1000,
+   "soon_d": 30
+  },
+  {
+   "id": "r-ramps",
+   "unit": "trailer",
+   "group": "Hitch and structure",
+   "item": "Ramps, dovetail, deck bolts and hinges",
+   "int_mi": null,
+   "int_mo": 6,
+   "baseline": true,
+   "src": [
+    "tr"
+   ],
+   "note": "Check hinges, springs and welds.",
+   "soon_d": 21
+  },
+  {
+   "id": "r-deck",
+   "unit": "trailer",
+   "group": "Hitch and structure",
+   "item": "Wood deck reseal (penetrating oil)",
+   "int_mi": null,
+   "int_mo": 6,
+   "baseline": true,
+   "src": [
+    "co-deck"
+   ],
+   "note": "Plan is every 6 to 12 months. Due at the 6 month mark.",
+   "soon_d": 30
+  },
+  {
+   "id": "r-tireage",
+   "unit": "trailer",
+   "group": "Trailer tires",
+   "item": "Tire age limit (replace by DOT date + 6 yr)",
+   "int_mi": null,
+   "int_mo": 72,
+   "baseline": true,
+   "src": [
+    "tr"
+   ],
+   "note": "Industry guideline, not a Big Tex or TrailerGard term. Read the DOT date code on each sidewall. Trailer built Aug 2026.",
+   "soon_d": 180
+  },
+  {
+   "id": "r-dot",
+   "unit": "trailer",
+   "group": "Inspections",
+   "item": "Annual DOT inspection (trailer)",
+   "int_mi": null,
+   "int_mo": 12,
+   "need_record": true,
+   "src": [
+    "cfr"
+   ],
+   "note": "No annual inspection report on file. Inspect the trailer with the truck.",
+   "soon_d": 30
+  }
+ ],
+ "checklists": {
+  "monthly": {
+   "title": "Truck: monthly or before a long trip",
+   "src": "om",
+   "items": [
+    "Engine oil level (30 min after a warm shutdown)",
+    "Interior and exterior lights",
+    "Battery terminals and cables",
+    "Brake pads, rotors and fluid level",
+    "Steering, suspension, axle boots",
+    "Wipers, washer fluid",
+    "Coolant reservoir",
+    "DEF level"
+   ]
+  },
+  "pretrip": {
+   "title": "Trailer: every trip",
+   "src": "tr",
+   "items": [
+    "Tires: 80 psi cold, no bulges or cuts, spare ok",
+    "Lug nuts tight (re-torque after any wheel work)",
+    "Gooseneck latch pinned and locked, safety chains hooked",
+    "Breakaway cable attached, battery ok",
+    "Brake controller gain set, trailer brakes tested",
+    "Lights: turn, brake, marker, clearance",
+    "Straps, chains and binders checked, tarps secured",
+    "Ramps and dovetail latched"
+   ]
+  }
+ },
+ "sources": {
+  "om": "2026 Ram 2500/3500 Owner's Manual, Scheduled Servicing and Maintenance Plan - Diesel Models, pp. 62-66 (box copy hamilton-guide/src/om2026.pdf)",
+  "co-oil": "Company rule: oil every 5,000 mi (Claudio 11/20, stricter than warranty)",
+  "sev": "Ram/Cummins severe-duty (trailer towing) oil: 7,500 mi or 6 months (warranty research 10/8). Owner's manual maximum 15,000 mi or 12 months",
+  "dex": "Dexter Axle service manual: bearings every 12 months or 12,000 mi, brake adjust every 3,000 mi, brake inspection 12 months (dextergroup.com)",
+  "bt": "Big Tex dealer (Mike Piazza, 10/8): axle gear oil 80/90 at 15,000 mi. Axle maker not confirmed",
+  "tr": "General trailer practice. The Big Tex owner's manual is not on file",
+  "co-deck": "Company maintenance plan: reseal wood deck every 6 to 12 months",
+  "cfr": "49 CFR 396.17: every commercial motor vehicle (over 10,000 lb GVWR or combination weight, interstate) needs an annual inspection"
+ },
+ "warranty": {
+  "ram": [
+   [
+    "Basic limited",
+    "3 years or 36,000 mi",
+    "From delivery (about 9/30/2026). Excludes wear items such as brakes, bulbs and wiper blades."
+   ],
+   [
+    "Cummins diesel engine",
+    "5 years or 100,000 mi",
+    "Block, head, injectors, turbo housing, oil and water pumps and more."
+   ],
+   [
+    "Powertrain, first owner (2026 model year)",
+    "10 years or 100,000 mi",
+    "Engine, transmission, transfer case, driveshafts, differentials. First owner, business purchases ok, fleet not."
+   ]
+  ],
+  "ram_src": "2026 Ram HD Warranty Information booklet (mopar.com) and Ram's 2026 10 yr / 100K powertrain release. Read your own booklet for exact terms.",
+  "rules": [
+   "Follow the severe-duty oil schedule and keep every service receipt.",
+   "Stay inside tow and weight ratings.",
+   "No Hamilton cam kit while under warranty.",
+   "Use Ram-specified oil and Mopar-grade filters and fluids."
+  ],
+  "lds": "Separate dealer mechanical warranty (Louisiana Dealer Services, 48 months or 150,000 mi) allows company use with a single driver. It prohibits multiple drivers and overloading. Contract copy not on file.",
+  "tire_note": "Trailer tires and wheels: TrailerGard 7 years to 10/5/2033, commercial use, no deductible. Before any tire work the shop must call the warranty company. Only page 1 of 4 is on file. Ram tires: no warranty paperwork on file."
+ },
+ "need": [
+  "A photo of the truck dash odometer today (the app only has the 10/26 reading, 4,074 mi, plus an estimate from loads).",
+  "The final 10/26 oil change invoice: shop name, total, and whether tires were rotated or filters changed.",
+  "11/11 tire: truck or trailer, which tire, which shop, the cost, who paid, and the TrailerGard claim number.",
+  "What happened to the nail-flat trailer tire from 11/3 (repaired, replaced, or still carrying the spare)?",
+  "Trailer axle tag: maker (Dexter?), brake type (manual or self-adjust), and whether hubs are grease or oil bath.",
+  "The Big Tex owner's manual or maintenance sheet for the 25GN.",
+  "Annual DOT inspection reports for the truck and trailer from Totni (or book one).",
+  "Ram tire warranty or road hazard paperwork and TrailerGard pages 2 to 4."
+ ]
+}
