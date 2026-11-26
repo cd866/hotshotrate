@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-25T19:21:14Z",
+  "generated_at": "2026-11-26T06:34:55Z",
   "company": "Sand Lily Pad LLC",
   "dba": "Black Ram Logistics",
   "authority": "Leased onto Totni Enterprise",
@@ -3192,6 +3192,12 @@
           "vendor": "Same-day ACH fee (company checking)",
           "amount": 10.0,
           "category": "bank fees"
+        },
+        {
+          "date": "2026-11-12",
+          "vendor": "Grok Bot AI (software subscription)",
+          "amount": 160.0,
+          "category": "Software/AI"
         },
         {
           "date": "2026-11-13",
