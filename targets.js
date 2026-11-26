@@ -34,6 +34,7 @@
       'background:var(--c-surface-2,#14111f);color:var(--c-gold,#F2C94C);font:800 24px/1 var(--body,system-ui);display:inline-flex;align-items:center;' +
       'justify-content:center;padding:0;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;cursor:pointer}' +
       '.tg-step:active{background:var(--c-gold,#F2C94C);color:var(--c-gold-ink,#0f0d17)}' +
+      '.tg-be2{margin-top:12px;padding-top:10px;border-top:1px solid var(--c-line,#2e2940)}.tg-be2 .n{font-size:26px}' +
       '.tg-step:focus-visible{outline:2px solid var(--c-accent-hi,#c4b5fd);outline-offset:2px}';
     document.head.appendChild(st);
   })();
@@ -78,8 +79,10 @@
     var rate = o.rpm != null ? o.rpm : Number(tgt.rpm);
     var dead = Math.min(0.9, Math.max(0, Number(tgt.dead) / 100));
     var deadPerLoaded = dead / (1 - dead);
-    var driverMo = Number(tgt.driverMo) || 0;   // Meshach living wage, paid first (Claudio 11/26)
-    var fixed = s.trailer + insurance + s.otherFixed + Number(tgt.otherMo) + driverMo + extraFixed;
+    // Business break-even = covering expenses. Meshach's living wage is a priority payout from profit
+    // AFTER expenses (Claudio 11/26), so it is a second target, not part of fixed.
+    var driverMo = Number(tgt.driverMo) || 0;
+    var fixed = s.trailer + insurance + s.otherFixed + Number(tgt.otherMo) + extraFixed;
     var keep = 1 - feePct / 100;
     // Contribution per loaded mile after fee, fuel/DEF (loaded + empty) and maintenance reserve.
     var contrib = rate * keep - s.loadedCost - deadPerLoaded * s.deadheadCost - (1 + deadPerLoaded) * Number(tgt.maint);
@@ -87,13 +90,16 @@
     var gross = loadedMo * rate;
     var net = loadedMo * contrib - fixed;
     var goalNet = Number(tgt.goal) * Number(tgt.partners);
+    var beMiD = contrib > 0 ? (fixed + driverMo) / contrib : null;
     var beMi = contrib > 0 ? fixed / contrib : null;
     var goalMi = contrib > 0 ? (fixed + goalNet) / contrib : null;
     var perMileCosts = s.loadedCost + deadPerLoaded * s.deadheadCost + (1 + deadPerLoaded) * Number(tgt.maint);
     var minRpmBE = loadedMo > 0 ? (fixed / loadedMo + perMileCosts) / keep : null;
     var minRpmGoal = loadedMo > 0 ? ((fixed + goalNet) / loadedMo + perMileCosts) / keep : null;
     return {
-      fixed: fixed, driverMo: driverMo, contrib: contrib, loadedMo: loadedMo, gross: gross, net: net,
+      fixed: fixed, driverMo: driverMo, fixedDriver: fixed + driverMo, contrib: contrib,
+      beMiDriver: beMiD, beGrossDriver: beMiD != null ? beMiD * rate : null,
+      beLoadsWkDriver: beMiD != null ? beMiD / WEEKS / Number(tgt.miLoad) : null, netAfterDriver: net - driverMo, loadedMo: loadedMo, gross: gross, net: net,
       perPartner: net / Number(tgt.partners || 1), goalNet: goalNet,
       beMi: beMi, beGross: beMi != null ? beMi * rate : null,
       beLoadsWk: beMi != null ? beMi / WEEKS / Number(tgt.miLoad) : null,
@@ -234,6 +240,7 @@
       callouts.push('At $' + Number(tgt.rpm).toFixed(2) + '/mi every mile loses money after the fee, fuel and wear. Raise $/mi before adding loads.');
     } else {
       callouts.push('Need <b>' + num(m.beLoadsWk, 1) + ' loads/wk</b> at <b>$' + Number(tgt.rpm).toFixed(2) + '/mi</b> just to break even (' + money(m.beGross) + '/mo gross).');
+      callouts.push('Break-even <b>incl. Meshach ' + money(tgt.driverMo) + '</b>: <b>' + num(m.beLoadsWkDriver, 1) + ' loads/wk</b> (' + money(m.beGrossDriver) + '/mo gross). His pay comes first from profit after expenses.');
       callouts.push('Hitting ' + money(m.goalNet) + '/mo take-home needs <b>' + num(m.goalLoadsWk, 1) + ' loads/wk</b> (' + money(m.goalGross / WEEKS) + ' gross a week).');
       callouts.push('At ' + num(+tgt.loadsWk, 1) + ' loads/wk you need at least <b>' + rpm(m.minRpmBE) + '</b> to break even and <b>' + rpm(m.minRpmGoal) + '</b> to hit the goal.');
       if (!reachable) callouts.push('That goal is about ' + num(m.goalAllMiWk, 0) + ' total mi/wk, past what one truck and driver can legally run (about 3,000). Raise $/mi or lower the goal.');
@@ -244,7 +251,8 @@
 
     var headline = '<section class="big tg-head"><div class="kicker">Break-even (Totni ' + tgt.fee + '%)</div>' +
       '<span class="n phrase">' + (m.beGross != null ? money(m.beGross) + '/mo gross' : 'Not reachable') + '</span>' +
-      '<p class="sub">' + (m.beLoadsWk != null ? num(m.beLoadsWk, 1) + ' loads/wk · ' + num(m.beMi / WEEKS, 0) + ' loaded mi/wk · bills + driver pay ' + money(m.fixed) + '/mo' : 'Contribution per mile is negative') + '</p></section>';
+      '<p class="sub">' + (m.beLoadsWk != null ? num(m.beLoadsWk, 1) + ' loads/wk · ' + num(m.beMi / WEEKS, 0) + ' loaded mi/wk · bills ' + money(m.fixed) + '/mo' : 'Contribution per mile is negative') + '</p>' +
+      (m.beGrossDriver != null ? '<div class="tg-be2"><div class="kicker">Break-even incl. Meshach ' + money(tgt.driverMo) + '</div><span class="n phrase">' + money(m.beGrossDriver) + '/mo gross</span><p class="sub">' + num(m.beLoadsWkDriver, 1) + ' loads/wk · ' + num(m.beMiDriver / WEEKS, 0) + ' loaded mi/wk · expenses + his pay ' + money(m.fixedDriver) + '/mo</p></div>' : '') + '</section>';
 
     var outs = '<div class="stats">' +
       metricBox(money(m.goalGross) , 'Gross needed / month', money(m.goalGross / WEEKS) + ' a week') +
@@ -281,9 +289,9 @@
       slider('daysMo', 'Work days per month', 10, 28, 1, tgt.daysMo, FMT.daysMo) +
       slider('fee', 'Carrier fee', 0, 35, 1, tgt.fee, FMT.fee) +
       slider('maint', 'Tires and maintenance reserve', 0, 0.4, 0.01, tgt.maint, FMT.maint) +
-      slider('driverMo', 'Driver pay (paid first)', 0, 6000, 100, tgt.driverMo, FMT.driverMo) +
+      slider('driverMo', 'Driver pay (Meshach, paid first from profit)', 0, 6000, 100, tgt.driverMo, FMT.driverMo) +
       slider('otherMo', 'Other monthly (load board, phone, software)', 0, 500, 1, tgt.otherMo, FMT.otherMo) +
-      '<p class="fine">Fuel and DEF use Load check: ' + rpm(s.loadedCost) + ' loaded, ' + rpm(s.deadheadCost) + ' empty. Bills: truck ' + money(s.otherFixed) + ', trailer ' + money(s.trailer) + ', insurance ' + money(s.insurance) + ', driver pay ' + money(tgt.driverMo) + '. Saved on this phone. <button type="button" class="tg-reset" id="tg-reset">Reset</button></p></details>';
+      '<p class="fine">Fuel and DEF use Load check: ' + rpm(s.loadedCost) + ' loaded, ' + rpm(s.deadheadCost) + ' empty. Bills: truck ' + money(s.otherFixed) + ', trailer ' + money(s.trailer) + ', insurance ' + money(s.insurance) + '. Meshach ' + money(tgt.driverMo) + '/mo is paid first from profit after these bills. Saved on this phone. <button type="button" class="tg-reset" id="tg-reset">Reset</button></p></details>';
 
     var cmpRows = [
       ['Stay on Totni (13%)', st.totni, 'Cheap fee, but brokers score Totni low (see below).'],
