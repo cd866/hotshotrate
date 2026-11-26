@@ -1,0 +1,13 @@
+{
+  "state": "idle",
+  "pct": 0,
+  "origin": "",
+  "started_at": "",
+  "updated_at": "",
+  "counts": {
+    "truckstop": 0,
+    "df": 0,
+    "fits": 0
+  },
+  "message": ""
+}

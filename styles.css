@@ -3474,3 +3474,69 @@ article.load {
   flex: 0 0 auto;
   width: 100%;
 }
+
+/* v36: live pull progress bar + Live / Xh old freshness pill */
+.fresh-pill.live {
+  background: rgba(52, 211, 153, 0.18);
+  border-color: rgba(52, 211, 153, 0.55);
+  color: #6EE7B7;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.pull-progress {
+  margin: 12px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.pull-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pull-progress-track {
+  flex: 1 1 auto;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(167, 139, 250, 0.18);
+  border: 1px solid var(--purple);
+  overflow: hidden;
+}
+.pull-progress-fill {
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: var(--gold);
+  transition: width 0.4s ease;
+}
+.pull-progress-fill.live { background: #34D399; }
+.pull-progress-fill.failed { background: var(--stripe-pass); }
+.pull-progress-pct {
+  flex: 0 0 auto;
+  min-width: 3.2em;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--gold);
+}
+.pull-progress-step {
+  margin: 8px 0 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--cream);
+}
+.pull-progress-meta {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+.pull-progress-banner {
+  margin: 8px 0 0;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--muted);
+}
+.pull-progress-banner.ok { color: var(--stripe-take); }
+.pull-progress-banner.err { color: var(--stripe-pass); }

@@ -5,19 +5,19 @@
    'no-store', so GitHub Pages' max-age=600 cannot keep a stale copy.
    data/feed.json, data/diesel_prices.json and data/stops.json are
    network-first with a 12 s timeout, then the cached copy.
-   data/load_searches.json is always fetched with cache: 'no-store' and is
-   not precached. A cached copy is used only when the network request fails,
-   so a new scan shows on the next open or refresh without a version bump. */
-var CACHE = 'blackram-v35';
+   data/load_searches.json and data/pull_status.json are always fetched with
+   cache: 'no-store' and are not precached. A cached copy is used only when
+   the network request fails, so live search progress shows without a version bump. */
+var CACHE = 'blackram-v36';
 var ASSETS = [
   './',
   './index.html',
   './styles.css',
-  './styles.css?v=35',
+  './styles.css?v=36',
   './app.js',
-  './app.js?v=35',
+  './app.js?v=36',
   './stops.js',
-  './stops.js?v=35',
+  './stops.js?v=36',
   './manifest.json',
   './manifest.json?v=3',
   './manifest.webmanifest',
@@ -56,7 +56,8 @@ var ASSETS = [
 ];
 
 function isLoadSearches(url) {
-  return url.pathname.endsWith('/data/load_searches.json');
+  return url.pathname.endsWith('/data/load_searches.json') ||
+    url.pathname.endsWith('/data/pull_status.json');
 }
 
 function isFreshData(url) {

@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v35';
+  var APP_VERSION = 'v36';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -71,6 +71,10 @@
     freshDestText: '',
     freshAnywhere: true,
     freshRadius: 150,
+    pullStatus: null,
+    pullStatusTimer: null,
+    pullStatusError: '',
+    lastLiveRefreshAt: 0,
     outboxFlushing: false,
     offline: false,
     savedAt: null,
@@ -3185,6 +3189,207 @@
     return String(state.searches.scanned_at || state.searches.as_of || '');
   }
 
+  var PULL_STEP_LABELS = {
+    queued: 'Queued',
+    truckstop: 'Searching Truckstop',
+    direct_freight: 'Searching Direct Freight',
+    scoring: 'Scoring loads',
+    live: 'Live',
+    failed: 'Search failed',
+    idle: 'Idle'
+  };
+
+  function pullIsActive(st) {
+    if (!st) return false;
+    var s = st.state;
+    return s === 'queued' || s === 'truckstop' || s === 'direct_freight' || s === 'scoring';
+  }
+
+  function parsePullTime(stamp) {
+    if (!stamp) return null;
+    return parseScanStamp(stamp) || (function () {
+      var d = new Date(stamp);
+      return isNaN(d.getTime()) ? null : d;
+    }());
+  }
+
+  function formatChicagoHM(stamp) {
+    var d = parsePullTime(stamp);
+    if (!d) return '';
+    var parts = chicagoNowParts(d);
+    var h = parts.hour;
+    var ampm = h >= 12 ? 'PM' : 'AM';
+    var hr = h % 12;
+    if (!hr) hr = 12;
+    return hr + ':' + pad2(parts.minute) + ' ' + ampm;
+  }
+
+  function formatAgeOld(ms) {
+    if (ms == null || !isFinite(ms) || ms < 0) return '';
+    var mins = Math.floor(ms / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return mins + 'm old';
+    var hrs = Math.floor(mins / 60);
+    if (hrs < 24) return hrs + 'h old';
+    var days = Math.floor(hrs / 24);
+    return days + 'd old';
+  }
+
+  function isPullStuck(st) {
+    if (!pullIsActive(st)) {
+      if (state.freshPullLastOkAt && (Date.now() - state.freshPullLastOkAt) > 15 * 60 * 1000) {
+        if (!st || !pullIsActive(st) && st.state !== 'live' && st.state !== 'failed') return true;
+      }
+      return false;
+    }
+    var d = parsePullTime(st.updated_at) || parsePullTime(st.started_at);
+    if (!d) {
+      return !!(state.freshPullLastOkAt && (Date.now() - state.freshPullLastOkAt) > 15 * 60 * 1000);
+    }
+    return (Date.now() - d.getTime()) > 15 * 60 * 1000;
+  }
+
+  function shouldKeepPullStatusPolling() {
+    if (pullIsActive(state.pullStatus)) return true;
+    if (state.freshPullLastOkAt && (Date.now() - state.freshPullLastOkAt) < 15 * 60 * 1000) {
+      var st = state.pullStatus;
+      if (st && (st.state === 'live' || st.state === 'failed')) {
+        var upd = parsePullTime(st.updated_at);
+        if (upd && upd.getTime() >= state.freshPullLastOkAt - 15000) return false;
+      }
+      return true;
+    }
+    return false;
+  }
+
+  function renderPullProgressHtml() {
+    var st = state.pullStatus;
+    var html = '<div class="pull-progress" id="pull-progress">';
+    if (!st) {
+      html += '<p class="pull-progress-meta" id="pull-progress-meta">' +
+        (state.pullStatusError ? esc(state.pullStatusError) : 'Waiting for search status...') +
+        '</p></div>';
+      return html;
+    }
+    var pct = Math.max(0, Math.min(100, Number(st.pct)));
+    if (!isFinite(pct)) pct = 0;
+    pct = Math.round(pct);
+    var label = PULL_STEP_LABELS[st.state] || st.state;
+    var updated = formatChicagoHM(st.updated_at);
+    var origin = st.origin ? String(st.origin) : '';
+    var showBar = pullIsActive(st) || st.state === 'live' || st.state === 'failed';
+    if (showBar) {
+      var fillCls = st.state === 'live' ? ' live' : (st.state === 'failed' ? ' failed' : '');
+      html += '<div class="pull-progress-row">' +
+        '<div class="pull-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' +
+        pct + '" aria-label="Search progress">' +
+        '<div class="pull-progress-fill' + fillCls + '" style="width:' + pct + '%"></div></div>' +
+        '<span class="pull-progress-pct">' + pct + '%</span></div>';
+      html += '<p class="pull-progress-step">' + esc(label + ' ' + pct + '%') + '</p>';
+    }
+    if (st.state === 'live') {
+      var fits = st.counts && st.counts.fits != null ? Number(st.counts.fits) : null;
+      var banner = 'Loads updated' + (updated ? ' ' + updated : '');
+      if (fits != null && isFinite(fits)) banner += ' - ' + fits + ' fit' + (fits === 1 ? '' : 's');
+      html += '<p class="pull-progress-banner ok">' + esc(banner) + '</p>';
+    } else if (st.state === 'idle') {
+      html += '<p class="pull-progress-meta">Last scan' +
+        (updated ? ' ' + updated : (currentScanStamp() ? ' ' + esc(currentScanStamp()) : ' - none yet')) +
+        (origin ? ' from ' + esc(origin) : '') + '</p>';
+    } else if (st.state === 'failed') {
+      html += '<p class="pull-progress-banner err">' + esc(st.message || 'Search failed') + '</p>';
+    } else if (isPullStuck(st)) {
+      html += '<p class="pull-progress-banner err">Search may be stuck</p>';
+    }
+    if (updated && st.state !== 'idle' && st.state !== 'live') {
+      html += '<p class="pull-progress-meta">Last update ' + esc(updated) +
+        (origin ? ' \u00b7 ' + esc(origin) : '') + '</p>';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  function updatePullProgressDom() {
+    var box = $('pull-progress');
+    if (!box) return;
+    var wrap = document.createElement('div');
+    wrap.innerHTML = renderPullProgressHtml();
+    var next = wrap.firstChild;
+    if (next) box.replaceWith(next);
+    var pill = $('load-fresh-pill');
+    if (pill) {
+      var fresh = feedFreshnessPillInner();
+      pill.className = fresh.cls;
+      pill.textContent = fresh.text;
+      pill.hidden = !fresh.text;
+    }
+  }
+
+  function feedFreshnessRef() {
+    var st = state.pullStatus;
+    var liveAt = st && st.state === 'live' ? parsePullTime(st.updated_at) : null;
+    var scanDt = parsePullTime(currentScanStamp());
+    return liveAt || scanDt;
+  }
+
+  function feedFreshnessPillInner() {
+    var st = state.pullStatus;
+    var ref = feedFreshnessRef();
+    var ageMs = ref ? (Date.now() - ref.getTime()) : null;
+    if (st && st.state === 'live' && ageMs != null && ageMs <= 30 * 60 * 1000) {
+      return { cls: 'fresh-pill live', text: 'Live' };
+    }
+    if (ageMs == null) return { cls: 'fresh-pill', text: '' };
+    var stale = ageMs > 6 * 3600000;
+    return { cls: 'fresh-pill' + (stale ? ' stale' : ''), text: formatAgeOld(ageMs) };
+  }
+
+  function fetchPullStatus() {
+    var url = 'data/pull_status.json?t=' + Date.now();
+    return fetchTimed(url, { cache: 'no-store' }, 10000).then(function (res) {
+      if (!res.ok) throw new Error('status ' + res.status);
+      return res.json();
+    }).then(function (data) {
+      if (!data || typeof data !== 'object') throw new Error('bad status');
+      var prev = state.pullStatus;
+      state.pullStatus = data;
+      state.pullStatusError = '';
+      updatePullProgressDom();
+      if (data.state === 'live') {
+        var becameLive = !prev || prev.state !== 'live' ||
+          String(prev.updated_at || '') !== String(data.updated_at || '');
+        if (becameLive && Date.now() - state.lastLiveRefreshAt > 8000) {
+          state.lastLiveRefreshAt = Date.now();
+          refreshSearches();
+        }
+      }
+      if (!shouldKeepPullStatusPolling()) stopPullStatusPolling();
+      return data;
+    }).catch(function () {
+      if (!state.pullStatus) state.pullStatusError = 'Could not load search status.';
+      updatePullProgressDom();
+    });
+  }
+
+  function stopPullStatusPolling() {
+    if (state.pullStatusTimer) {
+      clearInterval(state.pullStatusTimer);
+      state.pullStatusTimer = null;
+    }
+  }
+
+  function startPullStatusPolling() {
+    if (state.pullStatusTimer) return;
+    fetchPullStatus();
+    state.pullStatusTimer = setInterval(function () {
+      if (!shouldKeepPullStatusPolling() && state.pullStatus && !pullIsActive(state.pullStatus)) {
+        stopPullStatusPolling();
+        return;
+      }
+      fetchPullStatus();
+    }, 12000);
+  }
+
   function stopFreshPullPolling() {
     if (state.freshPullPollTimer) {
       clearInterval(state.freshPullPollTimer);
@@ -3195,22 +3400,20 @@
   function startFreshPullPolling() {
     stopFreshPullPolling();
     state.freshPullBaseline = currentScanStamp();
-    state.freshPullPollEnd = Date.now() + 10 * 60 * 1000;
+    state.freshPullPollEnd = Date.now() + 15 * 60 * 1000;
+    startPullStatusPolling();
     state.freshPullPollTimer = setInterval(function () {
       if (Date.now() > state.freshPullPollEnd) {
         stopFreshPullPolling();
+        if (isPullStuck(state.pullStatus) || shouldKeepPullStatusPolling()) updatePullProgressDom();
         return;
       }
       refreshSearches().then(function () {
         var nowStamp = currentScanStamp();
         if (nowStamp && nowStamp !== state.freshPullBaseline) {
           stopFreshPullPolling();
-          state.freshPullStatus = 'New loads arrived (' + nowStamp + ').';
-          state.freshPullStatusType = 'ok';
-          var st = $('fresh-pull-status');
-          if (st) {
-            st.textContent = state.freshPullStatus;
-            st.className = 'fresh-pull-status ok';
+          if (!state.freshPullStatus || state.freshPullStatusType !== 'ok') {
+            setFreshPullStatus('New loads arrived (' + nowStamp + ').', 'ok');
           }
         }
       });
@@ -3274,6 +3477,7 @@
         '</button>' +
       '</form>' +
       '<p class="fresh-pull-status' + stCls + '" id="fresh-pull-status">' + esc(stText) + '</p>' +
+      renderPullProgressHtml() +
       '</div>';
   }
 
@@ -5454,8 +5658,9 @@
       '</div>' +
       '</div>';
 
+    var fresh = feedFreshnessPillInner();
     var freshnessBar = '<div class="freshness-bar">' +
-      (ageText ? '<span class="fresh-pill' + (isStale ? ' stale' : '') + '">Updated ' + esc(ageText) + '</span>' : '') +
+      (fresh.text ? '<span class="' + fresh.cls + '" id="load-fresh-pill">' + esc(fresh.text) + '</span>' : '<span class="fresh-pill" id="load-fresh-pill" hidden></span>') +
       (newCount > 0 ? '<span class="new-badge">' + newCount + ' new since last scan</span><button type="button" class="mark-seen-btn" id="mark-seen-btn">Mark all seen</button>' : '') +
       '</div>';
 
@@ -5575,6 +5780,9 @@
     } else if (name === 'searches') {
       renderSearches();
       refreshSearches();
+      fetchPullStatus().then(function () {
+        if (shouldKeepPullStatusPolling()) startPullStatusPolling();
+      });
     } else if (name === 'stops' && window.BlackRamStops) {
       window.BlackRamStops.show();
     }
@@ -5687,10 +5895,16 @@
     refreshFeed();
     refreshSearches();
     flushDeliveredOutbox();
+    fetchPullStatus().then(function () {
+      if (shouldKeepPullStatusPolling()) startPullStatusPolling();
+    });
     document.addEventListener('visibilitychange', function () {
       if (document.visibilityState === 'visible') {
         refreshSearches();
         flushDeliveredOutbox();
+        fetchPullStatus().then(function () {
+          if (shouldKeepPullStatusPolling()) startPullStatusPolling();
+        });
       }
     });
   }
