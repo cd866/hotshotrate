@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v40';
+  var APP_VERSION = 'v41';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -5912,9 +5912,230 @@
     updateCompareBar();
   }
 
+  // ---- Finance tab (v41): PIN-gated via relay /financials. Nothing is stored in the repo. ----
+  var FIN_SESSION_KEY = 'blackram_fin_session_v1';
+  var finState = { data: null, loading: false, error: '', range: 30, fetchedAt: 0 };
+
+  function finMoney(n, cents) {
+    if (n == null || !isFinite(n)) return '—';
+    var neg = n < -0.004;
+    var abs = Math.abs(n);
+    var s = abs.toLocaleString('en-US', { minimumFractionDigits: cents ? 2 : 0, maximumFractionDigits: cents ? 2 : 0 });
+    return (neg ? '-$' : '$') + s;
+  }
+  function finDay(iso) {
+    if (!iso) return 'date?';
+    var p = String(iso).slice(0, 10).split('-');
+    return Number(p[1]) + '/' + Number(p[2]);
+  }
+  function finDaysFrom(iso, base) {
+    var a = Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10));
+    var b = Date.UTC(+base.slice(0, 4), +base.slice(5, 7) - 1, +base.slice(8, 10));
+    return Math.round((a - b) / 86400000);
+  }
+  function finAsOfText(iso) {
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return iso;
+    return d.toLocaleString('en-US', { timeZone: 'America/Chicago', weekday: 'short', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + ' CT';
+  }
+
+  function fetchFinance(force) {
+    var pin = getRelayPin();
+    if (!pin) { finState.error = 'nopin'; renderFinance(); return Promise.resolve(); }
+    if (finState.loading) return Promise.resolve();
+    if (!force && finState.data && Date.now() - finState.fetchedAt < 60000) return Promise.resolve();
+    finState.loading = true;
+    if (!finState.data) renderFinance();
+    return fetch(RELAY_URL + '/financials', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: pin }),
+      cache: 'no-store'
+    }).then(function (resp) {
+      return resp.json().catch(function () { return null; }).then(function (j) {
+        if (resp.ok && j && j.ok && j.data) {
+          finState.data = j.data; finState.error = ''; finState.fetchedAt = Date.now();
+          try { sessionStorage.setItem(FIN_SESSION_KEY, JSON.stringify(j.data)); } catch (e) { /* ignore */ }
+        } else if (resp.status === 401) {
+          finState.error = 'wrongpin'; finState.data = null;
+          try { sessionStorage.removeItem(FIN_SESSION_KEY); } catch (e) { /* ignore */ }
+        } else {
+          finState.error = (j && j.error) || ('Could not load (' + resp.status + ')');
+        }
+      });
+    }).catch(function () {
+      finState.error = 'Offline - showing last copy if any.';
+    }).then(function () {
+      finState.loading = false;
+      if (state.tab === 'fin') renderFinance();
+    });
+  }
+
+  function finPinForm(msg) {
+    return '<section class="fin-card fin-lock"><div class="fin-kicker">Financials are locked</div>' +
+      '<p class="fin-sub">' + esc(msg) + '</p>' +
+      '<form id="fin-pin-form" class="fin-pin-row" autocomplete="off">' +
+      '<input id="fin-pin" type="password" inputmode="numeric" placeholder="App PIN" aria-label="App PIN" />' +
+      '<button type="submit" class="btn primary">Unlock</button></form></section>';
+  }
+
+  function finChart(proj, range) {
+    var base = proj.base.slice(0, range + 1);
+    var alt = (proj.if_paid || []).slice(0, range + 1);
+    var W = 340, H = 190, L = 44, R = 10, T = 14, B = 26;
+    var vals = base.map(function (p) { return p[1]; }).concat(alt.map(function (p) { return p[1]; })).concat([0, proj.start]);
+    var max = Math.max.apply(null, vals), min = Math.min.apply(null, vals);
+    var pad = (max - min) * 0.08 || 100; max += pad; min -= pad;
+    var n = base.length - 1;
+    function x(i) { return L + (W - L - R) * (i / n); }
+    function y(v) { return T + (H - T - B) * (1 - (v - min) / (max - min)); }
+    function path(series) {
+      // step line: balance holds until the next event
+      var d = '';
+      series.forEach(function (p, i) {
+        if (i === 0) d += 'M' + x(0).toFixed(1) + ' ' + y(p[1]).toFixed(1);
+        else d += 'H' + x(i).toFixed(1) + 'V' + y(p[1]).toFixed(1);
+      });
+      return d;
+    }
+    var grid = '';
+    var steps = 4;
+    for (var g = 0; g <= steps; g++) {
+      var v = min + (max - min) * g / steps;
+      grid += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v).toFixed(1) + '" y2="' + y(v).toFixed(1) + '" class="fin-grid"/>' +
+        '<text x="' + (L - 4) + '" y="' + (y(v) + 3).toFixed(1) + '" class="fin-axis" text-anchor="end">' + finMoney(Math.round(v / 100) * 100).replace('$', '$') + '</text>';
+    }
+    var zero = '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(0).toFixed(1) + '" y2="' + y(0).toFixed(1) + '" class="fin-zero"/>';
+    var below = '<rect x="' + L + '" y="' + y(0).toFixed(1) + '" width="' + (W - L - R) + '" height="' + Math.max(0, (H - B) - y(0)).toFixed(1) + '" class="fin-red-zone"/>';
+    var ticks = '';
+    [0, Math.round(n / 3), Math.round(2 * n / 3), n].forEach(function (i) {
+      ticks += '<text x="' + x(i).toFixed(1) + '" y="' + (H - 8) + '" class="fin-axis" text-anchor="' + (i === 0 ? 'start' : i === n ? 'end' : 'middle') + '">' + finDay(base[i][0]) + '</text>';
+    });
+    var dots = '';
+    (proj.events || []).forEach(function (e) {
+      var i = finDaysFrom(e.date, base[0][0]);
+      if (i < 0 || i > n) return;
+      dots += '<circle cx="' + x(i).toFixed(1) + '" cy="' + y(base[i][1]).toFixed(1) + '" r="3" class="fin-dot"/>';
+    });
+    var lowIdx = 0;
+    base.forEach(function (p, i) { if (p[1] < base[lowIdx][1]) lowIdx = i; });
+    var lp = base[lowIdx];
+    var lx = x(lowIdx), ly = y(lp[1]);
+    var anchor = lx > W - 90 ? 'end' : 'start';
+    var low = '<circle cx="' + lx.toFixed(1) + '" cy="' + ly.toFixed(1) + '" r="5" class="fin-low"/>' +
+      '<text x="' + (anchor === 'end' ? lx - 8 : lx + 8).toFixed(1) + '" y="' + Math.min(H - B - 4, ly + 4).toFixed(1) + '" class="fin-low-label" text-anchor="' + anchor + '">Low ' + finMoney(lp[1]) + ' ' + finDay(lp[0]) + '</text>';
+    return '<svg viewBox="0 0 ' + W + ' ' + H + '" class="fin-svg" role="img" aria-label="Projected bank balance next ' + range + ' days">' +
+      below + grid + zero + ticks +
+      (alt.length ? '<path d="' + path(alt) + '" class="fin-line-alt"/>' : '') +
+      '<path d="' + path(base) + '" class="fin-line"/>' + dots + low + '</svg>';
+  }
+
+  function finStatusChip(s) {
+    var map = { due: 'Due', overdue: 'Overdue', paid: 'Paid', withheld: 'Withheld', 'date?': 'date?', unpaid: 'Unpaid' };
+    return '<span class="fin-chip fin-chip-' + esc(s.replace('?', 'q')) + '">' + esc(map[s] || s) + '</span>';
+  }
+
+  function renderFinance() {
+    var root = $('fin-root');
+    if (!root) return;
+    var d = finState.data;
+    if (!d) {
+      try { var c = sessionStorage.getItem(FIN_SESSION_KEY); if (c && finState.error !== 'wrongpin') d = finState.data = JSON.parse(c); } catch (e) { d = null; }
+    }
+    if (!d) {
+      if (finState.error === 'nopin') root.innerHTML = finPinForm('Enter the app PIN to see the bank balance, bills and cash-flow projection.');
+      else if (finState.error === 'wrongpin') root.innerHTML = finPinForm('Wrong PIN. Try again.');
+      else if (finState.error) root.innerHTML = '<p class="fine">' + esc(finState.error) + '</p>';
+      else root.innerHTML = '<p class="fine">Loading financials…</p>';
+      bindFinance();
+      return;
+    }
+    var today = String(d.as_of).slice(0, 10);
+    var acct = d.account || {};
+    var proj = d.projection;
+    var range = finState.range;
+    var low = range === 60 ? proj.low60 : proj.low30;
+
+    var bal = '<section class="fin-card fin-balance">' +
+      '<div class="fin-kicker">' + esc(acct.bank + ' ' + acct.name) + ' ···' + esc(acct.last4) + '</div>' +
+      '<div class="fin-big">' + finMoney(acct.available, true) + '</div>' +
+      '<div class="fin-sub">Available · as of ' + esc(finAsOfText(d.as_of)) + '</div>' +
+      '<div class="fin-mini-row">' +
+      '<span>Owed to us <b class="pos">' + finMoney(d.income_pending_total, true) + '</b></span>' +
+      ((d.off_bank || []).map(function (o) { return '<span>' + esc(o.label) + ' <b>' + finMoney(o.amount) + '</b></span>'; }).join('')) +
+      '</div></section>';
+
+    var calls = '<div class="fin-callouts">' + (d.callouts || []).map(function (c) {
+      return '<div class="fin-call fin-call-' + esc(c.tone) + '"><b>' + esc(c.text) + '</b><span>' + esc(c.sub || '') + '</span></div>';
+    }).join('') + '</div>';
+
+    var chart = '<section class="fin-card"><div class="fin-head"><div class="fin-kicker">Cash projection</div>' +
+      '<div class="fin-seg" role="group" aria-label="Range">' +
+      '<button type="button" data-fin-range="30" aria-pressed="' + (range === 30) + '">30d</button>' +
+      '<button type="button" data-fin-range="60" aria-pressed="' + (range === 60) + '">60d</button></div></div>' +
+      finChart(proj, range) +
+      '<div class="fin-legend"><span><i class="lg-base"></i>Bills only</span><span><i class="lg-alt"></i>' + esc(proj.if_paid_note || 'If unpaid loads pay') + '</span></div>' +
+      '<div class="fin-sub">Low in ' + range + 'd: <b class="' + (low.balance < 0 ? 'neg' : 'pos') + '">' + finMoney(low.balance) + '</b> on ' + finDay(low.date) + ' · no new loads counted</div>' +
+      '</section>';
+
+    var bills = (d.bills || []).map(function (b) {
+      var dd = b.next ? finDaysFrom(b.next, today) : null;
+      var when = b.next ? (finDay(b.next) + (dd != null ? ' · ' + (dd === 0 ? 'today' : dd > 0 ? dd + 'd' : -dd + 'd late') : '')) : 'date?';
+      return '<li class="fin-row"><div class="fin-row-main"><b>' + esc(b.payee) + '</b>' +
+        '<span class="fin-row-sub">' + esc(b.freq) + ' · ' + esc(b.from) + (b.paid_note ? ' · ' + esc(b.paid_note) : '') + (b.note ? ' · ' + esc(b.note) : '') + '</span></div>' +
+        '<div class="fin-row-end"><b class="neg">' + (b.amount == null ? esc(b.amount_text || 'amount?') : finMoney(b.amount, true)) + '</b>' +
+        '<span class="fin-row-sub">' + esc(when) + '</span>' + finStatusChip(b.status) + '</div></li>';
+    }).join('');
+    var billsCard = '<section class="fin-card"><div class="fin-kicker">Bills</div><ul class="fin-list">' + bills + '</ul>' +
+      '<p class="fin-foot">Bluevine Bill Pay: ' + (d.scheduled_bank_payments ? d.scheduled_bank_payments + ' scheduled' : 'nothing scheduled') + '</p></section>';
+
+    var inc = (d.income || []).map(function (i) {
+      var since = i.delivered ? finDaysFrom(today, i.delivered) : null;
+      return '<li class="fin-row"><div class="fin-row-main"><b>' + esc(i.payer) + '</b>' +
+        '<span class="fin-row-sub">Net via ' + esc(i.via) + ' · delivered ' + finDay(i.delivered) + (since != null ? ' (' + since + 'd ago)' : '') + '</span></div>' +
+        '<div class="fin-row-end"><b class="pos">+' + finMoney(i.amount, true) + '</b><span class="fin-row-sub">' + (i.expected ? finDay(i.expected) : 'date?') + '</span>' + finStatusChip(i.status) + '</div></li>';
+    }).join('');
+    var incCard = '<section class="fin-card"><div class="fin-kicker">Money coming in</div><ul class="fin-list">' + (inc || '<li class="fin-row">Nothing owed right now.</li>') + '</ul></section>';
+
+    var tx = (d.transactions || []).map(function (t) {
+      var pos = t.amount >= 0;
+      return '<li class="fin-tx fin-tx-' + (pos ? 'in' : 'out') + '"><span class="fin-tx-date">' + finDay(t.date) + '</span>' +
+        '<span class="fin-tx-desc">' + esc(t.desc) + '</span>' +
+        '<span class="fin-tx-amt ' + (pos ? 'pos' : 'neg') + '">' + (pos ? '+' : '') + finMoney(t.amount, true) + '</span>' +
+        '<span class="fin-tx-bal">' + finMoney(t.balance, true) + '</span></li>';
+    }).join('');
+    var txCard = '<section class="fin-card"><div class="fin-kicker">Transactions</div>' +
+      '<div class="fin-tx fin-tx-head"><span>Date</span><span>What</span><span>Amount</span><span>Balance</span></div>' +
+      '<ul class="fin-list">' + tx + '</ul></section>';
+
+    var unk = (d.unknown || []).length ? '<p class="fin-foot">date? ' + esc(d.unknown.join(' · ')) + '</p>' : '';
+    var status = finState.loading ? '<p class="fin-foot">Refreshing…</p>' : (finState.error && finState.error !== 'nopin' ? '<p class="fin-foot">' + esc(finState.error) + '</p>' : '');
+
+    root.innerHTML = bal + calls + chart + billsCard + incCard + txCard + unk + status +
+      '<p class="fin-foot">Private: loaded with your PIN, not stored on the public site. <button type="button" class="linkish" id="fin-refresh">Refresh</button></p>';
+    bindFinance();
+  }
+
+  function bindFinance() {
+    var form = $('fin-pin-form');
+    if (form) form.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var v = ($('fin-pin') && $('fin-pin').value || '').trim();
+      if (!v) return;
+      setRelayPin(v);
+      finState.error = '';
+      fetchFinance(true);
+    });
+    document.querySelectorAll('[data-fin-range]').forEach(function (btn) {
+      btn.addEventListener('click', function () { finState.range = Number(btn.getAttribute('data-fin-range')); renderFinance(); });
+    });
+    var rf = $('fin-refresh');
+    if (rf) rf.addEventListener('click', function () { fetchFinance(true); });
+  }
+
   function showTab(name) {
     state.tab = name;
-    ['check', 'searches', 'reports', 'kpis', 'stops'].forEach(function (id) {
+    ['check', 'searches', 'reports', 'kpis', 'fin', 'stops'].forEach(function (id) {
       var on = id === name;
       $('tab-' + id).setAttribute('aria-selected', on ? 'true' : 'false');
       $('panel-' + id).hidden = !on;
@@ -5932,6 +6153,9 @@
       fetchPullStatus().then(function () {
         if (shouldKeepPullStatusPolling()) startPullStatusPolling();
       });
+    } else if (name === 'fin') {
+      renderFinance();
+      fetchFinance(false);
     } else if (name === 'stops' && window.BlackRamStops) {
       window.BlackRamStops.show();
     }
