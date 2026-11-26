@@ -1,4 +1,4 @@
-/* Black Ram Logistics - Accounting tab (v54).
+/* Black Ram Logistics - Accounting tab (v55+).
    PIN-gated: every number comes from the relay /financials (Worker KV payload key "accounting",
    built by push_financials.py + accounting_build.py on the box). Nothing financial is in this repo.
    Wrong PIN = locked, nothing shown. CSV export is generated in the browser after unlock.
@@ -160,7 +160,7 @@
     var tg = 0, td = 0, tdep = 0;
     var rows = R.map(function (r) {
       tg += r.gross; td += r.net_due; tdep += r.dep_amount || 0;
-      return '<div class="ac-rv"><div class="ac-rv-t"><b>' + esc(r.load) + '</b><span>' + esc(r.broker) + '</span>' + statusPill(r.status) + '</div>' +
+      return '<div class="ac-rv"><div class="ac-rv-t"><b>' + esc(r.load) + '</b><span class="ac-rv-b">' + esc(r.broker) + '</span>' + statusPill(r.status) + '</div>' +
         '<div class="ac-rv-g"><div><span>Gross</span><b>' + m2(r.gross) + '</b></div><div><span>Fee</span><b>-' + m2(r.fee).replace('-', '') + '</b></div>' +
         '<div><span>Net due</span><b>' + m2(r.net_due) + '</b></div><div><span>' + (r.dep_amount != null ? 'Paid ' + esc(day(r.dep_date)) : 'Paid') + '</span><b class="' + (r.dep_amount == null ? 'dim' : '') + '">' + (r.dep_amount != null ? m2(r.dep_amount) : '--') + '</b></div></div>' +
         (r.via ? '<p class="ac-fine">' + esc(r.via) + '</p>' : '') + '</div>';
@@ -380,7 +380,7 @@
       '.ac-rv{border-top:1px solid var(--c-line);padding-top:var(--s-1h);display:flex;flex-direction:column;gap:6px}' +
       '.ac-rv-t{display:flex;align-items:center;gap:var(--s-1);flex-wrap:wrap}' +
       '.ac-rv-t b{font-size:var(--fs-md);font-weight:800;color:var(--c-text-1)}' +
-      '.ac-rv-t>span{font-size:var(--fs-sm);color:var(--c-text-2);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+      '.ac-rv-b{font-size:var(--fs-sm);color:var(--c-text-2);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
       '.ac-rv-g{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}' +
       '.ac-rv-g span{display:block;font-size:10px;font-weight:700;color:var(--c-text-3);text-transform:uppercase;letter-spacing:.03em}' +
       '.ac-rv-g b{font-size:var(--fs-sm);font-weight:800;color:var(--c-text-1);font-variant-numeric:tabular-nums}.ac-rv-g b.dim{color:var(--c-text-3)}' +
