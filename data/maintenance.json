@@ -1,6 +1,6 @@
 {
  "schema": 1,
- "built_at": "2026-11-26T17:40:30-06:00",
+ "built_at": "2026-11-26T17:46:15-06:00",
  "units": [
   {
    "id": "truck",
@@ -130,17 +130,6 @@
    "src": "data.json expense 2026-10-26 and day note"
   },
   {
-   "id": "tire-spare-1103",
-   "date": "2026-11-03",
-   "unit": "trailer",
-   "kind": "repair",
-   "job": "Nail flat: spare tire swapped on",
-   "odo": null,
-   "vendor": "Love's, Houston TX",
-   "note": "Cost is an estimate (final receipt not posted). The flat tire's repair or replacement is not on file.",
-   "src": "data.json expense 2026-11-03, day note 11/3"
-  },
-  {
    "id": "def-1104",
    "date": "2026-11-04",
    "unit": "truck",
@@ -154,13 +143,13 @@
   {
    "id": "tire-1111",
    "date": "2026-11-11",
-   "unit": "unconfirmed",
+   "unit": "trailer",
    "kind": "repair",
-   "job": "Tire exchanged under warranty at Big Tex, Jacksonville FL",
+   "job": "Flat tire and wheel exchanged under warranty at Big Tex, Jacksonville FL (new tire mounted on the same wheel)",
    "odo": null,
    "vendor": "Big Tex, Jacksonville FL",
-   "note": "Exchanged under warranty at Big Tex in Jacksonville, FL after Meshach returned (Claudio 11/26). Meshach 11/11 reported it done; no shop invoice date is on file. Unit is still unclear (he said truck; the warranty on file is the trailer's TrailerGard). Which tire, claim number and cost are not on file. This is a separate event from the 11/3 nail flat and spare swap at Love's in Houston.",
-   "src": "WhatsApp Accounting/Legal group 11/11 12:39 and 12:54 PM; Claudio 11/26 (exchanged at Big Tex in Jacksonville after he returned)"
+   "note": "Claudio 11/26: nothing happened in Houston. The only tire event: Big Tex in Jacksonville took the flat tire and its wheel and gave us a new tire mounted on it, under TrailerGard warranty (trailer). Meshach reported it 11/11; no shop invoice date is on file. The trailer has its full spare setup back (the new tire on a wheel). Which wheel position, claim number and cost are not on file. The 11/3 Love's Houston charge is a separate, unconfirmed Love's stop, not a tire or spare cost.",
+   "src": "WhatsApp Accounting/Legal group 11/11 12:39 and 12:54 PM; Claudio 11/26 (nothing happened in Houston; Big Tex Jacksonville took the flat tire and wheel and mounted a new tire under warranty)"
   },
   {
    "id": "def-1113",
@@ -814,8 +803,7 @@
  "need": [
   "A photo of the truck dash odometer today (the app only has the 10/26 reading, 4,074 mi, plus an estimate from loads).",
   "The final 10/26 oil change invoice: shop name, total, and whether tires were rotated or filters changed.",
-  "11/11 tire: exchanged at Big Tex in Jacksonville, FL after Meshach returned (Claudio 11/26). Still need: truck or trailer, which tire, the cost, who paid, and the TrailerGard claim number. The 11/11 date is Meshach's report, not a shop invoice.",
-  "What happened to the nail-flat trailer tire from 11/3 (repaired, replaced, or still carrying the spare)?",
+  "11/11 trailer tire: Big Tex in Jacksonville took the flat tire and its wheel and mounted a new tire on it under TrailerGard (Claudio 11/26: nothing happened in Houston). Still need: the cost, who paid, and the TrailerGard claim number. The 11/11 date is Meshach's report, not a shop invoice.",
   "Trailer axle tag: maker (Dexter?), brake type (manual or self-adjust), and whether hubs are grease or oil bath.",
   "Annual DOT inspection reports for the truck and trailer from Totni (or book one).",
   "Ram tire warranty or road hazard paperwork and TrailerGard pages 2 to 4.",
@@ -2684,7 +2672,7 @@
    ],
    [
     "Wheel work means re-torque",
-    "Trailer: 10, 25, 50 (and Dexter 100) mi after any wheel off. Applies after the 11/3 spare swap and 11/11 tire.",
+    "Trailer: 10, 25, 50 (and Dexter 100) mi after any wheel off. Applies after the 11/11 warranty wheel and tire exchange at Big Tex in Jacksonville.",
     "Big Tex OM p. 59; Dexter p. 76"
    ],
    [

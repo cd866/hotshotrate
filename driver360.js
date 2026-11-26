@@ -15,9 +15,8 @@
   var DOT_SHORT = { 'd-cdl': 'Class A CDL', 'd-med': 'Med card', 'd-dq': 'DQ file (Totni)', 'd-da': 'Drug and alcohol pool', 'd-eld': 'ELD login', 'd-hos': 'HOS logs', 'd-eldpack': 'ELD packet in cab', 'd-blank': 'Blank paper logs', 't-pre': 'Pre-trip habit', 't-dvir': 'DVIR / post-trip' };
   /* Safety log: high level only. No claim numbers, amounts or other parties' names in public. */
   var EVENTS = [
-    { date: '2026-11-11', kind: 'tire', t: 'Tire exchanged under warranty', s: 'Exchanged at Big Tex in Jacksonville, FL after Meshach returned. Unit (truck or trailer) still unclear. Cost not on file.', fault: 'n/a', status: 'Closed' },
-    { date: '2026-11-06', kind: 'accident', t: 'Another vehicle hit the truck', s: 'Truck mirror only. Not at fault. No claim on our policy.', fault: 'Not at fault', status: 'Closed', priv: 'Settled directly with the other party under a confidential agreement (signed 11/19). Terms stay in the signed copy, not in the app.' },
-    { date: '2026-11-03', kind: 'tire', t: 'Trailer flat from a nail', s: 'Spare swapped at a Love\'s in Houston, load still delivered next day.', fault: 'Road hazard', status: 'Closed' }
+    { date: '2026-11-11', kind: 'tire', t: 'Trailer tire exchanged under warranty', s: 'Big Tex in Jacksonville took the flat tire and its wheel and mounted a new tire on it (TrailerGard). The trailer has its full spare setup back. Cost not on file.', fault: 'n/a', status: 'Closed' },
+    { date: '2026-11-06', kind: 'accident', t: 'Another vehicle hit the truck', s: 'Truck mirror only. Not at fault. No claim on our policy.', fault: 'Not at fault', status: 'Closed', priv: 'Settled directly with the other party under a confidential agreement (signed 11/19). Terms stay in the signed copy, not in the app.' }
   ];
   var st = { open: false, feed: null, feedErr: '', fin: null, finErr: '', finLoading: false, fetchedAt: 0 };
 
@@ -254,7 +253,7 @@
     var priv = !!(st.fin && pin());
     return card('d3-safe', 'Safety', 'incidents on file',
       '<div class="d3-grid d3-g3">' + tile('d3', 'safe:acc', 'Accidents', String(acc.length), acc.filter(function (e) { return /not at fault/i.test(e.fault); }).length + ' not at fault') +
-      tile('d3', 'safe:tire', 'Tire events', String(tires.length), 'road hazard / warranty') +
+      tile('d3', 'safe:tire', 'Tire events', String(tires.length), 'warranty at Big Tex') +
       tile('d3', 'safe:insp', 'Inspections', '0', 'none on file') + '</div>' +
       '<div class="d3-tl">' + EVENTS.map(function (e, i) {
         return '<div class="d3-ev tl-tap tl-chev"' + ta('d3', 'ev:' + i, day(e.date) + ' ' + e.t + '. Show') + '><span class="d3-evd">' + day(e.date) + '</span><span class="d3-evi d3-' + (e.kind === 'accident' ? 'warn' : 'unk') + '"></span><span class="d3-evm"><b>' + esc(e.t) + '</b><small>' + esc(e.s) + (priv && e.priv ? ' ' + esc(e.priv) : '') + '</small></span></div>';

@@ -511,7 +511,7 @@
    "cfr": "49 CFR 393.75(a), 393.75(c), 393.75(g); CVSA: others under 1/32 out of service",
    "s": "unk",
    "w": 3,
-   "ev": "Spare swapped on 11/3 after a nail flat. A tire was replaced 11/11 (unit not confirmed). Totni's record has 2 flat-tire out-of-service write-ups.",
+   "ev": "On 11/11 Meshach reported a trailer tire exchanged under warranty at Big Tex in Jacksonville: they took the flat tire and its wheel and mounted a new tire on it (TrailerGard). The trailer has its full spare setup back. Totni's record has 2 flat-tire out-of-service write-ups.",
    "why": "A flat or audible leak is out of service. Check the inner dual of the dually, they hide.",
    "fix": "Check 6 truck tires (including inner duals) and 4 trailer tires. Trailer 80 psi cold. Spare matches. Check it off.",
    "lo": 0,

@@ -1565,7 +1565,7 @@
           "delivery_date": "2026-11-04",
           "broker": "Unicargo",
           "load_no": "U008069",
-          "notes": "Rate con U008069: $1,100 flat, 526 mi, 9,600 lb open-top container, 6 straps, PU 11/3 DEL 11/4. Picked up 11/3; trailer flat from a nail repaired (spare swapped) at Love's Houston en route. $2.09/mi is below the $2.71-$2.82 break-even EST. Totni 13% fee on this load is UNCONFIRMED. | 11/16: paid in Zora $2,110.51 deposit (best fit: Unicargo + Priority 1 = $2,175 expected net). Share $928.62 is a pro-rata EST split; $64.49 total short, reason unknown (maybe Totni $50 insurance add-on + other). Delivery assumed from payment. | 11/23: the $64.49 short on the 11/16 Zora payment (loads 7+8) was ELD fees withheld by Totni (supersedes the Truckstop/unexplained split).",
+          "notes": "Rate con U008069: $1,100 flat, 526 mi, 9,600 lb open-top container, 6 straps, PU 11/3 DEL 11/4. Picked up 11/3. $2.09/mi is below the $2.71-$2.82 break-even EST. Totni 13% fee on this load is UNCONFIRMED. | 11/16: paid in Zora $2,110.51 deposit (best fit: Unicargo + Priority 1 = $2,175 expected net). Share $928.62 is a pro-rata EST split; $64.49 total short, reason unknown (maybe Totni $50 insurance add-on + other). Delivery assumed from payment. | 11/23: the $64.49 short on the 11/16 Zora payment (loads 7+8) was ELD fees withheld by Totni (supersedes the Truckstop/unexplained split).",
           "pickup_date": "2026-11-03",
           "received_date": "2026-11-16",
           "net_received": 928.62,
@@ -3121,11 +3121,11 @@
         },
         {
           "date": "2026-11-03",
-          "vendor": "Love's Houston TX (trailer spare tire swap after nail flat)",
+          "vendor": "Love's Houston TX",
           "amount": 41.0,
-          "category": "maintenance",
+          "category": "unconfirmed",
           "est": true,
-          "notes": "Estimate; final receipt not posted yet"
+          "notes": "EST, final receipt not posted. Category unconfirmed. Not a tire or spare cost."
         },
         {
           "date": "2026-11-03",
@@ -3301,7 +3301,7 @@
         },
         {
           "date": "2026-11-03",
-          "text": "Picked up Unicargo U008069 open-top container, Houston TX to Pensacola FL, $1,100, 526 mi, delivery 11/4; trailer flat from a nail, spare swapped at Love's Houston for about $41 EST (final receipt not posted); $80 company-AmEx diesel at TA Express Houston (nothing owed); Progressive payment schedule on file: $1,221.62 due the 30th of each month starting Nov 30"
+          "text": "Picked up Unicargo U008069 open-top container, Houston TX to Pensacola FL, $1,100, 526 mi, delivery 11/4; $41 EST Love's Houston (category unconfirmed, not a tire or spare cost; final receipt not posted); $80 company-AmEx diesel at TA Express Houston (nothing owed); Progressive payment schedule on file: $1,221.62 due the 30th of each month starting Nov 30"
         },
         {
           "date": "2026-11-04",

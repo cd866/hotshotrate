@@ -568,7 +568,7 @@
       '</div>' +
       bars.map(function (b, bi) { return '<div class="mt-sbar' + (b[1] ? ' tl-tap"' + (window.BlackRamTiles ? window.BlackRamTiles.attrs('mt', 'spend:' + ['svc', 'def', 'excl'][bi], b[0] + ' ' + m0(b[1]) + '. Show the jobs') : '') : '"') + '><span>' + b[0] + '</span><div class="mt-sbar-t"><i style="width:' + Math.max(b[1] / mx * 100, b[1] ? 3 : 0).toFixed(1) + '%"></i></div><b>' + m0(b[1]) + '</b></div>'; }).join('') +
       '<p class="mt-fine">Per mile uses ' + n0(miles) + ' miles driven since delivery' + (O.est ? ' (EST, a floor, so cost per mile is a ceiling)' : '') + '. ' +
-      (t.est ? 'Includes estimated amounts (oil change, spare swap) until the final invoices are posted. ' : '') +
+      (t.est ? 'Includes estimated amounts (oil change) until the final invoices are posted. ' : '') +
       (t.unk ? t.unk + ' job' + (t.unk > 1 ? 's' : '') + ' with no cost on file (the 11/11 tire; the warranty may have paid). ' : '') +
       'Fuel and the TrailerGard contract are not maintenance spend. The rate model budgets DEF at $0.034 a mile.</p>');
   }
