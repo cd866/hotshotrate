@@ -20,6 +20,14 @@
   var TOTNI = { name: 'Totni policy', insurer: 'United Financial Casualty (Progressive)', agency: 'Marquee Insurance Group', last4: '8412',
     start: '2025-12-10', end: '2026-12-10', role: 'Totni liability for loads under MC 1122113. The COI lists our Ram.',
     types: ['Auto liability', 'Motor truck cargo', 'Refrigeration breakdown', 'Injury protection', 'Uninsured motorist'] };
+  var TOT_STEPS = [
+    ['Call Totni first', 'If you are hauling under MC 1122113, tell Totni dispatch and safety right away, before the other driver leaves if you can. Ask them how they want the claim started.'],
+    ['Liability goes through Totni', 'Totni is the named insured on the primary liability policy. Ask Totni and Marquee for the claim number and the adjuster. Do not guess a number.'],
+    ['Then our own policy', 'Truck or trailer damage and cargo: also open a claim with Progressive through TAP on our policy and write down that claim number too.'],
+    ['Get it in writing', 'Ask Totni for the claim number, who the adjuster is, and whether our cargo or their cargo coverage applies. Post it in the group.'],
+    ['New drivers and riders', 'Totni must approve any new driver with its insurer. Passengers need Totni written rider authorization first.'],
+    ['Settlements', 'Totni signs any release with us. Read it first. Do not sign anything alone, the 11/6 mirror settlement went through Totni, Meshach and Ben.']
+  ];
   var STEPS = [
     ['People first', 'Check everyone. Call 911 if anyone is hurt or the road is blocked.'],
     ['Make it safe', 'Hazards on. Move off the road if the truck can move. Set triangles.'],
@@ -104,7 +112,7 @@
   function secTiles() {
     return '<div class="in-tiles">' +
       tile('Our policy', 'Active', 'Renews ' + md(OWN.end) + '/' + OWN.end.slice(0, 4) + ' (' + countText(OWN.end) + ')', tones(OWN.end)) +
-      tile('Totni policy', countText(TOTNI.end), 'COI on file ends ' + ymd(TOTNI.end), tones(TOTNI.end)) +
+      tile('Totni policy', countText(TOTNI.end), 'COI ends ' + ymd(TOTNI.end), tones(TOTNI.end)) +
       tile('Trailer tires', '7 yr', 'TrailerGard to Oct 2033', 'ok') +
       '</div>';
   }
@@ -118,7 +126,7 @@
         '<div class="in-kv"><span>Term</span><b>' + md(P.start) + '/' + P.start.slice(2, 4) + ' to ' + md(P.end) + '/' + P.end.slice(2, 4) + '</b></div>' +
         '<p class="in-fine">' + esc(P.role) + '</p>' + chips(P.types) + '</div>';
     }
-    return card('in-pols', 'Policies', 'Two layers', one(OWN) + one(TOTNI));
+    return card('in-pols', 'Our policy', 'Progressive via TAP', one(OWN));
   }
 
   /* gated */
@@ -141,12 +149,10 @@
     }).join('') + '</div>';
   }
   function secLimits(I) {
-    var o = I.own, t = I.totni;
+    var o = I.own;
     return card('in-lim', 'Limits and deductibles', 'From the dec page',
       '<div class="in-sub">Our policy ...' + esc(o.last4) + '</div>' + limitsRows(o.limits) +
-      '<p class="in-fine">' + esc(o.cargo_note) + ' Radius ' + esc(o.radius.toLowerCase()) + '. Rated for ' + esc(o.commodities.toLowerCase()) + '.</p>' +
-      '<div class="in-sub">Totni policy ...' + esc(t.last4) + '</div>' + limitsRows(t.limits) +
-      t.notes.map(function (n) { return '<p class="in-fine">' + esc(n) + '</p>'; }).join(''));
+      '<p class="in-fine">' + esc(o.cargo_note) + ' Radius ' + esc(o.radius.toLowerCase()) + '. Rated for ' + esc(o.commodities.toLowerCase()) + '.</p>');
   }
   function secPay(I) {
     var o = I.own, paid = {}; (o.paid || []).forEach(function (p) { paid[p[0] || p.date] = 1; });
@@ -185,7 +191,7 @@
     return card('in-claims', 'Claim history', '1 incident', c || '<p class="in-fine">No claims on file.</p>');
   }
   function secNeed(I) {
-    return card('in-need', 'Still need (' + I.need.length + ')', 'Send these',
+    return card('in-need', 'Still need (' + I.need.length + ')', 'Ours. Totni list is above',
       '<ul class="in-list">' + I.need.map(function (n) { return '<li>' + esc(n) + '</li>'; }).join('') + '</ul>');
   }
   function lockCard(msg) {
@@ -193,6 +199,73 @@
       '<h3>Limits, premiums and claims are locked</h3><p class="in-fine">' + esc(msg) + '</p>' +
       '<form id="in-pin-form" class="in-pin" autocomplete="off"><input id="in-pin" type="password" inputmode="numeric" placeholder="App PIN" aria-label="App PIN" />' +
       '<button type="submit" class="btn primary">Unlock</button></form></section>';
+  }
+
+
+  /* ---------- Totni section ---------- */
+  var TOT_COMPARE_PUB = [
+    ['Primary liability (hurts other people or property)', 'Totni primary while hauling under MC 1122113 (lease section 7). Schedule A is blank, so not confirmed in writing.', 'We carry a liability policy too. Unlock for limits.'],
+    ['Cargo', 'Cargo coverage on the COI.', 'Cargo coverage with the Cargo Plus endorsement. Which pays first: need from Claudio.'],
+    ['Physical damage (Ram and trailer)', 'Not shown on the COI.', 'Comprehensive and collision on both. Ours is the only physical damage on file.'],
+    ['Injury protection and uninsured motorist', 'On the COI.', 'On our policy. Which pays first: need from Claudio.'],
+    ['Bobtail / non-trucking, occupational accident', 'Not shown on the COI.', 'Not on our policy. Schedule A rows are blank.']
+  ];
+  var TOT_LEASE = [
+    ['Fee', '13% of gross freight. The other 87% is credited to us.'],
+    ['What the 13% covers', 'Totni admin: load coordination, dispatch support, billing, collections and settlement. It does not buy our insurance.'],
+    ['We pay', 'Maintenance, tires, repairs, fuel, DEF, tolls, parking, and our own physical damage cover.'],
+    ['Deductions the lease allows', 'Insurance charges only as listed in Schedule A, fuel advances, repairs Totni paid for us, escrow only if signed, tolls and permits.'],
+    ['Settlement', 'Weekly statements. Pay within 15 days of the signed BOL and POD (our revision).'],
+    ['Ending it', '30 days written notice. Totni releases plates and refunds unused prepaid registration (our revision). Kansas law.']
+  ];
+  function pctTerm(P) {
+    var a = Date.UTC(+P.start.slice(0, 4), +P.start.slice(5, 7) - 1, +P.start.slice(8, 10)), b = Date.UTC(+P.end.slice(0, 4), +P.end.slice(5, 7) - 1, +P.end.slice(8, 10));
+    var t = todayIso(), n = Date.UTC(+t.slice(0, 4), +t.slice(5, 7) - 1, +t.slice(8, 10));
+    return Math.max(0, Math.min(100, (n - a) / (b - a) * 100));
+  }
+  function secTotni(I) {
+    var T = I && I.totni;
+    var n = daysTo(TOTNI.end), tone = tones(TOTNI.end);
+    var head = '<div class="in-sechead"><div class="in-kicker">Totni Enterprise LLC | MC 1122113</div><h2>Totni insurance</h2></div>';
+    var pol = card('in-totni', 'Totni policy', 'Leased onto Totni at 13%',
+      '<div class="in-big in-big-' + tone + '">' + (n < 0 ? 'Expired ' + (-n) + ' d ago' : n + ' days left') + '<span>COI on file ends ' + ymd(TOTNI.end) + '</span></div>' +
+      '<div class="in-term"><i style="width:' + pctTerm(TOTNI).toFixed(1) + '%"></i></div>' +
+      '<div class="in-term-l"><span>' + md(TOTNI.start) + '/' + TOTNI.start.slice(2, 4) + '</span><span>' + md(TOTNI.end) + '/' + TOTNI.end.slice(2, 4) + '</span></div>' +
+      (n <= 30 ? '<p class="in-call in-call-' + (n < 0 ? 'bad' : 'warn') + '">Renewal due. Ask Totni and Marquee for the renewed COI before ' + md(TOTNI.end) + '. Do not run loads on an expired COI.</p>' : '') +
+      '<div class="in-pol"><div class="in-kv"><span>Carrier</span><b>' + esc(TOTNI.insurer) + '</b></div><div class="in-kv"><span>Agency</span><b>' + esc(TOTNI.agency) + '</b></div>' +
+      '<div class="in-kv"><span>Named insured</span><b>Totni Enterprise LLC</b></div><div class="in-kv"><span>Policy</span><b>...' + esc(TOTNI.last4) + '</b></div></div>' + chips(TOTNI.types) +
+      (T ? '<div class="in-sub">Limits and deductibles on the COI</div>' + limitsRows(T.limits) : '<p class="in-fine">Unlock to see limits and deductibles.</p>'));
+    var coi = card('in-coi', 'COI status', '10/23/2026 on file',
+      '<div class="in-stat">' + pill('ok', 'COI dated 10/23/2026') + pill('ok', 'Our Ram scheduled') + pill('ok', 'We are additional insured') + pill(n <= 30 ? 'warn' : 'ok', 'Ends ' + md(TOTNI.end)) + pill('bad', 'Renewed COI: need') + pill('warn', 'Holder name typo') + '</div>' +
+      '<ul class="in-list">' + (T ? T.coi_notes : [
+        'Our 2026 Ram 3500 is a scheduled auto on the COI.',
+        'Sand Lily Pad is the certificate holder and is marked additional insured.',
+        'The holder name is misspelled on the COI. Ask Marquee to fix it.',
+        'The COI shows no driver list. Whether Meshach is scheduled is not shown.'
+      ]).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' +
+      '<p class="in-fine">Need a COI for a broker? Ask Claudio. The producer on file is Marquee Insurance Group.</p>');
+    var lease = card('in-lease', 'Lease with Totni', '13% arrangement',
+      '<div class="in-rows">' + TOT_LEASE.map(function (r) { return '<div class="in-row"><span>' + esc(r[0]) + '</span><b>' + esc(r[1]) + '</b></div>'; }).join('') + '</div>' +
+      '<p class="in-call in-call-warn">' + esc(T ? T.lease.status : 'A revised draft is on the box. A signed copy is not. Need from Claudio.') + '</p>' +
+      (T ? '<p class="in-fine">' + esc(T.lease.deductions_seen) + '</p>' : '<p class="in-fine">Unlock to see what deductions show up in settlements.</p>'));
+    var cmpRows = T ? T.compare.map(function (r) { return [r.topic, 'Totni: ' + r.totni, 'Ours: ' + r.ours, r.first]; })
+      : TOT_COMPARE_PUB.map(function (r) { return [r[0], 'Totni: ' + r[1], 'Ours: ' + r[2], null]; });
+    var cmp = card('in-cmp', 'Totni vs our policy', 'Who covers what',
+      '<div class="in-cmps">' + cmpRows.map(function (r) {
+        return '<div class="in-cmp"><b>' + esc(r[0]) + '</b><p><i class="t"></i>' + esc(r[1]) + '</p><p><i class="o"></i>' + esc(r[2]) + '</p>' +
+          (r[3] ? '<p class="in-first"><span>Pays first</span>' + esc(r[3]) + '</p>' : '') + '</div>';
+      }).join('') + '</div>' + (T ? '' : '<p class="in-fine">Unlock for limits, deductibles and the pays-first notes.</p>'));
+    var pay = T ? card('in-tpay', 'Who pays what', 'Totni side',
+      '<div class="in-rows">' + T.who_pays.map(function (r) {
+        return '<div class="in-row"><span>' + esc(r[0]) + '</span><b>' + esc(r[1]) + (r[2] ? '<small class="' + (r[2] === 'Open' ? 'in-open' : 'in-needtag') + '">' + esc(r[2]) + '</small>' : '') + '</b></div>';
+      }).join('') + '</div>') : '';
+    var steps = card('in-tsteps', 'If it happens under Totni', 'MC 1122113',
+      '<ol class="in-steps">' + TOT_STEPS.map(function (s, i) { return '<li><i>' + (i + 1) + '</i><div><b>' + esc(s[0]) + '</b><p>' + esc(s[1]) + '</p></div></li>'; }).join('') + '</ol>' +
+      '<p class="in-fine">Do the general accident steps below first (people, photos, police). Phone numbers are not in this app. Use the numbers on the ID card, the COI or Totni\'s paperwork.</p>');
+    var need = T ? card('in-tneed', 'Need from Claudio (' + T.need.length + ')', 'Totni',
+      '<ul class="in-list">' + T.need.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul><p class="in-fine">' + esc(T.risk) + '</p>')
+      : '<section class="in-card in-lockline"><p class="in-fine">Unlock with the PIN to see the Totni open items, who paid what, and limits.</p></section>';
+    return head + pol + coi + lease + cmp + pay + steps + need;
   }
 
   /* public */
@@ -239,7 +312,7 @@
     else if (st.error === 'nopin') gated = lockCard('Limits, deductibles, premiums, payments, drivers and claim status. Enter the app PIN to see them.');
     else if (st.loading) gated = (window.BlackRamApp && window.BlackRamApp.skeleton) ? window.BlackRamApp.skeleton('Loading insurance') : '<section class="in-card"><p class="in-fine">Loading...</p></section>';
     else gated = lockCard(st.error || 'Loading...');
-    var nav = [['in-pols', 'Policies'], ['in-prem', 'Premium'], ['in-pay', 'Payments'], ['in-lim', 'Limits'], ['in-claims', 'Claims'], ['in-tire', 'Tires'], ['in-steps', 'Accident'], ['in-docs', 'Documents']];
+    var nav = [['in-pols', 'Ours'], ['in-prem', 'Premium'], ['in-pay', 'Payments'], ['in-lim', 'Limits'], ['in-claims', 'Claims'], ['in-totni', 'Totni'], ['in-cmp', 'Who pays first'], ['in-tire', 'Tires'], ['in-steps', 'Accident'], ['in-docs', 'Documents']];
     var built = D && D.built_at ? new Date(D.built_at) : null;
     var stamp = built && !isNaN(built.getTime()) ? ' Private data built ' + built.toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + ' CT.' : '';
     el.innerHTML =
@@ -247,7 +320,7 @@
       '<div class="in-acts"><button type="button" class="in-btn" id="in-refresh" aria-label="Refresh">' + (st.loading ? '...' : 'Refresh') + '</button></div></div>' +
       secTiles() +
       '<nav class="in-jump">' + nav.map(function (j) { return '<a href="#' + j[0] + '" data-in-jump="' + j[0] + '">' + j[1] + '</a>'; }).join('') + '</nav>' +
-      secPolicies() + gated + secTire(I) + secSteps() + secDocs() +
+      secPolicies() + gated + secTotni(I) + secTire(I) + secSteps() + secDocs() +
       (I ? secNeed(I) : '') +
       '<p class="in-foot">Policy numbers show the last 4 only. Summary of the documents on file, not the policy contract. Check the dec page for the final word.' + esc(stamp) + (st.error && st.error !== 'nopin' && st.error !== 'wrongpin' ? ' ' + esc(st.error) : '') + '</p>';
     bind();
@@ -344,6 +417,21 @@
       '.in-doc.on .in-ck{background:var(--c-take);border-color:var(--c-take);box-shadow:inset 0 0 0 4px var(--c-surface-2)}' +
       '.in-dt b{display:block;font-size:var(--fs-sm);font-weight:800}.in-dt small{display:block;font-size:11px;color:var(--c-text-3);margin-top:1px}' +
       '.in-foot{margin:0;font-size:11px;color:var(--c-text-3);text-align:center;line-height:1.4}' +
+      '.in-sechead{margin-top:var(--s-2);padding-top:var(--s-2);border-top:2px solid var(--c-line-strong)}' +
+      '.in-sechead h2{margin:0;font-size:var(--fs-2xl);font-weight:var(--fw-black);color:var(--c-text-1);letter-spacing:-.01em}' +
+      '.in-big-warn{color:var(--c-maybe)}.in-big-bad{color:#FCA5A5}.in-big-ok{color:var(--c-take)}' +
+      '.in-term{height:10px;border-radius:var(--radius-pill);background:var(--c-surface-3);overflow:hidden}.in-term i{display:block;height:100%;background:var(--c-accent);border-radius:var(--radius-pill)}' +
+      '.in-term-l{display:flex;justify-content:space-between;font-size:11px;color:var(--c-text-3);font-weight:700;margin-top:-6px}' +
+      '.in-stat{display:flex;flex-wrap:wrap;gap:6px}' +
+      '.in-cmps{display:flex;flex-direction:column;gap:var(--s-1)}' +
+      '.in-cmp{background:var(--c-surface-2);border-radius:var(--radius-md);padding:var(--s-1h);display:flex;flex-direction:column;gap:5px}' +
+      '.in-cmp>b{font-size:var(--fs-md);color:var(--c-text-1);line-height:1.25}' +
+      '.in-cmp p{margin:0;font-size:var(--fs-sm);color:var(--c-text-2);line-height:1.4;display:flex;gap:8px;align-items:flex-start}' +
+      '.in-cmp i{flex:none;width:10px;height:10px;border-radius:3px;margin-top:5px}.in-cmp i.t{background:var(--c-gold)}.in-cmp i.o{background:var(--c-accent)}' +
+      '.in-cmp .in-first{display:block;border-top:1px solid var(--c-line);padding-top:6px;margin-top:2px;color:var(--c-text-1);font-weight:600}' +
+      '.in-first span{display:block;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--c-take);margin-bottom:2px}' +
+      '.in-row b small.in-open{color:var(--c-maybe);font-weight:800}.in-row b small.in-needtag{color:#FCA5A5;font-weight:800}' +
+      '.in-lockline{align-items:center;text-align:center}' +
       '.in-lock{align-items:center;text-align:center;padding:var(--s-4) var(--s-2)}' +
       '.in-lock h3{margin:0;font-size:var(--fs-xl);font-weight:800;color:var(--c-text-1)}' +
       '.in-lock-ico{width:56px;height:56px;border-radius:50%;background:var(--c-surface-3);color:var(--c-accent-hi);display:grid;place-items:center}.in-lock-ico svg{width:28px;height:28px}' +
