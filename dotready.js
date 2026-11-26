@@ -76,7 +76,7 @@
         });
       })
       .catch(function () { st.syncMsg = 'Offline. Showing this phone.'; })
-      .then(function () { st.loading = false; render(); flush(); });
+      .then(function () { st.loading = false; render(); if (st.sheet && st.sheet.mode === 'list') renderSheet(); flush(); });
   }
 
   /* ---------- check-offs: local queue + relay sync (same pattern as the maintenance log) ---------- */
@@ -213,6 +213,36 @@
     return r.days < 0 ? 'expired ' + (-r.days) + ' d ago' : r.days + ' d left';
   }
 
+  function chev() {
+    return '<svg class="dr-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
+  var LIST_META = {
+    gaps: { title: 'Known gaps', sub: 'Missing and due soon first, then unknown' },
+    gap: { title: 'Missing', sub: 'Items marked missing' },
+    soon: { title: 'Due soon', sub: 'Within 60 days of expiry' },
+    unk: { title: 'Unknown', sub: 'No evidence yet. Verify each one.' },
+    ok: { title: 'OK', sub: 'Has evidence or a check-off' }
+  };
+  function listWant(kind) {
+    if (kind === 'gaps') return function (x) { return x.r.s === 'gap' || x.r.s === 'soon' || x.r.s === 'unk' || x.r.s === 'stale'; };
+    if (kind === 'gap') return function (x) { return x.r.s === 'gap'; };
+    if (kind === 'soon') return function (x) { return x.r.s === 'soon'; };
+    if (kind === 'unk') return function (x) { return x.r.s === 'unk' || x.r.s === 'stale'; };
+    if (kind === 'ok') return function (x) { return x.r.s === 'ok'; };
+    return function () { return false; };
+  }
+  function listRows(kind) { return rows().filter(listWant(kind)).sort(cmpRows); }
+  function listCount(list) {
+    var c = { gap: 0, soon: 0, unk: 0, ok: 0 };
+    list.forEach(function (x) { if (x.r.s === 'gap') c.gap++; else if (x.r.s === 'soon') c.soon++; else if (x.r.s === 'ok') c.ok++; else if (x.r.s === 'unk' || x.r.s === 'stale') c.unk++; });
+    var bits = [];
+    if (c.gap) bits.push(c.gap + ' missing');
+    if (c.soon) bits.push(c.soon + ' due soon');
+    if (c.unk) bits.push(c.unk + ' unknown');
+    if (c.ok) bits.push(c.ok + ' OK');
+    return bits.join(', ') || 'None';
+  }
+
   /* ---------- charts ---------- */
   function donut(c, pct) {
     var R = 46, C = 2 * Math.PI * R, parts = [['ok', c.ok, 'var(--c-take)'], ['soon', c.soon, 'var(--c-maybe)'], ['unk', c.unk, '#8F86B8'], ['gap', c.gap, '#F87171']];
@@ -245,8 +275,8 @@
   function secScore(rs, S) {
     var gaps = rs.filter(function (x) { return x.r.s === 'gap'; }), unk = rs.filter(function (x) { return x.r.s === 'unk' || x.r.s === 'stale'; });
     var cg = costOf(gaps), cu = costOf(unk);
-    var leg = [['ok', 'OK', S.c.ok], ['soon', 'Due soon', S.c.soon], ['unk', 'Unknown', S.c.unk], ['gap', 'Missing', S.c.gap]].map(function (p) {
-      return '<div class="dr-leg"><i class="dr-sg dr-sg-' + p[0] + '"></i><span>' + p[1] + '</span><b>' + p[2] + '</b></div>';
+    var leg = [['ok', 'OK', S.c.ok, 'ok'], ['soon', 'Due soon', S.c.soon, 'soon'], ['unk', 'Unknown', S.c.unk, 'unk'], ['gap', 'Missing', S.c.gap, 'gap']].map(function (p) {
+      return '<button type="button" class="dr-leg" data-dr-list="' + p[3] + '" aria-label="Open ' + p[1] + ' list, ' + p[2] + ' items"><i class="dr-sg dr-sg-' + p[0] + '"></i><span>' + p[1] + '</span><b>' + p[2] + '</b>' + chev() + '</button>';
     }).join('');
     var groups = (st.pub.groups || []).map(function (g) {
       var list = rs.filter(function (x) { return x.it.g === g.id && x.r.s !== 'na'; }), s2 = score(list);
@@ -255,9 +285,9 @@
     return '<section class="dr-card dr-score"><div class="dr-sc-top">' + donut(S.c, S.pct) + '<div class="dr-legs">' + leg + '</div></div>' +
       '<div class="dr-sub">By group (weighted, % proven ready)</div><div class="dr-gbs">' + groups + '</div>' +
       '<div class="dr-tiles">' +
-      '<button type="button" class="dr-tile dr-t-cdl" data-dr-cdl="1" aria-expanded="' + st.cdl + '"><span>CDL</span><b>' + esc(st.pub.cdl.verdict.replace(' CDL required', '')) + '</b><small>Tap for the math</small></button>' +
-      '<div class="dr-tile dr-t-bad"><span>Known gaps</span><b>' + gaps.length + '</b><small>EST ' + esc(money(cg[0], cg[1])) + '</small></div>' +
-      '<div class="dr-tile"><span>Unknowns</span><b>' + unk.length + '</b><small>up to EST ' + esc(money(cu[0], cu[1])) + '</small></div></div>' +
+      '<button type="button" class="dr-tile dr-t-cdl" data-dr-cdl="1" aria-expanded="' + st.cdl + '"><span class="dr-tile-h">CDL' + chev() + '</span><b>' + esc(st.pub.cdl.verdict.replace(' CDL required', '')) + '</b><small>Tap for the math</small></button>' +
+      '<button type="button" class="dr-tile dr-t-bad" data-dr-list="gaps" aria-label="Open known gaps"><span class="dr-tile-h">Known gaps' + chev() + '</span><b>' + gaps.length + '</b><small>EST ' + esc(money(cg[0], cg[1])) + '</small></button>' +
+      '<button type="button" class="dr-tile" data-dr-list="unk" aria-label="Open unknowns"><span class="dr-tile-h">Unknowns' + chev() + '</span><b>' + unk.length + '</b><small>up to EST ' + esc(money(cu[0], cu[1])) + '</small></button></div>' +
       '<p class="dr-fine">Proven ready counts only what has evidence or a check-off. Unknown is not OK. Costs are EST. For the unknowns the cost is what it would be if each one turns out to be missing.</p></section>';
   }
   function secCdl() {
@@ -322,9 +352,12 @@
       h = document.createElement('div'); h.id = 'dr-sheet'; h.className = 'dr-sheet'; h.hidden = true;
       document.body.appendChild(h);
       h.addEventListener('click', function (e) {
-        var t = e.target;
+        var t = e.target, b;
         if (t && t.hasAttribute && t.hasAttribute('data-dr-close')) { closeSheet(); return; }
-        var b = t && t.closest ? t.closest('[data-dr-save],[data-dr-undo],[data-dr-redo]') : null;
+        if (!t || !t.closest) return;
+        if ((b = t.closest('[data-dr-chk]'))) { quickCheck(b.getAttribute('data-dr-chk')); return; }
+        if ((b = t.closest('[data-dr-open]'))) { openSheet(b.getAttribute('data-dr-open')); return; }
+        b = t.closest('[data-dr-save],[data-dr-undo],[data-dr-redo]');
         if (!b) return;
         if (b.hasAttribute('data-dr-save')) saveSheet(b.getAttribute('data-dr-save'));
         else if (b.hasAttribute('data-dr-undo')) undoEntry(b.getAttribute('data-dr-undo'));
@@ -340,23 +373,54 @@
     }
     return h;
   }
-  function openSheet(id) {
-    var it = itemById(id); if (!it) return;
-    var r = calc(it);
-    st.sheet = { id: id, f: { date: todayIso(), exp: (r.exp && r.src !== 'base') ? r.exp : (it.exp || ''), note: '' }, err: '' };
+  function openList(kind) {
+    if (!LIST_META[kind]) return;
+    st.sheet = { mode: 'list', kind: kind, scroll: 0 };
     renderSheet();
     var h = sheetHost(), c = h.querySelector('.dr-sh-x'); if (c) c.focus();
   }
-  function closeSheet() { st.sheet = null; renderSheet(); }
+  function openSheet(id) {
+    var it = itemById(id); if (!it) return;
+    var r = calc(it);
+    var back = null;
+    if (st.sheet && st.sheet.mode === 'list') {
+      var body = document.querySelector('#dr-sheet .dr-sh-body');
+      back = { mode: 'list', kind: st.sheet.kind, scroll: body ? body.scrollTop : 0 };
+    } else if (st.sheet && st.sheet.back) back = st.sheet.back;
+    st.sheet = { mode: 'item', id: id, f: { date: todayIso(), exp: (r.exp && r.src !== 'base') ? r.exp : (it.exp || ''), note: '' }, err: '', back: back };
+    renderSheet();
+    var h = sheetHost(), c = h.querySelector('.dr-sh-x'); if (c) c.focus();
+  }
+  function dismissSheet() { st.sheet = null; renderSheet(); }
+  function closeSheet() {
+    if (st.sheet && st.sheet.mode === 'item' && st.sheet.back) { st.sheet = st.sheet.back; renderSheet(); return; }
+    dismissSheet();
+  }
   function histRow(e) {
     var pn = parseNote(e.note), lab = pn.s === 'na' ? 'N/A' : (pn.s === 'bad' ? 'Problem' : 'OK');
     return '<div class="dr-hrow' + (e.undone ? ' dr-undone' : '') + '"><div class="dr-hrow-m"><b>' + ymd(e.date) + ' | ' + lab + (pn.exp ? ' | expires ' + ymd(pn.exp) : '') + '</b>' +
       (pn.text ? '<span>' + esc(pn.text) + '</span>' : '') + (e.pending ? '<span class="dr-chip">Waiting to sync</span>' : '') + (e.undone ? '<span class="dr-chip">Undone</span>' : '') + '</div>' +
       (e.undone ? '<button type="button" class="dr-mini" data-dr-redo="' + esc(e.id) + '">Restore</button>' : '<button type="button" class="dr-mini" data-dr-undo="' + esc(e.id) + '">Undo</button>') + '</div>';
   }
+  function renderListSheet() {
+    var h = sheetHost(), kind = st.sheet.kind, meta = LIST_META[kind] || LIST_META.gaps, list = listRows(kind);
+    var keep = st.sheet.scroll || 0;
+    h.hidden = false; document.documentElement.classList.add('dr-noscroll');
+    var cost = '';
+    if (kind === 'gaps' || kind === 'gap' || kind === 'unk' || kind === 'soon') {
+      var c = costOf(list);
+      cost = '<p class="dr-fine">' + (kind === 'unk' ? 'Up to EST ' : 'EST ') + esc(money(c[0], c[1])) + (kind === 'unk' || kind === 'gaps' ? ' if each unknown turns out to be missing. Costs are EST.' : '. Costs are EST.') + '</p>';
+    }
+    var body = list.length ? '<div class="dr-list">' + list.map(rowHtml).join('') + '</div>' : '<p class="dr-p">None in this group.</p>';
+    h.innerHTML = '<div class="dr-sh-bd" data-dr-close="1"></div><div class="dr-sh-p" role="dialog" aria-modal="true" aria-label="' + esc(meta.title) + '"><div class="dr-sh-grab" aria-hidden="true"></div>' +
+      '<div class="dr-sh-h"><div><b>' + esc(meta.title) + '</b><span>' + esc(listCount(list)) + '. ' + esc(meta.sub) + '</span></div><button type="button" class="dr-sh-x" data-dr-close="1" aria-label="Close">Close</button></div>' +
+      '<div class="dr-sh-body">' + cost + body + '<p class="dr-fine">Tap a row for the fix, the cost, the citation and the check-off form.</p></div></div>';
+    var nb = h.querySelector('.dr-sh-body'); if (nb) nb.scrollTop = keep;
+  }
   function renderSheet() {
     var h = sheetHost();
     if (!st.sheet || !st.pub) { h.hidden = true; h.innerHTML = ''; document.documentElement.classList.remove('dr-noscroll'); return; }
+    if (st.sheet.mode === 'list') { renderListSheet(); return; }
     var it = itemById(st.sheet.id); if (!it) { st.sheet = null; renderSheet(); return; }
     var r = calc(it), f = st.sheet.f;
     var mine = effEntries().filter(function (e) { return e.item_id === 'dot-' + it.id; }).sort(cmpEntry).reverse();
@@ -366,7 +430,7 @@
     var links = (it.links || []).map(function (l) { return '<a class="dr-link" href="' + esc(l[1]) + '" target="_blank" rel="noopener noreferrer">' + esc(l[0]) + '</a>'; }).join('');
     var showExp = !!(it.wantexp || it.exp || it.maint_exp_months);
     h.innerHTML = '<div class="dr-sh-bd" data-dr-close="1"></div><div class="dr-sh-p" role="dialog" aria-modal="true" aria-label="' + esc(it.t) + '"><div class="dr-sh-grab" aria-hidden="true"></div>' +
-      '<div class="dr-sh-h"><div><b>' + esc(it.t) + '</b><span>' + esc(it.cfr) + '</span></div><button type="button" class="dr-sh-x" data-dr-close="1" aria-label="Close">Close</button></div>' +
+      '<div class="dr-sh-h"><div><b>' + esc(it.t) + '</b><span>' + esc(it.cfr) + '</span></div><button type="button" class="dr-sh-x" data-dr-close="1" aria-label="' + (st.sheet.back ? 'Back to the list' : 'Close') + '">' + (st.sheet.back ? 'Back' : 'Close') + '</button></div>' +
       '<div class="dr-sh-body"><div class="dr-sh-info">' + pill(r.s === 'stale' ? 'unk' : r.s, r.label) + (r.date ? '<span class="dr-m">' + (r.src === 'maint' ? 'Maintenance job done ' : 'Checked ') + ymd(r.date) + '</span>' : '') + (dueTxt(r) ? '<span class="dr-m">' + esc(dueTxt(r)) + (r.exp ? ' (' + ymd(r.exp) + ')' : '') + '</span>' : '') + '</div>' +
       '<div class="dr-sub">What we found</div><p class="dr-p">' + esc(it.ev) + '</p>' +
       '<div class="dr-sub">What the inspector checks</div><p class="dr-p">' + esc(it.why) + '</p>' +
@@ -402,7 +466,7 @@
     if ((r.s === 'ok' && r.src !== 'base') || it.wantexp || it.exp || it.maint_exp_months) { openSheet(id); return; }
     var entry = addEntry(it, 'ok', todayIso(), '', '');
     setToast('Checked off: ' + it.t + '. ' + (pin() ? 'Saving to every device...' : 'Saved on this phone. Enter the PIN to sync.'), entry.id);
-    render(); flush();
+    render(); if (st.sheet && st.sheet.mode === 'list') renderSheet(); flush();
   }
   function calcInput(t) {
     if (!t || !t.id) return;
@@ -437,6 +501,7 @@
       if (!t || !t.closest) return;
       if ((b = t.closest('[data-dr-chk]'))) { quickCheck(b.getAttribute('data-dr-chk')); return; }
       if ((b = t.closest('[data-dr-open]'))) { openSheet(b.getAttribute('data-dr-open')); return; }
+      if ((b = t.closest('[data-dr-list]'))) { openList(b.getAttribute('data-dr-list')); return; }
       if ((b = t.closest('[data-dr-grp]'))) { var g = b.getAttribute('data-dr-grp'); st.open[g] = !st.open[g]; render(); return; }
       if (t.closest('[data-dr-cdl]')) { st.cdl = !st.cdl; render(); var c = document.getElementById('dr-cdl'); if (st.cdl && c && c.scrollIntoView) c.scrollIntoView({ block: 'start', behavior: 'smooth' }); return; }
       if (t.closest('[data-dr-all]')) { st.all = !st.all; render(); return; }
@@ -471,15 +536,17 @@
       '.dr-sub{font-size:var(--fs-xs);font-weight:800;color:var(--c-text-3);text-transform:uppercase;letter-spacing:.06em;margin-top:4px}' +
       '.dr-sc-top{display:flex;align-items:center;gap:var(--s-2)}.dr-donut{width:132px;height:132px;flex:none}' +
       '.dr-dn{font-size:26px;font-weight:900;fill:var(--c-text-1)}.dr-dl{font-size:9px;font-weight:800;fill:var(--c-text-3);letter-spacing:.04em;text-transform:uppercase}' +
-      '.dr-legs{display:flex;flex-direction:column;gap:8px;flex:1;min-width:0}.dr-leg{display:grid;grid-template-columns:14px 1fr auto;align-items:center;gap:8px;font-size:var(--fs-sm);color:var(--c-text-2);font-weight:700}.dr-leg b{color:var(--c-text-1);font-weight:900;font-variant-numeric:tabular-nums;font-size:var(--fs-lg)}' +
+      '.dr-legs{display:flex;flex-direction:column;gap:4px;flex:1;min-width:0}.dr-leg{display:grid;grid-template-columns:14px 1fr auto 14px;align-items:center;gap:8px;min-height:32px;padding:0;margin:0;background:none;border:0;width:100%;text-align:left;font:inherit;font-size:var(--fs-sm);font-weight:700;color:var(--c-text-2);cursor:pointer;-webkit-appearance:none;appearance:none}.dr-leg b{color:var(--c-text-1);font-weight:900;font-variant-numeric:tabular-nums;font-size:var(--fs-lg)}' +
+      '.dr-chev{width:16px;height:16px;flex:none;color:var(--c-text-3)}.dr-leg .dr-chev{width:14px;height:14px}' +
       '.dr-sg{display:inline-block;height:100%;min-height:12px}.dr-leg .dr-sg{width:14px;height:14px;min-height:0;border-radius:4px}' +
       '.dr-sg-ok{background:var(--c-take)}.dr-sg-soon{background:var(--c-maybe)}.dr-sg-unk{background:#8F86B8}.dr-sg-gap{background:#F87171}' +
       '.dr-stack{display:flex;height:12px;border-radius:var(--radius-pill);background:var(--c-surface-3);overflow:hidden}' +
       '.dr-gbs{display:flex;flex-direction:column;gap:6px}.dr-gb{display:grid;grid-template-columns:1fr 84px 40px;align-items:center;gap:var(--s-1);text-decoration:none;color:var(--c-text-2);font-size:12px;font-weight:700;min-height:28px}.dr-gb b{text-align:right;color:var(--c-text-1);font-weight:800;font-variant-numeric:tabular-nums}.dr-gb>span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
       '.dr-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s-1)}' +
-      '.dr-tile{background:var(--c-surface-2);border:1px solid var(--c-line);border-radius:var(--radius-md);padding:var(--s-1h) var(--s-1);display:flex;flex-direction:column;gap:2px;min-width:0;text-align:left;font:inherit}' +
+      '.dr-tile{background:var(--c-surface-2);border:1px solid var(--c-line);border-radius:var(--radius-md);padding:var(--s-1h) var(--s-1);display:flex;flex-direction:column;gap:2px;min-width:0;min-height:var(--tap);text-align:left;font:inherit;color:inherit;-webkit-appearance:none;appearance:none}' +
       '.dr-tile span{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--c-text-3)}.dr-tile b{font-size:var(--fs-lg);font-weight:900;color:var(--c-text-1);line-height:1.15;overflow-wrap:anywhere}.dr-tile small{font-size:11px;color:var(--c-text-3);line-height:1.25}' +
-      '.dr-t-bad b{color:#FCA5A5}.dr-t-bad{border-color:#F87171}button.dr-tile{cursor:pointer;border-color:var(--c-gold)}.dr-t-cdl b{color:var(--c-gold)}' +
+      '.dr-tile-h{display:flex;align-items:center;justify-content:space-between;gap:4px;width:100%}.dr-tile-h .dr-chev{color:var(--c-text-2)}.dr-t-bad .dr-chev{color:#FCA5A5}.dr-t-cdl .dr-chev{color:var(--c-gold)}' +
+      '.dr-t-bad b{color:#FCA5A5}.dr-t-bad{border-color:#F87171}.dr-t-cdl{border-color:var(--c-gold)}.dr-t-cdl b{color:var(--c-gold)}button.dr-tile{cursor:pointer}button.dr-tile:not(.dr-t-cdl):not(.dr-t-bad){border-color:var(--c-line-strong)}button.dr-tile:active,button.dr-leg:active{opacity:.88}' +
       '.dr-rows{display:flex;flex-direction:column}.dr-r{display:flex;justify-content:space-between;align-items:flex-start;gap:var(--s-1);padding:7px 0;border-bottom:1px solid var(--c-line);font-size:var(--fs-sm);color:var(--c-text-2)}.dr-r:last-child{border-bottom:0}.dr-r>span{flex:0 1 44%}.dr-r b{flex:1;text-align:right;color:var(--c-text-1);font-weight:800}' +
       '.dr-list{display:flex;flex-direction:column;gap:var(--s-1)}' +
       '.dr-row{display:flex;align-items:stretch;gap:var(--s-1);background:var(--c-surface-2);border-radius:var(--radius-md);border-left:4px solid #8F86B8;overflow:hidden}' +
@@ -519,7 +586,7 @@
   function onShow() { loadPublic(); render(); if (st.pub) fetchSrv(); flush(); }
   function init() {
     css(); bind();
-    document.addEventListener('blackram:tab', function (e) { if (e.detail && e.detail.tab === 'dot') onShow(); else if (st.sheet) closeSheet(); });
+    document.addEventListener('blackram:tab', function (e) { if (e.detail && e.detail.tab === 'dot') onShow(); else if (st.sheet) dismissSheet(); });
     window.addEventListener('online', flush);
     if (document.documentElement.getAttribute('data-tab') === 'dot') onShow();
   }
