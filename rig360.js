@@ -18,7 +18,7 @@
      in 0.6 s and eases the camera to a rear 3/4 of the bed, showing the gold
      CURT gooseneck ball on a dark puck plate. Tap again or Reset closes it.
    - Toolbox (Trailer and Rig): the Big Tex storage box sits under the gooseneck,
-     in the gap ahead of the deck. Tap or 'Tap toolbox' opens the lid on the
+     in the gap ahead of the deck. Tap or 'Tap toolbox' opens the front lid
      straps, chains, binders and winch bar; the camera eases to it. Tap again
      or Reset closes it. Taps are raycast and ignored if the pointer dragged.
    - prefers-reduced-motion: no auto-spin and no coasting; openings snap;
@@ -246,6 +246,7 @@
     var inspectKind = null; // 'tailgate' | 'toolbox' | null
     var inspectOpen = 0;    // 0 closed .. 1 open (eased)
     var anim = null;
+    var camHold = null; // frame a part from the front without opening it
     var raycaster = new THREE.Raycaster();
     var ndc = new THREE.Vector2();
     var _look = new THREE.Vector3();
@@ -285,12 +286,21 @@
         return { look: worldAt(-7.8, 3.4, 0, ang), cam: worldAt(-17.8, 9.6, 7.2, ang), angle: 2.05 };
       }
       var tb = rig.tb;
-      // From the lid side, far enough back and only a little above the hinge, looking down into the box.
-      return { look: worldAt(tb.x, tb.y - 0.1, tb.z + 0.2, ang), cam: worldAt(tb.x + 3.2, tb.y + 2.0, tb.z + 9.5, ang), angle: 0.35 };
+      // From the front (toward the truck / gooseneck neck, +x), slightly to the
+      // passenger side and a little above, looking into the open front door.
+      return { look: worldAt(tb.x + 0.15, tb.y - 0.05, tb.z, ang), cam: worldAt(tb.x + 9.2, tb.y + 2.6, tb.z + 4.4, ang), angle: 0.55 };
+    }
+    function applyHeldCam() {
+      if (!camHold || anim || inspectKind) return;
+      var pose = inspectPose(camHold, inspectPose(camHold, 0).angle);
+      angle = pose.angle;
+      camera.position.copy(pose.cam);
+      camera.lookAt(pose.look);
+      camera.updateProjectionMatrix();
     }
     function applyPartPose(open) {
       if (rig.tailgate) rig.tailgate.rotation.z = (inspectKind === 'tailgate' ? open : 0) * (Math.PI / 2);
-      if (rig.toolboxLid) rig.toolboxLid.rotation.x = (inspectKind === 'toolbox' ? open : 0) * (-Math.PI * 0.62);
+      if (rig.toolboxLid) rig.toolboxLid.rotation.z = (inspectKind === 'toolbox' ? open : 0) * (Math.PI * 0.62);
       if (rig.ballLight) rig.ballLight.intensity = (inspectKind === 'tailgate' ? open : 0) * 2.2;
     }
     function applyInspectCamera(open, fromAng, toAng, fromCam, fromLook) {
@@ -385,10 +395,11 @@
       }
     }
     function toggleInspect(kind) {
+      camHold = null;
       if (inspectKind && inspectKind !== kind) {
         // close the other first, then open this one on the next tick of the close? snap-close other.
         if (rig.tailgate) rig.tailgate.rotation.z = 0;
-        if (rig.toolboxLid) rig.toolboxLid.rotation.x = 0;
+        if (rig.toolboxLid) { rig.toolboxLid.rotation.x = 0; rig.toolboxLid.rotation.z = 0; }
         inspectOpen = 0;
       }
       var opening = !(inspectKind === kind && inspectOpen > 0.5);
@@ -397,6 +408,7 @@
       startAnim(kind, true);
     }
     function closeInspect(snap) {
+      camHold = null;
       if (!inspectKind && inspectOpen < 0.01) return;
       if (snap || reduceMotion) {
         inspectKind = null;
@@ -447,6 +459,7 @@
       halfLen = subject === 'trailer' ? 26.5 : subject === 'truck' ? 13 : 33.5;
       baseDist = halfLen / Math.tan(hfov / 2) + (subject === 'trailer' ? 11 : subject === 'truck' ? 9 : 13);
       if (inspectKind && inspectOpen > 0.5 && !anim) applyInspectCamera(1, angle, angle, camera.position, currentLookAt());
+      else if (camHold) applyHeldCam();
       else applyCamera();
     }
 
@@ -491,6 +504,8 @@
       }
       if (!anim && inspectKind && inspectOpen > 0.99) {
         applyInspectCamera(1, angle, angle, camera.position, currentLookAt());
+      } else if (camHold) {
+        applyHeldCam();
       }
       render();
       if (wantsLoop()) raf = requestAnimationFrame(frame);
@@ -762,6 +777,12 @@
       pause: function (p) { lastInput = p ? 1e15 : -1e9; update(); },
       toggleTailgate: function () { toggleInspect('tailgate'); },
       toggleToolbox: function () { toggleInspect('toolbox'); },
+      framePart: function (kind) {
+        camHold = kind;
+        lastInput = 1e15;
+        applyHeldCam();
+        render();
+      },
       closeInspect: closeInspect,
       inspecting: function () { return inspectKind; },
       inspectOpen: function () { return inspectOpen; }
@@ -1135,11 +1156,12 @@
     toolbox.userData.part = 'toolbox';
     group.add(toolbox);
     var tbInvis = new THREE.MeshBasicMaterial({ visible: false });
-    // Body: floor, front, back, -z wall, open +z face for the lid
+    // Body: floor, top, both sides, rear wall; the +x (front, toward the truck) is the door
     box(TB.lx, 0.08, TB.lz, boxMat, 0, -TB.ly / 2 + 0.04, 0, toolbox);
+    box(TB.lx, 0.08, TB.lz, boxMat, 0, TB.ly / 2 - 0.04, 0, toolbox);
     box(TB.lx, TB.ly, 0.08, boxMat, 0, 0, -TB.lz / 2 + 0.04, toolbox);
-    box(0.08, TB.ly, TB.lz - 0.08, boxMat, -TB.lx / 2 + 0.04, 0, 0.02, toolbox);
-    box(0.08, TB.ly, TB.lz - 0.08, boxMat, TB.lx / 2 - 0.04, 0, 0.02, toolbox);
+    box(TB.lx, TB.ly, 0.08, boxMat, 0, 0, TB.lz / 2 - 0.04, toolbox);
+    box(0.08, TB.ly, TB.lz - 0.08, boxMat, -TB.lx / 2 + 0.04, 0, 0, toolbox);
     var interior = new THREE.MeshStandardMaterial({ color: 0x1c1c20, roughness: 0.8, metalness: 0.2 });
     box(TB.lx - 0.16, 0.02, TB.lz - 0.16, interior, 0, -TB.ly / 2 + 0.09, 0, toolbox);
     // Contents: rolled straps, chain coils, ratchet binders, winch bar
@@ -1173,20 +1195,20 @@
     binder(-0.55, 0.7, 0.3);
     binder(0.15, 0.75, -0.2);
     binder(0.7, 0.55, 0.5);
-    // winch bar along the +x wall
-    var wbar = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 1.85, 8), M.bar);
-    wbar.rotation.z = Math.PI / 2;
-    add(wbar, 0.05, -TB.ly / 2 + 0.16, 0.9, toolbox);
-    var wcap = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.18), M.bar);
-    add(wcap, -0.95, -TB.ly / 2 + 0.16, 0.9, toolbox);
-    // Lid: +z face, hinged at the top edge, swings up and out
+    // winch bar across the back of the box, visible from the front opening
+    var wbar = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 2.2, 8), M.bar);
+    wbar.rotation.x = Math.PI / 2;
+    add(wbar, -0.55, -TB.ly / 2 + 0.16, 0, toolbox);
+    var wcap = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.12, 0.12), M.bar);
+    add(wcap, -0.55, -TB.ly / 2 + 0.16, 1.15, toolbox);
+    // Lid: +x face (toward the truck / gooseneck neck), hinged at the top, swings up and out
     var toolboxLid = new THREE.Group();
-    toolboxLid.position.set(0, TB.ly / 2, TB.lz / 2);
+    toolboxLid.position.set(TB.lx / 2, TB.ly / 2, 0);
     toolboxLid.userData.part = 'toolbox';
     toolbox.add(toolboxLid);
-    box(TB.lx, TB.ly, 0.08, boxMat, 0, -TB.ly / 2, 0.04, toolboxLid);
-    box(0.5, 0.08, 0.1, M.frame, 0, -TB.ly * 0.15, 0.1, toolboxLid); // latch
-    var tbHit = box(TB.lx + 0.2, TB.ly + 0.2, 0.7, tbInvis, 0, -TB.ly / 2, 0.1, toolboxLid);
+    box(0.08, TB.ly, TB.lz, boxMat, 0.04, -TB.ly / 2, 0, toolboxLid);
+    box(0.1, 0.08, 0.5, M.frame, 0.1, -TB.ly * 0.15, 0, toolboxLid); // latch
+    var tbHit = box(0.7, TB.ly + 0.2, TB.lz + 0.2, tbInvis, 0.1, -TB.ly / 2, 0, toolboxLid);
     tbHit.userData.part = 'toolbox';
     var tbBodyHit = box(TB.lx, TB.ly, TB.lz, tbInvis, 0, 0, 0, toolbox);
     tbBodyHit.userData.part = 'toolbox';
