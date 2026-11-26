@@ -94,7 +94,9 @@ button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
 }
 .top-row {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
   min-height: 36px;
 }
 .logo-wrap { display: flex; justify-content: center; }
@@ -3703,4 +3705,170 @@ article.load {
   text-transform: none;
   letter-spacing: 0.015em;
   color: var(--purple-hi);
+}
+
+/* v40 Our rig heading lives inside Show specs */
+.rig-card > .rig-figure { margin-top: 8px; }
+.rig-specs-title {
+  margin: 12px 0 0;
+  font-family: var(--display);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0.015em;
+  text-transform: none;
+  color: var(--gold);
+}
+
+/* v40 stale pull: grey pill instead of Live after 60 min */
+.fresh-pill.aged {
+  background: rgba(185, 179, 204, 0.14);
+  border: 1px solid rgba(185, 179, 204, 0.38);
+  color: var(--muted);
+  font-weight: 500;
+  letter-spacing: 0.015em;
+  text-transform: none;
+}
+
+.call-sheet-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--purple);
+  background: rgba(167, 139, 250, 0.12);
+  color: var(--purple-hi);
+  font-family: var(--body);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.015em;
+}
+
+/* v40 Broker Call Sheet */
+.callsheet .sheet-inner { padding-bottom: 24px; }
+.callsheet-h {
+  margin: 18px 0 8px;
+  font-family: var(--display);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.015em;
+  text-transform: none;
+  color: var(--gold);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 4px;
+}
+.callsheet-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0 4px;
+}
+.callsheet-copy-status {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--stripe-take);
+}
+.callsheet-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.callsheet-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  column-gap: 8px;
+  row-gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(20, 17, 31, 0.55);
+}
+.callsheet-k {
+  grid-column: 1;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--muted);
+}
+.callsheet #callsheet-title {
+  text-transform: none;
+  letter-spacing: 0.015em;
+  font-size: 20px;
+  font-weight: 600;
+}
+.callsheet-v {
+  grid-column: 1;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--cream);
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+.callsheet-row.callsheet-wide {
+  grid-template-columns: 1fr;
+}
+.callsheet-row.callsheet-wide .copy-btn {
+  grid-column: 1;
+  grid-row: auto;
+  justify-self: start;
+  margin-top: 4px;
+}
+.callsheet-v a { color: var(--purple-hi); }
+.callsheet-row .copy-btn {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  min-height: 36px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--purple);
+  background: transparent;
+  color: var(--purple-hi);
+  font-size: 13px;
+  font-weight: 600;
+}
+.callsheet-v.ask-claudio {
+  font-weight: 600;
+  color: #FDE68A;
+}
+.ask-note {
+  display: block;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.callsheet-ask {
+  margin: 0 0 12px;
+  padding-left: 1.2rem;
+}
+.callsheet-ask li {
+  margin: 6px 0;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--cream);
+}
+.callsheet-notes-label {
+  display: block;
+  margin: 8px 0 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.callsheet-notes {
+  width: 100%;
+  min-height: 96px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--cream);
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1.5;
+  resize: vertical;
 }

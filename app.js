@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v39';
+  var APP_VERSION = 'v40';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -1563,7 +1563,8 @@
       keyMetricsGrid(ledgerRow, gridOpts) +
       milesStrip(miles, emp.mi, { loadedEst: !!load.miles_estimate, emptyEst: true, emptyFrom: emp.from }) +
       fitRow +
-      '<div class="search-actions">' + deliverBits + toggle + '</div>' +
+      '<div class="search-actions">' + deliverBits +
+      '<button type="button" class="call-sheet-btn">Call sheet</button>' + toggle + '</div>' +
       routePane + '</article>';
   }
 
@@ -3277,21 +3278,34 @@
     var label = PULL_STEP_LABELS[st.state] || st.state;
     var updated = formatChicagoHM(st.updated_at);
     var origin = st.origin ? String(st.origin) : '';
-    var showBar = pullIsActive(st) || st.state === 'live' || st.state === 'failed';
+    var ageMs = (function () {
+      var ref = parsePullTime(st.updated_at) || parsePullTime(st.started_at) || parsePullTime(currentScanStamp());
+      return ref ? (Date.now() - ref.getTime()) : null;
+    }());
+    var fresh = ageMs != null && ageMs < 60 * 60 * 1000;
+    var showLiveBar = st.state === 'live' && fresh;
+    var showBar = pullIsActive(st) || showLiveBar || st.state === 'failed';
     if (showBar) {
-      var fillCls = st.state === 'live' ? ' live' : (st.state === 'failed' ? ' failed' : '');
+      var fillCls = showLiveBar ? ' live' : (st.state === 'failed' ? ' failed' : '');
       html += '<div class="pull-progress-row">' +
         '<div class="pull-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' +
         pct + '" aria-label="Search progress">' +
         '<div class="pull-progress-fill' + fillCls + '" style="width:' + pct + '%"></div></div>' +
         '<span class="pull-progress-pct">' + pct + '%</span></div>';
-      html += '<p class="pull-progress-step">' + esc(label + ' ' + pct + '%') + '</p>';
+      var stepText = pullIsActive(st) || showLiveBar ? (label + ' ' + pct + '%') : label;
+      html += '<p class="pull-progress-step">' + esc(stepText) + '</p>';
     }
-    if (st.state === 'live') {
+    if (st.state === 'live' && fresh) {
       var fits = st.counts && st.counts.fits != null ? Number(st.counts.fits) : null;
       var banner = 'Loads updated' + (updated ? ' ' + updated : '');
       if (fits != null && isFinite(fits)) banner += ' - ' + fits + ' fit' + (fits === 1 ? '' : 's');
       html += '<p class="pull-progress-banner ok">' + esc(banner) + '</p>';
+    } else if (st.state === 'live' && !fresh) {
+      var lastWhen = updated || formatChicagoHM(st.started_at) || formatChicagoHM(currentScanStamp());
+      var ageLabel = formatAgeOld(ageMs);
+      html += '<p class="pull-progress-meta">' +
+        esc('Last pull ' + (lastWhen ? lastWhen + ' CT' : '') + (lastWhen && ageLabel ? ' - ' : '') + ageLabel) +
+        '</p>';
     } else if (st.state === 'idle') {
       html += '<p class="pull-progress-meta">Last scan' +
         (updated ? ' ' + updated : (currentScanStamp() ? ' ' + esc(currentScanStamp()) : ' - none yet')) +
@@ -3336,12 +3350,11 @@
     var st = state.pullStatus;
     var ref = feedFreshnessRef();
     var ageMs = ref ? (Date.now() - ref.getTime()) : null;
-    if (st && st.state === 'live' && ageMs != null && ageMs <= 30 * 60 * 1000) {
+    if (st && st.state === 'live' && ageMs != null && ageMs < 60 * 60 * 1000) {
       return { cls: 'fresh-pill live', text: 'Live' };
     }
     if (ageMs == null) return { cls: 'fresh-pill', text: '' };
-    var stale = ageMs > 6 * 3600000;
-    return { cls: 'fresh-pill' + (stale ? ' stale' : ''), text: formatAgeOld(ageMs) };
+    return { cls: 'fresh-pill aged', text: formatAgeOld(ageMs) };
   }
 
   function fetchPullStatus() {
@@ -5223,7 +5236,8 @@
   function searchActions(row, detailsToggle) {
     var href = openLoadHref(row);
     var html = '<div class="search-actions">' +
-      '<a class="search-link" href="' + esc(href) + '" target="_blank" rel="noopener noreferrer">Open load</a>';
+      '<a class="search-link" href="' + esc(href) + '" target="_blank" rel="noopener noreferrer">Open load</a>' +
+      '<button type="button" class="call-sheet-btn">Call sheet</button>';
     var mail = brokerMailto(row);
     var tel = brokerTel(row);
     var hiddenDf = row && row.board === 'Direct Freight' && !row.broker && !row.broker_mc;
@@ -5466,7 +5480,7 @@
       fitRow +
       (reason ? '<p class="search-reason">' + esc(reason) + '</p>' : '') +
       routeWxHtml(combo) +
-      '<div class="search-actions"><button type="button" class="details-toggle-btn" aria-expanded="false">Legs, stops &amp; map</button></div>' +
+      '<div class="search-actions"><button type="button" class="call-sheet-btn">Call sheet</button><button type="button" class="details-toggle-btn" aria-expanded="false">Legs, stops &amp; map</button></div>' +
       detailsHtml +
       '</article>';
   }
@@ -5925,6 +5939,151 @@
     window.scrollTo(0, 0);
   }
 
+
+  var CALLSHEET_NOTES_KEY = 'blackram_broker_load_notes_v1';
+
+  function callSheetPacket() {
+    var notes = '';
+    var ta = $('callsheet-notes');
+    if (ta) notes = String(ta.value || '').trim();
+    var lines = [
+      'BLACK RAM LOGISTICS / SAND LILY PAD LLC',
+      'We run under Totni Enterprise LLC authority',
+      'MC 1122113    DOT 3448727',
+      '',
+      'INSURANCE (Totni COI dated 10/23/2026, for loads under MC 1122113)',
+      'Insurer: United Financial Casualty Company (Progressive)',
+      'Auto liability: $1,000,000',
+      'Cargo: $100,000 ($2,500 deductible)',
+      'Policy ending in 8412',
+      'Request a COI: ask Claudio (producer on file is Marquee Insurance Group LLC)',
+      '',
+      'EQUIPMENT',
+      '2026 Ram 3500 dually',
+      'Big Tex 25GN-40 gooseneck',
+      '40 ft deck, including about 5 ft dovetail with mega ramps',
+      '102 in wide, 34 in deck height',
+      'Max cargo: 12,500 lb OK; up to 15,300 lb with a scale check',
+      'Tarps and straps on board',
+      'No semi loads',
+      '',
+      'LANES',
+      'Home base: Jacksonville, FL area',
+      'Avoids drops at 45 F or colder overnight',
+      '',
+      'DISPATCH',
+      'Phone: 774-287-3574',
+      'Email: claudio@royalequitypropertysolutions.com',
+      '',
+      'FACTORING: ask Claudio',
+      'INVOICE / PAPERWORK EMAIL: ask Claudio'
+    ];
+    if (notes) {
+      lines.push('', 'LOAD NOTES', notes);
+    }
+    return lines.join('\n');
+  }
+
+  function copyText(text, statusEl) {
+    if (!text) return Promise.resolve(false);
+    function ok() {
+      if (statusEl) {
+        statusEl.hidden = false;
+        statusEl.textContent = 'Copied';
+        setTimeout(function () { statusEl.hidden = true; }, 1600);
+      }
+      return true;
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text).then(ok).catch(function () {
+        try {
+          var ta = document.createElement('textarea');
+          ta.value = text;
+          ta.setAttribute('readonly', '');
+          ta.style.position = 'fixed';
+          ta.style.left = '-9999px';
+          document.body.appendChild(ta);
+          ta.select();
+          var worked = document.execCommand('copy');
+          document.body.removeChild(ta);
+          return worked ? ok() : false;
+        } catch (err) { return false; }
+      });
+    }
+    try {
+      var ta2 = document.createElement('textarea');
+      ta2.value = text;
+      ta2.setAttribute('readonly', '');
+      ta2.style.position = 'fixed';
+      ta2.style.left = '-9999px';
+      document.body.appendChild(ta2);
+      ta2.select();
+      var worked2 = document.execCommand('copy');
+      document.body.removeChild(ta2);
+      return Promise.resolve(worked2 ? ok() : false);
+    } catch (err2) {
+      return Promise.resolve(false);
+    }
+  }
+
+  function openCallSheet() {
+    var sheet = $('callsheet');
+    if (!sheet) return;
+    sheet.hidden = false;
+    document.documentElement.classList.add('sheet-open');
+    var ta = $('callsheet-notes');
+    if (ta && ta.value === '') {
+      try {
+        var saved = localStorage.getItem(CALLSHEET_NOTES_KEY);
+        if (saved) ta.value = saved;
+      } catch (err) { /* ignore */ }
+    }
+  }
+
+  function closeCallSheet() {
+    var sheet = $('callsheet');
+    if (!sheet) return;
+    sheet.hidden = true;
+    document.documentElement.classList.remove('sheet-open');
+  }
+
+  function bindCallSheet() {
+    var openBtn = $('callsheet-open');
+    var closeBtn = $('callsheet-close');
+    var copyAll = $('callsheet-copy-all');
+    var status = $('callsheet-copy-status');
+    var ta = $('callsheet-notes');
+    if (openBtn) openBtn.addEventListener('click', openCallSheet);
+    if (closeBtn) closeBtn.addEventListener('click', closeCallSheet);
+    if (copyAll) copyAll.addEventListener('click', function () {
+      copyText(callSheetPacket(), status);
+    });
+    if (ta) {
+      try {
+        var saved = localStorage.getItem(CALLSHEET_NOTES_KEY);
+        if (saved) ta.value = saved;
+      } catch (err) { /* ignore */ }
+      ta.addEventListener('input', function () {
+        try { localStorage.setItem(CALLSHEET_NOTES_KEY, ta.value); } catch (err2) { /* ignore */ }
+      });
+    }
+    document.addEventListener('click', function (event) {
+      var btn = event.target.closest('.call-sheet-btn');
+      if (btn) {
+        event.preventDefault();
+        openCallSheet();
+        return;
+      }
+      var copyBtn = event.target.closest('#callsheet .copy-btn');
+      if (copyBtn) {
+        event.preventDefault();
+        var row = copyBtn.closest('.callsheet-row');
+        var text = row && row.getAttribute('data-copy');
+        if (text) copyText(text, status);
+      }
+    });
+  }
+
   function openAbout() {
     $('about').classList.add('open');
     document.documentElement.classList.add('sheet-open');
@@ -5992,6 +6151,7 @@
     $('about-open').addEventListener('click', openAbout);
     $('about-close').addEventListener('click', closeAbout);
     $('about-done').addEventListener('click', closeAbout);
+    bindCallSheet();
     document.querySelectorAll('.tabbar button').forEach(function (btn) {
       btn.addEventListener('click', function () { showTab(btn.getAttribute('data-tab')); });
     });

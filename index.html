@@ -18,7 +18,7 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=3" sizes="180x180" />
   <link rel="preload" href="fonts/nunito-sans-variable.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="fonts/oswald-700.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="styles.css?v=39" />
+  <link rel="stylesheet" href="styles.css?v=40" />
   <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
   <script>
     try {
@@ -59,6 +59,7 @@
 
     <header class="top">
       <div class="top-row">
+        <button type="button" class="about-btn" id="callsheet-open">Call sheet</button>
         <button type="button" class="about-btn" id="about-open">About</button>
       </div>
       <div class="logo-wrap"><svg role="img" aria-label="Black Ram Logistics" xmlns="http://www.w3.org/2000/svg" width="720" height="190" viewBox="0 0 720 190"><rect width="720" height="190" fill="#0f0d17"/><g transform="translate(10,10) scale(.9)"><circle cx="100" cy="100" r="96" fill="#0f0d17" stroke="#D4A62A" stroke-width="5"/><path d="M84,72 C46,38 10,62 18,104 C24,140 62,144 64,116 C65,98 46,94 42,108" fill="none" stroke="#D4A62A" stroke-width="13" stroke-linecap="round"/><g transform="translate(200,0) scale(-1,1)"><path d="M84,72 C46,38 10,62 18,104 C24,140 62,144 64,116 C65,98 46,94 42,108" fill="none" stroke="#D4A62A" stroke-width="13" stroke-linecap="round"/></g><polygon points="80,62 120,62 134,96 120,158 100,176 80,158 66,96" fill="#2A2A2E" stroke="#D4A62A" stroke-width="5" stroke-linejoin="round"/>
@@ -66,7 +67,6 @@
 <path d="M92,150 L100,160 L108,150" fill="none" stroke="#D4A62A" stroke-width="4"/></g><text x="205" y="105" style="font-family:Oswald,'Antonio',sans-serif;font-weight:700;font-size:78px;letter-spacing:5px" fill="#F5F1E6">BLACK RAM</text><text x="208" y="152" style="font-family:Oswald,'Antonio',sans-serif;font-weight:500;font-size:32px;letter-spacing:10px" fill="#D4A62A">LOGISTICS</text></svg></div>
       <p class="tag">Sand Lily Pad LLC</p>
       <section class="rig-card" aria-label="Our rig">
-        <h2 class="rig-head"><span class="rig-kicker">Our rig</span></h2>
         <figure class="rig-figure">
           <div class="rig-stage">
             <div class="rig-floor" aria-hidden="true"></div>
@@ -80,6 +80,7 @@
         <details class="rig-specs-panel">
           <summary class="rig-specs-toggle"><span class="rig-specs-show">Show specs</span><span class="rig-specs-hide">Hide specs</span></summary>
           <div class="rig-specs-body">
+            <h2 class="rig-specs-title">Our rig</h2>
             <dl class="rig-spec-grid">
               <div class="rig-spec">
                 <dt>Truck</dt>
@@ -336,11 +337,81 @@
       <footer class="footer">
         <p><strong>Black Ram Logistics</strong> · DBA of Sand Lily Pad LLC</p>
         <p>Estimates are marked EST. Not a quote and not tax advice.</p>
-        <p class="app-version" id="app-version">v39</p>
+        <p class="app-version" id="app-version">v40</p>
       </footer>
       <div class="pad" aria-hidden="true"></div>
     </main>
 
+  </div>
+  <div id="callsheet" class="sheet callsheet" role="dialog" aria-modal="true" aria-labelledby="callsheet-title" hidden>
+    <div class="sheet-inner">
+      <div class="sheet-top">
+        <button type="button" class="about-btn" id="callsheet-close">Close</button>
+      </div>
+      <h2 id="callsheet-title">Broker Call Sheet</h2>
+      <p class="fine">Facts for a broker call. Copy a line or copy the whole packet. Load notes stay on this phone only.</p>
+      <div class="callsheet-actions">
+        <button type="button" class="btn primary" id="callsheet-copy-all">Copy all</button>
+        <span class="callsheet-copy-status" id="callsheet-copy-status" hidden></span>
+      </div>
+
+      <h3 class="callsheet-h">Authority</h3>
+      <div class="callsheet-grid">
+        <div class="callsheet-row" data-copy="Totni Enterprise LLC"><span class="callsheet-k">Carrier</span><span class="callsheet-v">Totni Enterprise LLC</span><button type="button" class="copy-btn">Copy</button></div>
+        <div class="callsheet-row" data-copy="MC 1122113"><span class="callsheet-k">MC</span><span class="callsheet-v">1122113</span><button type="button" class="copy-btn">Copy</button></div>
+        <div class="callsheet-row" data-copy="DOT 3448727"><span class="callsheet-k">DOT</span><span class="callsheet-v">3448727</span><button type="button" class="copy-btn">Copy</button></div>
+        <div class="callsheet-row callsheet-wide" data-copy="We run under Totni Enterprise LLC authority as Sand Lily Pad LLC / Black Ram Logistics."><span class="callsheet-k">Who we are</span><span class="callsheet-v">We run under Totni's authority as Sand Lily Pad LLC / Black Ram Logistics.</span><button type="button" class="copy-btn">Copy</button></div>
+        <div class="callsheet-row callsheet-wide"><span class="callsheet-k">Factoring</span><span class="callsheet-v ask-claudio">ask Claudio</span></div>
+        <div class="callsheet-row callsheet-wide"><span class="callsheet-k">Invoice / paperwork email</span><span class="callsheet-v ask-claudio">ask Claudio</span></div>
+      </div>
+
+      <h3 class="callsheet-h">Insurance</h3>
+      <p class="fine">Coverage on Totni's certificate for loads booked under MC 1122113 (COI dated 10/23/2026).</p>
+      <div class="callsheet-grid">
+        <div class="callsheet-row callsheet-wide" data-copy="United Financial Casualty Company (Progressive)"><span class="callsheet-k">Insurer</span><span class="callsheet-v">United Financial Casualty Company (Progressive)</span><button type="button" class="copy-btn">Copy</button></div>
+        <div class="callsheet-row" data-copy="$1,000,000 auto liability"><span class="callsheet-k">Auto liability</span><span class="callsheet-v">$1,000,000</span><button type="button" class="copy-btn">Copy</button></div>
+        <div class="callsheet-row" data-copy="Cargo $100,000, $2,500 deductible"><span class="callsheet-k">Cargo</span><span class="callsheet-v">$100,000, $2,500 deductible</span><button type="button" class="copy-btn">Copy</button></div>
+        <div class="callsheet-row" data-copy="Policy ending in 8412"><span class="callsheet-k">Policy</span><span class="callsheet-v">Ending in 8412</span><button type="button" class="copy-btn">Copy</button></div>
+        <div class="callsheet-row callsheet-wide"><span class="callsheet-k">Request a COI</span><span class="callsheet-v ask-claudio">ask Claudio <span class="ask-note">(Totni's producer is Marquee Insurance Group LLC; no phone or email is on file)</span></span></div>
+      </div>
+
+      <h3 class="callsheet-h">Equipment</h3>
+      <div class="callsheet-grid">
+        <div class="callsheet-row" data-copy="2026 Ram 3500 dually"><span class="callsheet-k">Truck</span><span class="callsheet-v">2026 Ram 3500 dually</span><button type="button" class="copy-btn">Copy</button></div>
+        <div class="callsheet-row" data-copy="Big Tex 25GN-40 gooseneck"><span class="callsheet-k">Trailer</span><span class="callsheet-v">Big Tex 25GN-40 gooseneck</span><button type="button" class="copy-btn">Copy</button></div>
+        <div class="callsheet-row callsheet-wide" data-copy="40 ft deck including about 5 ft dovetail with mega ramps, 102 in wide, 34 in deck height"><span class="callsheet-k">Deck</span><span class="callsheet-v">40 ft deck, including about 5 ft dovetail with mega ramps. 102 in wide, 34 in deck height.</span><button type="button" class="copy-btn">Copy</button></div>
+        <div class="callsheet-row callsheet-wide" data-copy="Max cargo 12,500 lb OK; up to 15,300 lb with a scale check"><span class="callsheet-k">Max cargo</span><span class="callsheet-v">12,500 lb OK. Up to 15,300 lb with a scale check.</span><button type="button" class="copy-btn">Copy</button></div>
+        <div class="callsheet-row" data-copy="Tarps and straps on board"><span class="callsheet-k">On board</span><span class="callsheet-v">Tarps and straps</span><button type="button" class="copy-btn">Copy</button></div>
+        <div class="callsheet-row" data-copy="No semi loads"><span class="callsheet-k">Do not book</span><span class="callsheet-v">No semi loads</span><button type="button" class="copy-btn">Copy</button></div>
+      </div>
+
+      <h3 class="callsheet-h">Lanes and preferences</h3>
+      <div class="callsheet-grid">
+        <div class="callsheet-row" data-copy="Jacksonville, FL area"><span class="callsheet-k">Home base</span><span class="callsheet-v">Jacksonville, FL area</span><button type="button" class="copy-btn">Copy</button></div>
+        <div class="callsheet-row callsheet-wide" data-copy="We do not take drops at 45 F or colder overnight"><span class="callsheet-k">Weather</span><span class="callsheet-v">Avoids drops at 45 F or colder overnight.</span><button type="button" class="copy-btn">Copy</button></div>
+      </div>
+
+      <h3 class="callsheet-h">Dispatch</h3>
+      <div class="callsheet-grid">
+        <div class="callsheet-row" data-copy="774-287-3574"><span class="callsheet-k">Phone</span><span class="callsheet-v"><a href="tel:+17742873574">774-287-3574</a></span><button type="button" class="copy-btn">Copy</button></div>
+        <div class="callsheet-row callsheet-wide" data-copy="claudio@royalequitypropertysolutions.com"><span class="callsheet-k">Email</span><span class="callsheet-v"><a href="mailto:claudio@royalequitypropertysolutions.com">claudio@royalequitypropertysolutions.com</a></span><button type="button" class="copy-btn">Copy</button></div>
+      </div>
+
+      <h3 class="callsheet-h">Ask the broker</h3>
+      <ul class="callsheet-ask">
+        <li>Rate, and whether it is all-in</li>
+        <li>Weight and dims</li>
+        <li>Pickup and delivery times, and appointment or FCFS</li>
+        <li>Tarp needed?</li>
+        <li>Commodity</li>
+        <li>Detention or TONU</li>
+        <li>Quick pay or payment terms</li>
+        <li>Load and reference number</li>
+        <li>Broker MC</li>
+      </ul>
+      <label class="callsheet-notes-label" for="callsheet-notes">Load notes</label>
+      <textarea id="callsheet-notes" class="callsheet-notes" rows="4" maxlength="2000" placeholder="Load number, rate, appointment, anything to remember. Saved on this phone only."></textarea>
+    </div>
   </div>
   <div id="deliver-sheet" class="sheet deliver-sheet" role="dialog" aria-modal="true" aria-labelledby="deliver-sheet-title" hidden>
     <div class="sheet-inner">
@@ -401,8 +472,8 @@
   </div>
   <noscript><p class="noscript">Black Ram Logistics needs JavaScript for the load check, stops, and reports.</p></noscript>
   <script src="vendor/leaflet/leaflet.js"></script>
-  <script src="app.js?v=39"></script>
-  <script src="stops.js?v=39"></script>
+  <script src="app.js?v=40"></script>
+  <script src="stops.js?v=40"></script>
   <script>
     (function () {
       if (!('serviceWorker' in navigator)) return;
