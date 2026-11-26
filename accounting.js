@@ -10,8 +10,8 @@
   var FIN_KEY = 'blackram_fin_session_v1';
   var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var COL = { fee: '#a78bfa', eld: '#c4b5fd', fuel: '#F2C94C', def: '#F5D76A', tolls: '#60A5FA', repairs: '#FB923C',
-    insurance: '#F472B6', notes: '#F87171', software: '#34D399', overhead: '#8a84a3' };
-  var SHORT = { fee: 'Totni 13%', eld: 'ELD fees', fuel: 'Fuel', def: 'DEF', tolls: 'Tolls/scales', repairs: 'Repairs', insurance: 'Insurance', notes: 'Loan notes', software: 'Software', overhead: 'Overhead' };
+    insurance: '#F472B6', driver: '#FDBA74', notes: '#F87171', software: '#34D399', overhead: '#8a84a3' };
+  var SHORT = { fee: 'Totni 13%', eld: 'ELD fees', fuel: 'Fuel', def: 'DEF', tolls: 'Tolls/scales', repairs: 'Repairs', insurance: 'Insurance', driver: 'Driver pay', notes: 'Loan notes', software: 'Software', overhead: 'Overhead' };
   var st = { data: null, loading: false, error: '', sel: null, fetchedAt: 0, openExp: false };
 
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -142,7 +142,7 @@
     var diff = [];
     if (Math.abs(p.report_net - p.net) > 0.01) {
       diff.push('Nightly report "kept" for ' + esc(monLbl(st.sel)) + ' is ' + m2(p.report_net) + ' (gross less 13% and ledger costs). This view also counts ' +
-        'loan payments' + (p.lines.insurance ? ', partner-paid insurance' : '') + (p.lines.eld ? ', ELD withheld' : '') + ' and TONU income.');
+        'Meshach\'s accrued wage, loan payments' + (p.lines.insurance ? ', partner-paid insurance' : '') + (p.lines.eld ? ', ELD withheld' : '') + ' and TONU income.');
     }
     var top = cats.filter(function (c) { return c.key !== 'fee'; }).map(function (c) { return { k: c.label, v: p.lines[c.key] || 0 }; }).sort(function (a, b) { return b.v - a.v; })[0];
     var callouts = '<div class="ac-calls">' +
@@ -152,6 +152,58 @@
     return card('Profit and loss', esc(monLbl(st.sel)) + ' | cash basis',
       plChart(A) + '<div class="ac-legend"><span><i style="background:var(--c-take)"></i>Revenue</span><span><i style="background:#F87171"></i>Costs</span><span>Net under each month. Tap a month.</span></div>' +
       callouts + '<div class="ac-pl">' + rows.join('') + '</div>' + (diff.length ? '<p class="ac-fine">' + diff.join(' ') + '</p>' : ''), 'ac-pl');
+  }
+
+  function wfChart(w) {
+    var st2 = w.steps, W = 340, H = 190, L = 6, R = 6, T = 22, B = 44;
+    var lvl = 0, bars = [], lo = 0, hi = 0;
+    st2.forEach(function (x, i) {
+      if (i === 0) { bars.push({ a: 0, b: x.amount, k: 'total', l: x.label, v: x.amount }); lvl = x.amount; }
+      else { bars.push({ a: lvl, b: lvl + x.amount, k: 'neg', l: x.label, v: x.amount }); lvl += x.amount; }
+      lo = Math.min(lo, lvl); hi = Math.max(hi, lvl, bars[bars.length - 1].a);
+    });
+    bars.push({ a: 0, b: w.left, k: w.left > 0 ? 'left' : 'short', l: w.left > 0 ? 'Left to split' : 'Short', v: w.left });
+    hi = Math.max(hi, 1);
+    var n = bars.length, gap = (W - L - R) / n, bw = gap - 8;
+    function Y(v) { return T + (hi - v) / Math.max(hi - lo, 1) * (H - T - B); }
+    var COLR = { total: 'var(--c-take)', neg: '#F87171', left: 'var(--c-gold)', short: '#FB7185' };
+    var o = ['<svg class="ac-svg" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Profit waterfall">'];
+    o.push('<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(0) + '" y2="' + Y(0) + '" stroke="var(--c-line-strong)"/>');
+    var short = ['Gross', 'Totni+ELD', 'Truck costs', 'Meshach', 'Notes'];
+    bars.forEach(function (b, i) {
+      var x = L + gap * i + 4, y1 = Y(Math.max(b.a, b.b)), y2 = Y(Math.min(b.a, b.b));
+      var col = b.l === 'Meshach pay' ? '#FDBA74' : COLR[b.k];
+      o.push('<rect x="' + x + '" y="' + y1 + '" width="' + bw + '" height="' + Math.max(y2 - y1, 2) + '" rx="4" fill="' + col + '"/>');
+      o.push('<text x="' + (x + bw / 2) + '" y="' + (y1 - 4) + '" text-anchor="middle" font-size="10.5" font-weight="800" fill="var(--c-text-1)">' + m0(b.v) + '</text>');
+      o.push('<text x="' + (x + bw / 2) + '" y="' + (H - 24) + '" text-anchor="middle" font-size="10" font-weight="700" fill="var(--c-text-3)">' + esc(i < 5 ? short[i] : (b.k === 'left' ? 'Left' : 'Short')) + '</text>');
+      if (i > 0 && i < n - 1) o.push('<line x1="' + (x - 4) + '" x2="' + x + '" y1="' + Y(b.a) + '" y2="' + Y(b.a) + '" stroke="var(--c-text-3)" stroke-dasharray="2 2"/>');
+    });
+    o.push('</svg>');
+    return o.join('');
+  }
+  function secWaterfall(A) {
+    var w = A.pl[st.sel].waterfall, lab = st.sel === 'all' ? 'all time' : monShort(st.sel);
+    var thirds = A.partners.map(function (p) { return '<div><span>' + esc(p.name) + '</span><b>' + m0(w.split) + '</b></div>'; }).join('');
+    var need = w.left < 0 ? Math.ceil(-w.left / 0.87 / 10) * 10 : 0;
+    var body = wfChart(w) +
+      '<div class="ac-calls">' +
+      (w.positive ? call('good', '<b>' + m0(w.left) + '</b> left to split three ways, ' + m0(w.split) + ' each (OA thirds)') :
+        call('bad', 'Nothing to split in ' + esc(lab) + '. Short <b>' + m0(-w.left) + '</b> after Meshach and the notes.')) +
+      (need ? call('ok', 'Needs about <b>' + m0(need) + '</b> more gross (after Totni 13%) just to reach $0 left') : '') +
+      call(w.before_driver < 0 ? 'bad' : 'ok', 'Before Meshach and notes: <b>' + m0(w.before_driver) + '</b>') + '</div>' +
+      '<div class="ac-tot' + (w.positive ? '' : ' ac-dim') + '">' + thirds + '</div>' +
+      '<p class="ac-fine">Order: Totni, truck costs, then Meshach\'s $3,000/mo, then the notes. Only a positive remainder is split into thirds (Claudio, Ben, Meshach), and Meshach\'s third is on top of his wage.</p>';
+    return card('Profit waterfall', esc(monLbl(st.sel)), body, 'ac-wf');
+  }
+  function secDriver(A) {
+    var d = A.driver, rows = d.accrual.map(function (a) {
+      return '<div class="ac-xr"><span class="ac-xd">' + esc(monShort(a.month)) + '</span><span class="ac-xv">' + (a.partial ? a.days + ' of ' + a.dim + ' days' : 'Full month') + '<small>$' + d.monthly.toLocaleString('en-US') + '/mo</small></span><b>' + m2(a.accrued) + '</b></div>';
+    }).join('');
+    var paid = d.paid.map(function (p) { return '<div class="ac-xr rep"><span class="ac-xd">' + day(p.date) + '</span><span class="ac-xv">Paid to Meshach<small>' + esc(p.source) + '</small></span><b>' + m2(p.amount) + '</b></div>'; }).join('');
+    return card('Driver pay - Meshach', '$' + d.monthly.toLocaleString('en-US') + '/mo, paid first',
+      '<div class="ac-tot"><div><span>Accrued</span><b>' + m0(d.accrued_total) + '</b></div><div><span>Paid</span><b>' + m0(d.paid_total) + '</b></div><div><span>Owed</span><b>' + m0(d.owed) + '</b></div></div>' +
+      (d.owed > 0 ? call('bad', 'Meshach is owed <b>' + m2(d.owed) + '</b>. This is on the balance sheet as a debt.') : call('good', 'Meshach is paid up')) +
+      rows + paid + '<p class="ac-fine">' + esc(d.rule) + ' ' + esc(d.assumption) + ' ' + esc(d.note) + '</p>', 'ac-driver');
   }
 
   function secRevenue(A) {
@@ -221,7 +273,7 @@
     }).join('');
     var wh = b.withheld.map(function (w) { return esc(w.payee) + ' ' + (w.amount != null ? m2(w.amount) : esc(w.amount_text || 'varies')); }).join('; ');
     return card('Bills and payables', 'Next 60 days',
-      '<div class="ac-calls">' + call('bad', '<b>' + m0(t30) + '</b> due in the next 30 days') + call('ok', 'AmEx about <b>' + m0(ax.est_balance) + '</b> EST, due date?') + '</div>' +
+      '<div class="ac-calls">' + call('bad', '<b>' + m0(t30) + '</b> due in the next 30 days') + call('ok', 'AmEx about <b>' + m0(ax.est_balance) + '</b> EST, due date?') + (A.driver && A.driver.owed > 0 ? call('bad', 'Meshach wage owed <b>' + m0(A.driver.owed) + '</b>, not in the 30-day cash projection') : '') + '</div>' +
       rows + '<div class="ac-sub">Company AmEx</div>' +
       '<div class="ac-tot"><div><span>Charged (receipts)</span><b>' + m0(ax.charges_logged) + '</b></div><div><span>Paid down</span><b>' + m0(ax.paid_total) + '</b></div><div><span>Balance EST</span><b>' + m0(ax.est_balance) + '</b></div></div>' +
       '<p class="ac-fine">' + esc(ax.note) + '</p>' +
@@ -244,10 +296,11 @@
     var tot = A.partners.reduce(function (s, p) { return s + p.capital_total; }, 0);
     var cards = A.partners.map(function (p) {
       var items = p.capital.map(function (i) { return '<div class="ac-xr"><span class="ac-xd">' + day(i.date) + '</span><span class="ac-xv">' + esc(i.label) + '</span><b>' + m2(i.amount) + '</b></div>'; }).join('');
+      var wg = p.wage ? '<div class="ac-sub">Wage (paid first)</div><div class="ac-xr rep"><span class="ac-xd">Nov</span><span class="ac-xv">Accrued ' + m2(p.wage.accrued) + ', paid ' + m2(p.wage.paid) + '<small>$' + p.wage.monthly.toLocaleString('en-US') + '/mo before any split</small></span><b>' + m2(p.wage.owed) + ' owed</b></div>' : '';
       var rep = p.repaid.map(function (i) { return '<div class="ac-xr rep"><span class="ac-xd">' + day(i.date) + '</span><span class="ac-xv">' + esc(i.note) + '</span><b>' + m2(i.amount) + '</b></div>'; }).join('');
       return '<div class="ac-pt"><div class="ac-pt-h"><b>' + esc(p.name) + '</b><span>' + esc(p.share) + ' owner</span><strong>' + m0(p.capital_total) + '</strong></div>' +
         '<div class="ac-pt-bar"><i style="width:' + (tot ? (p.capital_total / tot * 100).toFixed(1) : 0) + '%"></i></div>' + items +
-        (rep ? '<div class="ac-sub">Paid back (not distributions)</div>' + rep : '') +
+        (rep ? '<div class="ac-sub">Paid back (not distributions)</div>' + rep : '') + wg +
         '<div class="ac-pt-f"><span>Distributions ' + esc(monShort(st.sel === 'all' ? A.months[A.months.length - 1] : st.sel)) + ' <b>' + m2(p.dist_month) + '</b></span><span>All time <b>' + m2(p.dist_all) + '</b></span></div></div>';
     }).join('');
     return card('Partner capital', m0(tot) + ' put in | distributions $0', cards, 'ac-partners');
@@ -310,8 +363,8 @@
       '<div class="ac-top"><div><div class="ac-kicker">Sand Lily Pad LLC</div><h2>Accounting</h2></div>' +
       '<div class="ac-acts"><button type="button" class="ac-btn" id="ac-csv" aria-label="Export CSV">CSV</button><button type="button" class="ac-btn" id="ac-refresh" aria-label="Refresh">' + (st.loading ? '...' : 'Refresh') + '</button></div></div>' +
       '<div class="ac-chips" role="tablist" aria-label="Month">' + chips + '</div>' +
-      '<nav class="ac-jump">' + [['ac-pl', 'P&amp;L'], ['ac-rev', 'Revenue'], ['ac-exp', 'Expenses'], ['ac-ar', 'AR'], ['ac-bills', 'Bills'], ['ac-cash', 'Cash'], ['ac-partners', 'Partners'], ['ac-bs', 'Balance']].map(function (j) { return '<a href="#' + j[0] + '" data-ac-jump="' + j[0] + '">' + j[1] + '</a>'; }).join('') + '</nav>' +
-      secPL(A) + secRevenue(A) + secExpenses(A) + secAR(A) + secBills(A) + secCash(A) + secPartners(A) + secBalance(A) + gaps +
+      '<nav class="ac-jump">' + [['ac-pl', 'P&amp;L'], ['ac-wf', 'Waterfall'], ['ac-driver', 'Driver'], ['ac-rev', 'Revenue'], ['ac-exp', 'Expenses'], ['ac-ar', 'AR'], ['ac-bills', 'Bills'], ['ac-cash', 'Cash'], ['ac-partners', 'Partners'], ['ac-bs', 'Balance']].map(function (j) { return '<a href="#' + j[0] + '" data-ac-jump="' + j[0] + '">' + j[1] + '</a>'; }).join('') + '</nav>' +
+      secPL(A) + secWaterfall(A) + secDriver(A) + secRevenue(A) + secExpenses(A) + secAR(A) + secBills(A) + secCash(A) + secPartners(A) + secBalance(A) + gaps +
       '<p class="ac-foot">Built ' + esc(stamp) + ' from the ledger and Bluevine ...' + esc(A.cash.last4) + '. Basis: ' + esc(A.basis) + '. Not tax advice.' + (st.error && st.error !== 'nopin' ? ' ' + esc(st.error) : '') + '</p>';
     bind();
   }
@@ -384,6 +437,7 @@
       '.ac-rv-g{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}' +
       '.ac-rv-g span{display:block;font-size:10px;font-weight:700;color:var(--c-text-3);text-transform:uppercase;letter-spacing:.03em}' +
       '.ac-rv-g b{font-size:var(--fs-sm);font-weight:800;color:var(--c-text-1);font-variant-numeric:tabular-nums}.ac-rv-g b.dim{color:var(--c-text-3)}' +
+      '.ac-dim{opacity:.45}' +
       '.ac-pill{flex:none;font-size:11px;font-weight:800;padding:2px 9px;border-radius:var(--radius-pill);white-space:nowrap}' +
       '.ac-pill-ok{background:var(--c-take-bg);color:var(--c-take)}.ac-pill-held{background:rgba(167,139,250,.16);color:var(--c-accent-hi)}' +
       '.ac-pill-short{background:rgba(248,113,113,.14);color:#FCA5A5}.ac-pill-pend{background:var(--c-maybe-bg);color:var(--c-maybe)}' +

@@ -9,7 +9,7 @@
   var WEEKS = 52 / 12; // 4.33 weeks per month
   var DEF = {
     goal: 3000, partners: 3, rpm: 2.75, dead: 25, loadsWk: 3, miLoad: 350,
-    daysMo: 22, fee: 13, maint: 0.15, otherMo: 42, structure: 'totni'
+    daysMo: 22, fee: 13, maint: 0.15, otherMo: 42, driverMo: 3000, structure: 'totni'
   };
   // Research numbers (see /workspace/bigtex/reports/mc-options.pdf).
   var OWN = {
@@ -78,7 +78,8 @@
     var rate = o.rpm != null ? o.rpm : Number(tgt.rpm);
     var dead = Math.min(0.9, Math.max(0, Number(tgt.dead) / 100));
     var deadPerLoaded = dead / (1 - dead);
-    var fixed = s.trailer + insurance + s.otherFixed + Number(tgt.otherMo) + extraFixed;
+    var driverMo = Number(tgt.driverMo) || 0;   // Meshach living wage, paid first (Claudio 11/26)
+    var fixed = s.trailer + insurance + s.otherFixed + Number(tgt.otherMo) + driverMo + extraFixed;
     var keep = 1 - feePct / 100;
     // Contribution per loaded mile after fee, fuel/DEF (loaded + empty) and maintenance reserve.
     var contrib = rate * keep - s.loadedCost - deadPerLoaded * s.deadheadCost - (1 + deadPerLoaded) * Number(tgt.maint);
@@ -92,7 +93,7 @@
     var minRpmBE = loadedMo > 0 ? (fixed / loadedMo + perMileCosts) / keep : null;
     var minRpmGoal = loadedMo > 0 ? ((fixed + goalNet) / loadedMo + perMileCosts) / keep : null;
     return {
-      fixed: fixed, contrib: contrib, loadedMo: loadedMo, gross: gross, net: net,
+      fixed: fixed, driverMo: driverMo, contrib: contrib, loadedMo: loadedMo, gross: gross, net: net,
       perPartner: net / Number(tgt.partners || 1), goalNet: goalNet,
       beMi: beMi, beGross: beMi != null ? beMi * rate : null,
       beLoadsWk: beMi != null ? beMi / WEEKS / Number(tgt.miLoad) : null,
@@ -165,7 +166,8 @@
     daysMo: function (v) { return v + ' days'; },
     fee: function (v) { return v + '%'; },
     maint: function (v) { return '$' + Number(v).toFixed(2) + '/mi'; },
-    otherMo: function (v) { return money(+v) + '/mo'; }
+    otherMo: function (v) { return money(+v) + '/mo'; },
+    driverMo: function (v) { return money(+v) + '/mo'; }
   };
 
   function chart() {
@@ -242,7 +244,7 @@
 
     var headline = '<section class="big tg-head"><div class="kicker">Break-even (Totni ' + tgt.fee + '%)</div>' +
       '<span class="n phrase">' + (m.beGross != null ? money(m.beGross) + '/mo gross' : 'Not reachable') + '</span>' +
-      '<p class="sub">' + (m.beLoadsWk != null ? num(m.beLoadsWk, 1) + ' loads/wk · ' + num(m.beMi / WEEKS, 0) + ' loaded mi/wk · bills ' + money(m.fixed) + '/mo' : 'Contribution per mile is negative') + '</p></section>';
+      '<p class="sub">' + (m.beLoadsWk != null ? num(m.beLoadsWk, 1) + ' loads/wk · ' + num(m.beMi / WEEKS, 0) + ' loaded mi/wk · bills + driver pay ' + money(m.fixed) + '/mo' : 'Contribution per mile is negative') + '</p></section>';
 
     var outs = '<div class="stats">' +
       metricBox(money(m.goalGross) , 'Gross needed / month', money(m.goalGross / WEEKS) + ' a week') +
@@ -279,8 +281,9 @@
       slider('daysMo', 'Work days per month', 10, 28, 1, tgt.daysMo, FMT.daysMo) +
       slider('fee', 'Carrier fee', 0, 35, 1, tgt.fee, FMT.fee) +
       slider('maint', 'Tires and maintenance reserve', 0, 0.4, 0.01, tgt.maint, FMT.maint) +
+      slider('driverMo', 'Driver pay (paid first)', 0, 6000, 100, tgt.driverMo, FMT.driverMo) +
       slider('otherMo', 'Other monthly (load board, phone, software)', 0, 500, 1, tgt.otherMo, FMT.otherMo) +
-      '<p class="fine">Fuel and DEF use Load check: ' + rpm(s.loadedCost) + ' loaded, ' + rpm(s.deadheadCost) + ' empty. Bills: truck ' + money(s.otherFixed) + ', trailer ' + money(s.trailer) + ', insurance ' + money(s.insurance) + '. Saved on this phone. <button type="button" class="tg-reset" id="tg-reset">Reset</button></p></details>';
+      '<p class="fine">Fuel and DEF use Load check: ' + rpm(s.loadedCost) + ' loaded, ' + rpm(s.deadheadCost) + ' empty. Bills: truck ' + money(s.otherFixed) + ', trailer ' + money(s.trailer) + ', insurance ' + money(s.insurance) + ', driver pay ' + money(tgt.driverMo) + '. Saved on this phone. <button type="button" class="tg-reset" id="tg-reset">Reset</button></p></details>';
 
     var cmpRows = [
       ['Stay on Totni (13%)', st.totni, 'Cheap fee, but brokers score Totni low (see below).'],

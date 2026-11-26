@@ -6,7 +6,7 @@
 (function () {
   'use strict';
   var TKEY = 'blackram_targets_v1';
-  var DEF = { goal: 3000, partners: 3, rpm: 2.75, dead: 25, loadsWk: 3, miLoad: 350, daysMo: 22, fee: 13, maint: 0.15, otherMo: 42 };
+  var DEF = { goal: 3000, partners: 3, rpm: 2.75, dead: 25, loadsWk: 3, miLoad: 350, daysMo: 22, fee: 13, maint: 0.15, otherMo: 42, driverMo: 3000 };
   var WEEKS = 52 / 12;
   var RELAY = 'https://blackram-relay.sandlilypad.workers.dev';
   var FIN_KEY = 'blackram_fin_session_v1';
@@ -274,11 +274,18 @@
       targetText: 'Pace <b>' + num(loadsMoT * pace, 1) + '</b> by ' + md(asOf) + ' - ' + Math.max(0, Math.ceil(loadsMoT - loadsM)) + ' more for the month',
       trend: trend(loadsM, prevLoads, prevLbl, function (x) { return num(x, 0); }) }));
     tiles.push(tile({ label: 'Gross MTD', actual: fig.gross, target: grossT, paceTarget: grossT * pace,
-      value: money(fig.gross), targetText: 'Plan <b>' + money(grossT) + '</b> - pace ' + money(grossT * pace) + (M && M.beGross ? ' - BE ' + money(M.beGross) : ''),
+      value: money(fig.gross), targetText: 'Plan <b>' + money(grossT) + '</b> - pace ' + money(grossT * pace) + (M && M.beGross ? ' - BE incl. driver pay ' + money(M.beGross) : ''),
       trend: trend(fig.gross, prevFig && prevFig.gross, prevLbl, money), spark: spark(col('gross')) }));
     tiles.push(tile({ label: 'Net kept MTD', actual: fig.net, target: netT, paceTarget: netT != null ? netT * pace : null,
       value: money(fig.net), targetText: 'Plan <b>' + money(netT) + '</b> before bills - pace ' + money(netT != null ? netT * pace : null),
       trend: trend(fig.net, prevFig && prevFig.net, prevLbl, money), spark: spark(col('net')) }));
+    // Meshach's living wage is paid first (Claudio 11/26): how much of it this month's net kept covers.
+    var wage = t.driverMo || 0, wcov = Math.max(0, Math.min(fig.net, wage));
+    var wprev = prevFig ? Math.max(0, Math.min(prevFig.net, wage)) : null;
+    tiles.push(tile({ label: 'Meshach pay covered', actual: wcov, target: wage, paceTarget: wage * pace,
+      value: money(wcov) + ' <small>/ ' + money(wage) + '</small>',
+      targetText: 'Net kept ' + money(fig.net) + ' covers <b>' + pct(wage ? wcov / wage : null) + '</b> of his pay - pace ' + money(wage * pace) + '. Paid first, before Ben and Claudio.',
+      trend: trend(wcov, wprev, prevLbl, money) }));
     tiles.push(tile({ label: 'Avg $/loaded mi', actual: fig.perLoaded, target: t.rpm, barMax: Math.max(t.rpm, fig.perLoaded || 0) * 1.15,
       value: rpmT(fig.perLoaded), targetText: 'Target <b>' + rpmT(t.rpm) + '</b> - ' + num(fig.loadedMi, 0) + ' loaded mi',
       trend: trend(fig.perLoaded, prevFig && prevFig.perLoaded, prevLbl, rpmT), spark: spark(col('rpm')) }));
@@ -294,7 +301,7 @@
       trend: trend(day ? used / day * 100 : null, prevUsed == null ? null : prevUsed / prevDay * 100, prevLbl, function (x) { return num(x, 0) + ' pts'; }),
       spark: spark(weeks.map(function (w) { return w.days ? w.used / w.days : null; })) }));
     tiles.push(tile({ label: 'Net / loaded day', actual: netDay, target: netDayT,
-      value: money(netDay), targetText: 'Target <b>' + money(netDayT) + '/day</b> (bills + partner goal / ' + num(t.daysMo, 0) + ' days)',
+      value: money(netDay), targetText: 'Target <b>' + money(netDayT) + '/day</b> (bills + driver pay + partner goal / ' + num(t.daysMo, 0) + ' days)',
       trend: trend(netDay, prevFig && prevUsed ? prevFig.net / prevUsed : null, prevLbl, money) }));
     tiles.push(tile({ label: 'On-time drops', actual: withDel.length ? onTime / withDel.length : null, target: 1, barMax: 1,
       cls: withDel.length ? status(onTime / withDel.length, 1) : '',
@@ -308,7 +315,7 @@
       var fn = fin.data.projection && fin.data.projection.first_negative;
       var low = fin.data.projection && fin.data.projection.low30;
       finTile = tile({ label: 'Bluevine cash', actual: fin.data.account.available, target: fixed, cls: fn ? 'r' : 'g', noBar: false, barMax: Math.max(fixed || 1, fin.data.account.available || 0),
-        value: money(fin.data.account.available), targetText: 'One month of bills <b>' + money(fixed) + '</b>' + (fn ? ' - goes negative ' + md(fn.date.slice(0, 10)) : '') + (low ? ' - 30-day low ' + money(low.balance) : ''),
+        value: money(fin.data.account.available), targetText: 'One month of bills + driver pay <b>' + money(fixed) + '</b>' + (fn ? ' - goes negative ' + md(fn.date.slice(0, 10)) : '') + (low ? ' - 30-day low ' + money(low.balance) : ''),
         trend: '<span class="sb-tr">PIN-gated, as of ' + esc(String(fin.data.as_of || '').slice(5, 10).replace('-', '/')) + '</span>' });
     } else {
       finTile = '<article class="sb-t sb-lock" id="sb-fin-lock"><div class="sb-l"><span>Bluevine cash</span><span class="sb-dot">LOCKED</span></div>' +
@@ -327,10 +334,10 @@
       '<circle cx="59" cy="59" r="' + R + '" fill="none" stroke="' + ringCol + '" stroke-width="12" stroke-linecap="round" stroke-dasharray="' + (C * be).toFixed(1) + ' ' + C.toFixed(1) + '" transform="rotate(-90 59 59)"/>' +
       '<line x1="' + (59 + 40 * Math.cos(paceAng)).toFixed(1) + '" y1="' + (59 + 40 * Math.sin(paceAng)).toFixed(1) + '" x2="' + (59 + 56 * Math.cos(paceAng)).toFixed(1) + '" y2="' + (59 + 56 * Math.sin(paceAng)).toFixed(1) + '" stroke="#f2f0f7" stroke-width="2.5"/>' +
       '<text x="59" y="58" text-anchor="middle" font-size="24" font-weight="800" fill="#f2f0f7">' + pct(beRatio) + '</text>' +
-      '<text x="59" y="76" text-anchor="middle" font-size="10" fill="#b9b3cc">of bills</text></svg>' +
+      '<text x="59" y="76" text-anchor="middle" font-size="10" fill="#b9b3cc">of bills + wage</text></svg>' +
       '<div><h3>Break-even - ' + esc(MON[p[1] - 1]) + ' ' + day + ' of ' + dim + '</h3>' +
       '<div class="sb-big">' + (beRatio != null && beRatio >= 1 ? 'Past break-even' : money(fixed - fig.net) + ' to go') + '</div>' +
-      '<p>Net kept ' + money(fig.net) + ' vs ' + money(fixed) + ' monthly bills. Pace mark ' + pct(pace) + '. ' +
+      '<p>Net kept ' + money(fig.net) + ' vs ' + money(fixed) + ' monthly bills incl. ' + money(t.driverMo) + ' driver pay. Pace mark ' + pct(pace) + '. ' +
       (M && M.beLoadsWk ? 'Break-even is about ' + num(M.beLoadsWk, 1) + ' loads/wk at your Targets inputs.' : '') + '</p></div></section>';
 
     // Callouts: the three biggest gaps, one line each.
@@ -340,7 +347,7 @@
     if (idle > idleT) calls.push('Truck sat <b>' + idle + ' of ' + day + ' days</b>; target is ' + num(idleT, 0) + '. Line up the next load before the drop.');
     if (deadPct != null && deadPct * 100 > t.dead) calls.push('Deadhead is <b>' + pct(deadPct) + '</b> vs ' + num(t.dead, 0) + '%. Search from the drop city, not home.');
     if (fig.perLoaded != null && fig.perLoaded < t.rpm) calls.push('Rate is <b>' + rpmT(fig.perLoaded) + '/mi</b> vs ' + rpmT(t.rpm) + '. Counter low offers by $0.25/mi.');
-    if (beRatio != null && beRatio < 1) calls.push('<b>' + money(fixed - fig.net) + '</b> of bills still uncovered with ' + (dim - day) + ' days left.');
+    if (beRatio != null && beRatio < 1) calls.push('<b>' + money(fixed - fig.net) + '</b> of bills and driver pay still uncovered with ' + (dim - day) + ' days left.');
     if (!calls.length) calls.push('Every KPI is on pace. Keep it rolling.');
 
     root.innerHTML = '<div class="sb-h"><h2>Scoreboard</h2><span>' + esc(MON[p[1] - 1] + ' 1-' + day + ' - week of ' + md(wk0) + ' - targets from Targets tab') + '</span></div>' +
