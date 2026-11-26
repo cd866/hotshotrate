@@ -2,20 +2,12 @@
   "state": "live",
   "pct": 100,
   "origin": "Jacksonville, FL",
-  "started_at": "2026-11-26 14:38 CT",
-<<<<<<< Updated upstream
-  "updated_at": "2026-11-26 14:40 CT",
-  "counts": {
-    "truckstop": 25,
-    "df": 0,
-    "fits": 0
-=======
+  "started_at": "2026-11-26 14:31 CT",
   "updated_at": "2026-11-26 14:41 CT",
   "counts": {
     "truckstop": 25,
     "df": 119,
     "fits": 1
->>>>>>> Stashed changes
   },
   "message": "Loads are live"
 }
