@@ -1,0 +1,772 @@
+{
+ "schema": 1,
+ "built_at": "2026-11-26",
+ "rig": "2026 Ram 3500 DRW + Big Tex 25GN-40 gooseneck",
+ "carrier": "Totni Enterprise LLC (USDOT 3448727), leased on",
+ "driver": "Meshach",
+ "groups": [
+  {
+   "id": "drv",
+   "name": "Driver (Meshach)"
+  },
+  {
+   "id": "pap",
+   "name": "Paperwork in the cab"
+  },
+  {
+   "id": "eqp",
+   "name": "Emergency gear and marking"
+  },
+  {
+   "id": "veh",
+   "name": "Truck and trailer condition"
+  },
+  {
+   "id": "crg",
+   "name": "Cargo securement"
+  },
+  {
+   "id": "trp",
+   "name": "Pre-trip and post-trip"
+  }
+ ],
+ "items": [
+  {
+   "id": "d-cdl",
+   "g": "drv",
+   "t": "CDL Class A, current, no restriction that bars this rig",
+   "cfr": "49 CFR 383.91(a)(1), 383.5; CVSA Level I step 8",
+   "s": "unk",
+   "w": 3,
+   "ev": "Meshach has held a CDL since 2022 (chat 10/22, sent for insurance). The class is not on file.",
+   "why": "This rig is a Group A combination (see the CDL card). A Class B or C card cannot legally pull it. The inspector checks class, endorsements, restrictions and expiry.",
+   "fix": "Read the card: it must say Class A and be unexpired. Mark it OK once you have seen it.",
+   "lo": 0,
+   "hi": 0,
+   "u": "driver"
+  },
+  {
+   "id": "d-med",
+   "g": "drv",
+   "t": "Medical examiner's certificate current (24 months max)",
+   "cfr": "49 CFR 391.41(a), 391.45(b); CVSA Level I step 9",
+   "s": "unk",
+   "w": 3,
+   "ev": "No exam date on file.",
+   "why": "Since 6/23/2025 a CDL driver does not have to carry the card if the state record shows it (391.41(a)(2)(i)(B)), but carry a copy anyway. Expired = out of service for the driver.",
+   "fix": "Find the exam date. Over 24 months old or lost: book a DOT physical at a clinic. When you mark it OK, enter the expiry date.",
+   "lo": 85,
+   "hi": 130,
+   "u": "driver",
+   "wantexp": true
+  },
+  {
+   "id": "d-dq",
+   "g": "drv",
+   "t": "Driver qualification file complete (kept by Totni)",
+   "cfr": "49 CFR 391.51, 391.21, 391.23, 391.25",
+   "s": "unk",
+   "w": 2,
+   "ev": "Totni is the carrier, so Totni keeps the file. No proof on our side.",
+   "why": "Application, MVR, annual review, med certificate, road test or CDL copy. Roadside will not ask for it. A safety audit will.",
+   "fix": "Ask Totni to confirm in writing that Meshach's file is complete.",
+   "lo": 0,
+   "hi": 0,
+   "u": "driver"
+  },
+  {
+   "id": "d-da",
+   "g": "drv",
+   "t": "Drug and alcohol program: pre-employment test, random pool, Clearinghouse query",
+   "cfr": "49 CFR 382.301, 382.305, 382.701",
+   "s": "unk",
+   "w": 2,
+   "ev": "CDL work requires it. Totni's public record shows 0 drug or alcohol violations. No proof for Meshach on our side.",
+   "why": "A CDL driver must be in a random pool and have a Clearinghouse query on file before driving.",
+   "fix": "Ask Totni for proof Meshach is in their random pool and has a Clearinghouse query on file.",
+   "lo": 0,
+   "hi": 0,
+   "u": "driver"
+  },
+  {
+   "id": "d-eld",
+   "g": "drv",
+   "t": "ELD installed and Meshach logs in under his own name",
+   "cfr": "49 CFR 395.8(a)(1)(i), 395.22; CVSA Level I step 10",
+   "s": "ok",
+   "w": 3,
+   "ev": "Totni's ELD was installed in the truck 10/23 (chat). Claudio noted 11/23 that Totni held back $50 as an ELD fee (ledger).",
+   "why": "No ELD record when one is required is an out-of-service violation. Totni's last 24 months show 4 HOS violations, one of them no record of duty status.",
+   "fix": "Test the data transfer once (email or Bluetooth) so he can do it at the roadside.",
+   "lo": 0,
+   "hi": 0,
+   "u": "driver"
+  },
+  {
+   "id": "d-eldpack",
+   "g": "drv",
+   "t": "ELD packet in the cab: manual, data-transfer steps, malfunction instructions",
+   "cfr": "49 CFR 395.22(h)(1)-(2)",
+   "s": "unk",
+   "w": 2,
+   "ev": "Not on file.",
+   "why": "The driver must have an instruction sheet for producing his logs and one for what to do when the ELD fails.",
+   "fix": "Ask Totni or the ELD maker for the PDFs. Print them and keep them in one sleeve.",
+   "lo": 2,
+   "hi": 5,
+   "u": "driver"
+  },
+  {
+   "id": "d-blank",
+   "g": "drv",
+   "t": "8 days of blank paper log grids (and he knows how to fill them)",
+   "cfr": "49 CFR 395.22(h)(3), 395.34(a)(2)-(3)",
+   "s": "unk",
+   "w": 2,
+   "ev": "Not on file.",
+   "why": "If the ELD fails he must write logs by hand for today and the last 7 days, and show them at an inspection.",
+   "fix": "Print 8 blank graph-grid sheets and clip them to the ELD packet.",
+   "lo": 1,
+   "hi": 3,
+   "u": "driver"
+  },
+  {
+   "id": "d-hos",
+   "g": "drv",
+   "t": "Logs accurate and inside the limits (11 hr drive, 14 hr window, 70 hr in 8 days, 30 min break)",
+   "cfr": "49 CFR 395.3, 395.8(e); CVSA Level I step 10",
+   "s": "unk",
+   "w": 3,
+   "ev": "No log review on file. Totni's record shows 2 false-log violations, both before our truck joined (10/2025 and 1/2026).",
+   "why": "Inspectors read the last 8 days. A false log can be an out-of-service violation.",
+   "fix": "Review the week's ELD log every Sunday: no gaps, no unexplained edits. Check it off.",
+   "lo": 0,
+   "hi": 0,
+   "u": "driver",
+   "ttl": 7
+  },
+  {
+   "id": "p-reg",
+   "g": "pap",
+   "t": "Truck registration (cab card): Louisiana 60-day temp tag",
+   "cfr": "State registration law; IRP; CVSA Level I step 7",
+   "s": "ok",
+   "w": 3,
+   "ev": "Louisiana 60-day temp registration issued 11/18/2026, good to 1/17/2027 (photo on file). Titling with the dealer was still open on 11/23.",
+   "why": "The temp paper must ride in the truck. When it lapses the truck has no valid registration.",
+   "fix": "Finish permanent registration before 1/17/2027. A 39,900 lb combination running interstate normally needs apportioned (IRP) plates: ask Totni and TxDMV which one to get.",
+   "u": "truck",
+   "exp": "2027-01-17"
+  },
+  {
+   "id": "p-reg-tr",
+   "g": "pap",
+   "t": "Trailer registration (Galveston County, TX trailer plate)",
+   "cfr": "State registration law; CVSA Level I step 7",
+   "s": "ok",
+   "w": 2,
+   "ev": "Trailer titled and registered 11/2/2026 in Galveston County, paid on company AmEx (ledger).",
+   "why": "Plate on the trailer and the registration receipt in the cab.",
+   "fix": "Photograph the registration receipt and keep the paper in the cab. Note the sticker expiry when you check it off.",
+   "lo": 0,
+   "hi": 0,
+   "u": "trailer",
+   "wantexp": true
+  },
+  {
+   "id": "p-irp",
+   "g": "pap",
+   "t": "IRP cab card and IFTA license and decals (Totni's, for this unit)",
+   "cfr": "IRP and IFTA plans (state-run, not 49 CFR)",
+   "s": "unk",
+   "w": 2,
+   "ev": "Ben noted 10/21 that Totni probably handles IFTA under its own account. Not confirmed. The truck is on a temp tag, not IRP plates.",
+   "why": "A power unit in a combination over 26,000 lb running several states is a qualified vehicle for both programs.",
+   "fix": "Ask Totni: is this unit on their IRP and IFTA accounts? Keep a copy of the IFTA license in the cab and put the decals on the truck.",
+   "lo": 0,
+   "hi": 10,
+   "u": "truck"
+  },
+  {
+   "id": "p-lease",
+   "g": "pap",
+   "t": "Written lease with Totni, copy in the cab",
+   "cfr": "49 CFR 376.11(a), 376.11(c)(2), 376.12",
+   "s": "unk",
+   "w": 3,
+   "ev": "A Totni lease was reviewed in chat in October. No signed copy is in our files.",
+   "why": "Without a copy on the truck, Totni must supply a lease statement instead (376.11(c)(2)). Inspectors use it to see who the operating carrier is.",
+   "fix": "Get the signed PDF from Totni. Print 2 copies and keep one in the cab.",
+   "lo": 1,
+   "hi": 3,
+   "u": "truck"
+  },
+  {
+   "id": "p-ins",
+   "g": "pap",
+   "t": "Insurance ID cards in the cab (Progressive: truck and trailer)",
+   "cfr": "49 CFR 387.7; CVSA Level I step 7",
+   "s": "ok",
+   "w": 2,
+   "ev": "Progressive ID cards mailed 11/2 for the policy running to 10/30/2027. Photos on file 11/9.",
+   "why": "The inspector uses insurance to identify the carrier.",
+   "fix": "Check the printed cards are in the truck, not only photographed.",
+   "lo": 0,
+   "hi": 0,
+   "u": "truck"
+  },
+  {
+   "id": "p-ins2",
+   "g": "pap",
+   "t": "Proof of Totni's for-hire liability for this unit",
+   "cfr": "49 CFR 387.7, 387.9",
+   "s": "unk",
+   "w": 2,
+   "ev": "Totni's certificate (10/23) names Totni only. Our own Progressive liability is 30/60/25, below the $750,000 federal minimum for for-hire freight, so Totni's policy has to be the proof.",
+   "why": "The operating carrier (Totni) must carry at least $750,000 public liability for non-hazmat freight over 10,001 lb.",
+   "fix": "Ask Totni for the insurance card or certificate that lists this truck. Keep a copy in the cab.",
+   "lo": 0,
+   "hi": 0,
+   "u": "truck"
+  },
+  {
+   "id": "p-annual-t",
+   "g": "pap",
+   "t": "Annual inspection report or decal: truck (within 12 months)",
+   "cfr": "49 CFR 396.17(c), 396.21(a), Appendix A to Part 396",
+   "s": "unk",
+   "w": 3,
+   "ev": "No inspection report on file. The Maintenance tab shows 'Annual DOT inspection (truck)' with no record. A state inspection fee on the buyer's order is not proof of a 396.17 inspection. Totni was written up for this once (2/25/2026).",
+   "why": "Level I step 12 asks for the report or decal. Missing = a violation (severity 4).",
+   "fix": "Book a DOT annual inspection at a truck shop or truck stop. Ask for the report and a decal.",
+   "lo": 100,
+   "hi": 200,
+   "u": "truck",
+   "maint": [
+    "t-dot"
+   ],
+   "maint_exp_months": 12
+  },
+  {
+   "id": "p-annual-r",
+   "g": "pap",
+   "t": "Annual inspection report or decal: trailer (within 12 months)",
+   "cfr": "49 CFR 396.17(a), 396.17(c), 396.21(a)",
+   "s": "unk",
+   "w": 3,
+   "ev": "No inspection report on file. The Maintenance tab shows 'Annual DOT inspection (trailer)' with no record. The trailer is a CMV too (rating 25,900 lb), so it needs its own.",
+   "why": "Every unit in a combination is inspected on its own (396.17(a)).",
+   "fix": "Do it on the same visit as the truck. Ask for a separate report for the trailer.",
+   "lo": 80,
+   "hi": 150,
+   "u": "trailer",
+   "maint": [
+    "r-dot"
+   ],
+   "maint_exp_months": 12
+  },
+  {
+   "id": "p-bol",
+   "g": "pap",
+   "t": "Bill of lading and rate con for the load, plus Totni's trip paper",
+   "cfr": "49 CFR 376.11(d)(1), 395.11; CVSA Level I step 5",
+   "s": "unk",
+   "w": 2,
+   "ev": "Rate cons are on file for loads (for example 11/13). Nothing shows signed BOLs are kept in the cab.",
+   "why": "Shipping papers name the load and the carrier responsible. They also back up the log.",
+   "fix": "Keep one clip folder: today's BOL and rate con on top. Photograph the BOL at delivery.",
+   "lo": 0,
+   "hi": 5,
+   "u": "truck"
+  },
+  {
+   "id": "p-binder",
+   "g": "pap",
+   "t": "One roadside binder, always in the same spot, in inspection order",
+   "cfr": "CVSA Level I steps 5 to 12",
+   "s": "unk",
+   "w": 2,
+   "ev": "No binder on record.",
+   "why": "Order the inspector asks: license, med card, ELD, lease, insurance, registration, annual reports, BOL.",
+   "fix": "A $5 zip sleeve or binder. Put the printed items in that order.",
+   "lo": 3,
+   "hi": 8,
+   "u": "truck"
+  },
+  {
+   "id": "p-pass",
+   "g": "pap",
+   "t": "Rider on board: Totni's signed passenger authorization",
+   "cfr": "49 CFR 392.60",
+   "s": "na",
+   "w": 1,
+   "ev": "Only matters if someone rides along. Chat 11/2026 noted Totni, not us, must sign it.",
+   "why": "A rider without the carrier's written OK is a violation.",
+   "fix": "Mark Needed if anyone will ever ride. Ask Totni for the signed form first.",
+   "lo": 0,
+   "hi": 0,
+   "u": "truck"
+  },
+  {
+   "id": "e-ext",
+   "g": "eqp",
+   "t": "Fire extinguisher: HAVE it, but it is NOT MOUNTED",
+   "cfr": "49 CFR 393.95(a)(4)",
+   "s": "gap",
+   "w": 3,
+   "ev": "A 5 lb extinguisher was bought 10/20 (TA Truck Service, $75.71 with the triangles). It rides loose. Totni's record has an 'extinguisher unsecured' write-up (393.95A4-EEUS, severity 2) from 2/25/2026.",
+   "why": "It must be readily accessible and mounted so it cannot slide, roll or move up and down.",
+   "fix": "Bolt a vehicle bracket in the cab (behind the driver seat or on the console side) or in the bed box. Use 2 bolts through a metal panel with nylon-lock nuts and fender washers, not trim. Amerex 818 fits a 4.25 in cylinder: measure yours first. Cost is the bracket plus about $11 shipping plus $6 hardware.",
+   "lo": 20,
+   "hi": 35,
+   "u": "truck",
+   "links": [
+    [
+     "Amerex 818 vehicle bracket (Fire Supply Depot, $17.95)",
+     "https://www.firesupplydepot.com/amerex-818-extinguisher-bracket.html"
+    ],
+    [
+     "Alt: 5 lb vehicle mounting bracket (Gemplers, $17.99)",
+     "https://gemplers.com/products/vehicle-mounting-bracket"
+    ]
+   ],
+   "badge": "HAVE - NOT MOUNTED"
+  },
+  {
+   "id": "e-ext-rate",
+   "g": "eqp",
+   "t": "Extinguisher label: UL 5 B:C or higher, gauge in the green, seal intact",
+   "cfr": "49 CFR 393.95(a)(1)-(3)",
+   "s": "unk",
+   "w": 2,
+   "ev": "Size is known (5 lb). The rating and gauge have not been read.",
+   "why": "Required: one extinguisher rated 5 B:C or more, or two rated 4 B:C or more, marked by the maker, with a way to see it is charged.",
+   "fix": "Read the label and gauge. A 5 lb ABC is normally well above 5 B:C. Replace it if the needle is out of the green.",
+   "lo": 0,
+   "hi": 0,
+   "u": "truck"
+  },
+  {
+   "id": "e-tri",
+   "g": "eqp",
+   "t": "3 bidirectional reflective triangles in the cab",
+   "cfr": "49 CFR 393.95(f)(1), 392.22(b)",
+   "s": "ok",
+   "w": 2,
+   "ev": "Warning triangles were bought 10/20 with the extinguisher (receipt in the accounting group).",
+   "why": "Three triangles that meet FMVSS 125. Missing or wrong = a violation (severity 2).",
+   "fix": "Open the case once: 3 triangles, case within reach in the cab.",
+   "lo": 0,
+   "hi": 0,
+   "u": "truck"
+  },
+  {
+   "id": "e-mark",
+   "g": "eqp",
+   "t": "USDOT marking on both sides of the truck, Totni's name and number",
+   "cfr": "49 CFR 390.21(b)-(d), 376.11(c)(1)",
+   "s": "unk",
+   "w": 3,
+   "ev": "Meshach made and applied DOT and MC stickers 10/1 to 10/6 (chat photos, 'some flaws'). What they say is not on file.",
+   "why": "Must show the operating carrier's legal name and USDOT 3448727 (Totni Enterprise LLC), contrasting color, readable from 50 ft, both sides. The MC number is not required. If Sand Lily Pad or Black Ram is also on the truck, the carrier name must read 'operated by' plus Totni's name and number (390.21(b)(3)).",
+   "fix": "Stand 50 ft away and read both doors. Reprint if crooked or peeling.",
+   "lo": 25,
+   "hi": 40,
+   "u": "truck"
+  },
+  {
+   "id": "e-fuses",
+   "g": "eqp",
+   "t": "Spare fuses",
+   "cfr": "49 CFR 393.95 (no fuse rule now; (b)-(e) reserved)",
+   "s": "na",
+   "w": 1,
+   "ev": "The current 393.95 has no spare-fuse rule.",
+   "why": "Not required. Nice to have.",
+   "fix": "An $8 blade-fuse kit if you want one.",
+   "lo": 8,
+   "hi": 12,
+   "u": "truck"
+  },
+  {
+   "id": "v-lights-t",
+   "g": "veh",
+   "t": "Truck lights: head, tail, brake, turn, markers, dually clearance",
+   "cfr": "49 CFR 393.9, 393.11; CVSA Level I vehicle walk-around",
+   "s": "unk",
+   "w": 3,
+   "ev": "No walk-around logged. Totni's record has 5 lamp write-ups, and 2 inoperative turn signals were out-of-service.",
+   "why": "Turn signals and tail lamps are the most common out-of-service lights.",
+   "fix": "Helper walk: low and high beam, left and right turn, brake, hazards. 3 minutes. Check it off.",
+   "lo": 0,
+   "hi": 0,
+   "u": "truck",
+   "ttl": 7
+  },
+  {
+   "id": "v-lights-r",
+   "g": "veh",
+   "t": "Trailer lights: tail, brake, turn, marker, clearance, 7-pin plug",
+   "cfr": "49 CFR 393.9, 393.11",
+   "s": "unk",
+   "w": 3,
+   "ev": "No check logged. Trailer is new (10/5).",
+   "why": "Check every lamp with the plug in. Rear clearance lights and side markers count.",
+   "fix": "Same helper walk with the trailer plugged in. Check it off.",
+   "lo": 0,
+   "hi": 0,
+   "u": "trailer",
+   "maint": [
+    "r-lights"
+   ],
+   "ttl": 7
+  },
+  {
+   "id": "v-conspic",
+   "g": "veh",
+   "t": "Trailer conspicuity tape or reflectors (red and white)",
+   "cfr": "49 CFR 393.11(b); FMVSS 108 S5.7",
+   "s": "unk",
+   "w": 2,
+   "ev": "Not confirmed on the 2027 Big Tex.",
+   "why": "Required on a trailer over 80 in wide with a GVWR over 10,000 lb.",
+   "fix": "Check the sides and rear: tape continuous, not peeling. Add DOT-C2 tape where missing.",
+   "lo": 0,
+   "hi": 30,
+   "u": "trailer"
+  },
+  {
+   "id": "v-brk-t",
+   "g": "veh",
+   "t": "Truck brakes and parking brake work, pedal firm",
+   "cfr": "49 CFR 393.40, 393.42, 393.52; 396.3(a)",
+   "s": "unk",
+   "w": 3,
+   "ev": "No brake check logged. The Maintenance tab shows brake linings with no record.",
+   "why": "Brake defects are a leading out-of-service reason.",
+   "fix": "Quick test at low speed and with the trailer on. Log the brake inspection in Maintenance.",
+   "lo": 0,
+   "hi": 0,
+   "u": "truck",
+   "maint": [
+    "t-brake"
+   ],
+   "ttl": 30
+  },
+  {
+   "id": "v-brk-r",
+   "g": "veh",
+   "t": "Trailer brakes work on all wheels, controller gain set",
+   "cfr": "49 CFR 393.42(a), 393.40",
+   "s": "unk",
+   "w": 3,
+   "ev": "Trailer is new (10/5). No brake test logged.",
+   "why": "Brakes must act on all wheels. A dead axle shows up on the roadside brake test.",
+   "fix": "At 20 mph squeeze the controller's manual lever: the trailer should drag. Set the gain and log it.",
+   "lo": 0,
+   "hi": 0,
+   "u": "trailer",
+   "maint": [
+    "r-brake"
+   ],
+   "ttl": 30
+  },
+  {
+   "id": "v-breakaway",
+   "g": "veh",
+   "t": "Breakaway cable on its own anchor, battery charged, pin locks the wheels",
+   "cfr": "49 CFR 393.43",
+   "s": "unk",
+   "w": 3,
+   "ev": "A photo of the breakaway clip is on file. No battery test is logged.",
+   "why": "A trailer with brakes must stop if it comes loose.",
+   "fix": "Pull the pin with a wheel off the ground: the brakes must lock. Test the battery monthly.",
+   "lo": 0,
+   "hi": 25,
+   "u": "trailer",
+   "maint": [
+    "r-breakaway"
+   ],
+   "ttl": 30
+  },
+  {
+   "id": "v-tire-steer",
+   "g": "veh",
+   "t": "Steer tires: 4/32 in tread or more, no cuts or bulges, right pressure",
+   "cfr": "49 CFR 393.75(a), 393.75(b); CVSA: steer under 2/32 is out of service",
+   "s": "unk",
+   "w": 3,
+   "ev": "Truck is new (about 4,100 mi on 10/26) but tread was not measured.",
+   "why": "Steer tires must have 4/32 in. Under 2/32 parks the truck.",
+   "fix": "A $6 tread gauge. Measure in a major groove every 2 weeks and check it off.",
+   "lo": 6,
+   "hi": 10,
+   "u": "truck",
+   "ttl": 14
+  },
+  {
+   "id": "v-tire-other",
+   "g": "veh",
+   "t": "Every other tire: 2/32 in or more, no flat, no exposed cord, load rating OK",
+   "cfr": "49 CFR 393.75(a), 393.75(c), 393.75(g); CVSA: others under 1/32 out of service",
+   "s": "unk",
+   "w": 3,
+   "ev": "Spare swapped on 11/3 after a nail flat. A tire was replaced 11/11 (unit not confirmed). Totni's record has 2 flat-tire out-of-service write-ups.",
+   "why": "A flat or audible leak is out of service. Check the inner dual of the dually, they hide.",
+   "fix": "Check 6 truck tires (including inner duals) and 4 trailer tires. Trailer 80 psi cold. Spare matches. Check it off.",
+   "lo": 0,
+   "hi": 0,
+   "u": "both",
+   "maint": [
+    "r-tires"
+   ],
+   "ttl": 14
+  },
+  {
+   "id": "v-wheel",
+   "g": "veh",
+   "t": "Wheels and lug nuts: none missing, loose or cracked",
+   "cfr": "49 CFR 393.205",
+   "s": "unk",
+   "w": 2,
+   "ev": "Re-torque after any wheel work is on the Maintenance checklist, not logged.",
+   "why": "Missing or loose nuts and cracked rims are violations.",
+   "fix": "Torque to spec after any wheel work. Log it in Maintenance.",
+   "lo": 0,
+   "hi": 30,
+   "u": "both",
+   "maint": [
+    "t-lug",
+    "r-lug"
+   ],
+   "ttl": 30
+  },
+  {
+   "id": "v-coupler",
+   "g": "veh",
+   "t": "Gooseneck coupler on the ball, latch closed and pinned, ball tight",
+   "cfr": "49 CFR 393.70(a), 396.11(a)(1)(ix)",
+   "s": "unk",
+   "w": 3,
+   "ev": "The CURT gooseneck ball and safety-chain anchor were added 10/5 (Big Tex invoice). No latch check logged.",
+   "why": "Coupling devices are on the daily inspection list and the inspector looks at them.",
+   "fix": "Tug test and a look at the latch pin at every hook-up. Log the gooseneck check in Maintenance.",
+   "lo": 0,
+   "hi": 0,
+   "u": "trailer",
+   "maint": [
+    "r-gn"
+   ],
+   "ttl": 30
+  },
+  {
+   "id": "v-chains",
+   "g": "veh",
+   "t": "Safety chains: two, crossed, hooked to the truck, rated for the load",
+   "cfr": "49 CFR 393.70(d) (full trailers); many state laws",
+   "s": "unk",
+   "w": 2,
+   "ev": "Chain anchor added 10/5. Chain rating not checked.",
+   "why": "Strength should be at least the weight being towed (393.70(d)(3)). Many states require chains on any trailer.",
+   "fix": "Hook to the bed anchors, crossed, with a little slack. Check the chain's tag shows a rating of 25,900 lb or more.",
+   "lo": 0,
+   "hi": 0,
+   "u": "trailer"
+  },
+  {
+   "id": "v-flaps",
+   "g": "veh",
+   "t": "Mud flaps behind the rear wheels where a state requires them",
+   "cfr": "State law (no federal rule in Part 393); check each state you run",
+   "s": "unk",
+   "w": 1,
+   "ev": "Nothing on file.",
+   "why": "Some states write up a dually with no flaps.",
+   "fix": "Add flaps behind the rear duals if missing.",
+   "lo": 30,
+   "hi": 60,
+   "u": "truck"
+  },
+  {
+   "id": "v-misc",
+   "g": "veh",
+   "t": "Wipers, horn, mirrors, windshield clear in the driver's view",
+   "cfr": "49 CFR 393.78, 393.80, 393.81, 393.60",
+   "s": "unk",
+   "w": 1,
+   "ev": "No check logged. Totni's record has 2 wiper write-ups.",
+   "why": "Wipers are one of the cheapest write-ups to avoid.",
+   "fix": "Check them on the first pre-trip. Replace the blades if streaking ($25 EST).",
+   "lo": 0,
+   "hi": 30,
+   "u": "truck",
+   "ttl": 30
+  },
+  {
+   "id": "c-count",
+   "g": "crg",
+   "t": "Enough tiedowns for the cargo length (use the calculator below)",
+   "cfr": "49 CFR 393.110, 393.128, 393.130",
+   "s": "unk",
+   "w": 3,
+   "ev": "Rule: 1 tiedown up to 5 ft and 1,100 lb, 2 up to 10 ft, then 1 more for every extra 10 ft or part of it. Machinery on wheels or tracks of 10,000 lb or more: at least 4.",
+   "why": "Fewer tiedowns than the rule is a violation even if the load feels tight.",
+   "fix": "Count before you roll. Use the calculator to be sure.",
+   "lo": 0,
+   "hi": 0,
+   "u": "trailer",
+   "ttl": 3
+  },
+  {
+   "id": "c-wll",
+   "g": "crg",
+   "t": "Straps and chains marked with working load limit, total at least half the cargo weight, no knots, no damage",
+   "cfr": "49 CFR 393.102, 393.104(e)-(f), 393.106(d)",
+   "s": "unk",
+   "w": 3,
+   "ev": "The gooseneck toolbox view lists straps, chains and binders. WLL tags and wear were not checked.",
+   "why": "A tiedown with no tag counts as a fraction of its breaking strength. A cut or knotted strap is out.",
+   "fix": "Read every tag. Bin any strap with cuts, melted spots or knots.",
+   "lo": 0,
+   "hi": 0,
+   "u": "trailer",
+   "ttl": 14
+  },
+  {
+   "id": "c-edge",
+   "g": "crg",
+   "t": "Edge protectors where a strap or chain bends over a corner",
+   "cfr": "49 CFR 393.104(f)(4)",
+   "s": "unk",
+   "w": 2,
+   "ev": "Not on file.",
+   "why": "Edge protection is required wherever a tiedown could be cut or abraded by the cargo.",
+   "fix": "Keep 4 to 6 corner protectors in the toolbox. About $20 EST for a set.",
+   "lo": 0,
+   "hi": 25,
+   "u": "trailer"
+  },
+  {
+   "id": "c-50",
+   "g": "crg",
+   "t": "Stop and re-check the load in the first 50 miles, then every 3 hours or 150 miles",
+   "cfr": "49 CFR 392.9(b)(2)-(3)",
+   "s": "unk",
+   "w": 2,
+   "ev": "A habit, not a record.",
+   "why": "The driver must inspect the cargo and tiedowns early and again on a schedule, and adjust.",
+   "fix": "Set a reminder on the ELD at mile 40. Check it off when you do it.",
+   "lo": 0,
+   "hi": 0,
+   "u": "truck",
+   "ttl": 3
+  },
+  {
+   "id": "c-wt",
+   "g": "crg",
+   "t": "Weight under the ratings: truck 14,000 lb, trailer 25,900 lb, axles and tires OK",
+   "cfr": "49 CFR 393.75(g); 23 CFR 658.17 (80,000 lb gross, 20,000 single axle, 34,000 tandem)",
+   "s": "unk",
+   "w": 2,
+   "ev": "CAT scale 10/7: empty rig 18,568 lb with a full tank (ticket on file). Per-load weights are in the Load Boards fit rules.",
+   "why": "Over a tire's load rating or an axle rating is a violation, and the state can fine for weight.",
+   "fix": "Scale the first heavy load of each type. Keep the ticket.",
+   "lo": 12,
+   "hi": 15,
+   "u": "both"
+  },
+  {
+   "id": "t-pre",
+   "g": "trp",
+   "t": "Pre-trip walk-around on every trip day: tires, lights, hitch, chains, load, fluids",
+   "cfr": "49 CFR 396.13(a); CVSA Level I",
+   "s": "unk",
+   "w": 3,
+   "ev": "No log. It is a habit.",
+   "why": "The driver must be satisfied the vehicle is safe to drive before moving it.",
+   "fix": "Do the 5-minute walk and check it off daily.",
+   "lo": 0,
+   "hi": 0,
+   "u": "both",
+   "ttl": 1
+  },
+  {
+   "id": "t-dvir",
+   "g": "trp",
+   "t": "Post-trip DVIR written when there is a defect, signed, next driver reviews it",
+   "cfr": "49 CFR 396.11(a), 396.13(b)-(c); CVSA Level I step 11",
+   "s": "unk",
+   "w": 2,
+   "ev": "Totni's FMCSA record lists 1 vehicle. 396.11(a)(5) excuses a carrier that runs only one CMV from the written report. It may run more now.",
+   "why": "Ask Totni whether it still runs just one CMV. If it runs more, the written report is required and kept 3 months. Do the pre-trip either way.",
+   "fix": "Get a DVIR pad ($6 EST) or use an app. Keep 3 months of reports.",
+   "lo": 0,
+   "hi": 8,
+   "u": "both"
+  },
+  {
+   "id": "t-roadside",
+   "g": "trp",
+   "t": "Know the roadside drill: pull over safely, hand over papers, ELD transfer, no argument",
+   "cfr": "CVSA North American Standard Level I procedure",
+   "s": "unk",
+   "w": 1,
+   "ev": "Not covered anywhere yet.",
+   "why": "A calm, organized driver gets a shorter inspection.",
+   "fix": "Read the CVSA Level I steps once with Meshach.",
+   "lo": 0,
+   "hi": 0,
+   "u": "driver"
+  }
+ ],
+ "cdl": {
+  "verdict": "Class A CDL required",
+  "lines": [
+   [
+    "Truck rating (GVWR)",
+    "about 14,000 lb (door label: verify)"
+   ],
+   [
+    "Trailer rating (GVWR)",
+    "25,900 lb (Big Tex 25GN)"
+   ],
+   [
+    "Combined rating (sum)",
+    "about 39,900 lb"
+   ],
+   [
+    "Ram GCWR (tow chart, Mega Cab DRW HO)",
+    "41,950 lb"
+   ],
+   [
+    "Group A test (383.91(a)(1))",
+    "combined 26,001 lb or more AND towed unit over 10,000 lb: both true"
+   ]
+  ],
+  "why": "The CDL line is drawn on RATINGS, not on what is on the deck. GCWR is the greater of the maker's value on the certification label (if shown) or the sum of the GVWRs (383.5). Either way this rig is over 26,001 lb, and the trailer alone is over 10,000 lb, so it is a Group A combination. Our empty rig weighed 18,568 lb on 10/7 and still needs the CDL-A.",
+  "also": "Even without a CDL, a combination rated 10,001 lb or more in interstate for-hire work is a CMV under 390.5, so the med card, DOT number, ELD, annual inspections and cargo rules apply. A CDL is avoided only with a trailer rated 10,000 lb or less, or a combination whose ratings add up to 26,000 lb or less (and if the Ram's label shows a GCWR, that figure counts too). This trailer is neither. Anyone else who drives the rig on a trip needs a CDL-A too.",
+  "src": "49 CFR 383.91(a)(1); 383.5 (CMV, GCWR); 390.5"
+ },
+ "sources": [
+  [
+   "eCFR Title 49 Parts 376, 382, 383, 387, 390, 391, 392, 393, 395, 396 (text read 11/26/2026)",
+   "https://www.ecfr.gov/current/title-49/subtitle-B/chapter-III/subchapter-B"
+  ],
+  [
+   "CVSA North American Standard Level I Inspection Procedure (37 steps)",
+   "https://cvsa.org/inspections/inspection-procedures/"
+  ],
+  [
+   "CVSA 2026 Out-of-Service Criteria (in effect 4/1/2026)",
+   "https://cvsa.org/inspections/out-of-service-criteria"
+  ],
+  [
+   "FMCSA Safety Planner: Level I procedure PDF",
+   "https://csa.fmcsa.dot.gov/safetyplanner/documents/396%20Forms/Inspection%20Procedure.pdf"
+  ],
+  [
+   "FMCSA SMS profile for Totni, USDOT 3448727 (violation history, read 11/26/2026)",
+   "https://ai.fmcsa.dot.gov/SMS"
+  ]
+ ]
+}
