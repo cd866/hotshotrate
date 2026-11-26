@@ -18,7 +18,7 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=3" sizes="180x180" />
   <link rel="preload" href="fonts/nunito-sans-variable.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="fonts/oswald-700.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="styles.css?v=85" />
+  <link rel="stylesheet" href="styles.css?v=86" />
   <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
   <script>
     try {
@@ -42,7 +42,7 @@
         <p>Black Ram Logistics is the hotshot DBA of Sand Lily Pad LLC, leased onto Totni Enterprise's MC authority.</p>
         <p>Our rig: 2026 Ram 3500 dually and a 40 ft Big Tex gooseneck. Cargo up to 12,500 lb is OK; 12,501-15,300 lb is MAYBE (scale check, load centered just ahead of trailer axles); over 15,300 lb is a PASS. The Ram GVWR of 14,000 lb binds (CAT empty 10,940 lb on the truck). Tarps, straps. $/hr EST = net EST / hours. Hours = (loaded mi + empty miles) / 50 mph + 2 h load/unload per load. Net $/mi EST = net EST / (loaded mi + empty miles).</p>
         <p>Rate Check scores a broker's offer as you type: enter the rate, loaded miles and deadhead miles to get TAKE, MAYBE or PASS with net, net per day, net per mile and net per hour. Tap Save check to keep an offer on this phone. The last 10 saved checks stay here.</p>
-        <p>Load Boards shows the latest Truckstop and Direct Freight scan. Net EST is the posted rate times 0.87, minus fuel and DEF on loaded and empty miles: the EIA regional diesel price plus our pump premium, at 8 mpg, plus $0.034/mi DEF. Rate Check and Targets use the same fuel model; the flat $1.14/loaded mi + $0.30/empty mi is only a fallback when no diesel price is on file. Driver pay is not in the per-load estimate; Meshach is paid out of profits. A single load needs at least $500 net EST, or $300 for a same-day run under 250 total miles. A chain or a 2- or 3-load combo needs at least $1,000 total with no losing leg. An overnight low of 45 F or below at the drop (or at any stop on a combo) is an automatic PASS, because the truck would have to idle overnight. Each load and combo also shows a route weather report. Ice or snow on the route, or gusts of 50+ mph, is a MAYBE and does not PASS by itself. Load Boards lists TAKE loads first, then MAYBE, then PASS. Tarp-required and F+T loads are a fit; the rig has tarps and straps. If a company email is listed, Email broker opens a draft in your mail app and does not send it. If there is no email, Call broker uses a company phone, or a looked-up company line marked Looked up. Direct Freight rows with no broker identity link to the board detail. Each load and combo shows a route map (grey dashed empty miles to pickup, solid purple loaded) and an Open in Google Maps directions link. Maps use Esri base tiles (no key) and only load when they scroll into view. The public list does not include contact person names, personal cell numbers, card numbers, or other confidential details.</p>
+        <p>Load Boards shows the latest Truckstop, Direct Freight and uShip scan. uShip Book now prices score like a posted rate; uShip bid listings use the shipper target, the low bid, or an estimated fair price and are never better than MAYBE. Net EST is the posted rate times 0.87, minus fuel and DEF on loaded and empty miles: the EIA regional diesel price plus our pump premium, at 8 mpg, plus $0.034/mi DEF. Rate Check and Targets use the same fuel model; the flat $1.14/loaded mi + $0.30/empty mi is only a fallback when no diesel price is on file. Driver pay is not in the per-load estimate; Meshach is paid out of profits. A single load needs at least $500 net EST, or $300 for a same-day run under 250 total miles. A chain or a 2- or 3-load combo needs at least $1,000 total with no losing leg. An overnight low of 45 F or below at the drop (or at any stop on a combo) is an automatic PASS, because the truck would have to idle overnight. Each load and combo also shows a route weather report. Ice or snow on the route, or gusts of 50+ mph, is a MAYBE and does not PASS by itself. Load Boards lists TAKE loads first, then MAYBE, then PASS. Tarp-required and F+T loads are a fit; the rig has tarps and straps. If a company email is listed, Email broker opens a draft in your mail app and does not send it. If there is no email, Call broker uses a company phone, or a looked-up company line marked Looked up. Direct Freight rows with no broker identity link to the board detail. Each load and combo shows a route map (grey dashed empty miles to pickup, solid purple loaded) and an Open in Google Maps directions link. Maps use Esri base tiles (no key) and only load when they scroll into view. The public list does not include contact person names, personal cell numbers, card numbers, or other confidential details.</p>
         <h2>Add to your iPhone</h2>
         <ol>
           <li>Open this site in Safari.</li>
@@ -496,7 +496,7 @@
       <footer class="footer">
         <p><strong>Black Ram Logistics</strong> | DBA of Sand Lily Pad LLC</p>
         <p>Estimates are marked EST. Not a quote and not tax advice.</p>
-        <p class="app-version" id="app-version">v85</p>
+        <p class="app-version" id="app-version">v86</p>
       </footer>
       <div class="pad" aria-hidden="true"></div>
     </main>
@@ -658,18 +658,18 @@
   </div>
   <noscript><p class="noscript">Black Ram Logistics needs JavaScript for Rate Check, stops, and reports.</p></noscript>
   <script src="vendor/leaflet/leaflet.js"></script>
-  <script src="maps.js?v=85"></script>
-  <script src="tripplan.js?v=85"></script>
-  <script src="app.js?v=85"></script>
-  <script src="stops.js?v=85"></script>
-  <script src="targets.js?v=85"></script>
-  <script src="loadcosts.js?v=85"></script>
-  <script src="reports.js?v=85"></script>
-  <script src="scoreboard.js?v=85"></script>
-  <script src="accounting.js?v=85"></script>
-  <script src="insurance.js?v=85"></script>
-  <script src="maintenance.js?v=85"></script>
-  <script src="rig360.js?v=85"></script>
+  <script src="maps.js?v=86"></script>
+  <script src="tripplan.js?v=86"></script>
+  <script src="app.js?v=86"></script>
+  <script src="stops.js?v=86"></script>
+  <script src="targets.js?v=86"></script>
+  <script src="loadcosts.js?v=86"></script>
+  <script src="reports.js?v=86"></script>
+  <script src="scoreboard.js?v=86"></script>
+  <script src="accounting.js?v=86"></script>
+  <script src="insurance.js?v=86"></script>
+  <script src="maintenance.js?v=86"></script>
+  <script src="rig360.js?v=86"></script>
   <script>
     (function () {
       if (!('serviceWorker' in navigator)) return;

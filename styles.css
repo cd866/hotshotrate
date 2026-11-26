@@ -5476,3 +5476,9 @@ header.top .rig-stage[data-r360] .rig-floor { transition: opacity 0.5s ease; }
 .r360-parts button::before { content: ''; position: absolute; inset: -6px -2px; }
 .r360-parts button[aria-pressed="true"] { background: var(--gold, #D4A62A); color: #0f0d17; border-color: transparent; }
 .r360-parts button[hidden] { display: none; }
+
+/* v86 uShip board: badge + price-type chip (v51 tokens) */
+.board-chip.uship-chip { background: rgba(45, 212, 191, 0.14); border-color: rgba(45, 212, 191, 0.45); color: #5EEAD4; font-weight: var(--fw-bold, 700); }
+.uship-price { display: inline-flex; align-items: center; min-height: 24px; padding: 2px 9px; border-radius: var(--radius-pill, 999px); font-size: var(--fs-xs, 12px); font-weight: var(--fw-bold, 700); letter-spacing: 0.02em; }
+.uship-price.book { background: rgba(250, 204, 21, 0.14); border: 1px solid rgba(250, 204, 21, 0.5); color: #FACC15; }
+.uship-price.bid { background: rgba(148, 163, 184, 0.12); border: 1px dashed rgba(148, 163, 184, 0.55); color: var(--muted); }

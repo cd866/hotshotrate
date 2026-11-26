@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v85';
+  var APP_VERSION = 'v86';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -3544,6 +3544,7 @@
     queued: 'Queued',
     truckstop: 'Searching Truckstop',
     direct_freight: 'Searching Direct Freight',
+    uship: 'Searching uShip',
     scoring: 'Scoring loads',
     live: 'Live',
     failed: 'Search failed',
@@ -3553,7 +3554,7 @@
   function pullIsActive(st) {
     if (!st) return false;
     var s = st.state;
-    return s === 'queued' || s === 'truckstop' || s === 'direct_freight' || s === 'scoring';
+    return s === 'queued' || s === 'truckstop' || s === 'direct_freight' || s === 'uship' || s === 'scoring';
   }
 
   function parsePullTime(stamp) {
@@ -4109,7 +4110,7 @@
     var wxOn = weatherOn();
     var wxNotes = [];
     var keepFlags = (row.fit_flags || []).filter(function (f) {
-      return /infeasible|cannot haul|misses the|pickup is only|too cold at drop|ice or snow on route|gusts 50\+/i.test(String(f));
+      return /infeasible|cannot haul|misses the|pickup is only|too cold at drop|ice or snow on route|gusts 50\+|^uShip:/i.test(String(f));
     });
     if (!wxOn) {
       keepFlags = keepFlags.filter(function (f) {
@@ -4178,6 +4179,11 @@
       if (wxNotes.some(function (f) { return /gusts 50/i.test(f); })) gust50 = true;
       if (iceSnow) pushUnique(wxNotes, 'ice or snow on route');
       if (gust50) pushUnique(wxNotes, 'gusts 50+ mph on route');
+    }
+    // v86 uShip: bid listings (no Book now price) are never better than MAYBE.
+    if (isUshipBid(row)) {
+      if (!flags.some(function (f) { return /^uShip:/.test(String(f)); })) flags.push('uShip: bid listing - not a booked rate');
+      if (verdict === 'TAKE') verdict = 'MAYBE';
     }
     row.weather_flags = wxOn ? flags.filter(isWxFlag) : wxNotes;
     row.fit_flags = flags;
@@ -5322,7 +5328,7 @@
       badges.push('<span class="fit-badge good">Tarps OK</span>');
     }
     if (row.posted_rate != null) {
-      badges.push('<span class="fit-badge neutral">Posted ' + esc(money(row.posted_rate)) + '</span>');
+      badges.push('<span class="fit-badge neutral">' + esc(ushipRateLabel(row)) + ' ' + esc(money(row.posted_rate)) + '</span>');
     }
     var days = rowDays(row, 1);
     if (days != null) {
@@ -5538,6 +5544,26 @@
       '</div>';
   }
 
+  function isUshipBid(row) {
+    return !!row && row.board === 'uShip' && String(row.price_type || 'BID').toUpperCase() !== 'BOOK_NOW';
+  }
+
+  function ushipRateLabel(row) {
+    if (!isUshipBid(row)) return (row && row.board === 'uShip') ? 'Book now' : 'Posted';
+    if (row.price_basis === 'shipper_target') return 'Shipper target';
+    if (row.price_basis === 'low_bid') return 'Low bid';
+    return 'Est fair price';
+  }
+
+  function ushipPriceChip(row) {
+    if (!row || row.board !== 'uShip') return '';
+    var amt = row.posted_rate != null && isFinite(Number(row.posted_rate)) ? searchMoney(Number(row.posted_rate)) : '';
+    if (!isUshipBid(row)) return '<span class="uship-price book">BOOK NOW ' + esc(amt) + '</span>';
+    var basis = row.price_basis === 'shipper_target' ? 'target' : (row.price_basis === 'low_bid' ? 'low bid' : 'est');
+    var n = row.bid_count != null ? ' | ' + plainNum(row.bid_count, 0) + ' bid' + (Number(row.bid_count) === 1 ? '' : 's') : '';
+    return '<span class="uship-price bid">BID ' + esc(basis) + ' ' + esc(amt) + esc(n) + '</span>';
+  }
+
   function verdictReason(row) {
     if (!row) return '';
     if (row.reason) return String(row.reason);
@@ -5546,6 +5572,12 @@
     var hard = flags.filter(function (f) { return String(f).indexOf('cannot haul') !== -1; });
     if (verd === 'TAKE') return 'Clears the net bar and fits the deck.';
     if (verd === 'MAYBE') {
+      if (flags.some(function (f) { return String(f).indexOf('uShip: bid only') === 0; })) {
+        return 'Clears the net bar at an estimated fair price, but it is a uShip bid with no price shown.';
+      }
+      if (flags.some(function (f) { return String(f).indexOf('uShip: bid listing') === 0; })) {
+        return 'Clears the net bar, but it is a uShip bid, not a booked rate.';
+      }
       if (flags.some(function (f) { return String(f).indexOf('ice or snow on route') !== -1; })) {
         return 'Clears the net bar, but ice or snow is on the route.';
       }
@@ -5592,7 +5624,7 @@
     if (row.weight_lb != null) cells.push(statCell('Weight', esc(plainNum(row.weight_lb, 0)) + ' lb'));
     else cells.push(statCell('Weight', 'n/a'));
     if (row.length_ft != null) cells.push(statCell('Length', esc(plainNum(row.length_ft, 1)) + ' ft'));
-    if (row.posted_rate != null) cells.push(statCell('Posted', esc(money(row.posted_rate))));
+    if (row.posted_rate != null) cells.push(statCell(ushipRateLabel(row), esc(money(row.posted_rate))));
     return strip + (cells.length ? '<div class="stat-row">' + cells.join('') + '</div>' : '');
   }
 
@@ -5839,6 +5871,8 @@
       rows = rows.filter(function (row) { return row.board === 'Truckstop'; });
     } else if (f === 'df') {
       rows = rows.filter(function (row) { return row.board === 'Direct Freight'; });
+    } else if (f === 'uship') {
+      rows = rows.filter(function (row) { return row.board === 'uShip'; });
     } else if (f === 'saved') {
       var saved = savedLoadsMap();
       rows = rows.filter(function (row) { return !!saved[loadKey(row)]; });
@@ -5941,6 +5975,7 @@
 
 
   function boardFallback(row) {
+    if (row && row.board === 'uShip') return 'https://www.uship.com/find';
     return row && row.board === 'Direct Freight'
       ? 'https://www.directfreight.com'
       : 'https://main.truckstop.com/app/search/loads';
@@ -6265,6 +6300,7 @@
     var mail = brokerMailto(row);
     var tel = brokerTel(row);
     var hiddenDf = row && row.board === 'Direct Freight' && !row.broker && !row.broker_mc;
+    var onUship = row && row.board === 'uShip';
     if (tel) {
       html += '<a class="call-broker" href="' + esc(tel) + '">Call broker</a>';
     }
@@ -6274,6 +6310,8 @@
     if (!tel && !mail) {
       if (hiddenDf) {
         html += '<a class="search-link" href="' + esc(href) + '" target="_blank" rel="noopener noreferrer">Broker on DF</a>';
+      } else if (onUship) {
+        html += '<span class="no-email">Quote on uShip</span>';
       } else {
         html += '<span class="no-email">No contact</span>';
       }
@@ -6390,16 +6428,25 @@
     if (row.equipment) bits.push(row.equipment);
     if (row.pickup_window) bits.push('Pickup ' + row.pickup_window);
     if (row.drop_window) bits.push('Drop ' + row.drop_window);
-    var broker = row.broker || (row.board === 'Direct Freight' ? 'Broker not listed on the free list' : '');
+    var broker = row.broker || (row.board === 'Direct Freight' ? 'Broker not listed on the free list' :
+      (row.board === 'uShip' ? 'Shipper on uShip (quote or book on uShip)' : ''));
     if (broker) bits.push(broker);
     if (row.broker_mc) bits.push('MC ' + row.broker_mc);
     if (row.broker_dot) bits.push('DOT ' + row.broker_dot);
-    if (row.load_number) bits.push('Load # ' + row.load_number);
+    if (row.load_number) bits.push((row.board === 'uShip' ? 'Listing # ' : 'Load # ') + row.load_number);
+    if (row.board === 'uShip') {
+      var dims = [row.length_ft, row.width_ft, row.height_ft].map(function (v) { return v != null ? plainNum(v, 1) : '?'; });
+      if (row.length_ft != null || row.width_ft != null || row.height_ft != null) bits.push('L x W x H ' + dims.join(' x ') + ' ft');
+      if (row.item_count != null && Number(row.item_count) > 1) bits.push(plainNum(row.item_count, 0) + ' items');
+      if (row.expires) bits.push('Ends ' + row.expires);
+      if (row.deadhead_est) bits.push('Empty miles estimated (straight line x 1.2)');
+    }
     if (row.notes) bits.push(row.notes);
     var alsoHtml = '';
     var comboChip = inComboChipHtml(row, data);
 
-    var badges = (row.board ? '<span class="board-chip">' + esc(row.board) + '</span>' : '') +
+    var badges = (row.board ? '<span class="board-chip' + (row.board === 'uShip' ? ' uship-chip' : '') + '">' + esc(row.board) + '</span>' : '') +
+      ushipPriceChip(row) +
       (pu && pu !== 'date not listed' ? '<span class="pu-chip">PU ' + esc(pu) + '</span>' : '') +
       (postedAge ? '<span class="board-chip">Posted ' + esc(postedAge) + '</span>' : '') +
       (isNew ? '<span class="new-badge">New</span>' : '');
@@ -6628,7 +6675,7 @@
     return '<div class="cc-legs">' + loads.map(function (row, i) {
       var wt = row.weight_lb != null ? plainNum(row.weight_lb, 0) + ' lb' : 'weight n/a';
       var meta = [];
-      meta.push(row.broker || (row.board === 'Direct Freight' ? 'Broker on DF' : 'Broker n/a'));
+      meta.push(row.broker || (row.board === 'Direct Freight' ? 'Broker on DF' : (row.board === 'uShip' ? 'Shipper on uShip' : 'Broker n/a')));
       meta.push(wt);
       if (row.length_ft != null) meta.push(plainNum(row.length_ft, 0) + ' ft');
       var mi = rowLoadedMiles(row);
@@ -6794,7 +6841,7 @@
       packages = packages.filter(function (pkg) {
         return String(pkg.combo.verdict || '').toLowerCase() === f;
       });
-    } else if (f === 'truckstop' || f === 'df') {
+    } else if (f === 'truckstop' || f === 'df' || f === 'uship') {
       packages = [];
     }
     var body;
@@ -7076,6 +7123,7 @@
       ['all', 'All'],
       ['truckstop', 'Truckstop'],
       ['df', 'Direct Freight'],
+      ['uship', 'uShip'],
       ['saved', 'Saved (' + savedCount + ')']
     ].map(function (pair) {
       var on = filter === pair[0];
@@ -7981,7 +8029,8 @@
     });
   }
 
-  window.BlackRamApp = {
+  window.BlackRamApp = Object.assign(window.BlackRamApp || {}, {
+    isUshipBid: isUshipBid,
     getFeed: function () { return state.feed; },
     settings: settings,
     monthFigures: monthFigures,
@@ -7990,7 +8039,7 @@
     fuelUsedText: fuelUsedText,
     monthlyBills: monthlyBills,
     skeleton: function (t) { return loadingSkeletonHtml(t); }
-  };
+  });
 
   function init() {
     loadSettings();
