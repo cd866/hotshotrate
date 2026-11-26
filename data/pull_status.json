@@ -1,17 +1,13 @@
 {
-  "state": "truckstop",
-  "pct": 25,
+  "state": "live",
+  "pct": 100,
   "origin": "Cottondale, FL",
   "started_at": "2026-11-25 23:46 CT",
-<<<<<<< Updated upstream
-  "updated_at": "2026-11-25 23:46 CT",
-=======
-  "updated_at": "2026-11-25 23:50 CT",
->>>>>>> Stashed changes
+  "updated_at": "2026-11-25 23:54 CT",
   "counts": {
     "truckstop": 40,
-    "df": 0,
+    "df": 343,
     "fits": 2
   },
-  "message": "Searching Truckstop"
+  "message": "Loads are live"
 }
