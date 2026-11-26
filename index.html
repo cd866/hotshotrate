@@ -18,7 +18,7 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=3" sizes="180x180" />
   <link rel="preload" href="fonts/nunito-sans-variable.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="fonts/oswald-700.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="styles.css?v=43" />
+  <link rel="stylesheet" href="styles.css?v=44" />
   <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
   <script>
     try {
@@ -135,6 +135,7 @@
         <button type="button" id="tab-stops" data-tab="stops" role="tab" aria-selected="false" aria-controls="panel-stops">Stops</button>
         <button type="button" id="tab-reports" data-tab="reports" role="tab" aria-selected="false" aria-controls="panel-reports">Reports</button>
         <button type="button" id="tab-kpis" data-tab="kpis" role="tab" aria-selected="false" aria-controls="panel-kpis">KPIs</button>
+        <button type="button" id="tab-targets" data-tab="targets" role="tab" aria-selected="false" aria-controls="panel-targets">Targets</button>
         <button type="button" id="tab-fin" data-tab="fin" role="tab" aria-selected="false" aria-controls="panel-fin">Finance</button>
     </nav>
 
@@ -335,6 +336,10 @@
         <div id="kpis-root"></div>
       </section>
 
+      <section id="panel-targets" class="panel tg-panel" role="tabpanel" aria-labelledby="tab-targets" hidden>
+        <div id="targets-root"></div>
+      </section>
+
       <section id="panel-fin" class="panel fin-panel" role="tabpanel" aria-labelledby="tab-fin" hidden>
         <div id="fin-root"></div>
       </section>
@@ -342,7 +347,7 @@
       <footer class="footer">
         <p><strong>Black Ram Logistics</strong> · DBA of Sand Lily Pad LLC</p>
         <p>Estimates are marked EST. Not a quote and not tax advice.</p>
-        <p class="app-version" id="app-version">v43</p>
+        <p class="app-version" id="app-version">v44</p>
       </footer>
       <div class="pad" aria-hidden="true"></div>
     </main>
@@ -477,8 +482,9 @@
   </div>
   <noscript><p class="noscript">Black Ram Logistics needs JavaScript for the load check, stops, and reports.</p></noscript>
   <script src="vendor/leaflet/leaflet.js"></script>
-  <script src="app.js?v=43"></script>
-  <script src="stops.js?v=43"></script>
+  <script src="app.js?v=44"></script>
+  <script src="stops.js?v=44"></script>
+  <script src="targets.js?v=44"></script>
   <script>
     (function () {
       if (!('serviceWorker' in navigator)) return;

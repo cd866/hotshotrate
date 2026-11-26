@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v43';
+  var APP_VERSION = 'v44';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -1268,6 +1268,7 @@
     state.historyAvgs = bookedAverages(feed);
     if (state.tab === 'reports') renderReports();
     if (state.tab === 'kpis') renderKpis();
+    if (state.tab === 'targets' && window.BlackRamTargets) window.BlackRamTargets.render();
     if (state.tab === 'searches' && state.searches) renderSearches();
     if (window.BlackRamStops && BlackRamStops.onFeed) BlackRamStops.onFeed(feed);
   }
@@ -1300,6 +1301,7 @@
       state.feed = null;
       if (state.tab === 'reports') renderReports();
       if (state.tab === 'kpis') renderKpis();
+    if (state.tab === 'targets' && window.BlackRamTargets) window.BlackRamTargets.render();
     }).then(function () {
       state.inflight = null;
     });
@@ -4821,6 +4823,201 @@
     return '<div class="fit-row">' + badges.join('') + '</div>';
   }
 
+  function whyMoney(n) {
+    if (n == null || !isFinite(Number(n))) return '';
+    return '$' + Math.round(Number(n)).toLocaleString('en-US');
+  }
+
+  function whyLb(n) {
+    return Number(n).toLocaleString('en-US');
+  }
+
+  function whyFlagText(f) {
+    return String(f || '').replace(/\s+/g, ' ').replace(/\.+$/, '').trim();
+  }
+
+  function whyPush(list, seen, text) {
+    text = String(text || '').trim();
+    if (!text || seen[text]) return;
+    seen[text] = true;
+    list.push(text);
+  }
+
+  function whyShortLane(row) {
+    if (!row) return '';
+    var o = String(row.origin || '').split(',')[0].trim();
+    var d = String(row.destination || '').split(',')[0].trim();
+    if (o && d) return o + ' to ' + d;
+    return o || d || '';
+  }
+
+  function whyMaxGust(row) {
+    var best = row && row.drop_gust_mph != null ? Number(row.drop_gust_mph) : null;
+    var pts = (row && row.route_wx && row.route_wx.points) || [];
+    pts.forEach(function (pt) {
+      if (pt.gust_mph != null && isFinite(Number(pt.gust_mph))) {
+        var g = Number(pt.gust_mph);
+        if (best == null || g > best) best = g;
+      }
+    });
+    return best;
+  }
+
+  function whyDropLow(row) {
+    if (row && row.drop_low_f != null && isFinite(Number(row.drop_low_f))) return Math.round(Number(row.drop_low_f));
+    var flags = (row && (row.fit_flags || row.flags || [])).concat(row && row.weather_flags || []);
+    if (row && row.reason) flags = flags.concat([row.reason]);
+    if (row && row.base_reason) flags = flags.concat([row.base_reason]);
+    var i, m;
+    for (i = 0; i < flags.length; i++) {
+      m = String(flags[i]).match(/too cold at drop.*?(- )?(normal low |low )?(\d+)\s*F/i);
+      if (m) return Number(m[3]);
+    }
+    return null;
+  }
+
+  function collectWhy(row, opts) {
+    opts = opts || {};
+    var wxOn = weatherOn();
+    var isCombo = !!(opts.combo || (row && row.kind && (row.loads || row.stop_order)));
+    var verd = String((row && row.verdict) || 'PASS').toUpperCase();
+    if (verd !== 'TAKE' && verd !== 'MAYBE' && verd !== 'PASS') verd = 'PASS';
+    var reasons = [];
+    var notes = [];
+    var seen = {};
+    var flags = ((row && (row.fit_flags || row.flags)) || []).map(whyFlagText);
+    var wxFlags = ((row && row.weather_flags) || []).map(whyFlagText);
+    var allFlags = flags.concat(wxFlags);
+    if (row && row.reason) allFlags.push(whyFlagText(row.reason));
+    if (row && row.base_reason) allFlags.push(whyFlagText(row.base_reason));
+    function hasFlag(re) {
+      return allFlags.some(function (f) { return re.test(f); });
+    }
+    function addReason(text) { whyPush(reasons, seen, text); }
+    function addNote(text) { whyPush(notes, seen, text); }
+
+    var wt = row && row.weight_lb != null && isFinite(Number(row.weight_lb)) ? Number(row.weight_lb) : (row && row.combined_weight_lb != null ? Number(row.combined_weight_lb) : null);
+    var len = row && row.length_ft != null && isFinite(Number(row.length_ft)) ? Number(row.length_ft) : (row && row.combined_length_ft != null ? Number(row.combined_length_ft) : null);
+    var wid = row && row.width_ft != null && isFinite(Number(row.width_ft)) ? Number(row.width_ft) : null;
+    var net = row && row.net_est != null && isFinite(Number(row.net_est)) ? Number(row.net_est) : null;
+    var bar = 500;
+    if (row && row.same_day) bar = 300;
+    if (row && row.bar != null && isFinite(Number(row.bar))) bar = Math.round(Number(row.bar));
+    else if (isCombo) bar = 1000;
+    var npd = null;
+    if (row) {
+      npd = row.net_per_day != null && isFinite(Number(row.net_per_day)) ? Number(row.net_per_day) : rowNetPerDay(row, isCombo ? ((row.loads || []).length || 1) : 1);
+    }
+
+    if (wt != null && wt > 15300) addReason('Weight ' + whyLb(wt) + ' lb - over 15,300 lb max');
+    if (len != null && len > 40) addReason('Length ' + (Math.round(len * 10) / 10) + ' ft - over 40 ft deck');
+    if (wid != null && wid > 8.5) addReason('Width ' + (Math.round(wid * 10) / 10) + ' ft - over 8.5 ft max');
+    if (hasFlag(/full truckload with no size listed|likely a semi/i)) {
+      addReason('Full truckload, no size listed - likely semi');
+    }
+    if (hasFlag(/informational only/i) || (net == null && hasFlag(/no posted rate/i))) {
+      addReason('No posted rate or miles');
+    } else if (net == null && !isCombo) {
+      addReason('No posted rate or miles');
+    }
+    if (net != null && net < bar) addReason('Net ' + whyMoney(net) + ' under $' + bar.toLocaleString('en-US') + ' bar');
+
+    var low = whyDropLow(row);
+    var coldFlag = hasFlag(/too cold at drop/i) || (low != null && low <= 45);
+    var snowFlag = hasFlag(/ice or snow on route/i);
+    var iceFlag = hasFlag(/^ice\b/i) && !snowFlag;
+    var gustFlag = hasFlag(/gusts 50\+/i);
+    var gust = whyMaxGust(row);
+    function addWx(line) {
+      if (wxOn) addReason(line);
+      else addNote(line);
+    }
+    if (coldFlag && low != null) {
+      addWx('Drop low ' + low + ' F - cold rule (weather ' + (wxOn ? 'ON' : 'OFF') + ')');
+    } else if (coldFlag) {
+      addWx('Drop too cold - cold rule (weather ' + (wxOn ? 'ON' : 'OFF') + ')');
+    }
+    if (iceFlag) addWx('Ice on route');
+    if (snowFlag) addWx('Snow on route');
+    if (gustFlag) {
+      addWx(gust != null && gust >= 50 ? ('Gusts ' + Math.round(gust) + ' mph on route') : 'Gusts 50+ mph on route');
+    }
+
+    if (wt != null && wt > 12500 && wt <= 15300) addReason('Weight ' + whyLb(wt) + ' lb - scale check');
+    if (hasFlag(/^weight not listed$/i) && !(wt != null && wt > 15300)) addReason('Weight not listed');
+    if (npd != null && npd < 300) addReason('$/day ' + whyMoney(npd) + ' under $300');
+    if (hasFlag(/length not listed/i)) addReason('Length not listed on a leg');
+    if (hasFlag(/timing not fully confirmed|windows are not listed/i)) addReason('Timing not fully confirmed');
+
+    if (isCombo) {
+      var nLegs = (row.loads || []).length || 1;
+      var days = row.days_span != null && isFinite(Number(row.days_span)) ? Number(row.days_span) : rowDays(row, nLegs);
+      var needed = hosDaysFromMiles(row.loaded_mi, row.deadhead_mi, nLegs);
+      if (days != null && needed != null && days > needed) {
+        var wait = Math.round(days - needed);
+        if (wait >= 1) addReason('Wait ' + wait + ' day' + (wait === 1 ? '' : 's') + ' in the windows (' + formatDays(days) + ' days total)');
+      }
+      if (!opts.skipLegs) {
+        (row.loads || []).forEach(function (leg, i) {
+          var part = collectWhy(leg, { skipLegs: true });
+          var lines = (part.reasons || []).filter(function (line) {
+            return !/^Fits deck/.test(line);
+          });
+          var lane = whyShortLane(leg);
+          lines.forEach(function (line) {
+            addReason('Leg ' + (i + 1) + (lane ? ' (' + lane + ')' : '') + ': ' + line);
+          });
+          (part.notes || []).forEach(function (line) {
+            addNote('Leg ' + (i + 1) + (lane ? ' (' + lane + ')' : '') + ': ' + line);
+          });
+        });
+      }
+    }
+
+    if (verd === 'TAKE') {
+      var bits = ['Fits deck'];
+      if (wt != null) bits.push(whyLb(wt) + ' lb');
+      if (net != null) bits.push('net ' + whyMoney(net));
+      if (npd != null) bits.push(whyMoney(npd) + '/day');
+      reasons = [bits.join(', ')];
+    } else if (!reasons.length) {
+      var fallback = verdictReason(row);
+      if (fallback) reasons = [fallback.replace(/\.+$/, '')];
+    }
+
+    return { verdict: verd, reasons: reasons, notes: notes };
+  }
+
+  var WHY_VISIBLE = 3;
+
+  function whyBoxHtml(row, opts) {
+    var why = collectWhy(row, opts);
+    var verd = String(why.verdict || 'PASS').toLowerCase();
+    var title = verd === 'take' ? 'Why TAKE' : (verd === 'maybe' ? 'Why MAYBE' : 'Why PASS');
+    var extra = why.reasons.length > WHY_VISIBLE ? why.reasons.length - WHY_VISIBLE : 0;
+    var items = why.reasons.map(function (line, i) {
+      return '<li' + (i >= WHY_VISIBLE ? ' class="why-extra" hidden' : '') + '>' + esc(line) + '</li>';
+    }).join('');
+    var more = extra > 0
+      ? '<button type="button" class="why-more-btn" aria-expanded="false">' + extra + ' more</button>'
+      : '';
+    var notes = '';
+    if (why.notes && why.notes.length) {
+      notes = '<div class="why-notes">' +
+        '<div class="why-notes-title">Notes</div>' +
+        '<ul class="why-list">' + why.notes.map(function (line) {
+          return '<li>' + esc(line) + '</li>';
+        }).join('') + '</ul></div>';
+    }
+    if (!items && !notes) return '';
+    return '<div class="why-box ' + esc(verd) + '">' +
+      '<div class="why-title">' + title + '</div>' +
+      (items ? '<ul class="why-list">' + items + '</ul>' : '') +
+      more +
+      notes +
+      '</div>';
+  }
+
   function verdictReason(row) {
     if (!row) return '';
     if (row.reason) return String(row.reason);
@@ -5629,7 +5826,6 @@
     if (row.broker_dot) bits.push('DOT ' + row.broker_dot);
     if (row.load_number) bits.push('Load # ' + row.load_number);
     if (row.notes) bits.push(row.notes);
-    var reason = verdictReason(row);
     var also = alsoInLabels(row, data);
     var alsoHtml = also.length ? '<p class="also-in">Also in ' + esc(also.join(', ')) + '</p>' : '';
 
@@ -5664,8 +5860,7 @@
         { emptyFrom: searchOriginLabel() }) +
       fitBadgesHtml(row) +
       alsoHtml +
-      (reason ? '<p class="search-reason">' + esc(reason) + '</p>' : '') +
-      wxNoteChipsHtml(row) +
+      whyBoxHtml(row) +
       routeWxHtml(row) +
       searchActions(row, true) +
       detailsHtml +
@@ -5707,7 +5902,6 @@
     var len = combo.combined_length_ft != null ? plainNum(combo.combined_length_ft, 1) + ' ft' : 'n/a';
     if (combo.length_unknown) len += ' (some not listed)';
     var kind = combo.kind === 'shared' ? 'Shared deck' : 'Sequential chain';
-    var reason = verdictReason(combo);
     var nameHtml = (pkg && pkg.label) ? '<span class="combo-name">' + esc(pkg.label) + '</span>' : '';
     var cDays = rowDays(combo, nLegs);
     var fitRow = '<div class="fit-row">' +
@@ -5735,8 +5929,7 @@
       netBlock(combo.net_est, perHourValue(combo, nLegs), netPerMileValue(combo), '', combo, nLegs) +
       milesStrip(combo.loaded_mi, combo.deadhead_mi, { emptyFrom: searchOriginLabel() + ', all legs' }) +
       fitRow +
-      (reason ? '<p class="search-reason">' + esc(reason) + '</p>' : '') +
-      wxNoteChipsHtml(combo) +
+      whyBoxHtml(combo, { combo: true }) +
       routeWxHtml(combo) +
       '<div class="search-actions"><button type="button" class="call-sheet-btn">Call sheet</button><button type="button" class="details-toggle-btn" aria-expanded="false">Legs, stops &amp; map</button></div>' +
       detailsHtml +
@@ -6165,6 +6358,18 @@
         renderSearches();
       });
     });
+    root.querySelectorAll('.why-more-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var box = btn.closest('.why-box');
+        if (!box) return;
+        var open = btn.getAttribute('aria-expanded') === 'true';
+        open = !open;
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        box.querySelectorAll('.why-extra').forEach(function (li) { li.hidden = !open; });
+        var n = box.querySelectorAll('.why-extra').length;
+        btn.textContent = open ? 'Show less' : (n + ' more');
+      });
+    });
     root.querySelectorAll('.wx-toggle').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var wrap = btn.closest('.route-wx');
@@ -6413,7 +6618,7 @@
 
   function showTab(name) {
     state.tab = name;
-    ['check', 'searches', 'reports', 'kpis', 'fin', 'stops'].forEach(function (id) {
+    ['check', 'searches', 'reports', 'kpis', 'targets', 'fin', 'stops'].forEach(function (id) {
       var on = id === name;
       $('tab-' + id).setAttribute('aria-selected', on ? 'true' : 'false');
       $('panel-' + id).hidden = !on;
@@ -6431,6 +6636,9 @@
       fetchPullStatus().then(function () {
         if (shouldKeepPullStatusPolling()) startPullStatusPolling();
       });
+    } else if (name === 'targets') {
+      if (window.BlackRamTargets) window.BlackRamTargets.render();
+      refreshFeed();
     } else if (name === 'fin') {
       renderFinance();
       fetchFinance(false);
@@ -6636,6 +6844,13 @@
       indicator(0);
     });
   }
+
+  window.BlackRamApp = {
+    getFeed: function () { return state.feed; },
+    settings: settings,
+    monthFigures: monthFigures,
+    utilizedDays: utilizedDays
+  };
 
   function init() {
     loadSettings();
