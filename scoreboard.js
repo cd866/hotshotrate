@@ -287,7 +287,7 @@
     var wprev = prevFig ? Math.max(0, Math.min(prevFig.net - billsMo, wage)) : null;
     tiles.push(tile({ label: 'Meshach pay covered', actual: wcov, target: wage, paceTarget: wage * pace,
       value: money(wcov) + ' <small>/ ' + money(wage) + '</small>',
-      targetText: 'Profit after all bills ' + money(afterBills) + ' covers <b>' + pct(wage ? wcov / wage : null) + '</b> of his ' + money(wage) + '. He is paid first from profit, before Ben and Claudio.',
+      targetText: 'Profit after all bills ' + money(afterBills) + ' covers <b>' + pct(wage ? wcov / wage : null) + '</b> of his ' + money(wage) + '. He is paid first from profit; leftover is split in thirds (his third on top of his pay).',
       trend: trend(wcov, wprev, prevLbl, money) }));
     tiles.push(tile({ label: 'Avg $/loaded mi', actual: fig.perLoaded, target: t.rpm, barMax: Math.max(t.rpm, fig.perLoaded || 0) * 1.15,
       value: rpmT(fig.perLoaded), targetText: 'Target <b>' + rpmT(t.rpm) + '</b> - ' + num(fig.loadedMi, 0) + ' loaded mi',
@@ -342,7 +342,7 @@
       '<div class="sb-big">' + (beRatio != null && beRatio >= 1 ? 'Past break-even' : money(fixed - fig.net) + ' to go') + '</div>' +
       '<p>Net kept ' + money(fig.net) + ' vs ' + money(fixed) + ' monthly bills. Pace mark ' + pct(pace) + '. ' +
       (M && M.beLoadsWk ? 'Break-even is about ' + num(M.beLoadsWk, 1) + ' loads/wk at your Targets inputs.' : '') + '</p>' +
-      (M && M.beGrossDriver != null ? '<p class="sb-be2"><b>Break-even incl. Meshach ' + money(t.driverMo) + ':</b> ' + money(M.beGrossDriver) + '/mo gross, ' + num(M.beLoadsWkDriver, 1) + ' loads/wk. His pay comes first from profit after expenses; ' + money(Math.max(0, fixed + t.driverMo - fig.net)) + ' to go.</p>' : '') + '</div></section>';
+      (M && M.beGrossDriver != null ? '<p class="sb-be2"><b>Break-even incl. Meshach ' + money(t.driverMo) + ':</b> ' + money(M.beGrossDriver) + '/mo gross, ' + num(M.beLoadsWkDriver, 1) + ' loads/wk. His pay comes first from profit after expenses; leftover is split in thirds. ' + money(Math.max(0, fixed + t.driverMo - fig.net)) + ' to go.</p>' : '') + '</div></section>';
 
     // Callouts: the three biggest gaps, one line each.
     var calls = [];

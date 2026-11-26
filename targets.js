@@ -240,7 +240,7 @@
       callouts.push('At $' + Number(tgt.rpm).toFixed(2) + '/mi every mile loses money after the fee, fuel and wear. Raise $/mi before adding loads.');
     } else {
       callouts.push('Need <b>' + num(m.beLoadsWk, 1) + ' loads/wk</b> at <b>$' + Number(tgt.rpm).toFixed(2) + '/mi</b> just to break even (' + money(m.beGross) + '/mo gross).');
-      callouts.push('Break-even <b>incl. Meshach ' + money(tgt.driverMo) + '</b>: <b>' + num(m.beLoadsWkDriver, 1) + ' loads/wk</b> (' + money(m.beGrossDriver) + '/mo gross). His pay comes first from profit after expenses.');
+      callouts.push('Break-even <b>incl. Meshach ' + money(tgt.driverMo) + '</b>: <b>' + num(m.beLoadsWkDriver, 1) + ' loads/wk</b> (' + money(m.beGrossDriver) + '/mo gross). His pay comes first from profit after expenses; any leftover is split in thirds (Meshach\'s third is on top of his pay).');
       callouts.push('Hitting ' + money(m.goalNet) + '/mo take-home needs <b>' + num(m.goalLoadsWk, 1) + ' loads/wk</b> (' + money(m.goalGross / WEEKS) + ' gross a week).');
       callouts.push('At ' + num(+tgt.loadsWk, 1) + ' loads/wk you need at least <b>' + rpm(m.minRpmBE) + '</b> to break even and <b>' + rpm(m.minRpmGoal) + '</b> to hit the goal.');
       if (!reachable) callouts.push('That goal is about ' + num(m.goalAllMiWk, 0) + ' total mi/wk, past what one truck and driver can legally run (about 3,000). Raise $/mi or lower the goal.');
@@ -291,7 +291,7 @@
       slider('maint', 'Tires and maintenance reserve', 0, 0.4, 0.01, tgt.maint, FMT.maint) +
       slider('driverMo', 'Driver pay (Meshach, paid first from profit)', 0, 6000, 100, tgt.driverMo, FMT.driverMo) +
       slider('otherMo', 'Other monthly (load board, phone, software)', 0, 500, 1, tgt.otherMo, FMT.otherMo) +
-      '<p class="fine">Fuel and DEF use Load check: ' + rpm(s.loadedCost) + ' loaded, ' + rpm(s.deadheadCost) + ' empty. Bills: truck ' + money(s.otherFixed) + ', trailer ' + money(s.trailer) + ', insurance ' + money(s.insurance) + '. Meshach ' + money(tgt.driverMo) + '/mo is paid first from profit after these bills. Saved on this phone. <button type="button" class="tg-reset" id="tg-reset">Reset</button></p></details>';
+      '<p class="fine">Fuel and DEF use Load check: ' + rpm(s.loadedCost) + ' loaded, ' + rpm(s.deadheadCost) + ' empty. Bills: truck ' + money(s.otherFixed) + ', trailer ' + money(s.trailer) + ', insurance ' + money(s.insurance) + '. Meshach ' + money(tgt.driverMo) + '/mo is paid first from profit after these bills; leftover is split in thirds (his third on top of his pay). Saved on this phone. <button type="button" class="tg-reset" id="tg-reset">Reset</button></p></details>';
 
     var cmpRows = [
       ['Stay on Totni (13%)', st.totni, 'Cheap fee, but brokers score Totni low (see below).'],

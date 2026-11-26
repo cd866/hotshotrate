@@ -142,7 +142,12 @@
     rows.push('<div class="ac-l ac-l-net"><span>Net after all expenses</span><b class="' + (p.net < 0 ? 'neg' : 'pos') + '">' + m2(p.net) + '</b></div>');
     if (wf.accrued) rows.push('<div class="ac-l ac-l-sub"><span>Priority payout - Meshach <small>' + m0(wf.accrued) + ' due</small></span><b>' + (wf.driver_pay ? '-' + m2(wf.driver_pay).replace('-', '') : '$0.00') + '</b></div>' +
       '<div class="ac-l"><span>Driver pay owed (unpaid)</span><b class="' + (wf.driver_short > 0 ? 'neg' : 'pos') + '">' + m2(wf.driver_short) + '</b></div>');
-    rows.push('<div class="ac-l ac-l-net"><span>Left for Ben and Claudio</span><b class="' + (wf.left > 0 ? 'pos' : '') + '">' + m2(wf.left) + '</b></div>');
+    rows.push('<div class="ac-l ac-l-net"><span>Left to split (1/3 each)</span><b class="' + (wf.left > 0 ? 'pos' : '') + '">' + m2(wf.left) + '</b></div>');
+    if (wf.split) {
+      ['Claudio', 'Ben', 'Meshach'].forEach(function (n) {
+        rows.push('<div class="ac-l"><span>' + n + '\'s third' + (n === 'Meshach' ? ' <small>on top of his wage</small>' : '') + '</span><b>' + m2(wf.split[n]) + '</b></div>');
+      });
+    }
     var diff = [];
     if (Math.abs(p.report_net - p.net) > 0.01) {
       diff.push('Nightly report "kept" for ' + esc(monLbl(st.sel)) + ' is ' + m2(p.report_net) + ' (gross less 13% and ledger costs). This view also counts ' +
@@ -168,7 +173,7 @@
     });
     bars.push({ a: 0, b: w.net, k: w.net >= 0 ? 'sub' : 'short', v: w.net, t: 'Net after exp.' });
     bars.push({ a: Math.max(w.net, 0), b: Math.max(w.net, 0) - w.driver_pay, k: 'drv', v: -w.driver_pay, t: 'Meshach' });
-    bars.push({ a: 0, b: w.left, k: 'left', v: w.left, t: 'Ben+Claudio' });
+    bars.push({ a: 0, b: w.left, k: 'left', v: w.left, t: '1/3 each' });
     hi = Math.max(hi, 1);
     var n = bars.length, gap = (W - L - R) / n, bw = gap - 6;
     function Y(v) { return T + (hi - v) / Math.max(hi - lo, 1) * (H - T - B); }
@@ -188,7 +193,10 @@
   }
   function secWaterfall(A) {
     var w = A.pl[st.sel].waterfall, lab = st.sel === 'all' ? 'all time' : monShort(st.sel);
-    var D = A.driver, half = '<div><span>Ben</span><b>' + m0(w.half) + '</b></div><div><span>Claudio</span><b>' + m0(w.half) + '</b></div>';
+    var D = A.driver;
+    var thirds = ['Claudio', 'Ben', 'Meshach'].map(function (n) {
+      return '<div><span>' + n + (n === 'Meshach' ? ' <small>+ wage</small>' : '') + '</span><b>' + m0(w.split && w.split[n] || w.third || 0) + '</b></div>';
+    }).join('');
     var need = w.net < 0 ? Math.ceil(-w.net / 0.87 / 10) * 10 : 0;
     var needD = (w.net - w.accrued) < 0 ? Math.ceil((w.accrued - w.net) / 0.87 / 10) * 10 : 0;
     var body = wfChart(w) +
@@ -197,9 +205,9 @@
         call('good', 'Net after all expenses <b>' + m0(w.net) + '</b>')) +
       (w.accrued ? call(w.driver_short > 0 ? 'bad' : 'good', 'Meshach priority pay: <b>' + m0(w.driver_pay) + '</b> of ' + m0(w.accrued) + ' covered' + (w.driver_short > 0 ? '. <b>' + m0(w.driver_short) + '</b> goes to driver pay owed.' : '.')) : '') +
       (needD ? call('ok', 'Needs about <b>' + m0(needD) + '</b> more gross (after Totni 13%) to cover expenses AND Meshach\'s ' + m0(w.accrued)) : '') +
-      call(w.left > 0 ? 'good' : 'ok', 'Left for Ben and Claudio: <b>' + m0(w.left) + '</b>') + '</div>' +
-      '<div class="ac-tot' + (w.left > 0 ? '' : ' ac-dim') + '" style="grid-template-columns:repeat(2,1fr)">' + half + '</div>' +
-      '<p class="ac-fine">Order: gross, less ALL expenses (Totni, ELD, fuel, DEF, tolls, repairs, insurance, software, overhead and the truck and trailer notes) = net after expenses. Meshach\'s $' + D.monthly.toLocaleString('en-US') + '/mo is a priority payout from that net, capped at what is available; any unpaid part is carried as driver pay owed. The rest goes to Ben and Claudio.</p>';
+      call(w.left > 0 ? 'good' : 'ok', 'Left to split three ways: <b>' + m0(w.left) + '</b> (' + m0(w.third || 0) + ' each)') + '</div>' +
+      '<div class="ac-tot' + (w.left > 0 ? '' : ' ac-dim') + '">' + thirds + '</div>' +
+      '<p class="ac-fine">Order: gross, less ALL expenses (Totni, ELD, fuel, DEF, tolls, repairs, insurance, software, overhead and the truck and trailer notes) = net after expenses. Meshach\'s $' + D.monthly.toLocaleString('en-US') + '/mo is a priority payout from that net, capped at what is available; any unpaid part is carried as driver pay owed. The remainder is split in thirds among Claudio, Ben and Meshach. Meshach\'s third is on top of his wage.</p>';
     return card('Profit waterfall', esc(monLbl(st.sel)), body, 'ac-wf');
   }
   function secDriver(A) {
@@ -308,7 +316,7 @@
       return '<div class="ac-pt"><div class="ac-pt-h"><b>' + esc(p.name) + '</b><span>' + esc(p.share) + ' owner</span><strong>' + m0(p.capital_total) + '</strong></div>' +
         '<div class="ac-pt-bar"><i style="width:' + (tot ? (p.capital_total / tot * 100).toFixed(1) : 0) + '%"></i></div>' + items +
         (rep ? '<div class="ac-sub">Paid back (not distributions)</div>' + rep : '') + wg +
-        '<div class="ac-pt-f"><span>Distributions ' + esc(monShort(st.sel === 'all' ? A.months[A.months.length - 1] : st.sel)) + ' <b>' + m2(p.dist_month) + '</b></span><span>All time <b>' + m2(p.dist_all) + '</b></span></div></div>';
+        '<div class="ac-pt-f"><span>This month\'s third <b>' + m2(p.third_month) + '</b></span><span>All-time third <b>' + m2(p.third_all) + '</b></span></div></div>';
     }).join('');
     return card('Partner capital', m0(tot) + ' put in | distributions $0', cards, 'ac-partners');
   }
