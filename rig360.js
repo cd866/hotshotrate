@@ -1,4 +1,4 @@
-/* Black Ram Logistics: Our rig 360 spin (v75, trailer v76, zoom v77, arrows v79, auto-spin resume and truck view v81).
+/* Black Ram Logistics: Our rig 360 spin (v75–v81, tailgate and toolbox v82).
    A low-poly 3D model of our 2026 Ram 3500 dually crew cab (Diamond Black)
    and the Big Tex 25GN-40 gooseneck (40 ft deck incl. 5 ft dovetail, 102 in
    wide, 34 in deck height), built in code with Three.js r170 (vendored at
@@ -14,8 +14,17 @@
      the +/- buttons, 1x to 5x; double-tap, double-click or Reset resets.
    - Arrow pad (v79): left/right rotate, up/down tilt the camera 2-62 deg;
      press and hold keeps moving. Reset puts zoom, pan and tilt back.
-   - prefers-reduced-motion: no auto-spin and no coasting; drag still works.
+   - Tailgate (Truck and Rig): tap or the 'Tap tailgate' button swings it down
+     in 0.6 s and eases the camera to a rear 3/4 of the bed, showing the gold
+     CURT gooseneck ball on a dark puck plate. Tap again or Reset closes it.
+   - Toolbox (Trailer and Rig): the Big Tex storage box sits under the gooseneck,
+     in the gap ahead of the deck. Tap or 'Tap toolbox' opens the lid on the
+     straps, chains, binders and winch bar; the camera eases to it. Tap again
+     or Reset closes it. Taps are raycast and ignored if the pointer dragged.
+   - prefers-reduced-motion: no auto-spin and no coasting; openings snap;
+     drag still works.
    - Pauses when the stage is off screen, the tab is hidden, or Photo is on.
+     Auto-spin also pauses while a tailgate or toolbox is open.
    Units in the model are feet. x = length (truck front +x), y = up, z = width. */
 (function () {
   'use strict';
@@ -120,7 +129,7 @@
         view.setSubject(subject);
         view.update();
       }).catch(function (err) {
-        try { console.warn('rig360', err); } catch (e) { /* ignore */ }
+        try { console.warn('rig360', String(err && err.stack || err)); } catch (e) { /* ignore */ }
         fail();
       });
     };
@@ -201,7 +210,7 @@
       camera.lookAt(tx, ty, tz);
       camera.updateProjectionMatrix();
       stage.toggleAttribute('data-r360-zoomed', zoom > 1.02);
-      stage.toggleAttribute('data-r360-adjusted', zoom > 1.02 || Math.abs(ELEV - ELEV0) > 0.01);
+      stage.toggleAttribute('data-r360-adjusted', zoom > 1.02 || Math.abs(ELEV - ELEV0) > 0.01 || !!inspectKind);
     }
 
     function feetPerPx() {
@@ -226,7 +235,204 @@
       update();
     }
 
-    function resetZoom() { zoom = 1; panX = 0; panY = 0; ELEV = ELEV0; lastInput = performance.now(); applyCamera(); render(); update(); }
+    function resetZoom() {
+      if (inspectKind) closeInspect(true);
+      zoom = 1; panX = 0; panY = 0; ELEV = ELEV0;
+      lastInput = performance.now();
+      applyCamera(); render(); update();
+    }
+
+    // Tailgate / toolbox inspect: open the part, ease the camera, pause auto-spin.
+    var inspectKind = null; // 'tailgate' | 'toolbox' | null
+    var inspectOpen = 0;    // 0 closed .. 1 open (eased)
+    var anim = null;
+    var raycaster = new THREE.Raycaster();
+    var ndc = new THREE.Vector2();
+    var _look = new THREE.Vector3();
+    var _cam = new THREE.Vector3();
+    var _lookA = new THREE.Vector3();
+    var _camA = new THREE.Vector3();
+    var _lookB = new THREE.Vector3();
+    var _camB = new THREE.Vector3();
+
+    function easeInOut(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+    function wrapDelta(from, to) {
+      var d = to - from;
+      while (d > Math.PI) d -= Math.PI * 2;
+      while (d < -Math.PI) d += Math.PI * 2;
+      return d;
+    }
+    function worldAt(lx, ly, lz, ang) {
+      var px = lx + rig.group.position.x, pz = lz;
+      var c = Math.cos(ang), s = Math.sin(ang);
+      return new THREE.Vector3(px * c + pz * s, ly, -px * s + pz * c);
+    }
+    function currentLookAt() {
+      return new THREE.Vector3(panX + upAxis.x * panY, 4.6 + upAxis.y * panY, upAxis.z * panY);
+    }
+    function currentCamPos() {
+      var d = baseDist / zoom;
+      return new THREE.Vector3(
+        panX + upAxis.x * panY,
+        4.6 + upAxis.y * panY - 2.2 + Math.sin(ELEV) * d,
+        upAxis.z * panY + Math.cos(ELEV) * d
+      );
+    }
+    function inspectPose(kind, ang) {
+      // Camera and look-at in world space for a rear / lid-side 3/4 of the part.
+      if (kind === 'tailgate') {
+        // Well behind the dropped tailgate, up and to the passenger side, looking into the bed at the ball.
+        return { look: worldAt(-7.8, 3.4, 0, ang), cam: worldAt(-17.8, 9.6, 7.2, ang), angle: 2.05 };
+      }
+      var tb = rig.tb;
+      // From the lid side, far enough back and only a little above the hinge, looking down into the box.
+      return { look: worldAt(tb.x, tb.y - 0.1, tb.z + 0.2, ang), cam: worldAt(tb.x + 3.2, tb.y + 2.0, tb.z + 9.5, ang), angle: 0.35 };
+    }
+    function applyPartPose(open) {
+      if (rig.tailgate) rig.tailgate.rotation.z = (inspectKind === 'tailgate' ? open : 0) * (Math.PI / 2);
+      if (rig.toolboxLid) rig.toolboxLid.rotation.x = (inspectKind === 'toolbox' ? open : 0) * (-Math.PI * 0.62);
+      if (rig.ballLight) rig.ballLight.intensity = (inspectKind === 'tailgate' ? open : 0) * 2.2;
+    }
+    function applyInspectCamera(open, fromAng, toAng, fromCam, fromLook) {
+      var ang = fromAng + wrapDelta(fromAng, toAng) * open;
+      angle = ang;
+      var pose = inspectPose(inspectKind, ang);
+      if (open >= 0.999) {
+        camera.position.copy(pose.cam);
+        camera.lookAt(pose.look);
+      } else {
+        camera.position.copy(fromCam).lerp(pose.cam, open);
+        _look.copy(fromLook).lerp(pose.look, open);
+        camera.lookAt(_look);
+      }
+      camera.updateProjectionMatrix();
+    }
+    function setInspectAttr() {
+      stage.toggleAttribute('data-r360-inspect', !!inspectKind);
+      stage.toggleAttribute('data-r360-adjusted', zoom > 1.02 || Math.abs(ELEV - ELEV0) > 0.01 || !!inspectKind);
+      updatePartButtons();
+    }
+    function startAnim(kind, opening) {
+      var dur = reduceMotion ? 80 : 600;
+      var from = inspectOpen;
+      var to = opening ? 1 : 0;
+      var fromAng = angle;
+      var toAng = opening ? inspectPose(kind, 0).angle : (anim && anim.restAngle != null ? anim.restAngle : angle);
+      // When opening, remember the view to restore; when closing, restore it.
+      var rest;
+      if (opening) {
+        rest = { angle: angle, zoom: zoom, panX: panX, panY: panY, elev: ELEV };
+      } else {
+        rest = (anim && anim.rest) || { angle: angle, zoom: 1, panX: 0, panY: 0, elev: ELEV0 };
+        toAng = rest.angle;
+      }
+      inspectKind = kind || inspectKind;
+      var fromCam = camera.position.clone();
+      var fromLook = (inspectKind && inspectOpen > 0.2)
+        ? inspectPose(inspectKind, angle).look
+        : currentLookAt();
+      anim = {
+        start: performance.now(), dur: dur, from: from, to: to, kind: inspectKind,
+        fromAng: fromAng, toAng: toAng,
+        fromCam: fromCam, fromLook: fromLook,
+        rest: rest, restAngle: rest.angle,
+        opening: opening
+      };
+      lastInput = 1e15; // pause auto-spin while open or closing
+      setInspectAttr();
+      update();
+    }
+    function stepAnim(now) {
+      if (!anim) return;
+      var u = Math.min(1, (now - anim.start) / anim.dur);
+      var e = easeInOut(u);
+      inspectOpen = anim.from + (anim.to - anim.from) * e;
+      applyPartPose(inspectOpen);
+      var ang = anim.fromAng + wrapDelta(anim.fromAng, anim.toAng) * e;
+      angle = ang;
+      if (anim.opening) {
+        applyInspectCamera(e, anim.fromAng, anim.toAng, anim.fromCam, anim.fromLook);
+      } else {
+        // lerp inspect camera back to the saved orbit view
+        zoom = anim.rest.zoom;
+        panX = anim.rest.panX;
+        panY = anim.rest.panY;
+        ELEV = anim.rest.elev;
+        var destCam = currentCamPos(), destLook = currentLookAt();
+        camera.position.copy(anim.fromCam).lerp(destCam, e);
+        _look.copy(anim.fromLook).lerp(destLook, e);
+        camera.lookAt(_look);
+        camera.updateProjectionMatrix();
+      }
+      if (u >= 1) {
+        if (!anim.opening) {
+          inspectKind = null;
+          inspectOpen = 0;
+          applyPartPose(0);
+          angle = anim.rest.angle;
+          zoom = anim.rest.zoom;
+          panX = anim.rest.panX;
+          panY = anim.rest.panY;
+          ELEV = anim.rest.elev;
+          lastInput = performance.now(); // auto-spin resumes after idle
+          applyCamera();
+        } else {
+          inspectOpen = 1;
+          lastInput = 1e15;
+        }
+        anim = null;
+        setInspectAttr();
+      }
+    }
+    function toggleInspect(kind) {
+      if (inspectKind && inspectKind !== kind) {
+        // close the other first, then open this one on the next tick of the close? snap-close other.
+        if (rig.tailgate) rig.tailgate.rotation.z = 0;
+        if (rig.toolboxLid) rig.toolboxLid.rotation.x = 0;
+        inspectOpen = 0;
+      }
+      var opening = !(inspectKind === kind && inspectOpen > 0.5);
+      if (!opening) { startAnim(kind, false); return; }
+      inspectKind = kind;
+      startAnim(kind, true);
+    }
+    function closeInspect(snap) {
+      if (!inspectKind && inspectOpen < 0.01) return;
+      if (snap || reduceMotion) {
+        inspectKind = null;
+        inspectOpen = 0;
+        anim = null;
+        applyPartPose(0);
+        lastInput = performance.now();
+        setInspectAttr();
+        return;
+      }
+      startAnim(inspectKind, false);
+    }
+    function partFromObj(obj) {
+      while (obj) {
+        if (obj.userData && obj.userData.part) return obj.userData.part;
+        obj = obj.parent;
+      }
+      return null;
+    }
+    function tryPartTap(ev) {
+      if (mode !== '360' || !w || !h) return false;
+      var r = canvasWrap.getBoundingClientRect();
+      ndc.x = ((ev.clientX - r.left) / r.width) * 2 - 1;
+      ndc.y = -((ev.clientY - r.top) / r.height) * 2 + 1;
+      raycaster.setFromCamera(ndc, camera);
+      var targets = [];
+      if (rig.truck && rig.truck.visible && rig.tailgate) targets.push(rig.tailgate);
+      if (rig.trailer && rig.trailer.visible && rig.toolbox) targets.push(rig.toolbox);
+      if (!targets.length) return false;
+      var hits = raycaster.intersectObjects(targets, true);
+      if (!hits.length) return false;
+      var kind = partFromObj(hits[0].object);
+      if (!kind) return false;
+      toggleInspect(kind);
+      return true;
+    }
 
     function resize() {
       var r = canvasWrap.getBoundingClientRect();
@@ -240,11 +446,13 @@
       var hfov = 2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect);
       halfLen = subject === 'trailer' ? 26.5 : subject === 'truck' ? 13 : 33.5;
       baseDist = halfLen / Math.tan(hfov / 2) + (subject === 'trailer' ? 11 : subject === 'truck' ? 9 : 13);
-      applyCamera();
+      if (inspectKind && inspectOpen > 0.5 && !anim) applyInspectCamera(1, angle, angle, camera.position, currentLookAt());
+      else applyCamera();
     }
 
     function wantsLoop() {
       if (mode !== '360' || !onScreen || document.hidden) return false;
+      if (anim || inspectKind) return true;
       if (dragging || held) return true;
       if (!reduceMotion && Math.abs(velocity) > 0.002) return true;
       if (!reduceMotion) return true; // auto-spin, including while zoomed, panned or tilted
@@ -264,11 +472,12 @@
       raf = 0;
       var dt = lastFrame ? Math.min(0.05, (t - lastFrame) / 1000) : 0;
       lastFrame = t;
+      if (anim) stepAnim(t);
       if (held) {
         angle += held.da * dt;
-        if (held.de) { ELEV += held.de * dt; applyCamera(); }
+        if (held.de && !inspectKind) { ELEV += held.de * dt; applyCamera(); }
         lastInput = performance.now();
-      } else if (!dragging && !reduceMotion) {
+      } else if (!dragging && !reduceMotion && !inspectKind && !anim) {
         if (Math.abs(velocity) > 0.002) {
           angle += velocity * dt;
           velocity *= Math.pow(0.04, dt); // coast out a flick
@@ -279,6 +488,9 @@
             angle += autoSpeed * ramp * dt;
           }
         }
+      }
+      if (!anim && inspectKind && inspectOpen > 0.99) {
+        applyInspectCamera(1, angle, angle, camera.position, currentLookAt());
       }
       render();
       if (wantsLoop()) raf = requestAnimationFrame(frame);
@@ -308,7 +520,7 @@
     }
     function down(ev) {
       if (mode !== '360' || (ev.button != null && ev.button > 0)) return;
-      if (ev.target.closest && ev.target.closest('.r360-toggle, .r360-zoom, .r360-pad, .r360-zreset')) return;
+      if (ev.target.closest && ev.target.closest('.r360-toggle, .r360-zoom, .r360-pad, .r360-zreset, .r360-parts')) return;
       pts[ev.pointerId] = { x: ev.clientX, y: ev.clientY };
       try { stage.setPointerCapture(ev.pointerId); } catch (e) { /* ignore */ }
       stage.setAttribute('data-r360-touched', '1');
@@ -329,6 +541,7 @@
         }
         dragging = true;
         lastX = ev.clientX; lastT = now;
+        stage._r360sx = ev.clientX; stage._r360sy = ev.clientY;
         stage.classList.add('r360-grab');
       }
       update();
@@ -372,6 +585,14 @@
       }
       if (!dragging) return;
       dragging = false;
+      var moved = Math.hypot(ev.clientX - (stage._r360sx || ev.clientX), ev.clientY - (stage._r360sy || ev.clientY));
+      var tapped = moved < 10;
+      if (tapped && tryPartTap(ev)) {
+        velocity = 0;
+        stage.classList.remove('r360-grab');
+        update();
+        return;
+      }
       if (lastInput - lastT > 90) velocity = 0;
       velocity = Math.max(-4, Math.min(4, velocity));
       if (zoom > 1.02) velocity = 0;
@@ -383,7 +604,7 @@
     stage.addEventListener('pointerup', up);
     stage.addEventListener('pointercancel', up);
     stage.addEventListener('dblclick', function (ev) {
-      if (mode !== '360' || (ev.target.closest && ev.target.closest('.r360-toggle, .r360-zoom, .r360-pad, .r360-zreset'))) return;
+      if (mode !== '360' || (ev.target.closest && ev.target.closest('.r360-toggle, .r360-zoom, .r360-pad, .r360-zreset, .r360-parts'))) return;
       resetZoom();
     });
     // Desktop: wheel or trackpad pinch zooms toward the cursor. At full
@@ -411,6 +632,35 @@
     zreset.textContent = 'Reset';
     stage.appendChild(zreset);
     zreset.addEventListener('click', function () { resetZoom(); });
+    var partsBar = document.createElement('div');
+    partsBar.className = 'r360-parts';
+    partsBar.setAttribute('role', 'group');
+    partsBar.setAttribute('aria-label', 'Open parts');
+    partsBar.innerHTML =
+      '<button type="button" data-part="tailgate" aria-pressed="false">Tap tailgate</button>' +
+      '<button type="button" data-part="toolbox" aria-pressed="false">Tap toolbox</button>';
+    stage.appendChild(partsBar);
+    partsBar.addEventListener('click', function (ev) {
+      var b = ev.target.closest('button[data-part]');
+      if (b) toggleInspect(b.getAttribute('data-part'));
+    });
+    function updatePartButtons() {
+      var truckOn = !(subject === 'trailer');
+      var trailOn = !(subject === 'truck');
+      var map = { tailgate: truckOn, toolbox: trailOn };
+      var btns = partsBar.querySelectorAll('button[data-part]');
+      for (var i = 0; i < btns.length; i++) {
+        var kind = btns[i].getAttribute('data-part');
+        var on = !!map[kind];
+        btns[i].hidden = !on;
+        var open = inspectKind === kind && inspectOpen > 0.5;
+        btns[i].setAttribute('aria-pressed', open ? 'true' : 'false');
+        btns[i].textContent = open
+          ? (kind === 'tailgate' ? 'Close tailgate' : 'Close toolbox')
+          : (kind === 'tailgate' ? 'Tap tailgate' : 'Tap toolbox');
+      }
+    }
+    updatePartButtons();
     stage.appendChild(zbar);
     // Arrow pad: left/right rotate, up/down tilt. Press and hold keeps
     // moving; a tap (or Enter/Space) moves one step. Auto-spin pauses while held, then resumes after idle.
@@ -493,6 +743,8 @@
         rig.trailer.visible = !k;
         rig.group.position.x = t ? rig.trailerOffset : k ? rig.truckOffset : rig.rigOffset;
         zoom = 1; panX = 0; panY = 0; ELEV = ELEV0;
+        closeInspect(true);
+        updatePartButtons();
         w = 0;
         if (shown) { render(); }
         update();
@@ -507,7 +759,12 @@
       setAngle: function (a) { angle = a; lastInput = performance.now(); render(); },
       getAngle: function () { return angle; },
       info: function () { return { calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, running: !!raf }; },
-      pause: function (p) { lastInput = p ? 1e15 : -1e9; update(); }
+      pause: function (p) { lastInput = p ? 1e15 : -1e9; update(); },
+      toggleTailgate: function () { toggleInspect('tailgate'); },
+      toggleToolbox: function () { toggleInspect('toolbox'); },
+      closeInspect: closeInspect,
+      inspecting: function () { return inspectKind; },
+      inspectOpen: function () { return inspectOpen; }
     };
     window.BlackRamApp = Object.assign(window.BlackRamApp || {}, { rig360: api });
     return api;
@@ -684,6 +941,13 @@
       amber: new THREE.MeshStandardMaterial({ color: 0xffb020, emissive: 0xff9a00, emissiveIntensity: 1.8 }),
       red: new THREE.MeshStandardMaterial({ color: 0x9a0f14, emissive: 0xd0141c, emissiveIntensity: 1.1 }),
       chrome: new THREE.MeshStandardMaterial({ color: 0xcfd2d8, metalness: 1, roughness: 0.12 }),
+      gold: new THREE.MeshPhysicalMaterial({ color: 0xf0c53a, metalness: 1, roughness: 0.12, clearcoat: 0.7, clearcoatRoughness: 0.1, emissive: 0x5a3a00, emissiveIntensity: 0.45 }),
+      plate: new THREE.MeshStandardMaterial({ color: 0x16161a, metalness: 0.75, roughness: 0.38 }),
+      strap: new THREE.MeshStandardMaterial({ color: 0xd4a017, roughness: 0.7, metalness: 0.05 }),
+      strapOr: new THREE.MeshStandardMaterial({ color: 0xc45a12, roughness: 0.7, metalness: 0.05 }),
+      chain: new THREE.MeshStandardMaterial({ color: 0xb58a22, metalness: 0.85, roughness: 0.35 }),
+      bar: new THREE.MeshStandardMaterial({ color: 0x7a7a82, metalness: 0.85, roughness: 0.28 }),
+      binder: new THREE.MeshStandardMaterial({ color: 0x8a1518, metalness: 0.4, roughness: 0.45 }),
       grille: new THREE.MeshStandardMaterial({ map: grilleTex(THREE), metalness: 0.5, roughness: 0.4 }),
       logo: new THREE.MeshBasicMaterial({ map: logoTex(THREE), transparent: true, depthWrite: false })
     };
@@ -794,12 +1058,19 @@
       box(BL, 0.12, 0.34, M.satin, BC, 4.92, s * 3.2); // rail cap
     });
     box(0.22, 1.95, 6.6, M.paint, BX1 + 0.1, 3.9, 0);
-    box(0.22, 2.05, 6.6, M.paint, BX0 + 0.1, 3.85, 0);
-    box(0.06, 0.35, 2.2, M.satin, BX0 - 0.02, 4.45, 0); // tailgate handle bezel
+    var TG_HINGE_Y = 2.90;
+    var tailgate = new THREE.Group();
+    tailgate.position.set(BX0, TG_HINGE_Y, 0);
+    tailgate.userData.part = 'tailgate';
+    group.add(tailgate);
+    box(0.22, 2.05, 6.6, M.paint, 0.12, 3.85 - TG_HINGE_Y, 0, tailgate);
+    box(0.06, 0.35, 2.2, M.satin, -0.02, 4.45 - TG_HINGE_Y, 0, tailgate);
     [-1, 1].forEach(function (s) {
-      box(0.1, 1.05, 0.42, M.red, BX0 - 0.02, 4.15, s * 3.05);
+      box(0.1, 1.05, 0.42, M.red, -0.02, 4.15 - TG_HINGE_Y, s * 3.05, tailgate);
     });
-    box(0.5, 0.75, 6.9, M.satin, BX0 - 0.1, 2.35, 0); // rear bumper
+    var tgHit = box(0.9, 2.2, 6.8, new THREE.MeshBasicMaterial({ visible: false }), 0.15, 3.85 - TG_HINGE_Y, 0, tailgate);
+    tgHit.userData.part = 'tailgate';
+    box(0.5, 0.75, 6.9, M.satin, BX0 - 0.1, 2.35, 0); // rear bumper stays
     // Dually fender flares (both sides)
     var fl = new THREE.Shape();
     fl.moveTo(RX - 2.35, 2.0);
@@ -823,9 +1094,15 @@
     wheel(RX, TR, 2.82, TR, 0.72, -1, true);
     wheel(RX, TR, -3.6, TR, 0.72, -1, false);
     wheel(RX, TR, -2.82, TR, 0.72, 1, true);
-    // CURT gooseneck ball in the bed
+    // CURT gooseneck ball in the bed, gold, on a dark puck plate
     var BALL_X = -6.9;
-    add(new THREE.Mesh(new THREE.SphereGeometry(0.16, 14, 10), M.chrome), BALL_X, 3.12, 0);
+    box(1.5, 0.08, 1.5, M.plate, BALL_X, 3.04, 0);
+    add(new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.38, 0.1, 20), M.plate), BALL_X, 3.11, 0);
+    add(new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.28, 12), M.gold), BALL_X, 3.22, 0);
+    add(new THREE.Mesh(new THREE.SphereGeometry(0.28, 24, 16), M.gold), BALL_X, 3.48, 0);
+    var ballLight = new THREE.PointLight(0xffe6a8, 0, 14, 2);
+    ballLight.position.set(BALL_X, 4.2, 0);
+    group.add(ballLight);
 
     var truckCount = group.children.length;
     /* ---- Big Tex 25GN-40D5A-MRBK: 35 ft main deck + 5 ft dovetail ---- */
@@ -848,8 +1125,71 @@
       add(new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 1.0, 10), M.chrome), -13.5, 0.55, s * 1.55);
       box(0.7, 0.08, 0.7, M.frame, -13.5, 0.06, s * 1.55);
     });
-    // Toolbox in the neck
-    box(2.2, 1.1, 2.7, M.diamond, -11.8, 5.3, 0);
+    // Storage toolbox under the gooseneck, in the gap ahead of the deck
+    // (behind the truck when hooked up), between the drop-leg jacks and the header.
+    var TB = { x: -12.35, y: 3.05, z: 0, lx: 1.9, ly: 1.8, lz: 3.7 };
+    var boxMat = M.diamond.clone();
+    boxMat.color.set(0xb0b0b8);
+    var toolbox = new THREE.Group();
+    toolbox.position.set(TB.x, TB.y, TB.z);
+    toolbox.userData.part = 'toolbox';
+    group.add(toolbox);
+    var tbInvis = new THREE.MeshBasicMaterial({ visible: false });
+    // Body: floor, front, back, -z wall, open +z face for the lid
+    box(TB.lx, 0.08, TB.lz, boxMat, 0, -TB.ly / 2 + 0.04, 0, toolbox);
+    box(TB.lx, TB.ly, 0.08, boxMat, 0, 0, -TB.lz / 2 + 0.04, toolbox);
+    box(0.08, TB.ly, TB.lz - 0.08, boxMat, -TB.lx / 2 + 0.04, 0, 0.02, toolbox);
+    box(0.08, TB.ly, TB.lz - 0.08, boxMat, TB.lx / 2 - 0.04, 0, 0.02, toolbox);
+    var interior = new THREE.MeshStandardMaterial({ color: 0x1c1c20, roughness: 0.8, metalness: 0.2 });
+    box(TB.lx - 0.16, 0.02, TB.lz - 0.16, interior, 0, -TB.ly / 2 + 0.09, 0, toolbox);
+    // Contents: rolled straps, chain coils, ratchet binders, winch bar
+    function coil(mat, x, z, r, h) {
+      var t = new THREE.Mesh(new THREE.TorusGeometry(r, r * 0.42, 8, 16), mat);
+      t.rotation.x = Math.PI / 2;
+      add(t, x, -TB.ly / 2 + 0.18 + h, z, toolbox);
+    }
+    coil(M.strap, -0.55, -0.45, 0.22, 0.05);
+    coil(M.strapOr, -0.15, -0.55, 0.2, 0.05);
+    coil(M.strap, 0.28, -0.4, 0.23, 0.05);
+    coil(M.strapOr, 0.65, -0.55, 0.18, 0.05);
+    coil(M.strap, -0.5, 0.15, 0.2, 0.05);
+    coil(M.strapOr, 0.05, 0.2, 0.22, 0.05);
+    coil(M.chain, 0.55, 0.15, 0.2, 0.02);
+    coil(M.chain, -0.2, 0.55, 0.18, 0.02);
+    coil(M.chain, 0.35, 0.55, 0.16, 0.02);
+    // ratchet binders (body + two screw stubs)
+    function binder(x, z, ry) {
+      var g = new THREE.Group();
+      var body = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.14, 0.14), M.binder);
+      var a = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.28, 8), M.bar);
+      a.rotation.z = Math.PI / 2; a.position.x = -0.32;
+      var b = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.28, 8), M.bar);
+      b.rotation.z = Math.PI / 2; b.position.x = 0.32;
+      g.add(body, a, b);
+      g.position.set(x, -TB.ly / 2 + 0.2, z);
+      g.rotation.y = ry || 0;
+      toolbox.add(g);
+    }
+    binder(-0.55, 0.7, 0.3);
+    binder(0.15, 0.75, -0.2);
+    binder(0.7, 0.55, 0.5);
+    // winch bar along the +x wall
+    var wbar = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 1.85, 8), M.bar);
+    wbar.rotation.z = Math.PI / 2;
+    add(wbar, 0.05, -TB.ly / 2 + 0.16, 0.9, toolbox);
+    var wcap = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.18), M.bar);
+    add(wcap, -0.95, -TB.ly / 2 + 0.16, 0.9, toolbox);
+    // Lid: +z face, hinged at the top edge, swings up and out
+    var toolboxLid = new THREE.Group();
+    toolboxLid.position.set(0, TB.ly / 2, TB.lz / 2);
+    toolboxLid.userData.part = 'toolbox';
+    toolbox.add(toolboxLid);
+    box(TB.lx, TB.ly, 0.08, boxMat, 0, -TB.ly / 2, 0.04, toolboxLid);
+    box(0.5, 0.08, 0.1, M.frame, 0, -TB.ly * 0.15, 0.1, toolboxLid); // latch
+    var tbHit = box(TB.lx + 0.2, TB.ly + 0.2, 0.7, tbInvis, 0, -TB.ly / 2, 0.1, toolboxLid);
+    tbHit.userData.part = 'toolbox';
+    var tbBodyHit = box(TB.lx, TB.ly, TB.lz, tbInvis, 0, 0, 0, toolbox);
+    tbBodyHit.userData.part = 'toolbox';
     // Full-width header at the front of the deck
     box(0.45, 1.25, HALF_W * 2, M.frame, D0 - 0.1, DECK_Y - 0.25, 0);
     // Main deck
@@ -936,7 +1276,7 @@
     shadowUnder(truck, front, BX0 - 0.4, 8.2);
     shadowUnder(trailer, -12.5, back, HALF_W * 2);
     var trailerFront = -4.9;
-    var res = { group: group, truck: truck, trailer: trailer, rigOffset: -mid, trailerOffset: -(trailerFront + back) / 2, truckOffset: -(front + BX0 - 0.4) / 2 };
+    var res = { group: group, truck: truck, trailer: trailer, tailgate: tailgate, toolbox: toolbox, toolboxLid: toolboxLid, ballLight: ballLight, ballX: BALL_X, tb: TB, rigOffset: -mid, trailerOffset: -(trailerFront + back) / 2, truckOffset: -(front + BX0 - 0.4) / 2 };
     group.position.x = res.rigOffset;
     return res;
   }

@@ -5455,3 +5455,24 @@ header.top .rig-stage[data-r360] .rig-floor { transition: opacity 0.5s ease; }
 }
 .rig-stage[data-view="360"][data-r360-adjusted] .r360-zreset { display: block; }
 .r360-hint { bottom: calc(var(--s-1, 8px) + 48px); white-space: nowrap; }
+
+/* v82 tailgate / toolbox part buttons — under the view toggle, so they don't cover the bed */
+.r360-parts {
+  position: absolute; right: var(--s-1, 8px); top: calc(var(--s-1, 8px) + 40px); z-index: 5;
+  transform: none;
+  display: none; gap: 6px; justify-content: center; flex-wrap: wrap;
+  max-width: calc(100% - 16px);
+}
+.rig-stage[data-view="360"][data-r360-ready] .r360-parts { display: flex; }
+.rig-stage[data-r360-inspect] .r360-hint { opacity: 0 !important; }
+.r360-parts button {
+  min-height: 32px; padding: 0 12px; border-radius: 999px; position: relative;
+  border: 1px solid var(--c-line, rgba(255,255,255,0.12));
+  background: rgba(10, 9, 16, 0.72); color: var(--c-text-1, #f5f1e6);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  font: inherit; font-size: var(--fs-xs, 12px); font-weight: var(--fw-bold, 700);
+  letter-spacing: 0.03em; cursor: pointer; white-space: nowrap;
+}
+.r360-parts button::before { content: ''; position: absolute; inset: -6px -2px; }
+.r360-parts button[aria-pressed="true"] { background: var(--gold, #D4A62A); color: #0f0d17; border-color: transparent; }
+.r360-parts button[hidden] { display: none; }
