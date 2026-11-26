@@ -1,13 +1,13 @@
 {
-  "state": "queued",
-  "pct": 5,
+  "state": "truckstop",
+  "pct": 20,
   "origin": "Jacksonville, FL",
   "started_at": "2026-11-26 14:00 CT",
-  "updated_at": "2026-11-26 14:00 CT",
+  "updated_at": "2026-11-26 14:01 CT",
   "counts": {
     "truckstop": 0,
     "df": 0,
     "fits": 0
   },
-  "message": "Search queued"
+  "message": "Searching Truckstop"
 }
