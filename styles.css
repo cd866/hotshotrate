@@ -5155,3 +5155,52 @@ header.top .rig-specs-toggle {
   font-family: var(--body); font-size: var(--fs-md); font-weight: var(--fw-bold);
   letter-spacing: 0; text-transform: none;
 }
+
+/* =====================================================================
+   v65 OVERNIGHT POLISH: page titles, shared PIN lock, KPI fold,
+   period chips and tap targets on the v51 tokens.
+   ===================================================================== */
+.page-head { margin: var(--s-2) 0 var(--s-1h); }
+.page-h1 { margin: 0; font-size: var(--fs-2xl); font-weight: var(--fw-black); line-height: 1.15; color: var(--c-text-1); letter-spacing: -0.01em; font-family: var(--body); text-transform: none; }
+.page-sub { margin: var(--s-h) 0 0; font-size: var(--fs-sm); color: var(--c-text-3); }
+
+/* one look for every PIN gate (Finance, Daily PDFs; Accounting already matches) */
+.pin-lock { display: flex; flex-direction: column; align-items: center; text-align: center; gap: var(--s-1h); padding: var(--s-4) var(--s-2) var(--s-3); }
+.pin-lock h3 { margin: 0; font-size: var(--fs-xl); font-weight: var(--fw-black); color: var(--c-text-1); font-family: var(--body); text-transform: none; letter-spacing: 0; }
+.pin-lock p { margin: 0; max-width: 320px; }
+.pin-lock-ico { width: 56px; height: 56px; border-radius: 50%; background: var(--c-surface-3); color: var(--c-accent-hi); display: grid; place-items: center; }
+.pin-lock-ico svg { width: 28px; height: 28px; }
+.pin-lock form { display: flex; gap: var(--s-1); width: 100%; max-width: 340px; margin-top: var(--s-h); }
+.pin-lock input { flex: 1; min-width: 0; min-height: var(--tap); }
+.pin-lock .btn, .pin-lock button[type=submit] { min-height: var(--tap); }
+.pin-lock-note { font-size: var(--fs-xs); color: var(--c-text-3); }
+.pin-lock .dr-err { color: #F87171; }
+
+/* KPI legacy block folded under the Scoreboard */
+.kpi-more { margin-top: var(--s-2); }
+
+/* period chips (Reports, KPIs) on v51 chip style */
+.month-switch { display: flex; gap: var(--s-1); flex-wrap: wrap; margin: var(--s-1h) 0; }
+.month-switch button, .month-switch .month-btn {
+  flex: 0 0 auto; min-height: var(--tap); padding: 0 var(--s-2); border-radius: var(--radius-pill);
+  background: var(--c-surface-1); border: 1px solid var(--c-line-strong); color: var(--c-text-2);
+  font-family: var(--body); font-size: var(--fs-md); font-weight: var(--fw-bold); text-transform: none; letter-spacing: 0;
+}
+.month-switch button[aria-pressed="true"] { background: var(--c-accent); border-color: var(--c-accent); color: #160f2e; }
+
+/* tap targets */
+.fin-seg button { min-height: 40px; min-width: 52px; }
+#fin-refresh { margin-left: var(--s-1); }
+.tg-inputs > summary { min-height: var(--tap); display: flex; align-items: center; }
+#tg-reset { min-height: 40px; padding: 0 var(--s-1h); }
+.rep-charts-head .chips button, .rep-charts-head button { min-height: 40px; }
+.ac-jump a { min-height: 32px; display: inline-flex; align-items: center; padding: 0 12px !important; }
+.fresh-pull-anywhere { display: inline-flex; align-items: center; gap: var(--s-1); min-height: var(--tap); }
+.fresh-pull-anywhere input { width: 20px; height: 20px; }
+.leaflet-touch .leaflet-bar a { width: 36px; height: 36px; line-height: 36px; }
+.leaflet-control-zoom a.leaflet-control-zoom-in, .leaflet-control-zoom a.leaflet-control-zoom-out { width: 36px; height: 36px; line-height: 36px; font-size: 20px; }
+#panel-stops .seg button {
+  min-height: var(--tap); border-radius: var(--radius-pill); background: var(--c-surface-1); border: 1px solid var(--c-line-strong);
+  color: var(--c-text-2); font-family: var(--body); font-size: var(--fs-md); font-weight: var(--fw-bold); text-transform: none; letter-spacing: 0;
+}
+#panel-stops .seg button[aria-pressed="true"] { background: var(--c-accent); border-color: var(--c-accent); color: #160f2e; }

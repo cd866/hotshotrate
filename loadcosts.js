@@ -150,20 +150,20 @@
         if (recPay.expected_date) sub = 'Expected ' + dayTxt(recPay.expected_date);
       } else if (recPay.status === 'short' && !(recPay.eld > 0.004)) {
         kind = 'short'; title = 'Short by ' + m2(recPay.short);
-        if (recPay.deposited != null) sub = (recPay.date ? 'Deposited ' + dayTxt(recPay.date) + ' · ' : 'Deposited ') + m2(recPay.deposited);
+        if (recPay.deposited != null) sub = (recPay.date ? 'Deposited ' + dayTxt(recPay.date) + ' | ' : 'Deposited ') + m2(recPay.deposited);
       } else {
         kind = recPay.eld > 0.004 ? 'eld' : 'ok';
         title = recPay.eld > 0.004
           ? 'Paid - ELD fees (' + m2(recPay.eld) + ')' + (recPay.eld_est ? ' EST' : '')
           : 'Deposited';
         var bits = [];
-        if (recPay.date) bits.push(dayTxt(recPay.date) + ' · ' + m2(recPay.deposited));
-        else if (recPay.period) bits.push(recPay.period.replace(/(\d{4})-(\d{2})-(\d{2})/g, function (_, y, m, d) { return Number(m) + '/' + Number(d); }) + ' · ' + m2(recPay.deposited));
+        if (recPay.date) bits.push(dayTxt(recPay.date) + ' | ' + m2(recPay.deposited));
+        else if (recPay.period) bits.push(recPay.period.replace(/(\d{4})-(\d{2})-(\d{2})/g, function (_, y, m, d) { return Number(m) + '/' + Number(d); }) + ' | ' + m2(recPay.deposited));
         else if (recPay.deposited != null) bits.push(m2(recPay.deposited));
         if (recPay.via) bits.push(recPay.via);
         if (recPay.combined) bits.push('share of ' + m2(recPay.combined.total) + (recPay.combined.est ? ' EST' : ''));
         if (recPay.ledger_est) bits.push('amount EST');
-        sub = bits.join(' · ');
+        sub = bits.join(' | ');
       }
     } else {
       var recv = num(l.net_received);
@@ -324,7 +324,7 @@
     var el = document.getElementById('lc-pend');
     if (!pending.length) { if (el) el.remove(); return; }
     if (!el) { el = document.createElement('section'); el.id = 'lc-pend'; el.className = 'lc-pend'; }
-    var names = pending.map(function (r) { return (r.who ? r.who + ' ' : '') + '#' + r.id; }).join(' · ');
+    var names = pending.map(function (r) { return (r.who ? r.who + ' ' : '') + '#' + r.id; }).join(' | ');
     el.innerHTML = '<div class="lc-due-main"><span class="lc-due-k">Still to be deposited</span><b>' + m2(total) + '</b></div>' +
       '<p>' + pending.length + (pending.length === 1 ? ' load' : ' loads') + ' expected, not yet in. ' + esc(names) + '.</p>';
     var h2 = null;

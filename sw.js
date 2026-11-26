@@ -8,31 +8,31 @@
    data/load_searches.json and data/pull_status.json are always fetched with
    cache: 'no-store' and are not precached. A cached copy is used only when
    the network request fails, so live search progress shows without a version bump. */
-var CACHE = 'blackram-v64';
+var CACHE = 'blackram-v65';
 var ASSETS = [
   './',
   './index.html',
   './styles.css',
-  './styles.css?v=64',
+  './styles.css?v=65',
   './app.js',
-  './app.js?v=64',
+  './app.js?v=65',
   './maps.js',
-  './maps.js?v=64',
+  './maps.js?v=65',
   './stops.js',
-  './stops.js?v=64',
+  './stops.js?v=65',
   './targets.js',
   './loadcosts.js',
-  './loadcosts.js?v=64',
+  './loadcosts.js?v=65',
   './tripplan.js',
-  './tripplan.js?v=64',
+  './tripplan.js?v=65',
   './data/pilot_fj.json',
-  './targets.js?v=64',
+  './targets.js?v=65',
   './reports.js',
-  './reports.js?v=64',
+  './reports.js?v=65',
   './scoreboard.js',
   './accounting.js',
-  './accounting.js?v=64',
-  './scoreboard.js?v=64',
+  './accounting.js?v=65',
+  './scoreboard.js?v=65',
   './manifest.json',
   './manifest.json?v=3',
   './manifest.webmanifest',
@@ -40,6 +40,8 @@ var ASSETS = [
   './brand/horizontal.svg',
   './brand/icon.svg',
   './brand/primary.svg',
+  './brand/rig-800.webp',
+  './brand/rig-800.png',
   './favicon.ico',
   './favicon.ico?v=3',
   './icons/favicon-32.png',
@@ -84,7 +86,7 @@ function isShell(url, req) {
   var path = url.pathname;
   if (path.endsWith('/sw.js')) return true;
   if (path.endsWith('/index.html') || /\/$/.test(path)) return true;
-  if (path.endsWith('/app.js') || path.endsWith('/styles.css') || path.endsWith('/stops.js') || path.endsWith('/maps.js') || path.endsWith('/targets.js') || path.endsWith('/loadcosts.js') || path.endsWith('/tripplan.js') || path.endsWith('/reports.js') || path.endsWith('/scoreboard.js')) return true;
+  if (path.endsWith('/app.js') || path.endsWith('/styles.css') || path.endsWith('/stops.js') || path.endsWith('/maps.js') || path.endsWith('/targets.js') || path.endsWith('/loadcosts.js') || path.endsWith('/tripplan.js') || path.endsWith('/reports.js') || path.endsWith('/scoreboard.js') || path.endsWith('/accounting.js')) return true;
   if (path.endsWith('/manifest.json') || path.endsWith('/manifest.webmanifest')) return true;
   return false;
 }

@@ -115,11 +115,13 @@
     var head = '<div class="dr-head"><h2>Daily PDF reports</h2><span>' +
       (st.idx ? esc(st.idx.reports.length + ' reports') : 'PIN protected') + '</span></div>';
     if (!pin() || st.error === 'wrongpin') {
-      root.innerHTML = '<section class="dr-card dr-lock">' + head +
+      root.innerHTML = '<section class="dr-card dr-lock pin-lock"><div class="pin-lock-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></g></svg></div>' +
+        '<h3>Daily PDFs are locked</h3>' +
         '<p' + (st.error === 'wrongpin' ? ' class="dr-err"' : '') + '>' +
         (st.error === 'wrongpin' ? 'Wrong PIN. Try again.' : 'The nightly reports include partner capital, loans and bank figures. Enter the app PIN to see them.') + '</p>' +
         '<form class="dr-pin" id="dr-pin-form" autocomplete="off"><input id="dr-pin" type="password" inputmode="numeric" placeholder="App PIN" aria-label="App PIN" />' +
-        '<button type="submit" class="dr-btn pri" style="flex:0 0 96px">Unlock</button></form></section>';
+        '<button type="submit" class="dr-btn pri" style="flex:0 0 96px">Unlock</button></form>' +
+        '<p class="pin-lock-note">One PIN unlocks Finance, Accounting, Daily PDFs and receipts on this phone.</p></section>';
       var f = $('dr-pin-form');
       if (f) f.addEventListener('submit', function (ev) {
         ev.preventDefault();

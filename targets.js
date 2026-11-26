@@ -158,7 +158,7 @@
 
   function slider(id, label, min, max, step, val, fmt) {
     return '<div class="tg-sl"><label class="tg-sl-top" for="tg-' + id + '"><span>' + esc(label) + '</span><b id="tgv-' + id + '">' + fmt(val) + '</b></label>' +
-      '<div class="tg-sl-row"><button type="button" class="tg-step" data-step-k="' + id + '" data-dir="-1" aria-label="Decrease ' + esc(label) + '">&minus;</button>' +
+      '<div class="tg-sl-row"><button type="button" class="tg-step" data-step-k="' + id + '" data-dir="-1" aria-label="Decrease ' + esc(label) + '">-</button>' +
       '<input type="range" id="tg-' + id + '" data-k="' + id + '" min="' + min + '" max="' + max + '" step="' + step + '" value="' + val + '">' +
       '<button type="button" class="tg-step" data-step-k="' + id + '" data-dir="1" aria-label="Increase ' + esc(label) + '">+</button></div></div>';
   }
@@ -251,8 +251,8 @@
 
     var headline = '<section class="big tg-head"><div class="kicker">Break-even (Totni ' + tgt.fee + '%)</div>' +
       '<span class="n phrase">' + (m.beGross != null ? money(m.beGross) + '/mo gross' : 'Not reachable') + '</span>' +
-      '<p class="sub">' + (m.beLoadsWk != null ? num(m.beLoadsWk, 1) + ' loads/wk · ' + num(m.beMi / WEEKS, 0) + ' loaded mi/wk · bills ' + money(m.fixed) + '/mo' : 'Contribution per mile is negative') + '</p>' +
-      (m.beGrossDriver != null ? '<div class="tg-be2"><div class="kicker">Break-even incl. Meshach ' + money(tgt.driverMo) + '</div><span class="n phrase">' + money(m.beGrossDriver) + '/mo gross</span><p class="sub">' + num(m.beLoadsWkDriver, 1) + ' loads/wk · ' + num(m.beMiDriver / WEEKS, 0) + ' loaded mi/wk · expenses + his pay ' + money(m.fixedDriver) + '/mo</p></div>' : '') + '</section>';
+      '<p class="sub">' + (m.beLoadsWk != null ? num(m.beLoadsWk, 1) + ' loads/wk | ' + num(m.beMi / WEEKS, 0) + ' loaded mi/wk | bills ' + money(m.fixed) + '/mo' : 'Contribution per mile is negative') + '</p>' +
+      (m.beGrossDriver != null ? '<div class="tg-be2"><div class="kicker">Break-even incl. Meshach ' + money(tgt.driverMo) + '</div><span class="n phrase">' + money(m.beGrossDriver) + '/mo gross</span><p class="sub">' + num(m.beLoadsWkDriver, 1) + ' loads/wk | ' + num(m.beMiDriver / WEEKS, 0) + ' loaded mi/wk | expenses + his pay ' + money(m.fixedDriver) + '/mo</p></div>' : '') + '</section>';
 
     var outs = '<div class="stats">' +
       metricBox(money(m.goalGross) , 'Gross needed / month', money(m.goalGross / WEEKS) + ' a week') +
@@ -269,11 +269,11 @@
       var tGross = m.goalGross * frac;
       var tLoads = m.goalLoadsWk * WEEKS * frac;
       var beG = (m.beGross || 0) * frac;
-      acts = '<h2 class="sec">This month vs goal · ' + esc(monLabel(act.month)) + ' 1-' + act.day + '</h2><div class="tg-bars">' +
+      acts = '<h2 class="sec">This month vs goal | ' + esc(monLabel(act.month)) + ' 1-' + act.day + '</h2><div class="tg-bars">' +
         bar('Gross MTD', money(act.fig.gross), money(tGross), act.fig.gross / (tGross || 1), 'Break-even pace ' + money(beG) + ' by today') +
         bar('Loads MTD', String(act.loads), num(tLoads, 1), act.loads / (tLoads || 1)) +
         bar('$ / loaded mile', rpm(act.fig.perLoaded), rpm(m.minRpmGoal), (act.fig.perLoaded || 0) / (m.minRpmGoal || 1)) +
-        (act.deadPct != null ? bar('Deadhead %', num(act.deadPct, 0) + '%', '&le;' + tgt.dead + '%', act.deadPct > 0 ? Math.min(1, Number(tgt.dead) / act.deadPct) : 1, 'Lower is better') : '') +
+        (act.deadPct != null ? bar('Deadhead %', num(act.deadPct, 0) + '%', '&lt;= ' + tgt.dead + '%', act.deadPct > 0 ? Math.min(1, Number(tgt.dead) / act.deadPct) : 1, 'Lower is better') : '') +
         (act.idle != null ? bar('Days with a load', String(act.used), num(Number(tgt.daysMo) * frac, 0), act.used / ((Number(tgt.daysMo) * frac) || 1), act.idle + ' idle days so far') : '') +
         bar('Net before bills / day', money(act.netBeforeFixedPerDay), money((m.fixed + m.goalNet) / 30.4), act.netBeforeFixedPerDay / (((m.fixed + m.goalNet) / 30.4) || 1), 'Gross less ' + tgt.fee + '% fee and fuel, per calendar day') +
         '</div>';
@@ -304,7 +304,7 @@
       cmpRows.map(function (r) {
         var bestCls = r === best ? ' tg-best' : '';
         return '<div class="tg-cmp-row' + bestCls + '"><div><b>' + esc(r[0]) + '</b><span>' + esc(r[2]) + '</span></div>' +
-          '<div class="tg-cmp-n"><b>' + money(r[1].net) + '</b><span>net/mo · BE ' + (r[1].beGross != null ? money(r[1].beGross) : '-') + '</span></div></div>';
+          '<div class="tg-cmp-n"><b>' + money(r[1].net) + '</b><span>net/mo | BE ' + (r[1].beGross != null ? money(r[1].beGross) : '-') + '</span></div></div>';
       }).join('') +
       '<p class="tg-call">Own MC only beats Totni once gross is over about <b>' + money(st.crossGross) + '/mo</b>, because own-authority insurance runs about ' + money(OWN.insuranceMo - s.insurance) + '/mo more than today. Startup cash about ' + money(OWN.startup) + ' (EST).</p>' +
       '<p class="fine">Sources: Progressive own-authority quote via TAP 10/26/2026 ($39,394/yr); Landstar hotshot BCO 70% and Bennett/American Eagle hotshot 70% (keep), Adams Freight 75%, Kings of Hotshots and OnTime Logistics 75-80%; factoring 2.5-4%. Lease-on insurance kept the same as today (EST). Totni ELD fee ($50 seen once) not included. Full write-up: MC options PDF.</p></section>';

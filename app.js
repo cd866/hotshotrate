@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v64';
+  var APP_VERSION = 'v65';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -109,7 +109,7 @@
   }
 
   function money(n) {
-    if (n == null || !isFinite(n)) return '—';
+    if (n == null || !isFinite(n)) return '--';
     var neg = n < -0.004;
     var abs = Math.abs(n);
     var showCents = Math.round(abs * 100) % 100 !== 0;
@@ -120,13 +120,19 @@
     return (neg ? '-$' : '$') + body;
   }
 
+  // whole dollars for headline tiles; ledger rows keep cents
+  function money0(n) {
+    if (n == null || !isFinite(n)) return '--';
+    return money(Math.round(n));
+  }
+
   function rpm(n) {
-    if (n == null || !isFinite(n)) return '—';
+    if (n == null || !isFinite(n)) return '--';
     return '$' + n.toFixed(2) + '/mi';
   }
 
   function plainNum(n, digits) {
-    if (n == null || !isFinite(n)) return '—';
+    if (n == null || !isFinite(n)) return '--';
     return n.toLocaleString('en-US', { maximumFractionDigits: digits == null ? 2 : digits });
   }
 
@@ -416,10 +422,10 @@
     }
 
     var s = result.settings;
-    var fuelValue = result.fuelKnown ? money(result.ready ? result.fuel : null) : '—';
+    var fuelValue = result.fuelKnown ? money(result.ready ? result.fuel : null) : '--';
     var fuelSub = result.fuelKnown && result.ready
       ? '<span class="est">EST</span> ' + result.gallons.toFixed(1) + ' gal at $' + s.diesel.toFixed(2) + '/gal'
-      : '<span class="est">EST</span> MPG ' + plainNum(s.mpg, 1) + ' · diesel $' + s.diesel.toFixed(2);
+      : '<span class="est">EST</span> MPG ' + plainNum(s.mpg, 1) + ' | diesel $' + s.diesel.toFixed(2);
     var hourSub = !result.ready || result.netHour == null
       ? 'Optional hours, or estimated from miles'
       : (result.hoursEst
@@ -431,12 +437,12 @@
       : 'rate x 0.87 - $' + s.loadedCost.toFixed(2) + '/loaded mi - $' + s.deadheadCost.toFixed(2) + '/empty mi';
 
     $('metrics').innerHTML =
-      metric(result.ready ? money(result.netEst) : '—', 'Net EST', mathSub) +
-      metric(result.ready ? money(result.fee) : '—', 'Totni fee', plainNum(s.feePct, 2).replace(/\.00$/, '') + '% of the rate') +
-      metric(result.ready && result.loadedMi > 0 ? rpm(result.loadedRpm) : '—', 'Posted / loaded mi', result.loadedMi > 0 ? plainNum(result.loadedMi, 0) + ' loaded mi' : 'No loaded miles yet') +
-      metric(result.ready && result.totalMi > 0 ? rpm(result.allRpm) : '—', 'Posted / all-mi', result.totalMi > 0 ? plainNum(result.totalMi, 0) + ' total mi' : 'No miles yet') +
+      metric(result.ready ? money(result.netEst) : '--', 'Net EST', mathSub) +
+      metric(result.ready ? money(result.fee) : '--', 'Totni fee', plainNum(s.feePct, 2).replace(/\.00$/, '') + '% of the rate') +
+      metric(result.ready && result.loadedMi > 0 ? rpm(result.loadedRpm) : '--', 'Posted / loaded mi', result.loadedMi > 0 ? plainNum(result.loadedMi, 0) + ' loaded mi' : 'No loaded miles yet') +
+      metric(result.ready && result.totalMi > 0 ? rpm(result.allRpm) : '--', 'Posted / all-mi', result.totalMi > 0 ? plainNum(result.totalMi, 0) + ' total mi' : 'No miles yet') +
       metric(fuelValue, 'Fuel (MPG check)', fuelSub) +
-      metric(result.ready && result.netHour != null ? money(result.netHour) : '—', 'Net EST per hour', hourSub);
+      metric(result.ready && result.netHour != null ? money(result.netHour) : '--', 'Net EST per hour', hourSub);
 
     var insFlag = $('ins-flag');
     insFlag.hidden = s.insurance > 0;
@@ -467,10 +473,10 @@
   function renderRateCheckHero(result) {
     var ready = result.ready && result.loadedMi > 0;
     var days = rcDays(result);
-    rcSet('rcv-net', result.ready ? money(Math.round(result.netEst)) : '\u2014');
-    rcSet('rcv-day', ready && days ? money(Math.round(result.netEst / days)) : '\u2014');
-    rcSet('rcv-mi', ready && result.totalMi > 0 ? '$' + (result.netEst / result.totalMi).toFixed(2) : '\u2014');
-    rcSet('rcv-hr', ready && result.netHour != null ? money(Math.round(result.netHour)) : '\u2014');
+    rcSet('rcv-net', result.ready ? money(Math.round(result.netEst)) : '--');
+    rcSet('rcv-day', ready && days ? money(Math.round(result.netEst / days)) : '--');
+    rcSet('rcv-mi', ready && result.totalMi > 0 ? '$' + (result.netEst / result.totalMi).toFixed(2) : '--');
+    rcSet('rcv-hr', ready && result.netHour != null ? money(Math.round(result.netHour)) : '--');
     var dl = $('rcv-day-l');
     if (dl) dl.textContent = ready && days ? 'Net / day (' + days + 'd)' : 'Net / day';
     var list = $('rc-why-list');
@@ -596,8 +602,8 @@
       return '<div class="rc-hist-row ' + v + '" data-i="' + i + '">' +
         '<button type="button" class="rc-hist-load" data-i="' + i + '" aria-label="Load this check back in">' +
         '<span class="rc-hist-pill ' + v + '">' + v.toUpperCase() + '</span>' +
-        '<span class="rc-hist-main"><b>' + esc(money(Number(e.rate) || 0)) + '</b><span>' + esc(miles) + (lane ? ' &middot; ' + lane : '') + '</span></span>' +
-        '<span class="rc-hist-net"><b>' + esc(money(e.net)) + '</b><span>' + esc(rcAgo(e.t)) + (e.days ? ' &middot; ' + e.days + 'd' : '') + '</span></span></button>' +
+        '<span class="rc-hist-main"><b>' + esc(money(Number(e.rate) || 0)) + '</b><span>' + esc(miles) + (lane ? ' | ' + lane : '') + '</span></span>' +
+        '<span class="rc-hist-net"><b>' + esc(money(e.net)) + '</b><span>' + esc(rcAgo(e.t)) + (e.days ? ' | ' + e.days + 'd' : '') + '</span></span></button>' +
         '<button type="button" class="rc-hist-del" data-i="' + i + '" aria-label="Remove this saved check">Remove</button></div>';
     }).join('');
   }
@@ -740,9 +746,9 @@
     var da = parseISO(a);
     var db = parseISO(b);
     if (da.getUTCMonth() === db.getUTCMonth()) {
-      return MON[da.getUTCMonth()] + ' ' + da.getUTCDate() + '–' + db.getUTCDate();
+      return MON[da.getUTCMonth()] + ' ' + da.getUTCDate() + '-' + db.getUTCDate();
     }
-    return formatDay(a) + '–' + formatDay(b);
+    return formatDay(a) + '-' + formatDay(b);
   }
 
   /* ---- feed math ---- */
@@ -1463,7 +1469,7 @@
   function refreshFeed() {
     if (state.inflight) return state.inflight;
     var status = $('feed-status-text');
-    if (status) status.textContent = 'Updating…';
+    if (status) status.textContent = 'Updating...';
     state.inflight = fetchTimed('data/feed.json', { cache: 'no-cache' }, 15000).then(function (res) {
       if (!res.ok) throw new Error('Feed responded ' + res.status);
       var fromCache = res.headers.get('X-Feed-Cache') === '1';
@@ -1484,7 +1490,7 @@
         applyFeed(cached.feed, { offline: true, savedAt: cached.savedAt });
         return;
       }
-      state.error = 'Couldn’t load the month. Check the connection and pull to refresh.';
+      state.error = 'Could not load the month. Check the connection and pull to refresh.';
       state.feed = null;
       if (state.tab === 'reports') renderReports();
       if (state.tab === 'kpis') renderKpis();
@@ -1497,7 +1503,7 @@
 
   function statusLine(feed) {
     var when = feed && feed.generated_at ? formatStamp(feed.generated_at) : (state.savedAt ? formatStamp(state.savedAt) : '');
-    var text = when ? 'Last updated ' + when : 'Last updated —';
+    var text = when ? 'Last updated ' + when : 'Last updated -';
     if (state.offline) text += ' / offline copy';
     return text;
   }
@@ -1661,11 +1667,11 @@
     if (load.delivery_date && load.delivery_date !== load.date) {
       var end = formatDay(load.delivery_date);
       when = formatDay(load.date).split(' ')[0] === end.split(' ')[0]
-        ? formatDay(load.date) + '–' + end.split(' ')[1]
-        : formatDay(load.date) + ' – ' + end;
+        ? formatDay(load.date) + '-' + end.split(' ')[1]
+        : formatDay(load.date) + ' - ' + end;
     }
     var emp = sc.emp;
-    var who = [load.broker, load.load_no].filter(Boolean).join(' · ');
+    var who = [load.broker, load.load_no].filter(Boolean).join(' | ');
     var canMap = hasRouteToDraw(routePayload(load));
     var mapsHref = pastLoadMapsUrl(load);
     var emptyNote = '';
@@ -1716,7 +1722,7 @@
     var deliverBits = '';
     if (local) {
       deliverBits += '<p class="delivered-meta">Delivered ' + esc(formatDeliveredAt(local.delivered_at)) +
-        (local.note ? ' · ' + esc(local.note) : '') + '</p>';
+        (local.note ? ' | ' + esc(local.note) : '') + '</p>';
       var inOutbox = readDeliveredOutbox().some(function (r) { return r && String(r.load_id) === String(id); });
       var syncInfo = readDeliveredSyncMap()[String(id)] || null;
       var syncText = 'Queued on this phone - will send to Grok Bot';
@@ -1810,9 +1816,9 @@
   function expenseRows(rows) {
     return (rows || []).map(function (row) {
       return '<div class="exp"><div>' + esc(row.vendor || 'Expense') +
-        '<span>' + esc(formatDay(row.date)) + ' · ' + esc(catName(row.category || 'other')) +
-        (row.deadhead_for ? ' · cancelled-load deadhead' : '') +
-        (typeof row.gallons === 'number' ? ' · ' + plainNum(row.gallons, 2) + ' gal' : '') +
+        '<span>' + esc(formatDay(row.date)) + ' | ' + esc(catName(row.category || 'other')) +
+        (row.deadhead_for ? ' | cancelled-load deadhead' : '') +
+        (typeof row.gallons === 'number' ? ' | ' + plainNum(row.gallons, 2) + ' gal' : '') +
         '</span></div><b>' + money(row.amount) + (row.est ? ' <span class="est">EST</span>' : '') + '</b></div>';
     }).join('');
   }
@@ -1823,7 +1829,7 @@
     var feed = state.feed;
     var months = feed ? sortedMonths(feed) : [];
     var head = '<div id="pull" class="pull">Pull to refresh</div>' +
-      '<div class="status"><p id="feed-status-text">' + esc(feed ? statusLine(feed) : (state.error || 'Loading the month…')) +
+      '<div class="status"><p id="feed-status-text">' + esc(feed ? statusLine(feed) : (state.error || 'Loading the month...')) +
       '</p><button type="button" class="btn" id="refresh-btn">Refresh</button></div>';
     if (!months.length) {
       root.innerHTML = head + (state.error ? '<p class="offline">' + esc(state.error) + '</p>' : '');
@@ -1844,7 +1850,7 @@
     var asOf = all ? fig.end : (month.as_of || monthEnd(month.month));
     var kicker = all ? 'All time gross' : (monthTitle(month.month) + ' gross, month to date');
     var span = all
-      ? (formatDay(fig.start) + ' – ' + formatDay(fig.end))
+      ? (formatDay(fig.start) + ' - ' + formatDay(fig.end))
       : ('Through ' + formatDay(asOf));
     var cats = Object.keys(fig.byCat).filter(function (cat) { return cat !== 'fuel'; });
     cats.sort(function (a, b) { return fig.byCat[b] - fig.byCat[a]; });
@@ -1873,17 +1879,17 @@
     root.innerHTML = head +
       renderAvgBanner(avgs) +
       '<section class="big"><div class="kicker">' + esc(kicker) + '</div>' +
-      '<span class="n">' + money(fig.gross) + '</span>' +
-      '<p class="sub">' + esc(span) + ' · ' + loadCount +
-      (loadCount === 1 ? ' load' : ' loads') + ' · net ' + money(fig.net) + '</p></section>' +
+      '<span class="n">' + money0(fig.gross) + '</span>' +
+      '<p class="sub">' + esc(span) + ' | ' + loadCount +
+      (loadCount === 1 ? ' load' : ' loads') + ' | net ' + money0(fig.net) + '</p></section>' +
       '<div class="stats">' +
-      metric(money(fig.fees), 'Totni fees', feeSub) +
-      metric(money(fig.fuel), 'Fuel', 'DEF and other costs are separate') +
-      metric(money(fig.other), 'Other expenses', breakout || 'None logged') +
-      metric(money(fig.net), 'Net kept', 'Gross − fee − fuel − other') +
-      metric(fig.perLoaded == null ? '—' : rpm(fig.perLoaded), '$ / loaded mile', plainNum(fig.loadedMi, 2) + ' loaded mi') +
+      metric(money0(fig.fees), 'Totni fees', feeSub) +
+      metric(money0(fig.fuel), 'Fuel', 'DEF and other costs are separate') +
+      metric(money0(fig.other), 'Other expenses', breakout || 'None logged') +
+      metric(money0(fig.net), 'Net kept', 'Gross - fee - fuel - other') +
+      metric(fig.perLoaded == null ? '--' : rpm(fig.perLoaded), '$ / loaded mile', plainNum(fig.loadedMi, 2) + ' loaded mi') +
       metric(String(loadCount), 'Loads hauled', all ? 'Newest load first' : 'Cancelled loads are listed below') +
-      (pay ? metric(money(pay.received), 'Collected', 'Settlements received') : '') +
+      (pay ? metric(money0(pay.received), 'Collected', 'Settlements received') : '') +
       (pay ? metric(owedValue, 'Still owed', pay.detail) : '') +
       '</div>' +
       chartsHtml +
@@ -2332,7 +2338,7 @@
       return { label: s.label, value: Math.round(s.net), text: searchMoney(Math.round(s.net)) };
     });
     var bestNet = series.reduce(function (a, b) { return b.net > a.net ? b : a; }, series[0]);
-    var netCallout = 'Best: <strong>' + esc(bestNet.label) + '</strong> (' + money(bestNet.net) + ' net) · Period total ' + money(fig.net);
+    var netCallout = 'Best: <strong>' + esc(bestNet.label) + '</strong> (' + money(bestNet.net) + ' net) | Period total ' + money(fig.net);
 
     var rpmSeries = series.filter(function (s) { return s.rpm != null || s.allRpm != null; });
     var rpmHtml = '';
@@ -2354,7 +2360,7 @@
         '</div>' +
         dualBarChart(rpmRows, 'Loaded vs all-miles rate per mile', '#a78bfa', '#F2C94C') +
         '<p class="chart-callout">Period avg: <strong>' + (fig.perLoaded != null ? rpm(fig.perLoaded) : 'n/a') + '</strong> loaded' +
-        (avgAllMi != null ? ' · <strong>' + rpm(avgAllMi) + '</strong> all-miles' : '') + '</p></div>';
+        (avgAllMi != null ? ' | <strong>' + rpm(avgAllMi) + '</strong> all-miles' : '') + '</p></div>';
     }
 
     var miRows = series.map(function (s) {
@@ -2376,7 +2382,7 @@
         '<span><i style="background:#94a3b8"></i>Deadhead mi</span>' +
       '</div>' +
       dualBarChart(miRows, 'Loaded vs deadhead miles', '#a78bfa', '#94a3b8') +
-      '<p class="chart-callout"><strong>' + plainNum(Math.round(totLoaded), 0) + ' mi</strong> loaded · ' +
+      '<p class="chart-callout"><strong>' + plainNum(Math.round(totLoaded), 0) + ' mi</strong> loaded | ' +
       plainNum(Math.round(totDead), 0) + ' mi deadhead (' + dhPct + '% empty)</p></div>';
 
     var switcher = (!all && canMonthly)
@@ -2387,7 +2393,7 @@
       : '';
 
     return '<div class="rep-charts">' +
-      '<div class="rep-charts-head"><h2 class="sec">Charts · ' + esc(scopeLabel) + '</h2>' + switcher + '</div>' +
+      '<div class="rep-charts-head"><h2 class="sec">Charts | ' + esc(scopeLabel) + '</h2>' + switcher + '</div>' +
       '<div class="chart"><h3>Net kept (' + (mode === 'weekly' ? 'weekly' : 'monthly') + ')</h3>' +
         signedBarChart(netRows, 'Net kept by ' + (mode === 'weekly' ? 'week' : 'month')) +
         '<p class="chart-callout">' + netCallout + '</p>' +
@@ -2411,7 +2417,7 @@
     var feed = state.feed;
     var months = feed ? sortedMonths(feed) : [];
     if (!months.length) {
-      root.innerHTML = '<p class="fine">' + esc(state.error || 'Loading KPIs…') + '</p>';
+      root.innerHTML = '<p class="fine">' + esc(state.error || 'Loading KPIs...') + '</p>';
       return;
     }
     var all = viewingAll(feed);
@@ -2462,7 +2468,7 @@
         : (money(fig.net) + ' net vs ' + money(fixed) + ' fixed (' +
           Math.round(ratio * 100) + '%). Trailer ' + money(s.trailer) + ' + insurance ' + money(s.insurance) +
           ' + other ' + money(s.otherFixed) + '.');
-      be = '<section class="big"><div class="kicker">Break-even · ' +
+      be = '<section class="big"><div class="kicker">Break-even | ' +
         esc(all ? 'All time' : monthTitle(month.month)) + '</div>' +
         '<span class="n phrase">' + esc(headline) + '</span>' +
         '<p class="sub">' + fixedCopy + '</p>' +
@@ -2471,18 +2477,18 @@
     }
 
     var cards =
-      metric(fig.perLoaded == null ? '—' : rpm(fig.perLoaded), 'Revenue / loaded mile', plainNum(fig.loadedMi, 2) + ' loaded mi') +
+      metric(fig.perLoaded == null ? '--' : rpm(fig.perLoaded), 'Revenue / loaded mile', plainNum(fig.loadedMi, 2) + ' loaded mi') +
       (perAll == null
         ? metric('Not enough data', 'Revenue / all-miles', 'Deadhead miles are not on the feed yet.', true)
         : metric(rpm(perAll), 'Revenue / all-miles', plainNum(allMiles, 1) + ' all-miles')) +
       (deadPct == null
         ? metric('Not enough data', 'Deadhead %', 'No deadhead miles recorded on these loads.', true)
         : metric((deadPct * 100).toFixed(1) + '%', 'Deadhead', plainNum(fig.deadMi, 1) + ' empty mi')) +
-      metric(loadsPerWeek == null ? '—' : loadsPerWeek.toFixed(1), 'Loads per week', loadCount + ' loads / ' + days + ' days') +
-      metric(days ? Math.round(used / days * 100) + '%' : '—', 'Truck utilization', used + ' days with a load of ' + days) +
-      metric(margin == null ? '—' : (margin * 100).toFixed(1) + '%', 'Net margin', money(fig.net) + ' of ' + money(fig.gross)) +
-      metric(fuelPer == null ? '—' : rpm(fuelPer), 'Fuel per loaded mile', fig.deadMi == null ? 'All-miles fuel rate needs deadhead' : 'Loaded miles only in this label') +
-      metric(money(fig.fees), 'Totni fees paid', (fig.feePct == null ? 'Mixed rates' : plainNum(fig.feePct, 2).replace(/\.00$/, '') + '%') + ' · through ' + formatDay(asOf)) +
+      metric(loadsPerWeek == null ? '--' : loadsPerWeek.toFixed(1), 'Loads per week', loadCount + ' loads / ' + days + ' days') +
+      metric(days ? Math.round(used / days * 100) + '%' : '--', 'Truck utilization', used + ' days with a load of ' + days) +
+      metric(margin == null ? '--' : (margin * 100).toFixed(1) + '%', 'Net margin', money(fig.net) + ' of ' + money(fig.gross)) +
+      metric(fuelPer == null ? '--' : rpm(fuelPer), 'Fuel per loaded mile', fig.deadMi == null ? 'All-miles fuel rate needs deadhead' : 'Loaded miles only in this label') +
+      metric(money0(fig.fees), 'Totni fees paid', (fig.feePct == null ? 'Mixed rates' : plainNum(fig.feePct, 2).replace(/\.00$/, '') + '%') + ' | through ' + formatDay(asOf)) +
       (all && fig.pay ? metric(money(fig.pay.received), 'Collected', 'Settlements received') : '') +
       (all && fig.pay ? metric((fig.pay.owedEst ? '<span class="est">EST</span> ' : '') + money(fig.pay.owed), 'Still owed', fig.pay.detail) : '');
 
@@ -2497,7 +2503,7 @@
       var withLoads = weeksData.filter(function (row) { return row.count > 0; });
       var grossChart = '<div class="chart"><h3>Gross by week</h3>' +
         barChart(weeksData, 'Weekly gross') +
-        '<p class="chart-callout">' + esc(last.label) + ' <strong>' + money(last.gross) + '</strong> · prior ' + esc(prev.label) + ' ' +
+        '<p class="chart-callout">' + esc(last.label) + ' <strong>' + money(last.gross) + '</strong> | prior ' + esc(prev.label) + ' ' +
         money(prev.gross) + ' (' + (delta >= 0 ? '+' : '-') + money(Math.abs(delta)) + ')</p></div>';
       var weekNetRows = weeksData.map(function (w) {
         return { label: w.label, value: Math.round(w.net || 0), text: searchMoney(Math.round(w.net || 0)) };
@@ -2518,7 +2524,7 @@
         dualBarChart(weekMilesRows, 'Weekly loaded vs deadhead miles', '#a78bfa', '#94a3b8') + '</div>';
       var rateBlock;
       if (withLoads.length < 2) {
-        rateBlock = need('Not enough data', 'Only one week has loads, so revenue per mile can’t be compared week over week yet.');
+        rateBlock = need('Not enough data', 'Only one week has loads, so revenue per mile cannot be compared week over week yet.');
       } else {
         var rateRows = weeksData.filter(function (row) { return row.rpm != null; }).map(function (row) {
           return { label: row.label, value: row.rpm, text: '$' + row.rpm.toFixed(2) };
@@ -2559,10 +2565,10 @@
     }
 
     var periodLabel = all
-      ? ('All time · ' + formatDay(fig.start) + ' – ' + formatDay(fig.end))
+      ? ('All time | ' + formatDay(fig.start) + ' - ' + formatDay(fig.end))
       : (monthTitle(month.month) + ' through ' + formatDay(asOf));
     root.innerHTML =
-      '<p class="fine" id="kpi-stamp">' + esc(statusLine(feed)) + ' · ' + esc(periodLabel) + '</p>' +
+      '<p class="fine" id="kpi-stamp">' + esc(statusLine(feed)) + ' | ' + esc(periodLabel) + '</p>' +
       monthSwitcher(feed) +
       be + fixedCostNote(feed) + '<div class="stats">' + cards + '</div>' + wow + mom;
     bindMonthSwitch(root);
@@ -2604,7 +2610,7 @@
     if (!when) return 'Last scan: --';
     var text = 'Last scan: ' + when;
     if (state.searchOffline) text += ' / offline copy';
-    text += ' · ' + APP_VERSION;
+    text += ' | ' + APP_VERSION;
     return text;
   }
 
@@ -2986,7 +2992,7 @@
       '<div class="td-cell"><span>Trip days</span><b>' + (days == null ? 'n/a' : esc(formatDays(days))) + '</b></div>' +
       '<div class="td-cell"><span>Net / day</span><b>' + (npd == null ? 'n/a' : esc(searchMoney(npd))) + '</b></div>' +
       badge +
-      (low ? '<p class="day-warn">Under $300/day — this pay is spread across ' + esc(formatDays(days)) + (Number(days)===1 ? ' day.' : ' days.') + '</p>' : '') +
+      (low ? '<p class="day-warn">Under $300/day - this pay is spread across ' + esc(formatDays(days)) + (Number(days)===1 ? ' day.' : ' days.') + '</p>' : '') +
       '</div>';
   }
 
@@ -3417,9 +3423,9 @@
     if (fuel.fallback) {
       return '<p class="search-fuel">Fuel: fallback $1.14/loaded mi + $0.30/empty mi (no diesel price on file)</p>';
     }
-    var stop = fuel.diesel_stop ? ' · ' + fuel.diesel_stop : '';
+    var stop = fuel.diesel_stop ? ' | ' + fuel.diesel_stop : '';
     return '<p class="search-fuel">' + esc(dieselPhrase(fuel, 2)) + stop +
-      ' · ' + Number(fuel.mpg).toFixed(1) + ' mpg + ' + money3(fuel.def_per_mi) + '/mi DEF · ' +
+      ' | ' + Number(fuel.mpg).toFixed(1) + ' mpg + ' + money3(fuel.def_per_mi) + '/mi DEF | ' +
       money3(fuel.fuel_per_mi) + '/mi</p>';
   }
 
@@ -3571,7 +3577,7 @@
     }
     if (updated && st.state !== 'idle' && st.state !== 'live') {
       html += '<p class="pull-progress-meta">Last update ' + esc(updated) +
-        (origin ? ' \u00b7 ' + esc(origin) : '') + '</p>';
+        (origin ? ' | ' + esc(origin) : '') + '</p>';
     }
     html += '</div>';
     return html;
@@ -4272,8 +4278,8 @@
     var p = currentTruckPoint();
     var label = p && p.label ? p.label : scanOriginName();
     var text = 'Deadhead from <strong>' + esc(label) + '</strong>';
-    if (state.truckAtBusy) text += ' · updating miles…';
-    if (state.truckAtError) text += ' · ' + esc(state.truckAtError);
+    if (state.truckAtBusy) text += ' | updating miles...';
+    if (state.truckAtError) text += ' | ' + esc(state.truckAtError);
     return text;
   }
 
@@ -4394,7 +4400,7 @@
         fillColor: '#16A34A',
         fillOpacity: 1
       }).addTo(truckMap);
-      m.bindPopup(pin.label + (pin.mi != null ? ' · ' + Math.round(pin.mi) + ' mi' : ''));
+      m.bindPopup(pin.label + (pin.mi != null ? ' | ' + Math.round(pin.mi) + ' mi' : ''));
     });
     if (TB) {
       TB.legendControl(truckMap, '<div class="br-lg"><span><i class="br-dot y"></i>Truck</span><span><i class="br-dot p"></i>Pickups nearby</span></div>');
@@ -4788,7 +4794,7 @@
     if (opts.actualPaid != null) {
       netSub = 'Actual net ' + money(opts.actualPaid) + ' (paid)';
     } else if (opts.afterFeeNet != null) {
-      netSub = 'After fee ' + money(opts.afterFeeNet) + ' · Bar $' + plainNum(bar, 0);
+      netSub = 'After fee ' + money(opts.afterFeeNet) + ' | Bar $' + plainNum(bar, 0);
     }
     var netTile = kmTile(netLabel, esc(searchMoney(netVal)), netTone(netVal, row, nLoads), esc(netSub), true);
 
@@ -4843,7 +4849,7 @@
     var hr = perHourValue(row, nLoads || 1);
     if (npd == null || avg.avgNetPerDay == null) return '';
     if (npd >= avg.avgNetPerDay && hr != null && avg.avgPerHour != null && hr >= avg.avgPerHour) {
-      return '<span class="fit-badge good">Above your avg (' + esc(searchMoney(avg.avgNetPerDay)) + '/d · ' + esc(searchMoney(avg.avgPerHour)) + '/hr)</span>';
+      return '<span class="fit-badge good">Above your avg (' + esc(searchMoney(avg.avgNetPerDay)) + '/d | ' + esc(searchMoney(avg.avgPerHour)) + '/hr)</span>';
     }
     if (npd >= avg.avgNetPerDay) {
       return '<span class="fit-badge good">Net/day above your ' + esc(searchMoney(avg.avgNetPerDay)) + '/d avg</span>';
@@ -5324,8 +5330,8 @@
   function rateLegend() {
     return '<p class="rate-legend" aria-label="Color key for net, per hour, per day, and per mile">' +
       '<span class="rate-legend-label">Key metrics color guide</span>' +
-      '<span class="rate-pill good">Green: $35+/hr · $300+/day · $0.80+/mi</span>' +
-      '<span class="rate-pill ok">Amber: $20-34/hr · $200-299/day · $0.40-0.79/mi</span>' +
+      '<span class="rate-pill good">Green: $35+/hr | $300+/day | $0.80+/mi</span>' +
+      '<span class="rate-pill ok">Amber: $20-34/hr | $200-299/day | $0.40-0.79/mi</span>' +
       '<span class="rate-pill low">Red: under $20/hr, $200/day, $0.40/mi, or bar</span></p>';
   }
 
@@ -5643,9 +5649,9 @@
       var lane = (row.origin || '') + ' -> ' + (row.destination || '');
       if (lane.length > 28) lane = lane.slice(0, 26) + '...';
       var tip = (row.origin || '') + ' -> ' + (row.destination || '') +
-        ' · ' + searchMoney(row.net_est) + ' net EST · ' + perHourLabel(row) +
-        ' · Gross ' + (grossPerMileValue(row) != null ? rateMoney(grossPerMileValue(row), 2) : 'n/a') +
-        '/mi · Net ' + netPerMileLabel(row);
+        ' | ' + searchMoney(row.net_est) + ' net EST | ' + perHourLabel(row) +
+        ' | Gross ' + (grossPerMileValue(row) != null ? rateMoney(grossPerMileValue(row), 2) : 'n/a') +
+        '/mi | Net ' + netPerMileLabel(row);
       return '<g>' +
         '<title>' + esc(tip) + '</title>' +
         '<text class="chart-label" x="0" y="' + (y + 14) + '">' + esc(lane) + '</text>' +
@@ -5919,7 +5925,7 @@
       var isHome = (pt.label || '') === 'Home base (Jacksonville)' || (pt.kind === 'truck' && /jacksonville|home/i.test(pt.label || ''));
       var kind = isHome ? 'home' : (pt.kind === 'pickup' ? 'pickup' : (pt.kind === 'drop' ? 'drop' : 'start'));
       var label = isHome ? 'H' : (kind === 'start' ? 'S' : (pt.n != null ? String(pt.n) : ''));
-      var title = isHome ? 'Home base (Jacksonville, FL)' : ((pt.kind === 'pickup' ? 'Pickup · ' : (pt.kind === 'drop' ? 'Drop · ' : 'Start (empty from) · ')) + place);
+      var title = isHome ? 'Home base (Jacksonville, FL)' : ((pt.kind === 'pickup' ? 'Pickup | ' : (pt.kind === 'drop' ? 'Drop | ' : 'Start (empty from) | ')) + place);
       var icon;
       if (B) {
         icon = B.pin(kind, label);
@@ -6123,8 +6129,8 @@
       (isNew ? '<span class="new-badge">New</span>' : '');
     var collapse = verd === 'pass';
 
-    var tools = '<button type="button" class="star-btn" data-save-key="' + esc(key) + '" aria-pressed="' + (saved ? 'true' : 'false') + '" aria-label="' + (saved ? 'Remove from shortlist' : 'Save to shortlist') + '">' + (saved ? '&#9733;' : '&#9734;') + '</button>' +
-      '<button type="button" class="cmp-btn" data-cmp-key="' + esc(key) + '" aria-pressed="' + (cmp ? 'true' : 'false') + '">' + (cmp ? '&#10003; Compare' : '+ Compare') + '</button>';
+    var tools = '<button type="button" class="star-btn" data-save-key="' + esc(key) + '" aria-pressed="' + (saved ? 'true' : 'false') + '" aria-label="' + (saved ? 'Remove from shortlist' : 'Save to shortlist') + '">' + (saved ? '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.25 4.1 1 5.85L12 16.9l-5.25 2.75 1-5.85L3.5 9.7l5.9-.9z" fill="currentColor" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></svg>' : '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.25 4.1 1 5.85L12 16.9l-5.25 2.75 1-5.85L3.5 9.7l5.9-.9z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></svg>') + '</button>' +
+      '<button type="button" class="cmp-btn" data-cmp-key="' + esc(key) + '" aria-pressed="' + (cmp ? 'true' : 'false') + '">' + (cmp ? 'Comparing' : '+ Compare') + '</button>';
 
     var detailsHtml = '<div class="search-details" hidden>' +
       fuelLine(currentFuel(row)) +
@@ -6581,7 +6587,7 @@
         '</p>' +
         '<div class="search-toolbar-actions">' +
           '<button type="button" class="btn btn-ghost btn-sm relay-gear-btn' + (connected ? ' connected' : '') + '" id="relay-gear-btn" aria-expanded="' + (state.relayConnectOpen ? 'true' : 'false') + '" aria-controls="relay-connect-panel">' +
-            '&#9881; ' + (connected ? 'Connected' : 'Connect') +
+            (connected ? 'Connected' : 'Connect') +
           '</button>' +
           '<button type="button" class="btn btn-secondary btn-sm" id="search-refresh-btn"' +
             (state.searchRefreshing ? ' disabled' : '') + ' aria-label="Reload the latest saved scan">Refresh</button>' +
@@ -6966,7 +6972,7 @@
   var finState = { data: null, loading: false, error: '', range: 30, fetchedAt: 0 };
 
   function finMoney(n, cents) {
-    if (n == null || !isFinite(n)) return '—';
+    if (n == null || !isFinite(n)) return '--';
     var neg = n < -0.004;
     var abs = Math.abs(n);
     var s = abs.toLocaleString('en-US', { minimumFractionDigits: cents ? 2 : 0, maximumFractionDigits: cents ? 2 : 0 });
@@ -7020,12 +7026,15 @@
     });
   }
 
+  var PIN_LOCK_ICON = '<div class="pin-lock-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></g></svg></div>';
+
   function finPinForm(msg) {
-    return '<section class="fin-card fin-lock"><div class="fin-kicker">Financials are locked</div>' +
-      '<p class="fin-sub">' + esc(msg) + '</p>' +
+    return '<section class="fin-card fin-lock pin-lock">' + PIN_LOCK_ICON +
+      '<h3>Finance is locked</h3><p class="fin-sub">' + esc(msg) + '</p>' +
       '<form id="fin-pin-form" class="fin-pin-row" autocomplete="off">' +
-      '<input id="fin-pin" type="password" inputmode="numeric" placeholder="App PIN" aria-label="App PIN" />' +
-      '<button type="submit" class="btn primary">Unlock</button></form></section>';
+      '<input id="fin-pin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="App PIN" aria-label="App PIN" />' +
+      '<button type="submit" class="btn primary">Unlock</button></form>' +
+      '<p class="pin-lock-note">One PIN unlocks Finance, Accounting, Daily PDFs and receipts on this phone.</p></section>';
   }
 
   function finChart(proj, range) {
@@ -7095,7 +7104,7 @@
       if (finState.error === 'nopin') root.innerHTML = finPinForm('Enter the app PIN to see the bank balance, bills and cash-flow projection.');
       else if (finState.error === 'wrongpin') root.innerHTML = finPinForm('Wrong PIN. Try again.');
       else if (finState.error) root.innerHTML = '<p class="fine">' + esc(finState.error) + '</p>';
-      else root.innerHTML = '<p class="fine">Loading financials…</p>';
+      else root.innerHTML = '<p class="fine">Loading financials...</p>';
       bindFinance();
       return;
     }
@@ -7106,9 +7115,9 @@
     var low = range === 60 ? proj.low60 : proj.low30;
 
     var bal = '<section class="fin-card fin-balance">' +
-      '<div class="fin-kicker">' + esc(acct.bank + ' ' + acct.name) + ' ···' + esc(acct.last4) + '</div>' +
+      '<div class="fin-kicker">' + esc(acct.bank + ' ' + acct.name) + ' ...' + esc(acct.last4) + '</div>' +
       '<div class="fin-big">' + finMoney(acct.available, true) + '</div>' +
-      '<div class="fin-sub">Available · as of ' + esc(finAsOfText(d.as_of)) + '</div>' +
+      '<div class="fin-sub">Available | as of ' + esc(finAsOfText(d.as_of)) + '</div>' +
       '<div class="fin-mini-row">' +
       '<span>Owed to us <b class="pos">' + finMoney(d.income_pending_total, true) + '</b></span>' +
       ((d.off_bank || []).map(function (o) { return '<span>' + esc(o.label) + ' <b>' + finMoney(o.amount) + '</b></span>'; }).join('')) +
@@ -7124,14 +7133,14 @@
       '<button type="button" data-fin-range="60" aria-pressed="' + (range === 60) + '">60d</button></div></div>' +
       finChart(proj, range) +
       '<div class="fin-legend"><span><i class="lg-base"></i>Bills only</span><span><i class="lg-alt"></i>' + esc(proj.if_paid_note || 'If unpaid loads pay') + '</span></div>' +
-      '<div class="fin-sub">Low in ' + range + 'd: <b class="' + (low.balance < 0 ? 'neg' : 'pos') + '">' + finMoney(low.balance) + '</b> on ' + finDay(low.date) + ' · no new loads counted</div>' +
+      '<div class="fin-sub">Low in ' + range + 'd: <b class="' + (low.balance < 0 ? 'neg' : 'pos') + '">' + finMoney(low.balance) + '</b> on ' + finDay(low.date) + ' | no new loads counted</div>' +
       '</section>';
 
     var bills = (d.bills || []).map(function (b) {
       var dd = b.next ? finDaysFrom(b.next, today) : null;
-      var when = b.next ? (finDay(b.next) + (dd != null ? ' · ' + (dd === 0 ? 'today' : dd > 0 ? dd + 'd' : -dd + 'd late') : '')) : 'date?';
+      var when = b.next ? (finDay(b.next) + (dd != null ? ' | ' + (dd === 0 ? 'today' : dd > 0 ? dd + 'd' : -dd + 'd late') : '')) : 'date?';
       return '<li class="fin-row"><div class="fin-row-main"><b>' + esc(b.payee) + '</b>' +
-        '<span class="fin-row-sub">' + esc(b.freq) + ' · ' + esc(b.from) + (b.paid_note ? ' · ' + esc(b.paid_note) : '') + (b.note ? ' · ' + esc(b.note) : '') + '</span></div>' +
+        '<span class="fin-row-sub">' + esc(b.freq) + ' | ' + esc(b.from) + (b.paid_note ? ' | ' + esc(b.paid_note) : '') + (b.note ? ' | ' + esc(b.note) : '') + '</span></div>' +
         '<div class="fin-row-end"><b class="neg">' + (b.amount == null ? esc(b.amount_text || 'amount?') : finMoney(b.amount, true)) + '</b>' +
         '<span class="fin-row-sub">' + esc(when) + '</span>' + finStatusChip(b.status) + '</div></li>';
     }).join('');
@@ -7141,7 +7150,7 @@
     var inc = (d.income || []).map(function (i) {
       var since = i.delivered ? finDaysFrom(today, i.delivered) : null;
       return '<li class="fin-row"><div class="fin-row-main"><b>' + esc(i.payer) + '</b>' +
-        '<span class="fin-row-sub">Net via ' + esc(i.via) + ' · delivered ' + finDay(i.delivered) + (since != null ? ' (' + since + 'd ago)' : '') + '</span></div>' +
+        '<span class="fin-row-sub">Net via ' + esc(i.via) + ' | delivered ' + finDay(i.delivered) + (since != null ? ' (' + since + 'd ago)' : '') + '</span></div>' +
         '<div class="fin-row-end"><b class="pos">+' + finMoney(i.amount, true) + '</b><span class="fin-row-sub">' + (i.expected ? finDay(i.expected) : 'date?') + '</span>' + finStatusChip(i.status) + '</div></li>';
     }).join('');
     var incCard = '<section class="fin-card"><div class="fin-kicker">Money coming in</div><ul class="fin-list">' + (inc || '<li class="fin-row">Nothing owed right now.</li>') + '</ul></section>';
@@ -7157,8 +7166,8 @@
       '<div class="fin-tx fin-tx-head"><span>Date</span><span>What</span><span>Amount</span><span>Balance</span></div>' +
       '<ul class="fin-list">' + tx + '</ul></section>';
 
-    var unk = (d.unknown || []).length ? '<p class="fin-foot">date? ' + esc(d.unknown.join(' · ')) + '</p>' : '';
-    var status = finState.loading ? '<p class="fin-foot">Refreshing…</p>' : (finState.error && finState.error !== 'nopin' ? '<p class="fin-foot">' + esc(finState.error) + '</p>' : '');
+    var unk = (d.unknown || []).length ? '<p class="fin-foot">date? ' + esc(d.unknown.join(' | ')) + '</p>' : '';
+    var status = finState.loading ? '<p class="fin-foot">Refreshing...</p>' : (finState.error && finState.error !== 'nopin' ? '<p class="fin-foot">' + esc(finState.error) + '</p>' : '');
 
     root.innerHTML = bal + calls + chart + billsCard + incCard + txCard + unk + status +
       '<p class="fin-foot">Private: loaded with your PIN, not stored on the public site. <button type="button" class="linkish" id="fin-refresh">Refresh</button></p>';
@@ -7348,7 +7357,7 @@
           var age = Date.now() - dt.getTime();
           var h = dt.getHours();
           var hh = (h % 12 === 0 ? 12 : h % 12) + ':' + (dt.getMinutes() < 10 ? '0' : '') + dt.getMinutes() + (h >= 12 ? ' PM' : ' AM');
-          label = hh + ' \u00b7 ' + formatRelAge(age).replace(/ \d+m ago$/, '').replace(' ago', '');
+          label = hh + ' | ' + formatRelAge(age).replace(/ \d+m ago$/, '').replace(' ago', '');
           cls = age < 2 * 3600000 ? 'fresh' : (age < 8 * 3600000 ? 'aging' : 'stale');
         } else if (st.state === 'failed') {
           label = 'Last pull failed';

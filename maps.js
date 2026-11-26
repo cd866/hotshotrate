@@ -89,7 +89,7 @@
   function tiles(map, maxZoom) {
     return L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
       maxZoom: maxZoom || 16,
-      attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a> &middot; Census boundaries'
+      attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a> | Census boundaries'
     }).addTo(map);
   }
 

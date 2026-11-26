@@ -72,7 +72,7 @@
   }
 
   function brandMeta(brand) {
-    return BRAND[brand] || { label: brand || 'Stop', short: '•', color: '#D4A62A', ink: '#0E0E10' };
+    return BRAND[brand] || { label: brand || 'Stop', short: '*', color: '#D4A62A', ink: '#0E0E10' };
   }
 
   function stopTitle(stop) {
@@ -89,7 +89,7 @@
     if (stop.highway && stop.exit) {
       var exit = String(stop.exit);
       var label = /exit/i.test(exit) ? exit : ('Exit ' + exit);
-      return stop.highway + ' · ' + label;
+      return stop.highway + ' | ' + label;
     }
     return stop.highway || '';
   }
@@ -226,15 +226,15 @@
     if (row.kind === 'route') {
       var mile = row.miles < 10 ? row.miles.toFixed(1) : String(Math.round(row.miles));
       var off = row.off < 10 ? row.off.toFixed(1) : String(Math.round(row.off));
-      return 'mi ' + mile + ' · ' + off + ' off';
+      return 'mi ' + mile + ' | ' + off + ' off';
     }
     return fmtMi(row.miles);
   }
 
   function heading(pack) {
     if (pack.mode === 'near') return 'Closest to you';
-    if (pack.mode === 'route') return 'Along the route · within ' + state.corridor + ' mi';
-    if (pack.capped) return 'In this view · nearest ' + pack.rows.length;
+    if (pack.mode === 'route') return 'Along the route | within ' + state.corridor + ' mi';
+    if (pack.capped) return 'In this view | nearest ' + pack.rows.length;
     return 'In this view';
   }
 
@@ -279,7 +279,7 @@
       var place = [];
       if (stop.kind) place.push(stop.kind);
       if (stop.name) place.push(stop.name);
-      var sub = [place.join(' · '), addressLine(stop)].filter(Boolean).join(' — ');
+      var sub = [place.join(' | '), addressLine(stop)].filter(Boolean).join(' - ');
       var on = stop.id === state.selectedId ? ' on' : '';
       return '<button type="button" class="stop' + on + '" data-id="' + esc(stop.id) + '">' +
         '<span class="stop-top"><span class="pill" style="background:' + meta.color + ';color:' + meta.ink + '">' +
@@ -469,7 +469,7 @@
     if (cached && cached.data && cached.data.stops && !state.data) {
       applyStops(cached.data, true);
     } else if (!state.data) {
-      setStatus('Loading stops…');
+      setStatus('Loading stops...');
     }
     inflight = fetch('data/stops.json', { cache: 'no-cache' }).then(function (res) {
       if (!res.ok) throw new Error('status');
@@ -481,7 +481,7 @@
       if (!pack.data || !pack.data.stops || !pack.data.stops.length) throw new Error('shape');
       rememberStops(pack.data);
       applyStops(pack.data, pack.offline);
-      if ($('stops-status').textContent === 'Loading stops…') setStatus('');
+      if ($('stops-status').textContent === 'Loading stops...') setStatus('');
     }).catch(function () {
       if (state.data) {
         state.offline = true;
@@ -537,7 +537,7 @@
       setStatus('This phone does not share location. Use Along route.');
       return;
     }
-    setStatus('Finding you…');
+    setStatus('Finding you...');
     navigator.geolocation.getCurrentPosition(function (pos) {
       state.here = {
         lat: pos.coords.latitude,
@@ -670,13 +670,13 @@
     }
     routing = true;
     $('stops-go').disabled = true;
-    setStatus('Finding ' + pickup + '…');
+    setStatus('Finding ' + pickup + '...');
     geocode(pickup).then(function (from) {
-      if (!from) throw new Error('Could not find “' + pickup + '”. Try city and state, like Houston TX.');
-      setStatus('Finding ' + delivery + '…');
+      if (!from) throw new Error('Could not find "' + pickup + '". Try city and state, like Houston TX.');
+      setStatus('Finding ' + delivery + '...');
       return geocode(delivery).then(function (to) {
-        if (!to) throw new Error('Could not find “' + delivery + '”. Try city and state, like Pensacola FL.');
-        setStatus('Routing…');
+        if (!to) throw new Error('Could not find "' + delivery + '". Try city and state, like Pensacola FL.');
+        setStatus('Routing...');
         return routeLine(from, to).then(function (route) {
           return { from: from, to: to, route: route };
         });
@@ -696,7 +696,7 @@
       showLine(geometry);
       var shown = render({ fit: true });
       var count = shown ? shown.rows.length : 0;
-      setStatus(Math.round(state.route.roadMiles) + ' mi route · ' + count + ' stops within ' + state.corridor + ' mi, in order along the road.');
+      setStatus(Math.round(state.route.roadMiles) + ' mi route | ' + count + ' stops within ' + state.corridor + ' mi, in order along the road.');
     }).catch(function (err) {
       setStatus(friendly(err));
     }).then(function () {
@@ -739,7 +739,7 @@
     loads.forEach(function (load, index) {
       var id = String(index);
       loadsById[id] = load;
-      var label = (load.date ? load.date + ' · ' : '') + load.desc;
+      var label = (load.date ? load.date + ' | ' : '') + load.desc;
       html += '<option value="' + id + '">' + esc(label) + '</option>';
     });
     select.innerHTML = html;
