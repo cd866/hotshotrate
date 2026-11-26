@@ -8,33 +8,36 @@
    data/load_searches.json and data/pull_status.json are always fetched with
    cache: 'no-store' and are not precached. A cached copy is used only when
    the network request fails, so live search progress shows without a version bump. */
-var CACHE = 'blackram-v74';
+var CACHE = 'blackram-v75';
 var ASSETS = [
   './',
   './index.html',
   './styles.css',
-  './styles.css?v=74',
+  './styles.css?v=75',
   './app.js',
-  './app.js?v=74',
+  './app.js?v=75',
   './maps.js',
-  './maps.js?v=74',
+  './maps.js?v=75',
   './stops.js',
-  './stops.js?v=74',
+  './stops.js?v=75',
   './targets.js',
   './loadcosts.js',
-  './loadcosts.js?v=74',
+  './loadcosts.js?v=75',
   './tripplan.js',
-  './tripplan.js?v=74',
+  './tripplan.js?v=75',
   './data/pilot_fj.json',
-  './targets.js?v=74',
+  './targets.js?v=75',
   './reports.js',
-  './reports.js?v=74',
+  './reports.js?v=75',
   './scoreboard.js',
   './accounting.js',
-  './accounting.js?v=74',
+  './accounting.js?v=75',
   './insurance.js',
-  './insurance.js?v=74',
-  './scoreboard.js?v=74',
+  './insurance.js?v=75',
+  './rig360.js',
+  './rig360.js?v=75',
+  './vendor/three/three.module.min.js',
+  './scoreboard.js?v=75',
   './manifest.json',
   './manifest.json?v=3',
   './manifest.webmanifest',
@@ -89,7 +92,7 @@ function isShell(url, req) {
   var path = url.pathname;
   if (path.endsWith('/sw.js')) return true;
   if (path.endsWith('/index.html') || /\/$/.test(path)) return true;
-  if (path.endsWith('/app.js') || path.endsWith('/styles.css') || path.endsWith('/stops.js') || path.endsWith('/maps.js') || path.endsWith('/targets.js') || path.endsWith('/loadcosts.js') || path.endsWith('/tripplan.js') || path.endsWith('/reports.js') || path.endsWith('/scoreboard.js') || path.endsWith('/accounting.js') || path.endsWith('/insurance.js')) return true;
+  if (path.endsWith('/app.js') || path.endsWith('/styles.css') || path.endsWith('/stops.js') || path.endsWith('/maps.js') || path.endsWith('/targets.js') || path.endsWith('/loadcosts.js') || path.endsWith('/tripplan.js') || path.endsWith('/reports.js') || path.endsWith('/scoreboard.js') || path.endsWith('/accounting.js') || path.endsWith('/insurance.js') || path.endsWith('/rig360.js')) return true;
   if (path.endsWith('/manifest.json') || path.endsWith('/manifest.webmanifest')) return true;
   return false;
 }
