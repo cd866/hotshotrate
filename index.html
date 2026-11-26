@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0f0d17" />
   <meta name="color-scheme" content="dark" />
-  <meta name="description" content="Black Ram Logistics load check, load boards, truck stops, month-to-date reports, and owner KPIs. Sand Lily Pad LLC hotshot, leased to Totni Enterprise." />
+  <meta name="description" content="Black Ram Logistics Rate Check, load boards, truck stops, month-to-date reports, and owner KPIs. Sand Lily Pad LLC hotshot, leased to Totni Enterprise." />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black" />
@@ -18,7 +18,7 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=3" sizes="180x180" />
   <link rel="preload" href="fonts/nunito-sans-variable.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="fonts/oswald-700.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="styles.css?v=59" />
+  <link rel="stylesheet" href="styles.css?v=60" />
   <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
   <script>
     try {
@@ -41,6 +41,7 @@
         <h2 id="about-title" class="sr-only">Black Ram Logistics</h2>
         <p>Black Ram Logistics is the hotshot DBA of Sand Lily Pad LLC, leased onto Totni Enterprise’s MC authority.</p>
         <p>Our rig: 2026 Ram 3500 dually and a 40 ft Big Tex gooseneck. Cargo up to 12,500 lb is OK; 12,501-15,300 lb is MAYBE (scale check, load centered just ahead of trailer axles); over 15,300 lb is a PASS. The Ram GVWR of 14,000 lb binds (CAT empty 10,940 lb on the truck). Tarps, straps. $/hr EST = net EST / hours. Hours = (loaded mi + empty miles) / 50 mph + 2 h load/unload per load. Net $/mi EST = net EST / (loaded mi + empty miles).</p>
+        <p>Rate Check scores a broker's offer as you type: enter the rate, loaded miles and deadhead miles to get TAKE, MAYBE or PASS with net, net per day, net per mile and net per hour. Your last 10 checks are kept on this phone.</p>
         <p>Load Boards shows the latest Truckstop and Direct Freight scan. Net EST is the posted rate times 0.87, minus $1.14 per loaded mile (fuel and DEF) and $0.30 per empty mile. Driver pay is not in the per-load estimate; Meshach is paid out of profits. A single load needs at least $500 net EST, or $300 for a same-day run under 250 total miles. A chain or a 2- or 3-load combo needs at least $1,000 total with no losing leg. An overnight low of 45 F or below at the drop (or at any stop on a combo) is an automatic PASS, because the truck would have to idle overnight. Each load and combo also shows a route weather report. Ice or snow on the route, or gusts of 50+ mph, is a MAYBE and does not PASS by itself. Load Boards lists TAKE loads first, then MAYBE, then PASS. Tarp-required and F+T loads are a fit; the rig has tarps and straps. If a company email is listed, Email broker opens a draft in your mail app and does not send it. If there is no email, Call broker uses a company phone, or a looked-up company line marked Looked up. Direct Freight rows with no broker identity link to the board detail. Each load and combo shows a route map (grey dashed empty miles to pickup, solid purple loaded) and an Open in Google Maps directions link. Maps use OpenStreetMap and only load when they scroll into view. The public list does not include contact person names, personal cell numbers, card numbers, or other confidential details.</p>
         <h2>Add to your iPhone</h2>
         <ol>
@@ -49,7 +50,7 @@
           <li>Tap Add to Home Screen, then Add.</li>
           <li>Open Black Ram from the home screen. It runs full screen, and the month stays available offline after this visit.</li>
         </ol>
-        <p>Load-check settings stay on this phone. The public reports feed lists loads, fuel, and expense totals. It does not list who paid or what anyone is owed.</p>
+        <p>Rate Check settings stay on this phone. The public reports feed lists loads, fuel, and expense totals. It does not list who paid or what anyone is owed.</p>
         <p>Stops maps Love’s and TA/Petro truck stops from their public locators, including the closest ones to the truck and the ones along a route.</p>
         <div class="sheet-actions">
           <button type="button" class="btn gold block" id="about-done">Continue</button>
@@ -73,25 +74,21 @@
       </button>
     </header>
 
-    <header class="top">
-
-      <div class="logo-wrap"><svg role="img" aria-label="Black Ram Logistics" xmlns="http://www.w3.org/2000/svg" width="720" height="190" viewBox="0 0 720 190"><rect width="720" height="190" fill="#0f0d17"/><g transform="translate(10,10) scale(.9)"><circle cx="100" cy="100" r="96" fill="#0f0d17" stroke="#D4A62A" stroke-width="5"/><path d="M84,72 C46,38 10,62 18,104 C24,140 62,144 64,116 C65,98 46,94 42,108" fill="none" stroke="#D4A62A" stroke-width="13" stroke-linecap="round"/><g transform="translate(200,0) scale(-1,1)"><path d="M84,72 C46,38 10,62 18,104 C24,140 62,144 64,116 C65,98 46,94 42,108" fill="none" stroke="#D4A62A" stroke-width="13" stroke-linecap="round"/></g><polygon points="80,62 120,62 134,96 120,158 100,176 80,158 66,96" fill="#2A2A2E" stroke="#D4A62A" stroke-width="5" stroke-linejoin="round"/>
-<polygon points="78,100 94,106 80,112" fill="#F2C94C"/><polygon points="122,100 106,106 120,112" fill="#F2C94C"/>
-<path d="M92,150 L100,160 L108,150" fill="none" stroke="#D4A62A" stroke-width="4"/></g><text x="205" y="105" style="font-family:Oswald,'Antonio',sans-serif;font-weight:700;font-size:78px;letter-spacing:5px" fill="#F5F1E6">BLACK RAM</text><text x="208" y="152" style="font-family:Oswald,'Antonio',sans-serif;font-weight:500;font-size:32px;letter-spacing:10px" fill="#D4A62A">LOGISTICS</text></svg></div>
-      <p class="tag">Sand Lily Pad LLC</p>
-      <section class="rig-card" aria-label="Our rig">
+    <header class="top rc-top">
+      <section class="rig-card rc-rig" aria-label="Our rig">
         <figure class="rig-figure">
           <div class="rig-stage">
             <div class="rig-floor" aria-hidden="true"></div>
             <picture>
-              <source type="image/webp" srcset="brand/rig-800.webp 800w, brand/rig-1600.webp 1600w" sizes="(max-width: 480px) 92vw, 440px">
-              <img id="rig-photo" class="rig-photo" alt="Diamond Black 2026 Ram 3500 dually and Big Tex 25GN 40 ft gooseneck trailer, hooked together." width="1600" height="563" src="brand/rig-800.png" srcset="brand/rig-800.png 800w, brand/rig-1600.png 1600w" sizes="(max-width: 480px) 92vw, 440px" decoding="async" fetchpriority="high">
+              <source type="image/webp" srcset="brand/rig-800.webp 800w, brand/rig-1600.webp 1600w" sizes="120px">
+              <img id="rig-photo" class="rig-photo" alt="Diamond Black 2026 Ram 3500 dually and Big Tex 25GN 40 ft gooseneck trailer, hooked together." width="1600" height="563" src="brand/rig-800.png" srcset="brand/rig-800.png 800w, brand/rig-1600.png 1600w" sizes="120px" decoding="async" fetchpriority="high">
             </picture>
-            <img id="rig-reflect" class="rig-reflect" alt="" width="1600" height="563" src="brand/rig-800.png" srcset="brand/rig-800.png 800w, brand/rig-1600.png 1600w" sizes="(max-width: 480px) 92vw, 440px" decoding="async" aria-hidden="true">
+            <img id="rig-reflect" class="rig-reflect" alt="" width="1600" height="563" src="brand/rig-800.png" srcset="brand/rig-800.png 800w, brand/rig-1600.png 1600w" sizes="120px" decoding="async" aria-hidden="true">
           </div>
         </figure>
+        <div class="rc-rig-text"><b>Our rig</b><span>Ram 3500 + 40 ft gooseneck</span></div>
         <details class="rig-specs-panel">
-          <summary class="rig-specs-toggle"><span class="rig-specs-show">Show specs</span><span class="rig-specs-hide">Hide specs</span></summary>
+          <summary class="rig-specs-toggle"><span class="rig-specs-show">Specs</span><span class="rig-specs-hide">Hide</span></summary>
           <div class="rig-specs-body">
             <h2 class="rig-specs-title">Our rig</h2>
             <dl class="rig-spec-grid">
@@ -143,7 +140,7 @@
     </header>
 
     <nav class="tabbar bnav" role="tablist" aria-label="Sections">
-        <button type="button" id="tab-check" data-tab="check" role="tab" aria-selected="true" aria-controls="panel-check">Load check</button>
+        <button type="button" id="tab-check" data-tab="check" role="tab" aria-selected="true" aria-controls="panel-check">Rate Check</button>
         <button type="button" id="tab-searches" data-tab="searches" role="tab" aria-selected="false" aria-controls="panel-searches">Load Boards</button>
         <button type="button" id="tab-stops" data-tab="stops" role="tab" aria-selected="false" aria-controls="panel-stops">Stops</button>
         <button type="button" id="tab-reports" data-tab="reports" role="tab" aria-selected="false" aria-controls="panel-reports">Reports</button>
@@ -156,64 +153,104 @@
 
     <main>
       <section id="panel-check" class="panel" role="tabpanel" aria-labelledby="tab-check">
-        <div id="verdict" class="verdict idle" role="status" aria-live="polite">
-          <div class="verdict-label" id="verdict-label">Ready</div>
-          <p class="verdict-msg" id="verdict-msg">Enter the rate plus loaded miles, empty miles, or both.</p>
-          <p class="verdict-meta" id="verdict-meta"></p>
+        <div class="rc-title">
+          <h1 class="rc-h1">Rate Check</h1>
+          <p class="rc-sub">Type the broker's offer. The verdict updates as you type.</p>
         </div>
-        <p id="weight-warn" class="warn" hidden></p>
-        <div id="metrics" class="metrics"></div>
 
-        <form id="offer" action="#" autocomplete="off">
-          <div class="fields">
-            <label class="field full">
-              <span class="lbl">Rate ($)</span>
-              <input id="rate" name="rate" type="number" inputmode="decimal" min="0" step="1" placeholder="0" />
+        <form id="offer" class="rc-form" action="#" autocomplete="off">
+          <section class="rc-card rc-hero" aria-label="Offer">
+            <label class="rc-rate" for="rate">
+              <span class="rc-lbl">Rate offered</span>
+              <span class="rc-rate-box"><span class="rc-cur" aria-hidden="true">$</span>
+                <input id="rate" name="rate" type="number" inputmode="decimal" enterkeyhint="next" min="0" step="1" placeholder="0" /></span>
             </label>
-            <label class="field">
-              <span class="lbl">Loaded miles</span>
-              <input id="loaded" name="loaded" type="number" inputmode="decimal" min="0" step="1" placeholder="0" />
-            </label>
-            <label class="field">
-              <span class="lbl">Empty miles</span>
-              <input id="deadhead" name="deadhead" type="number" inputmode="decimal" min="0" step="1" placeholder="0" />
-            </label>
-            <label class="field">
-              <span class="lbl">Weight (lb)</span>
-              <input id="weight" name="weight" type="number" inputmode="decimal" min="0" step="1" placeholder="Clean 12,500 / maybe 15,300" />
-            </label>
-            <label class="field">
-              <span class="lbl">Length (ft)</span>
-              <input id="lengthFt" name="lengthFt" type="number" inputmode="decimal" min="0" step="1" placeholder="Deck 40 ft" />
-            </label>
-            <label class="field">
-              <span class="lbl">Pickup city</span>
-              <input id="pickup" name="pickup" type="text" maxlength="60" autocapitalize="words" placeholder="Optional" />
-            </label>
-            <label class="field">
-              <span class="lbl">Delivery city</span>
-              <input id="delivery" name="delivery" type="text" maxlength="60" autocapitalize="words" placeholder="Optional" />
-            </label>
-            <div class="field full">
-              <span class="lbl">Tarp</span>
-              <div class="seg" role="group" aria-label="Tarp">
+            <div class="rc-pair">
+              <label class="rc-field" for="loaded">
+                <span class="rc-lbl">Loaded miles</span>
+                <span class="rc-input-box"><input id="loaded" name="loaded" type="number" inputmode="decimal" enterkeyhint="next" min="0" step="1" placeholder="0" /><span class="rc-unit">mi</span></span>
+              </label>
+              <label class="rc-field" for="deadhead">
+                <span class="rc-lbl">Deadhead miles</span>
+                <span class="rc-input-box"><input id="deadhead" name="deadhead" type="number" inputmode="decimal" enterkeyhint="done" min="0" step="1" placeholder="0" /><span class="rc-unit">mi</span></span>
+              </label>
+            </div>
+          </section>
+
+          <section id="verdict" class="rc-verdict idle" role="status" aria-live="polite" aria-label="Verdict">
+            <div class="rcv-top">
+              <span class="rcv-pill" id="verdict-label">Ready</span>
+              <p class="rcv-msg" id="verdict-msg">Enter the rate plus loaded miles, empty miles, or both.</p>
+            </div>
+            <div class="rcv-net">
+              <span class="rcv-net-n" id="rcv-net">&mdash;</span>
+              <span class="rcv-net-l">Net EST</span>
+            </div>
+            <div class="rcv-stats">
+              <div class="rcv-stat"><b id="rcv-day">&mdash;</b><span id="rcv-day-l">Net / day</span></div>
+              <div class="rcv-stat"><b id="rcv-mi">&mdash;</b><span>Net / mi</span></div>
+              <div class="rcv-stat"><b id="rcv-hr">&mdash;</b><span>Net / hr</span></div>
+            </div>
+            <p class="rcv-meta" id="verdict-meta"></p>
+            <p id="weight-warn" class="warn rcv-warn" hidden></p>
+          </section>
+
+          <details class="rc-fold" id="rc-why">
+            <summary><span>Why and the math</span><span class="rc-chev" aria-hidden="true"></span></summary>
+            <div class="rc-fold-body">
+              <ul class="rc-why" id="rc-why-list"></ul>
+              <div id="metrics" class="metrics"></div>
+            </div>
+          </details>
+
+          <section class="rc-card" aria-label="Load details">
+            <h2 class="rc-h2">Load details <span class="rc-opt">Optional</span></h2>
+            <div class="rc-pair">
+              <label class="rc-field" for="weight">
+                <span class="rc-lbl">Weight</span>
+                <span class="rc-input-box"><input id="weight" name="weight" type="number" inputmode="decimal" enterkeyhint="next" min="0" step="1" placeholder="12,500 clean" /><span class="rc-unit">lb</span></span>
+              </label>
+              <label class="rc-field" for="lengthFt">
+                <span class="rc-lbl">Length</span>
+                <span class="rc-input-box"><input id="lengthFt" name="lengthFt" type="number" inputmode="decimal" enterkeyhint="next" min="0" step="1" placeholder="Deck 40" /><span class="rc-unit">ft</span></span>
+              </label>
+              <label class="rc-field" for="pickup">
+                <span class="rc-lbl">Pickup city</span>
+                <span class="rc-input-box"><input id="pickup" name="pickup" type="text" maxlength="60" autocapitalize="words" placeholder="Optional" /></span>
+              </label>
+              <label class="rc-field" for="delivery">
+                <span class="rc-lbl">Delivery city</span>
+                <span class="rc-input-box"><input id="delivery" name="delivery" type="text" maxlength="60" autocapitalize="words" placeholder="Optional" /></span>
+              </label>
+            </div>
+            <div class="rc-field rc-full">
+              <span class="rc-lbl">Tarp</span>
+              <div class="seg rc-seg" role="group" aria-label="Tarp">
                 <button type="button" id="tarp-no" aria-pressed="true">No tarp</button>
                 <button type="button" id="tarp-yes" aria-pressed="false">Tarp</button>
               </div>
             </div>
-            <label class="field full">
-              <span class="lbl">Est. hours <span class="est">Optional</span></span>
-              <input id="hours" name="hours" type="number" inputmode="decimal" min="0" step="0.5" placeholder="Blank uses miles ÷ speed" />
+            <label class="rc-field rc-full" for="hours">
+              <span class="rc-lbl">Est. hours <span class="rc-opt">Blank uses miles / speed</span></span>
+              <span class="rc-input-box"><input id="hours" name="hours" type="number" inputmode="decimal" enterkeyhint="done" min="0" step="0.5" placeholder="Auto" /><span class="rc-unit">h</span></span>
             </label>
-          </div>
-          <div class="row-actions">
-            <button type="button" class="btn" id="clear-offer">Clear offer</button>
-          </div>
+            <div class="rc-actions">
+              <button type="button" class="btn btn-ghost" id="clear-offer">Clear offer</button>
+            </div>
+          </section>
         </form>
+
+        <section class="rc-card rc-history" id="rc-history" aria-label="Recent checks">
+          <div class="rc-hist-head">
+            <h2 class="rc-h2">Recent checks</h2>
+            <button type="button" class="btn btn-ghost btn-sm" id="rc-hist-clear" hidden>Clear</button>
+          </div>
+          <div id="rc-hist-list" class="rc-hist-list"></div>
+        </section>
 
         <details class="settings" id="settings">
           <summary>
-            <span>Settings</span>
+            <span>Rate Check settings</span>
             <span class="brief" id="settings-brief"></span>
           </summary>
           <p class="hint">Saved on this phone. Net EST = rate x 0.87 minus $1.14 per loaded mile (fuel and DEF) minus $0.30 per empty mile. Driver pay is not in this estimate. A single load needs at least $500 net EST, or $300 for a same-day run under 250 total miles. A chain needs at least $1,000 total with no losing leg. TAKE if it clears the bar and fits. MAYBE if it clears the bar but weight is not listed or is 12,501-15,300 lb (scale check, load centered just ahead of trailer axles). PASS if it is under the bar, if length is over 40 ft, if weight is over 15,300 lb, or if the overnight low at the drop is 45 F or below (too cold to sit without idling). Ice or snow on the route, or gusts of 50+ mph, is a MAYBE. No overhang. Tarp-required, F+T, and FT loads are a fit; the rig has tarps and straps. $/hr EST = net EST / hours. Hours = (loaded mi + empty miles) / 50 mph + 2 h load/unload per load. Net $/mi EST = net EST / (loaded mi + empty miles).</p>
@@ -324,7 +361,7 @@
             </label>
           </div>
           <div class="row-actions">
-            <button type="button" class="btn" id="stops-from-check">Use load check</button>
+            <button type="button" class="btn" id="stops-from-check">Use Rate Check</button>
           </div>
           <div class="seg stops-corridor" id="stops-corridor" role="group" aria-label="Miles off the route">
             <button type="button" data-miles="5" aria-pressed="false">5 mi</button>
@@ -370,7 +407,7 @@
       <footer class="footer">
         <p><strong>Black Ram Logistics</strong> · DBA of Sand Lily Pad LLC</p>
         <p>Estimates are marked EST. Not a quote and not tax advice.</p>
-        <p class="app-version" id="app-version">v59</p>
+        <p class="app-version" id="app-version">v60</p>
       </footer>
       <div class="pad" aria-hidden="true"></div>
     </main>
@@ -516,17 +553,17 @@
       <div id="stop-body"></div>
     </div>
   </div>
-  <noscript><p class="noscript">Black Ram Logistics needs JavaScript for the load check, stops, and reports.</p></noscript>
+  <noscript><p class="noscript">Black Ram Logistics needs JavaScript for Rate Check, stops, and reports.</p></noscript>
   <script src="vendor/leaflet/leaflet.js"></script>
-  <script src="maps.js?v=59"></script>
-  <script src="tripplan.js?v=59"></script>
-  <script src="app.js?v=59"></script>
-  <script src="stops.js?v=59"></script>
-  <script src="targets.js?v=59"></script>
-  <script src="loadcosts.js?v=59"></script>
-  <script src="reports.js?v=59"></script>
-  <script src="scoreboard.js?v=59"></script>
-  <script src="accounting.js?v=59"></script>
+  <script src="maps.js?v=60"></script>
+  <script src="tripplan.js?v=60"></script>
+  <script src="app.js?v=60"></script>
+  <script src="stops.js?v=60"></script>
+  <script src="targets.js?v=60"></script>
+  <script src="loadcosts.js?v=60"></script>
+  <script src="reports.js?v=60"></script>
+  <script src="scoreboard.js?v=60"></script>
+  <script src="accounting.js?v=60"></script>
   <script>
     (function () {
       if (!('serviceWorker' in navigator)) return;

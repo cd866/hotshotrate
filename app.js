@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v58';
+  var APP_VERSION = 'v60';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -398,10 +398,11 @@
     var result = compute();
     var copy = verdictCopy(result);
     var box = $('verdict');
-    box.className = 'verdict ' + (result.verdict === 'idle' ? 'idle' : result.verdict);
+    box.className = 'rc-verdict ' + (result.verdict === 'idle' ? 'idle' : result.verdict);
     $('verdict-label').textContent = copy.label;
-    $('verdict-msg').textContent = copy.msg;
-    $('verdict-meta').textContent = copy.meta;
+    $('verdict-msg').textContent = result.ready ? copy.msg : 'Enter the rate and the miles.';
+    $('verdict-meta').textContent = result.ready ? copy.meta : '';
+    renderRateCheckHero(result);
 
     var warn = $('weight-warn');
     if (result.over || result.hardFail) {
@@ -444,6 +445,160 @@
     $('settings-brief').textContent = brief;
 
     if (state.tab === 'kpis' && state.feed) renderKpis();
+    scheduleRateHistory(result);
+  }
+
+  /* ---- Rate Check (v59): big verdict numbers, Why list, recent checks ----
+     Display only. Every number comes from compute() above or from the same
+     hosDaysFromMiles() the load boards use for days. */
+  var RC_HIST_KEY = 'blackram_ratecheck_history_v1';
+  var RC_HIST_MAX = 10;
+  var rcHistTimer = null;
+
+  function rcSet(id, text) {
+    var el = $(id);
+    if (el) el.textContent = text;
+  }
+
+  function rcDays(result) {
+    if (!result.ready || result.loadedMi <= 0) return null;
+    var d = hosDaysFromMiles(result.loadedMi, result.deadMi, 1);
+    return d && d > 0 ? d : null;
+  }
+
+  function renderRateCheckHero(result) {
+    var ready = result.ready && result.loadedMi > 0;
+    var days = rcDays(result);
+    rcSet('rcv-net', result.ready ? money(Math.round(result.netEst)) : '\u2014');
+    rcSet('rcv-day', ready && days ? money(Math.round(result.netEst / days)) : '\u2014');
+    rcSet('rcv-mi', ready && result.totalMi > 0 ? '$' + (result.netEst / result.totalMi).toFixed(2) : '\u2014');
+    rcSet('rcv-hr', ready && result.netHour != null ? money(Math.round(result.netHour)) : '\u2014');
+    var dl = $('rcv-day-l');
+    if (dl) dl.textContent = ready && days ? 'Net / day (' + days + 'd)' : 'Net / day';
+    var list = $('rc-why-list');
+    if (!list) return;
+    var s = result.settings;
+    var items = [];
+    function li(kind, text) { items.push('<li class="' + kind + '">' + esc(text) + '</li>'); }
+    if (!result.ready) {
+      li('', 'Net EST = rate x 0.87 minus $' + s.loadedCost.toFixed(2) + ' per loaded mile minus $' + s.deadheadCost.toFixed(2) + ' per empty mile.');
+      li('', 'Bar: $' + plainNum(s.minNet, 0) + ' net EST, or $' + plainNum(s.minNetSameDay, 0) + ' for a same-day run under ' + plainNum(s.sameDayMiles, 0) + ' total miles.');
+      li('', 'Fit: up to 12,500 lb and ' + plainNum(s.deckFt, 0) + ' ft is clean. 12,501-15,300 lb is a MAYBE (scale check).');
+    } else {
+      if (result.loadedMi <= 0) li('w-bad', 'Add loaded miles to score this offer.');
+      else if (result.netEst >= result.bar) li('w-ok', 'Net EST ' + money(result.netEst) + ' clears the $' + plainNum(result.bar, 0) + ' bar' + (result.sameDay ? ' (same-day run).' : '.'));
+      else li('w-bad', 'Net EST ' + money(result.netEst) + ' is under the $' + plainNum(result.bar, 0) + ' bar' + (result.sameDay ? ' (same-day run).' : '.'));
+      if (result.flags && result.flags.length) {
+        result.flags.forEach(function (f) { li(result.hardFail ? 'w-bad' : 'w-warn', f + '.'); });
+      } else if (result.weight != null || result.lengthFt != null) {
+        li('w-ok', 'Fits the deck' + (result.weight != null ? ': ' + plainNum(result.weight, 0) + ' lb' : '') + (result.lengthFt != null ? ', ' + plainNum(result.lengthFt, 0) + ' ft' : '') + '.');
+      } else {
+        li('w-warn', 'No weight or length entered. Add them below to confirm it fits.');
+      }
+      if (days) li('', 'About ' + days + ' day' + (days === 1 ? '' : 's') + ' of driving (hours of service estimate).');
+      if (state.tarp) li('', 'Tarp required. We have tarps and straps.');
+    }
+    list.innerHTML = items.join('');
+  }
+
+  function rcHistRead() {
+    try {
+      var arr = JSON.parse(localStorage.getItem(RC_HIST_KEY) || '[]');
+      return Array.isArray(arr) ? arr : [];
+    } catch (err) { return []; }
+  }
+
+  function rcHistWrite(arr) {
+    try { localStorage.setItem(RC_HIST_KEY, JSON.stringify(arr.slice(0, RC_HIST_MAX))); } catch (err) { /* private mode */ }
+  }
+
+  function rcSnapshot(result) {
+    return {
+      t: Date.now(),
+      rate: fieldText('rate'), loaded: fieldText('loaded'), dead: fieldText('deadhead'),
+      weight: fieldText('weight'), len: fieldText('lengthFt'),
+      pickup: fieldText('pickup'), delivery: fieldText('delivery'), hours: fieldText('hours'),
+      tarp: !!state.tarp, v: result.verdict, net: Math.round(result.netEst),
+      days: rcDays(result)
+    };
+  }
+
+  function rcSig(e) {
+    return [e.rate, e.loaded, e.dead, e.weight, e.len, e.pickup, e.delivery, e.hours, e.tarp ? 1 : 0].join('|');
+  }
+
+  function scheduleRateHistory(result) {
+    clearTimeout(rcHistTimer);
+    if (!result.ready || result.loadedMi <= 0) return;
+    rcHistTimer = setTimeout(function () {
+      var cur = compute();
+      if (!cur.ready || cur.loadedMi <= 0) return;
+      var snap = rcSnapshot(cur);
+      var arr = rcHistRead();
+      if (arr.length && rcSig(arr[0]) === rcSig(snap)) return;
+      // edits within 25 s of the last save replace it, so typing does not spam the list
+      if (arr.length && snap.t - arr[0].t < 25000) arr[0] = snap; else arr.unshift(snap);
+      rcHistWrite(arr);
+      renderRateHistory();
+    }, 1800);
+  }
+
+  function rcAgo(t) {
+    var mins = Math.floor((Date.now() - t) / 60000);
+    if (mins < 1) return 'now';
+    if (mins < 60) return mins + 'm';
+    var h = Math.floor(mins / 60);
+    if (h < 24) return h + 'h';
+    return Math.floor(h / 24) + 'd';
+  }
+
+  function renderRateHistory() {
+    var box = $('rc-hist-list');
+    if (!box) return;
+    var arr = rcHistRead();
+    var clr = $('rc-hist-clear');
+    if (clr) clr.hidden = !arr.length;
+    if (!arr.length) {
+      box.innerHTML = '<div class="rc-empty"><div class="rc-empty-ico" aria-hidden="true">' + navIcon('check') + '</div>' +
+        '<b>No checks yet</b><span>Every offer you check is saved here on this phone. Tap one to bring it back.</span></div>';
+      return;
+    }
+    box.innerHTML = arr.map(function (e, i) {
+      var lane = (e.pickup || e.delivery) ? esc((e.pickup || '?') + ' > ' + (e.delivery || '?')) : '';
+      var miles = plainNum(Number(e.loaded) || 0, 0) + (Number(e.dead) > 0 ? ' + ' + plainNum(Number(e.dead), 0) : '') + ' mi';
+      var v = e.v === 'take' || e.v === 'maybe' ? e.v : 'pass';
+      return '<button type="button" class="rc-hist-row ' + v + '" data-i="' + i + '" aria-label="Load this check back in">' +
+        '<span class="rc-hist-pill ' + v + '">' + v.toUpperCase() + '</span>' +
+        '<span class="rc-hist-main"><b>' + esc(money(Number(e.rate) || 0)) + '</b><span>' + esc(miles) + (lane ? ' &middot; ' + lane : '') + '</span></span>' +
+        '<span class="rc-hist-net"><b>' + esc(money(e.net)) + '</b><span>' + esc(rcAgo(e.t)) + (e.days ? ' &middot; ' + e.days + 'd' : '') + '</span></span></button>';
+    }).join('');
+  }
+
+  function restoreRateCheck(i) {
+    var e = rcHistRead()[i];
+    if (!e) return;
+    var map = { rate: e.rate, loaded: e.loaded, deadhead: e.dead, weight: e.weight, lengthFt: e.len, pickup: e.pickup, delivery: e.delivery, hours: e.hours };
+    Object.keys(map).forEach(function (id) { $(id).value = map[id] == null ? '' : map[id]; });
+    setTarp(!!e.tarp);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function bindRateCheck() {
+    var list = $('rc-hist-list');
+    if (list) list.addEventListener('click', function (ev) {
+      var row = ev.target.closest && ev.target.closest('.rc-hist-row');
+      if (row) restoreRateCheck(Number(row.getAttribute('data-i')));
+    });
+    var clr = $('rc-hist-clear');
+    if (clr) clr.addEventListener('click', function () { rcHistWrite([]); renderRateHistory(); });
+    var why = $('rc-why');
+    if (why) {
+      try { why.open = localStorage.getItem('blackram_rc_why_open') === '1'; } catch (err) { /* ignore */ }
+      why.addEventListener('toggle', function () {
+        try { localStorage.setItem('blackram_rc_why_open', why.open ? '1' : '0'); } catch (err) { /* ignore */ }
+      });
+    }
+    renderRateHistory();
   }
 
   function setTarp(on) {
@@ -1387,7 +1542,7 @@
     var block = feed && feed.fixed_costs;
     if (!block || !isFinite(Number(block.monthly_total))) return '';
     return '<p class="fine">Fixed costs on file ' + money(Number(block.monthly_total)) +
-      '/mo. Break-even uses the trailer, insurance, and truck note on Load check.</p>';
+      '/mo. Break-even uses the trailer, insurance, and truck note on Rate Check.</p>';
   }
 
   function scoreLedgerLoad(load, pct) {
@@ -2260,7 +2415,7 @@
 
     var be;
     if (monthlyFixed <= 0) {
-      be = need('Break-even', 'Set the trailer payment or insurance on Load check. Fixed costs are $0, so there is no monthly target yet.');
+      be = need('Break-even', 'Set the trailer payment or insurance on Rate Check. Fixed costs are $0, so there is no monthly target yet.');
     } else {
       var ratio = fixed > 0 ? fig.net / fixed : 0;
       var width = Math.max(0, Math.min(100, ratio * 100));
@@ -7040,7 +7195,7 @@
   }
 
   var NAV_PRIMARY = ['check', 'searches', 'reports', 'targets'];
-  var NAV_SHORT = { check: 'Check', searches: 'Boards', reports: 'Reports', targets: 'Targets', kpis: 'Scoreboard', fin: 'Finance', acct: 'Accounting', stops: 'Stops', pdfs: 'PDFs' };
+  var NAV_SHORT = { check: 'Rate Check', searches: 'Boards', reports: 'Reports', targets: 'Targets', kpis: 'Scoreboard', fin: 'Finance', acct: 'Accounting', stops: 'Stops', pdfs: 'PDFs' };
   var NAV_ICON_PATHS = {
     check: '<rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M8.5 7h7M8.5 11h2M13.5 11h2M8.5 14.5h2M13.5 14.5h2M8.5 18h2M13.5 18h2"/>',
     searches: '<path d="M4 6h16M4 12h16M4 18h10"/><circle cx="18.5" cy="17.5" r="2.5"/>',
@@ -7529,6 +7684,7 @@
     bindComboJumps();
     enhanceNav();
     bindUiShell();
+    bindRateCheck();
     setupPull();
     bindDeliverSheet();
     bindCompareSheet();
