@@ -753,12 +753,12 @@
     var from = pickup ? pickup.value.replace(/\s+/g, ' ').trim() : '';
     var to = delivery ? delivery.value.replace(/\s+/g, ' ').trim() : '';
     if (!from && !to) {
-      setStatus('Enter a pickup and delivery on Load check first.');
+      setStatus('Enter a pickup and delivery on Rate Check first.');
       return;
     }
     if (from) $('stops-pickup').value = from;
     if (to) $('stops-delivery').value = to;
-    setStatus('Filled from Load check.');
+    setStatus('Filled from Rate Check.');
   }
 
   function show() {

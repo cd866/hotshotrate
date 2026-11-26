@@ -291,7 +291,7 @@
       slider('maint', 'Tires and maintenance reserve', 0, 0.4, 0.01, tgt.maint, FMT.maint) +
       slider('driverMo', 'Driver pay (Meshach, paid first from profit)', 0, 6000, 100, tgt.driverMo, FMT.driverMo) +
       slider('otherMo', 'Other monthly (load board, phone, software)', 0, 500, 1, tgt.otherMo, FMT.otherMo) +
-      '<p class="fine">Fuel and DEF use Load check: ' + rpm(s.loadedCost) + ' loaded, ' + rpm(s.deadheadCost) + ' empty. Bills: truck ' + money(s.otherFixed) + ', trailer ' + money(s.trailer) + ', insurance ' + money(s.insurance) + '. Meshach ' + money(tgt.driverMo) + '/mo is paid first from profit after these bills; leftover is split in thirds (his third on top of his pay). Saved on this phone. <button type="button" class="tg-reset" id="tg-reset">Reset</button></p></details>';
+      '<p class="fine">Fuel and DEF use Rate Check: ' + rpm(s.loadedCost) + ' loaded, ' + rpm(s.deadheadCost) + ' empty. Bills: truck ' + money(s.otherFixed) + ', trailer ' + money(s.trailer) + ', insurance ' + money(s.insurance) + '. Meshach ' + money(tgt.driverMo) + '/mo is paid first from profit after these bills; leftover is split in thirds (his third on top of his pay). Saved on this phone. <button type="button" class="tg-reset" id="tg-reset">Reset</button></p></details>';
 
     var cmpRows = [
       ['Stay on Totni (13%)', st.totni, 'Cheap fee, but brokers score Totni low (see below).'],
