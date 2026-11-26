@@ -67,6 +67,14 @@
     var s = A && A.settings ? A.settings() : { loadedCost: 1.14, deadheadCost: 0.30, trailer: 434.84, insurance: 1221.62, otherFixed: 1573.04 };
     return s;
   }
+  // Fuel + DEF per mile: same model as the Load Boards (EIA diesel + pump premium / mpg + DEF),
+  // on loaded and empty miles. Flat Rate Check $/mi only when no diesel price is on file.
+  function fuelPm(s) {
+    var A = app();
+    var f = A && A.fuelModel ? A.fuelModel() : null;
+    if (f && !f.fallback && isFinite(Number(f.fuel_per_mi))) return { loaded: Number(f.fuel_per_mi), dead: Number(f.fuel_per_mi), live: true, f: f };
+    return { loaded: s.loadedCost, dead: s.deadheadCost, live: false, f: null };
+  }
 
   // Core model for one structure at the current inputs.
   function model(opts) {
@@ -85,7 +93,8 @@
     var fixed = s.trailer + insurance + s.otherFixed + Number(tgt.otherMo) + extraFixed;
     var keep = 1 - feePct / 100;
     // Contribution per loaded mile after fee, fuel/DEF (loaded + empty) and maintenance reserve.
-    var contrib = rate * keep - s.loadedCost - deadPerLoaded * s.deadheadCost - (1 + deadPerLoaded) * Number(tgt.maint);
+    var fp = fuelPm(s);
+    var contrib = rate * keep - fp.loaded - deadPerLoaded * fp.dead - (1 + deadPerLoaded) * Number(tgt.maint);
     var loadedMo = loadsWk * WEEKS * Number(tgt.miLoad);
     var gross = loadedMo * rate;
     var net = loadedMo * contrib - fixed;
@@ -93,7 +102,7 @@
     var beMiD = contrib > 0 ? (fixed + driverMo) / contrib : null;
     var beMi = contrib > 0 ? fixed / contrib : null;
     var goalMi = contrib > 0 ? (fixed + goalNet) / contrib : null;
-    var perMileCosts = s.loadedCost + deadPerLoaded * s.deadheadCost + (1 + deadPerLoaded) * Number(tgt.maint);
+    var perMileCosts = fp.loaded + deadPerLoaded * fp.dead + (1 + deadPerLoaded) * Number(tgt.maint);
     var minRpmBE = loadedMo > 0 ? (fixed / loadedMo + perMileCosts) / keep : null;
     var minRpmGoal = loadedMo > 0 ? ((fixed + goalNet) / loadedMo + perMileCosts) / keep : null;
     return {
@@ -291,7 +300,7 @@
       slider('maint', 'Tires and maintenance reserve', 0, 0.4, 0.01, tgt.maint, FMT.maint) +
       slider('driverMo', 'Driver pay (Meshach, paid first from profit)', 0, 6000, 100, tgt.driverMo, FMT.driverMo) +
       slider('otherMo', 'Other monthly (load board, phone, software)', 0, 500, 1, tgt.otherMo, FMT.otherMo) +
-      '<p class="fine">Fuel and DEF use Rate Check: ' + rpm(s.loadedCost) + ' loaded, ' + rpm(s.deadheadCost) + ' empty. Bills: truck ' + money(s.otherFixed) + ', trailer ' + money(s.trailer) + ', insurance ' + money(s.insurance) + '. Meshach ' + money(tgt.driverMo) + '/mo is paid first from profit after these bills; leftover is split in thirds (his third on top of his pay). Saved on this phone. <button type="button" class="tg-reset" id="tg-reset">Reset</button></p></details>';
+      '<p class="fine">Fuel and DEF: ' + (function () { var fp = fuelPm(s); var A = app(); return fp.live && A && A.fuelUsedText ? esc(A.fuelUsedText(fp.f)) : 'no diesel price on file, fallback ' + rpm(s.loadedCost) + ' loaded, ' + rpm(s.deadheadCost) + ' empty.'; })() + ' Bills: truck ' + money(s.otherFixed) + ', trailer ' + money(s.trailer) + ', insurance ' + money(s.insurance) + '. Meshach ' + money(tgt.driverMo) + '/mo is paid first from profit after these bills; leftover is split in thirds (his third on top of his pay). Saved on this phone. <button type="button" class="tg-reset" id="tg-reset">Reset</button></p></details>';
 
     var cmpRows = [
       ['Stay on Totni (13%)', st.totni, 'Cheap fee, but brokers score Totni low (see below).'],

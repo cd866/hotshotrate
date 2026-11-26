@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v66';
+  var APP_VERSION = 'v67';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -279,6 +279,38 @@
     return Math.round(n * 100) / 100;
   }
 
+  // Fuel for a Rate Check or Targets: same chooser as a Load Boards card
+  // (truck location region, else the pickup state's PADD, else the US average).
+  function rateCheckFuel(pickupText) {
+    return currentFuel(pickupText ? { origin: pickupText } : null);
+  }
+
+  function fuelUsedText(f) {
+    if (!f || f.fallback) return 'No diesel price on file: flat fallback $/mi from settings.';
+    return dieselPhrase(f, 3) + ' at ' + Number(f.mpg).toFixed(1) + ' mpg + ' + money3(f.def_per_mi) +
+      '/mi DEF = ' + money3(f.fuel_per_mi) + '/mi on loaded and empty miles' +
+      (f.diesel_region ? ' (' + f.diesel_region + ', EIA week ' + ((state.dieselPrices && state.dieselPrices.eia && state.dieselPrices.eia.week) || '--') + ')' : '') + '.';
+  }
+
+  // One monthly bill basis everywhere (same as Targets / Scoreboard):
+  // trailer + insurance + truck note from settings, plus Targets "other monthly".
+  function targetsOtherMo() {
+    try {
+      var t = JSON.parse(localStorage.getItem('blackram_targets_v1') || '{}');
+      if (t && t.otherMo != null && t.otherMo !== '' && isFinite(Number(t.otherMo))) return Number(t.otherMo);
+    } catch (e) { /* ignore */ }
+    return 42;
+  }
+
+  function monthlyBills(s) {
+    s = s || settings();
+    var other = targetsOtherMo();
+    return {
+      trailer: s.trailer, insurance: s.insurance, truck: s.otherFixed, otherMo: other,
+      total: roundMoney(s.trailer + s.insurance + s.otherFixed + other)
+    };
+  }
+
   function compute() {
     var s = settings();
     var rateIn = fieldNum('rate');
@@ -294,13 +326,26 @@
     var ready = rateIn != null && (loadedMi > 0 || deadMi > 0);
     var fee = roundMoney(rate * s.feePct / 100);
     var afterFee = roundMoney(rate - fee);
-    var loadedCostAmt = roundMoney(s.loadedCost * loadedMi);
-    var deadCostAmt = roundMoney(s.deadheadCost * deadMi);
-    var netEst = roundMoney(afterFee - loadedCostAmt - deadCostAmt);
-    var mpg = s.mpg;
+    // Same fuel model as the Load Boards: EIA regional diesel + pump premium at the feed mpg
+    // plus DEF per mile, on loaded AND empty miles. Flat $/mi settings only when no price is on file.
+    var fuelModel = rateCheckFuel(fieldText('pickup'));
+    var fuelPerMi = fuelModel.fallback ? null : Number(fuelModel.fuel_per_mi);
+    var loadedCostAmt, deadCostAmt, fuelCostAmt, netEst;
+    if (fuelPerMi != null) {
+      fuelCostAmt = roundMoney(fuelPerMi * totalMi);
+      loadedCostAmt = roundMoney(fuelPerMi * loadedMi);
+      deadCostAmt = roundMoney(fuelCostAmt - loadedCostAmt);
+      netEst = roundMoney(afterFee - fuelCostAmt);
+    } else {
+      loadedCostAmt = roundMoney(s.loadedCost * loadedMi);
+      deadCostAmt = roundMoney(s.deadheadCost * deadMi);
+      fuelCostAmt = roundMoney(loadedCostAmt + deadCostAmt);
+      netEst = roundMoney(afterFee - loadedCostAmt - deadCostAmt);
+    }
+    var mpg = fuelPerMi != null ? Number(fuelModel.mpg) : s.mpg;
     var fuelKnown = mpg > 0;
     var gallons = fuelKnown ? totalMi / mpg : null;
-    var fuel = fuelKnown ? roundMoney(gallons * s.diesel) : null;
+    var fuel = fuelPerMi != null ? fuelCostAmt : (fuelKnown ? roundMoney(gallons * s.diesel) : null);
     var hoursEst = !(hoursIn != null && hoursIn > 0);
     var hours = hoursEst ? (s.assumedMph > 0 ? totalMi / s.assumedMph : null) : hoursIn;
     var netHour = hours ? netEst / hours : null;
@@ -317,6 +362,8 @@
     if (overWeight) flags.push('Over ' + plainNum(hardMax, 0) + ' lb payload - cannot haul');
     else if (maybeWeight) flags.push('12,501-15,300 lb, scale check, load centered just ahead of trailer axles');
     if (overLength) flags.push('Over ' + plainNum(s.deckFt, 0) + ' ft deck - cannot haul');
+    // Boards rule: no weight listed is a MAYBE until it is confirmed.
+    if (weight == null) flags.push('Weight not listed - MAYBE until you enter it and confirm the fit');
     var verdict = 'idle';
     if (ready && loadedMi > 0) {
       if (hardFail || netEst < bar) verdict = 'pass';
@@ -340,6 +387,9 @@
       gallons: gallons,
       fuel: fuel,
       fuelKnown: fuelKnown,
+      fuelModel: fuelModel,
+      fuelPerMi: fuelPerMi,
+      fuelCostAmt: fuelCostAmt,
       net: netEst,
       netEst: netEst,
       hours: hours,
@@ -359,13 +409,20 @@
     };
   }
 
+  function rcFuelShort() {
+    var f = rateCheckFuel(fieldText('pickup'));
+    var s = settings();
+    if (!f || f.fallback) return 'fallback $' + s.loadedCost.toFixed(2) + '/loaded mi + $' + s.deadheadCost.toFixed(2) + '/empty mi';
+    return money3(f.fuel_per_mi) + '/mi, diesel ' + money3(f.diesel_usd_gal) + '/gal';
+  }
+
   function verdictCopy(result) {
     var s = result.settings;
     if (!result.ready) {
       return {
         label: 'READY',
         msg: 'Enter the rate plus loaded miles, empty miles, or both.',
-        meta: 'Net EST = rate x 0.87 minus $' + s.loadedCost.toFixed(2) + ' per loaded mile minus $' + s.deadheadCost.toFixed(2) + ' per empty mile. Bar $' + plainNum(s.minNet, 0) + ' net EST, or $' + plainNum(s.minNetSameDay, 0) + ' for a same-day run under ' + plainNum(s.sameDayMiles, 0) + ' total miles.'
+        meta: 'Net EST = rate x 0.87 minus fuel and DEF on loaded and empty miles (' + rcFuelShort() + '). Bar $' + plainNum(s.minNet, 0) + ' net EST, or $' + plainNum(s.minNetSameDay, 0) + ' for a same-day run under ' + plainNum(s.sameDayMiles, 0) + ' total miles.'
       };
     }
     var msg;
@@ -422,17 +479,25 @@
     }
 
     var s = result.settings;
+    var fm = result.fuelModel;
+    var fmLive = fm && !fm.fallback;
     var fuelValue = result.fuelKnown ? money(result.ready ? result.fuel : null) : '--';
-    var fuelSub = result.fuelKnown && result.ready
-      ? '<span class="est">EST</span> ' + result.gallons.toFixed(1) + ' gal at $' + s.diesel.toFixed(2) + '/gal'
-      : '<span class="est">EST</span> MPG ' + plainNum(s.mpg, 1) + ' | diesel $' + s.diesel.toFixed(2);
+    var fuelSub = fmLive
+      ? '<span class="est">EST</span> ' + (result.ready ? result.gallons.toFixed(1) + ' gal + DEF | ' : '') + 'diesel ' + money3(fm.diesel_usd_gal) + '/gal (' + esc(fm.diesel_region || 'US') + ' EIA ' + money3(fm.diesel_eia_usd_gal) + ' ' + (fm.pump_premium_usd_gal < 0 ? '- ' : '+ ') + money3(Math.abs(fm.pump_premium_usd_gal)) + ') | ' + money3(fm.fuel_per_mi) + '/mi'
+      : (result.fuelKnown && result.ready
+        ? '<span class="est">EST</span> ' + result.gallons.toFixed(1) + ' gal at $' + s.diesel.toFixed(2) + '/gal (no EIA price on file)'
+        : '<span class="est">EST</span> MPG ' + plainNum(s.mpg, 1) + ' | diesel $' + s.diesel.toFixed(2));
     var hourSub = !result.ready || result.netHour == null
       ? 'Optional hours, or estimated from miles'
       : (result.hoursEst
         ? '<span class="est">EST</span> ' + result.hours.toFixed(1) + ' h at ' + plainNum(s.assumedMph, 0) + ' mph'
         : plainNum(result.hours, 1) + ' h entered');
 
-    var mathSub = result.ready
+    var mathSub = fmLive
+      ? (result.ready
+        ? ('Rate x 0.87 = ' + money(result.afterFee) + '. Fuel + DEF ' + money3(result.fuelPerMi) + ' x ' + plainNum(result.totalMi, 0) + ' mi (loaded+empty) = ' + money(result.fuelCostAmt) + '.')
+        : 'rate x 0.87 - ' + money3(fm.fuel_per_mi) + '/mi x (loaded + empty mi)')
+      : result.ready
       ? ('Rate x 0.87 = ' + money(result.afterFee) + '. Loaded $' + s.loadedCost.toFixed(2) + ' x ' + plainNum(result.loadedMi, 0) + ' = ' + money(result.loadedCostAmt) + '. Empty miles $' + s.deadheadCost.toFixed(2) + ' x ' + plainNum(result.deadMi, 0) + ' = ' + money(result.deadCostAmt) + '.')
       : 'rate x 0.87 - $' + s.loadedCost.toFixed(2) + '/loaded mi - $' + s.deadheadCost.toFixed(2) + '/empty mi';
 
@@ -449,6 +514,12 @@
     var brief = plainNum(s.feePct, 2).replace(/\.00$/, '') + '% / net bar $' + plainNum(s.minNet, 0);
     if (s.insurance <= 0) brief += ' / insurance not set';
     $('settings-brief').textContent = brief;
+    var billsEl = $('rc-bills');
+    if (billsEl) {
+      var b = monthlyBills(s);
+      billsEl.textContent = 'Monthly bills ' + money(b.total) + ' = trailer ' + money(b.trailer) + ' + insurance ' + money(b.insurance) +
+        ' + truck ' + money(b.truck) + ' + other ' + money(b.otherMo) + ' (other is set on Targets). Break-even everywhere uses this. Fuel now: ' + fuelUsedText(result.fuelModel);
+    }
 
     if (state.tab === 'kpis' && state.feed) renderKpis();
   }
@@ -485,7 +556,7 @@
     var items = [];
     function li(kind, text) { items.push('<li class="' + kind + '">' + esc(text) + '</li>'); }
     if (!result.ready) {
-      li('', 'Net EST = rate x 0.87 minus $' + s.loadedCost.toFixed(2) + ' per loaded mile minus $' + s.deadheadCost.toFixed(2) + ' per empty mile.');
+      li('', 'Net EST = rate x 0.87 minus fuel and DEF on loaded and empty miles (' + rcFuelShort() + ').');
       li('', 'Bar: $' + plainNum(s.minNet, 0) + ' net EST, or $' + plainNum(s.minNetSameDay, 0) + ' for a same-day run under ' + plainNum(s.sameDayMiles, 0) + ' total miles.');
       li('', 'Fit: up to 12,500 lb and ' + plainNum(s.deckFt, 0) + ' ft is clean. 12,501-15,300 lb is a MAYBE (scale check).');
     } else {
@@ -499,6 +570,7 @@
       } else {
         li('w-warn', 'No weight or length entered. Add them below to confirm it fits.');
       }
+      li('', 'Fuel used: ' + fuelUsedText(result.fuelModel));
       if (days) li('', 'About ' + days + ' day' + (days === 1 ? '' : 's') + ' of driving (hours of service estimate).');
       if (state.tarp) li('', 'Tarp required. We have tarps and straps.');
     }
@@ -1577,10 +1649,10 @@
   }
 
   function fixedCostNote(feed) {
-    var block = feed && feed.fixed_costs;
-    if (!block || !isFinite(Number(block.monthly_total))) return '';
-    return '<p class="fine">Fixed costs on file ' + money(Number(block.monthly_total)) +
-      '/mo. Break-even uses the trailer, insurance, and truck note on Rate Check.</p>';
+    var b = monthlyBills();
+    return '<p class="fine">Monthly bills ' + money(b.total) + ' (trailer ' + money(b.trailer) + ', insurance ' +
+      money(b.insurance) + ', truck ' + money(b.truck) + ', other ' + money(b.otherMo) +
+      '). Break-even here, on the Scoreboard and on Targets all use these bills.</p>';
   }
 
   function scoreLedgerLoad(load, pct) {
@@ -2440,7 +2512,8 @@
       });
       return Object.keys(seen).length;
     })() : utilizedDays(month, asOf);
-    var monthlyFixed = roundMoney(s.trailer + s.insurance + s.otherFixed);
+    var bills = monthlyBills(s);
+    var monthlyFixed = bills.total;
     var fixed = all ? roundMoney(monthlyFixed * months.length) : monthlyFixed;
     var loadCount = all ? fig.entries.length : fig.loads.length;
     var weeks = days > 0 ? days / 7 : 0;
@@ -2467,7 +2540,7 @@
           Math.round(ratio * 100) + '%).')
         : (money(fig.net) + ' net vs ' + money(fixed) + ' fixed (' +
           Math.round(ratio * 100) + '%). Trailer ' + money(s.trailer) + ' + insurance ' + money(s.insurance) +
-          ' + other ' + money(s.otherFixed) + '.');
+          ' + truck ' + money(s.otherFixed) + ' + other monthly ' + money(bills.otherMo) + ' (same bills as Targets).');
       be = '<section class="big"><div class="kicker">Break-even | ' +
         esc(all ? 'All time' : monthTitle(month.month)) + '</div>' +
         '<span class="n phrase">' + esc(headline) + '</span>' +
@@ -3399,7 +3472,7 @@
       var dhCost = Math.round(FALLBACK_DEADHEAD * dh * 100) / 100;
       net = Math.round((after - loadedCost - dhCost) * 100) / 100;
       math = 'Rate ' + money2(rate) + ' x 0.87 = ' + money2(after) +
-        ' after the 13% Totni fee (' + money2(feeAmt) + '). Fuel and DEF $1.14 x ' +
+        ' after the 13% Totni fee (' + money2(feeAmt) + '). Fallback (no diesel price on file): fuel and DEF $1.14 x ' +
         Math.round(trip).toLocaleString('en-US') + ' mi = ' + money2(loadedCost) +
         '. Empty miles $0.30 x ' + Math.round(dh).toLocaleString('en-US') + ' mi = ' +
         money2(dhCost) + '. Net EST ' + money2(net) + '.';
@@ -3436,6 +3509,8 @@
     }).then(function (data) {
       state.dieselPrices = data;
       refreshTruckFuel();
+      try { renderCheck(); } catch (e) { /* not ready yet */ }
+      if (state.tab === 'targets' && window.BlackRamTargets) window.BlackRamTargets.render();
       if (state.searches) {
         state.scoredSearches = applyLocalScoring(cloneData(state.searches));
         if (state.tab === 'searches') renderSearches();
@@ -7708,6 +7783,9 @@
     settings: settings,
     monthFigures: monthFigures,
     utilizedDays: utilizedDays,
+    fuelModel: function () { return rateCheckFuel(null); },
+    fuelUsedText: fuelUsedText,
+    monthlyBills: monthlyBills,
     skeleton: function (t) { return loadingSkeletonHtml(t); }
   };
 
@@ -7791,7 +7869,8 @@
     latestMonth: latestMonth,
     showTab: showTab,
     getFeed: function () { return state.feed; },
-    getSearches: function () { return state.searches; }
+    getSearches: function () { return state.searches; },
+    getScored: function () { return state.scoredSearches; }
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

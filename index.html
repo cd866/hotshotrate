@@ -18,7 +18,7 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=3" sizes="180x180" />
   <link rel="preload" href="fonts/nunito-sans-variable.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="fonts/oswald-700.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="styles.css?v=66" />
+  <link rel="stylesheet" href="styles.css?v=67" />
   <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
   <script>
     try {
@@ -42,7 +42,7 @@
         <p>Black Ram Logistics is the hotshot DBA of Sand Lily Pad LLC, leased onto Totni Enterprise's MC authority.</p>
         <p>Our rig: 2026 Ram 3500 dually and a 40 ft Big Tex gooseneck. Cargo up to 12,500 lb is OK; 12,501-15,300 lb is MAYBE (scale check, load centered just ahead of trailer axles); over 15,300 lb is a PASS. The Ram GVWR of 14,000 lb binds (CAT empty 10,940 lb on the truck). Tarps, straps. $/hr EST = net EST / hours. Hours = (loaded mi + empty miles) / 50 mph + 2 h load/unload per load. Net $/mi EST = net EST / (loaded mi + empty miles).</p>
         <p>Rate Check scores a broker's offer as you type: enter the rate, loaded miles and deadhead miles to get TAKE, MAYBE or PASS with net, net per day, net per mile and net per hour. Tap Save check to keep an offer on this phone. The last 10 saved checks stay here.</p>
-        <p>Load Boards shows the latest Truckstop and Direct Freight scan. Net EST is the posted rate times 0.87, minus fuel and DEF on loaded and empty miles: the EIA regional diesel price plus our pump premium, at 8 mpg, plus $0.034/mi DEF. Rate Check uses its own flat $/mi settings. Driver pay is not in the per-load estimate; Meshach is paid out of profits. A single load needs at least $500 net EST, or $300 for a same-day run under 250 total miles. A chain or a 2- or 3-load combo needs at least $1,000 total with no losing leg. An overnight low of 45 F or below at the drop (or at any stop on a combo) is an automatic PASS, because the truck would have to idle overnight. Each load and combo also shows a route weather report. Ice or snow on the route, or gusts of 50+ mph, is a MAYBE and does not PASS by itself. Load Boards lists TAKE loads first, then MAYBE, then PASS. Tarp-required and F+T loads are a fit; the rig has tarps and straps. If a company email is listed, Email broker opens a draft in your mail app and does not send it. If there is no email, Call broker uses a company phone, or a looked-up company line marked Looked up. Direct Freight rows with no broker identity link to the board detail. Each load and combo shows a route map (grey dashed empty miles to pickup, solid purple loaded) and an Open in Google Maps directions link. Maps use OpenStreetMap and only load when they scroll into view. The public list does not include contact person names, personal cell numbers, card numbers, or other confidential details.</p>
+        <p>Load Boards shows the latest Truckstop and Direct Freight scan. Net EST is the posted rate times 0.87, minus fuel and DEF on loaded and empty miles: the EIA regional diesel price plus our pump premium, at 8 mpg, plus $0.034/mi DEF. Rate Check and Targets use the same fuel model; the flat $1.14/loaded mi + $0.30/empty mi is only a fallback when no diesel price is on file. Driver pay is not in the per-load estimate; Meshach is paid out of profits. A single load needs at least $500 net EST, or $300 for a same-day run under 250 total miles. A chain or a 2- or 3-load combo needs at least $1,000 total with no losing leg. An overnight low of 45 F or below at the drop (or at any stop on a combo) is an automatic PASS, because the truck would have to idle overnight. Each load and combo also shows a route weather report. Ice or snow on the route, or gusts of 50+ mph, is a MAYBE and does not PASS by itself. Load Boards lists TAKE loads first, then MAYBE, then PASS. Tarp-required and F+T loads are a fit; the rig has tarps and straps. If a company email is listed, Email broker opens a draft in your mail app and does not send it. If there is no email, Call broker uses a company phone, or a looked-up company line marked Looked up. Direct Freight rows with no broker identity link to the board detail. Each load and combo shows a route map (grey dashed empty miles to pickup, solid purple loaded) and an Open in Google Maps directions link. Maps use Esri base tiles (no key) and only load when they scroll into view. The public list does not include contact person names, personal cell numbers, card numbers, or other confidential details.</p>
         <h2>Add to your iPhone</h2>
         <ol>
           <li>Open this site in Safari.</li>
@@ -259,18 +259,18 @@
             <span>Rate Check settings</span>
             <span class="brief" id="settings-brief"></span>
           </summary>
-          <ul class="hint hint-list"><li>Saved on this phone.</li><li>Net EST = rate x 0.87 minus $1.14 per loaded mile (fuel and DEF) minus $0.30 per empty mile. Driver pay is not in this estimate.</li><li>Bar: a single load needs at least $500 net EST, or $300 for a same-day run under 250 total miles. A chain needs at least $1,000 total with no losing leg.</li><li>TAKE if it clears the bar and fits. MAYBE if it clears the bar but weight is not listed or is 12,501-15,300 lb (scale check, load centered just ahead of trailer axles).</li><li>PASS if it is under the bar, if length is over 40 ft, if weight is over 15,300 lb, or if the overnight low at the drop is 45 F or below (too cold to sit without idling). Ice or snow on the route, or gusts of 50+ mph, is a MAYBE.</li><li>No overhang. Tarp-required, F+T, and FT loads are a fit; the rig has tarps and straps.</li><li>$/hr EST = net EST / hours. Hours = (loaded mi + empty miles) / 50 mph + 2 h load/unload per load. Net $/mi EST = net EST / (loaded mi + empty miles).</li></ul>
+          <ul class="hint hint-list"><li>Saved on this phone.</li><li>Net EST = rate x 0.87 minus fuel and DEF on loaded and empty miles, same as the Load Boards: EIA regional diesel (pickup state, else the US average) plus our pump premium, at 8.0 mpg, plus $0.034/mi DEF. The flat $/mi below is used only when no diesel price is on file. Driver pay is not in this estimate.</li><li>Bar: a single load needs at least $500 net EST, or $300 for a same-day run under 250 total miles. A chain needs at least $1,000 total with no losing leg.</li><li>TAKE if it clears the bar and fits. MAYBE if it clears the bar but weight is not entered or is 12,501-15,300 lb (scale check, load centered just ahead of trailer axles).</li><li>PASS if it is under the bar, if length is over 40 ft, if weight is over 15,300 lb, or if the overnight low at the drop is 45 F or below (too cold to sit without idling). Ice or snow on the route, or gusts of 50+ mph, is a MAYBE.</li><li>No overhang. Tarp-required, F+T, and FT loads are a fit; the rig has tarps and straps.</li><li>$/hr EST = net EST / hours. Hours = (loaded mi + empty miles) / 50 mph + 2 h load/unload per load. Net $/mi EST = net EST / (loaded mi + empty miles).</li></ul><p class="fine" id="rc-bills"></p>
           <div class="fields">
             <label class="field">
               <span class="lbl">Totni fee %</span>
               <input id="feePct" type="number" inputmode="decimal" min="0" max="100" step="0.1" value="13" />
             </label>
             <label class="field">
-              <span class="lbl">Fuel + DEF $/mi</span>
+              <span class="lbl">Fallback fuel + DEF $/mi</span>
               <input id="loadedCost" type="number" inputmode="decimal" min="0" step="0.01" value="1.14" />
             </label>
             <label class="field">
-              <span class="lbl">Empty miles cost $/mi</span>
+              <span class="lbl">Fallback empty mi $/mi</span>
               <input id="deadheadCost" type="number" inputmode="decimal" min="0" step="0.01" value="0.30" />
             </label>
             <label class="field">
@@ -298,15 +298,15 @@
               <input id="insurance" type="number" inputmode="decimal" min="0" step="0.01" value="1221.62" />
             </label>
             <label class="field">
-              <span class="lbl">Other fixed $/mo</span>
+              <span class="lbl">Truck note $/mo</span>
               <input id="otherFixed" type="number" inputmode="decimal" min="0" step="0.01" value="1573.04" />
             </label>
             <label class="field">
-              <span class="lbl">MPG <span class="est">EST</span></span>
+              <span class="lbl">Fallback MPG <span class="est">EST</span></span>
               <input id="mpg" type="number" inputmode="decimal" min="0.1" step="0.1" value="9" />
             </label>
             <label class="field">
-              <span class="lbl">Diesel $/gal <span class="est">EST</span></span>
+              <span class="lbl">Fallback diesel $/gal <span class="est">EST</span></span>
               <input id="diesel" type="number" inputmode="decimal" min="0" step="0.01" value="6.04" />
             </label>
             <label class="field">
@@ -380,7 +380,7 @@
         <p class="fine" id="stops-status" role="status" aria-live="polite"></p>
         <div id="stops-map" class="stops-map" role="application" aria-label="Map of Love's and TA/Petro stops"></div>
         <div id="stops-list"></div>
-        <p class="fine">Love's and TA/Petro public locators, saved in this app. Map © OpenStreetMap. Place search uses Photon with Nominatim as a fallback, US only, and stays on this phone. Routes use the public OSRM server.</p>
+        <p class="fine">Love's and TA/Petro public locators, saved in this app. Map tiles by Esri; place data from OpenStreetMap. Place search uses Photon with Nominatim as a fallback, US only, and stays on this phone. Routes use the public OSRM server.</p>
       </section>
 
       <section id="panel-searches" class="panel searches-panel" role="tabpanel" aria-labelledby="tab-searches" hidden>
@@ -420,7 +420,7 @@
       <footer class="footer">
         <p><strong>Black Ram Logistics</strong> | DBA of Sand Lily Pad LLC</p>
         <p>Estimates are marked EST. Not a quote and not tax advice.</p>
-        <p class="app-version" id="app-version">v66</p>
+        <p class="app-version" id="app-version">v67</p>
       </footer>
       <div class="pad" aria-hidden="true"></div>
     </main>
@@ -568,15 +568,15 @@
   </div>
   <noscript><p class="noscript">Black Ram Logistics needs JavaScript for Rate Check, stops, and reports.</p></noscript>
   <script src="vendor/leaflet/leaflet.js"></script>
-  <script src="maps.js?v=66"></script>
-  <script src="tripplan.js?v=66"></script>
-  <script src="app.js?v=66"></script>
-  <script src="stops.js?v=66"></script>
-  <script src="targets.js?v=66"></script>
-  <script src="loadcosts.js?v=66"></script>
-  <script src="reports.js?v=66"></script>
-  <script src="scoreboard.js?v=66"></script>
-  <script src="accounting.js?v=66"></script>
+  <script src="maps.js?v=67"></script>
+  <script src="tripplan.js?v=67"></script>
+  <script src="app.js?v=67"></script>
+  <script src="stops.js?v=67"></script>
+  <script src="targets.js?v=67"></script>
+  <script src="loadcosts.js?v=67"></script>
+  <script src="reports.js?v=67"></script>
+  <script src="scoreboard.js?v=67"></script>
+  <script src="accounting.js?v=67"></script>
   <script>
     (function () {
       if (!('serviceWorker' in navigator)) return;
