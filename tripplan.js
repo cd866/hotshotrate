@@ -6,7 +6,7 @@
      8 hr driving, 10 hr off), about 50 mph, 1 hr load and 1 hr unload;
    - pickup and drop ETAs against their windows (early waits, late flags);
    - fuel stops on the route at Love's / TA / Petro (data/stops.json),
-     31 gal fills (32 gal tank, 2026 Ram 3500 DRW spec) about every 250 mi,
+     30 gal fills (31 gal tank, 2026 Ram OM p. 354, Mega Cab) about every 240 mi,
      priced with the same diesel as the card: EIA weekly PADD for the
      origin state plus the pump premium from our receipts;
    - overnight town + truck stops each night;
@@ -26,9 +26,9 @@
   var DOCK_HRS = 1;            // 1 hr load, 1 hr unload
   var FUEL_STOP_HRS = 0.5;     // fuel stop doubles as the 30 min break
   var MPG = 8;
-  var TANK_GAL = 32;           // Stellantis 2026 Ram HD fleet guide: Crew Cab 8 ft box DRW, NFX 32 gal
-  var FILL_GAL = 31;           // usable fill; 31 gal x 8 mpg = 248 mi
-  var FUEL_EVERY = FILL_GAL * MPG;  // about 250 mi range towing
+  var TANK_GAL = 31;           // 2026 Ram 2500/3500 Owner's Manual p. 354: Crew/Mega Cab short bed 31 gal (Mega Cab is 6 ft 4 in bed only)
+  var FILL_GAL = 30;           // usable fill; 30 gal x 8 mpg = 240 mi
+  var FUEL_EVERY = FILL_GAL * MPG;  // about 240 mi range towing
   var DEF_PER_MI = 0.034;
   var COLD_F = 45;
   var STOP_NEAR_MI = 15;       // truck stop counts as "on route" within this many miles of the line
@@ -866,7 +866,7 @@
       row('$/day', money(T.perDay) + (T.perPlanDay != null && T.planDays !== T.feedDays ? ' (' + money(T.perPlanDay) + ' on plan days)' : '')) +
       '</dl></div>';
     var notes = plan.notes.slice();
-    notes.push('Times are CT on the phone clock. Tank 32 gal (2026 Ram 3500 DRW spec), about 250 mi range towing. Fills 31 gal about every ' + FUEL_EVERY + ' mi at ' + MPG + ' mpg. Diesel is the same figure as the card: EIA weekly PADD for the origin plus our receipt pump premium. Truck stops: Love\'s/TA/Petro locator list, Pilot/Flying J from OpenStreetMap. Weather: Open-Meteo for each night town. Check parking and road conditions before rolling.');
+    notes.push('Times are CT on the phone clock. Tank 31 gal (2026 Ram owner\'s manual, Mega Cab), about 240 mi range towing. Fills 30 gal about every ' + FUEL_EVERY + ' mi at ' + MPG + ' mpg. Diesel is the same figure as the card: EIA weekly PADD for the origin plus our receipt pump premium. Truck stops: Love\'s/TA/Petro locator list, Pilot/Flying J from OpenStreetMap. Weather: Open-Meteo for each night town. Check parking and road conditions before rolling.');
     h += '<p class="tp-note">' + esc(notes.join(' ')) + '</p>';
     return h;
     function row(k, v) { return '<div><dt>' + esc(k) + '</dt><dd>' + esc(v) + '</dd></div>'; }

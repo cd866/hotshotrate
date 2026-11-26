@@ -16,7 +16,7 @@
   var PIN_KEY = 'blackram_relay_pin_v1';
   var FIN_KEY = 'blackram_fin_session_v1';
   var ODO_KEY = 'blackram_maint_odo_v1';
-  var CHK_KEY = 'blackram_maint_chk_v1';
+  var CHK_KEY = 'blackram_maint_chk_v2';
   var QUEUE_KEY = 'blackram_maint_queue_v1';
   var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var st = { pub: null, pubErr: '', priv: null, applog: null, error: '', loading: false, fetchedAt: 0, unit: 'all', status: '', logf: 'all', odoOpen: false, sheet: null, toast: '', toastUndo: '', flushing: false, syncMsg: '' };
@@ -352,6 +352,7 @@
       '<div class="mt-sub">Steps</div><ol class="mt-steps">' + (S.steps || []).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ol>' +
       ((S.safety || []).length ? '<div class="mt-warnbox"><b>Safety</b>' + list(S.safety) + '</div>' : '') +
       (S.note ? '<p class="mt-fine">' + esc(S.note) + '</p>' : '') +
+      ((S.cite || []).length ? '<div class="mt-sub">Manual and page</div><ul class="mt-list mt-cite">' + S.cite.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' : '') +
       '<button type="button" class="btn primary mt-save" data-mt-tab="done">Done with the job: mark it done</button></div>';
   }
   function renderSheet() {
@@ -598,9 +599,25 @@
         return '<button type="button" class="mt-doc' + (s[k] ? ' on' : '') + '" data-mt-chk="' + k + '" aria-pressed="' + (s[k] ? 'true' : 'false') + '"><span class="mt-ck" aria-hidden="true"></span><span>' + esc(t) + '</span></button>';
       }).join('') + '</div>';
     }
-    return card('mt-chk', 'Checklists', 'Tap to check off',
-      one('monthly') + one('pretrip') + '<button type="button" class="btn" id="mt-chk-reset">Clear checks</button>' +
-      '<p class="mt-fine">Truck list: Ram owner\'s manual, once a month or before a long trip. Trailer list: general trailer practice. Saved on this phone only.</p>');
+    var keys = Object.keys(C || {}).filter(function (k) { return C[k] && Array.isArray(C[k].items) && C[k].items.length; });
+    return card('mt-chk', 'Checklists', 'Pre-trip, every stop, post-trip',
+      keys.map(one).join('') + '<button type="button" class="btn" id="mt-chk-reset">Clear checks</button>' +
+      '<p class="mt-fine">Built from the Ram owner\'s manual, the Big Tex owner\'s manual and the Dexter axle manual (pages in each line). Saved on this phone only.</p>');
+  }
+  function secManuals(P) {
+    var M = P.manuals || {};
+    if (!M.insights) return '';
+    var rat = (M.ratings || []).map(function (r) { return '<div class="mt-row"><span>' + esc(r[0]) + '</span><b>' + esc(r[1]) + '<small>' + esc(r[2]) + '</small></b></div>'; }).join('');
+    var F = M.fit || {};
+    var fit = (F.rows || []).map(function (r) { return '<div class="mt-row"><span>' + esc(r[0]) + '</span><b>' + esc(r[1]) + '</b></div>'; }).join('');
+    var ins = (M.insights || []).map(function (x) { return '<li><b>' + esc(x[0]) + '.</b> ' + esc(x[1]) + ' <i class="mt-pg">' + esc(x[2]) + '</i></li>'; }).join('');
+    var docs = (M.docs || []).map(function (x) { return '<li><a href="' + esc(x[1]) + '" target="_blank" rel="noopener">' + esc(x[0]) + '</a></li>'; }).join('');
+    return card('mt-man', 'From the manuals', (M.insights || []).length + ' insights',
+      '<div class="mt-in"><div class="mt-in-h"><b>Ratings for our rig</b></div><div class="mt-rows">' + rat + '</div></div>' +
+      '<div class="mt-in"><div class="mt-in-h"><b>' + esc(F.title || 'Fit rule check') + '</b>' + pill('warn', 'Agrees if CAT was hitched') + '</div><div class="mt-rows">' + fit + '</div>' +
+      (F.note ? '<p class="mt-fine">' + esc(F.note) + '</p>' : '') + '</div>' +
+      '<div class="mt-sub">What the manuals say</div><ul class="mt-list mt-ins">' + ins + '</ul>' +
+      '<div class="mt-sub">Manuals</div><ul class="mt-list mt-list-s">' + docs + '</ul>');
   }
   function secNeed(P) {
     return card('mt-need', 'Need from Claudio (' + P.need.length + ')', 'Fills the gaps',
@@ -610,7 +627,7 @@
     var S = P.sources;
     return '<section class="mt-card mt-srcs"><div class="mt-h"><h3>Where the intervals come from</h3></div><ul class="mt-list mt-list-s">' +
       Object.keys(S).map(function (k) { return '<li>' + esc(S[k]) + '</li>'; }).join('') + '</ul>' +
-      '<p class="mt-fine">Our oil change is every 5,000 mi, tighter than the Ram manual (15,000 mi or 12 months maximum) and the severe-duty towing schedule (7,500 mi or 6 months). Heavy towing can justify shorter fluid intervals than the manual lists. Check the manual and your dealer before relying on any date here.</p></section>';
+      '<p class="mt-fine">Our oil change is every 5,000 mi, tighter than the Ram manual (15,000 mi or 12 months maximum, OM p. 286) and the severe-duty towing schedule (7,500 mi or 6 months). Each how-to lists the manual and page it came from. Heavy towing can justify shorter fluid intervals than the manual lists. Check the manual and your dealer before relying on any date here.</p></section>';
   }
 
   function secHist() {
@@ -638,7 +655,7 @@
       return;
     }
     var O = odo(), rows = allRows();
-    var nav = [['mt-odo', 'Odometer'], ['mt-due', 'Due next'], ['mt-hist', 'Done'], ['mt-log', 'Log'], ['mt-spend', 'Spend'], ['mt-warr', 'Warranty'], ['mt-chk', 'Checks'], ['mt-need', 'Need']];
+    var nav = [['mt-odo', 'Odometer'], ['mt-due', 'Due next'], ['mt-hist', 'Done'], ['mt-log', 'Log'], ['mt-spend', 'Spend'], ['mt-warr', 'Warranty'], ['mt-chk', 'Checks'], ['mt-man', 'Manuals'], ['mt-need', 'Need']];
     var built = P.built_at ? new Date(P.built_at) : null;
     var stamp = built && !isNaN(built.getTime()) ? ' Records built ' + built.toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + ' CT.' : '';
     el.innerHTML =
@@ -646,7 +663,7 @@
       '<div class="mt-acts"><button type="button" class="mt-btn" id="mt-refresh" aria-label="Refresh">' + (st.loading ? '...' : 'Refresh') + '</button></div></div>' +
       toastHtml() + secTiles(rows) + secDue(rows) +
       '<nav class="mt-jump">' + nav.map(function (j) { return '<a href="#' + j[0] + '" data-mt-jump="' + j[0] + '">' + j[1] + '</a>'; }).join('') + '</nav>' +
-      secOdo(P, O) + secHist() + secLog(P) + secSpend(P, O) + secWarranty(P, O) + secChecks(P) + secNeed(P) + secSources(P) +
+      secOdo(P, O) + secHist() + secLog(P) + secSpend(P, O) + secWarranty(P, O) + secChecks(P) + secManuals(P) + secNeed(P) + secSources(P) +
       '<p class="mt-foot">Estimates are marked EST. Not a mechanic\'s advice.' + esc(stamp) + (st.error && st.error !== 'nopin' && st.error !== 'wrongpin' ? ' ' + esc(st.error) : '') + '</p>';
     bind();
   }
@@ -727,6 +744,7 @@
       '.mt-due-l{display:flex;flex-direction:column;gap:1px;font-size:12px;font-weight:700;color:var(--c-text-2)}.mt-due-l span:last-child{color:var(--c-text-3);font-weight:600}' +
       '.mt-due-more{padding:0 var(--s-1h) var(--s-1h);display:flex;flex-direction:column;gap:6px}.mt-due-more p{margin:0;font-size:var(--fs-sm);color:var(--c-text-2);line-height:1.4}.mt-due-more .mt-src{font-size:11px;color:var(--c-text-3)}' +
       '.mt-rows{display:flex;flex-direction:column}' +
+      '.mt-cite li,.mt-ins li{font-size:var(--fs-sm)}.mt-pg{display:inline-block;font-style:normal;font-size:11px;font-weight:700;color:var(--c-text-3)}.mt-ins b{color:var(--c-text-1)}' +
       '.mt-row{display:flex;justify-content:space-between;align-items:flex-start;gap:var(--s-1);padding:7px 0;border-bottom:1px solid var(--c-line);font-size:var(--fs-sm);color:var(--c-text-2)}.mt-row:last-child{border-bottom:0}' +
       '.mt-row>span{flex:0 1 42%;min-width:0}.mt-row b{flex:1;text-align:right;font-weight:800;color:var(--c-text-1);min-width:0}.mt-row b small{display:block;font-size:11px;font-weight:600;color:var(--c-text-3);margin-top:1px}' +
       '.mt-call{margin:0;padding:var(--s-1) var(--s-1h);border-radius:var(--radius-sm);font-size:var(--fs-sm);font-weight:600;line-height:1.35}.mt-call-warn{background:var(--c-maybe-bg);color:var(--c-maybe)}' +

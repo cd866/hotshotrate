@@ -1,6 +1,6 @@
 {
  "schema": 1,
- "built_at": "2026-11-26T14:57:10-06:00",
+ "built_at": "2026-11-26T16:03:49-06:00",
  "units": [
   {
    "id": "truck",
@@ -189,7 +189,7 @@
     "sev",
     "om"
    ],
-   "note": "Cartridge filter Mopar 68677810AA or Fleetguard LF16453. Ram-specified oil only (10W-30 or 5W-40).",
+   "note": "Company rule 5,000 mi. OM p. 286: never past 15,000 mi or 12 months (or 500 hours). Check oil level every 3,000 mi. Cartridge filter Mopar 68677810AA or Fleetguard LF16453. 10W-30 CK-4 (MS-10902) above 0 F, 5W-40 below (OM p. 350).",
    "soon_mi": 750,
    "soon_d": 21
   },
@@ -199,12 +199,12 @@
    "group": "Tires and brakes",
    "item": "Tire rotation and tire check",
    "int_mi": 7500,
-   "int_mo": null,
+   "int_mo": 6,
    "baseline": true,
    "src": [
     "om"
    ],
-   "note": "Rotate at first sign of uneven wear. No rotation on file (dealer 10/26 inspection details not on file).",
+   "note": "OM p. 291: every 7,500 mi or 6 months, and at the first sign of irregular wear (p. 287). Lug nuts 134-149 ft-lb, re-check after 25 mi (OM p. 355-356).",
    "soon_mi": 750
   },
   {
@@ -213,26 +213,26 @@
    "group": "Filters and fluids",
    "item": "Fuel filters (both engine-mounted)",
    "int_mi": 15000,
-   "int_mo": null,
+   "int_mo": 12,
    "baseline": true,
    "src": [
     "om"
    ],
-   "note": "Mopar filters: front 3 micron, rear engine-mounted 5 micron. 2025-26 canisters can trap air: prime and check for hard starting after a change.",
+   "note": "OM pp. 292-293: front and rear engine fuel filters every 15,000 mi or 12 months. Front 3 micron, rear 5 micron. Water in Fuel light on: drain before starting (OM p. 169).",
    "soon_mi": 1000
   },
   {
    "id": "t-air",
    "unit": "truck",
    "group": "Filters and fluids",
-   "item": "Engine air filter",
+   "item": "Engine air filter (inspect, replace if needed)",
    "int_mi": 15000,
-   "int_mo": 24,
+   "int_mo": 12,
    "baseline": true,
    "src": [
     "om"
    ],
-   "note": "Inspect at each oil change in dust. Never past 15,000 mi or 24 months.",
+   "note": "OM p. 291: inspect and replace if necessary every 15,000 mi or 12 months; never past 30,000 mi or 24 months. Inspect at each oil change in dust (p. 287).",
    "soon_mi": 1000,
    "soon_d": 45
   },
@@ -256,12 +256,12 @@
    "group": "Tires and brakes",
    "item": "Front end, CV and U-joints, suspension check",
    "int_mi": 7500,
-   "int_mo": null,
+   "int_mo": 6,
    "baseline": true,
    "src": [
     "om"
    ],
-   "note": "Lubricate front end if fittings are serviceable. Suspension and tie rod ends at 15,000 mi.",
+   "note": "OM p. 291-292: front end lube and CV/U-joints every 7,500 mi or 6 months; front suspension, tie rods and boots every 15,000 mi or 12 months.",
    "soon_mi": 750
   },
   {
@@ -270,12 +270,12 @@
    "group": "Tires and brakes",
    "item": "Brake linings and parking brake inspection",
    "int_mi": 22500,
-   "int_mo": null,
+   "int_mo": 18,
    "baseline": true,
    "src": [
     "om"
    ],
-   "note": "Manual says inspect at each oil change too. Heavy towing wears pads faster than this.",
+   "note": "OM p. 292: linings and parking brake every 22,500 mi or 18 months; brakes also on the monthly list (p. 287). Heavy towing wears pads faster.",
    "soon_mi": 1500
   },
   {
@@ -284,7 +284,7 @@
    "group": "Engine",
    "item": "Drive belt inspection",
    "int_mi": 22500,
-   "int_mo": null,
+   "int_mo": 18,
    "baseline": true,
    "src": [
     "om"
@@ -298,12 +298,12 @@
    "group": "Filters and fluids",
    "item": "Front and rear axle fluid (change, frequent towing)",
    "int_mi": 22500,
-   "int_mo": null,
+   "int_mo": 18,
    "baseline": true,
    "src": [
     "om"
    ],
-   "note": "Manual: change for frequent trailer towing. DRW rear axle takes pre-mixed Mopar 75W-140. Big Tex dealer advised 15,000 mi for the trailer axles; not confirmed whether that covers the Ram.",
+   "note": "OM p. 293: every 22,500 mi or 18 months; change the fluid for frequent trailer towing. Rear 12.0 in DRW axle: pre-mixed Mopar 75W-140 only; front 75W-85 (OM p. 353).",
    "soon_mi": 1500
   },
   {
@@ -312,7 +312,7 @@
    "group": "Tires and brakes",
    "item": "Wheel bearings inspection",
    "int_mi": 30000,
-   "int_mo": null,
+   "int_mo": 24,
    "baseline": true,
    "src": [
     "om"
@@ -326,12 +326,12 @@
    "group": "Filters and fluids",
    "item": "Transfer case fluid (change, frequent towing)",
    "int_mi": 30000,
-   "int_mo": null,
+   "int_mo": 24,
    "baseline": true,
    "src": [
     "om"
    ],
-   "note": "Mopar BW44-44 fluid. Manual: inspect at 30,000 and change for frequent trailer towing; routine change at 60,000.",
+   "note": "OM p. 293: inspect every 30,000 mi or 24 months, change for frequent trailer towing; routine change 60,000 mi. Mopar BW44-44 (p. 353).",
    "soon_mi": 2000
   },
   {
@@ -340,12 +340,12 @@
    "group": "Filters and fluids",
    "item": "Transmission fluid and filter (ATF 818)",
    "int_mi": 60000,
-   "int_mo": null,
+   "int_mo": 48,
    "baseline": true,
    "src": [
     "om"
    ],
-   "note": "Manual interval is 60,000 mi. Heavy towing: ask the dealer about going earlier. Also ask if this VIN needs the Ram 2026 Cummins transmission software update.",
+   "note": "OM p. 293: ATF 818 change at 60,000 mi or 48 months. Use TOW/HAUL when towing to cut heat and shifting (OM p. 208). Ask if this truck needs the Ram 2026 Cummins transmission software update.",
    "soon_mi": 3000
   },
   {
@@ -354,12 +354,12 @@
    "group": "Engine",
    "item": "Crankcase ventilation (CCV) filter",
    "int_mi": 75000,
-   "int_mo": null,
+   "int_mo": 60,
    "baseline": true,
    "src": [
     "om"
    ],
-   "note": "Also when the cluster shows Perform Service. No DEF filter interval is listed in the owner's manual.",
+   "note": "OM p. 293: CCV filter at 75,000 mi or 60 months, or when the cluster shows Perform Service (p. 287).",
    "soon_mi": 3000
   },
   {
@@ -368,12 +368,12 @@
    "group": "Filters and fluids",
    "item": "Power steering fluid flush",
    "int_mi": 97500,
-   "int_mo": null,
+   "int_mo": 78,
    "baseline": true,
    "src": [
     "om"
    ],
-   "note": "",
+   "note": "OM p. 294: flush power steering fluid at 97,500 mi or 78 months.",
    "soon_mi": 4000
   },
   {
@@ -387,7 +387,7 @@
    "src": [
     "om"
    ],
-   "note": "Dealer recommended for cooling system work.",
+   "note": "OM p. 294: 150,000 mi or 10 years, dealer recommended. Mopar OAT only, 22 qt (OM pp. 349, 354).",
    "soon_mi": 5000,
    "soon_d": 120
   },
@@ -414,10 +414,10 @@
    "int_mo": 3,
    "baseline": true,
    "src": [
-    "dex",
-    "tr"
+    "btm",
+    "dex"
    ],
-   "note": "If the axles have manual-adjust brakes. Self-adjusting brakes need inspection only. Axle maker not confirmed.",
+   "note": "Big Tex OM p. 59 and Dexter p. 5: adjust at the first 200 mi, then every 3,000 mi (Dexter p. 4: 3 months or 3,000 mi). Self-adjusting brakes adjust with hard reverse stops (Big Tex p. 64). No 200 mi adjustment on record.",
    "soon_mi": 300,
    "soon_d": 14
   },
@@ -425,15 +425,15 @@
    "id": "r-hub",
    "unit": "trailer",
    "group": "Trailer brakes and bearings",
-   "item": "Hub bearings: repack, or change axle gear oil (80/90)",
-   "int_mi": 15000,
+   "item": "Hub bearings: repack grease or change hub oil",
+   "int_mi": 12000,
    "int_mo": 12,
    "baseline": true,
    "src": [
     "dex",
-    "bt"
+    "btm"
    ],
-   "note": "Dexter: repack every 12 months or 12,000 mi. Big Tex dealer: gear oil at 15,000 mi. Do both at the earlier one. Inspect brake linings and magnets at the same time.",
+   "note": "Dexter p. 57-58: grease or hub oil every 12 months or 12,000 mi (was 15,000 mi from the dealer; the manual is stricter). Big Tex OM p. 62, 69: unsealed bearings yearly or 12,000 mi.",
    "soon_mi": 1000,
    "soon_d": 30
   },
@@ -446,9 +446,10 @@
    "int_mo": 3,
    "baseline": true,
    "src": [
-    "tr"
+    "btm",
+    "om"
    ],
-   "note": "Grease the coupler, check latch pin and lock, chain hooks, breakaway cable and battery.",
+   "note": "Big Tex OM p. 61: check ball and coupler for cracks, pits, flats; grease; check the lock before each use. Check coupler tightness after the first 50 mi (p. 21). Ram factory gooseneck hitch: 37,100 lb trailer, 5,565 lb pin (OM p. 200).",
    "soon_mi": 300,
    "soon_d": 14
   },
@@ -461,9 +462,10 @@
    "int_mo": 12,
    "baseline": true,
    "src": [
-    "dex"
+    "dex",
+    "om"
    ],
-   "note": "Check every trip too (checklist below).",
+   "note": "Dexter p. 4: trailer brake wiring every 12 months. Every trip: use the Ram trailer light check in the Trailer Tow menu (OM p. 207).",
    "soon_mi": 1000,
    "soon_d": 30
   },
@@ -476,7 +478,7 @@
    "int_mo": 6,
    "baseline": true,
    "src": [
-    "tr"
+    "btm"
    ],
    "note": "Check hinges, springs and welds.",
    "soon_d": 21
@@ -504,7 +506,8 @@
    "int_mo": 72,
    "baseline": true,
    "src": [
-    "tr"
+    "tr",
+    "btm"
    ],
    "note": "Industry guideline, not a Big Tex or TrailerGard term. Read the DOT date code on each sidewall. Trailer built Aug 2026.",
    "soon_d": 180
@@ -532,10 +535,9 @@
    "int_mo": null,
    "baseline": true,
    "src": [
-    "om",
-    "g"
+    "om"
    ],
-   "note": "Check with a torque wrench at each rotation and about 50 mi after any wheel work. The DRW torque value is not in the owner's manual: ask the dealer.",
+   "note": "OM p. 355: DRW flanged two-piece M14 x 1.50 nuts, 22 mm socket: min 134, nominal 142, max 149 ft-lb. Retighten after 25 mi after any wheel work (p. 356). Do not oil studs.",
    "soon_mi": 750
   },
   {
@@ -549,7 +551,7 @@
    "src": [
     "om"
    ],
-   "note": "Oil level, lights, battery, brakes and fluid, steering and suspension, wipers, coolant, DEF and tire pressure.",
+   "note": "OM p. 287 monthly list plus: tire pressure incl. spare monthly (p. 327), oil level every 3,000 mi (p. 286), DEF level (p. 291).",
    "soon_d": 7
   },
   {
@@ -561,9 +563,10 @@
    "int_mo": 3,
    "baseline": true,
    "src": [
-    "dex"
+    "dex",
+    "btm"
    ],
-   "note": "Dexter: torque after any wheel removal, re-check at 10, 25 and 50 mi, then periodically. Likely 140-170 ft-lb if 9/16-18 studs; not confirmed.",
+   "note": "Dexter 9-15K p. 76: torque before first use and after any wheel removal, re-check at 50 and 100 mi; Big Tex OM p. 59: 10, 25 and 50 mi. Dexter p. 4: every 3 months or 3,000 mi. Torque depends on the nut type (see SOP).",
    "soon_mi": 300,
    "soon_d": 14
   },
@@ -576,9 +579,10 @@
    "int_mo": 1,
    "baseline": true,
    "src": [
+    "btm",
     "dex"
    ],
-   "note": "Dexter lists it as at every use. Logged monthly here.",
+   "note": "Big Tex OM p. 61 and Dexter p. 4: before every use. Logged monthly here.",
    "soon_d": 7
   },
   {
@@ -590,15 +594,149 @@
    "int_mo": 1,
    "baseline": true,
    "src": [
-    "tr"
+    "btm",
+    "dex"
    ],
-   "note": "Also before every trip. 80 psi cold, ST235/80R16 load range E.",
+   "note": "Big Tex OM p. 58, 67: inflate cold to the trailer VIN/certification label pressure (80 psi for ST235/80R16 LRE). Dexter p. 4: weekly. Also every pre-trip.",
    "soon_d": 7
+  },
+  {
+   "id": "r-magnets",
+   "unit": "trailer",
+   "group": "Trailer brakes and bearings",
+   "item": "Brake magnets and controller output check",
+   "int_mi": 6000,
+   "int_mo": 6,
+   "baseline": true,
+   "src": [
+    "dex",
+    "btm"
+   ],
+   "note": "Dexter p. 4 and Big Tex OM p. 62: magnets for wear and current draw, controller output and modulation every 6 months or 6,000 mi.",
+   "soon_mi": 500,
+   "soon_d": 21
+  },
+  {
+   "id": "r-brkyr",
+   "unit": "trailer",
+   "group": "Trailer brakes and bearings",
+   "item": "Brake shoes, drums and wiring (annual, by dealer)",
+   "int_mi": 12000,
+   "int_mo": 12,
+   "baseline": true,
+   "src": [
+    "dex",
+    "btm"
+   ],
+   "note": "Dexter p. 4: linings, drums, brake wiring every 12 months or 12,000 mi. Big Tex OM p. 64-65: dealer inspection of brakes and magnets at least yearly.",
+   "soon_mi": 1000,
+   "soon_d": 30
+  },
+  {
+   "id": "r-susp",
+   "unit": "trailer",
+   "group": "Hitch and structure",
+   "item": "Suspension, springs, hangers and U-bolts",
+   "int_mi": 6000,
+   "int_mo": 6,
+   "baseline": true,
+   "src": [
+    "dex",
+    "btm"
+   ],
+   "note": "Dexter p. 4, 66: suspension parts every 6,000 mi or 6 months; springs and hanger welds yearly. Big Tex OM p. 62: axle attachment bolts checked by the dealer yearly.",
+   "soon_mi": 500,
+   "soon_d": 21
+  },
+  {
+   "id": "r-jack",
+   "unit": "trailer",
+   "group": "Hitch and structure",
+   "item": "Landing gear (drop-leg jacks): grease",
+   "int_mi": null,
+   "int_mo": 12,
+   "baseline": true,
+   "src": [
+    "btm"
+   ],
+   "note": "Big Tex OM p. 62, 67: grease the gears in the top of the jacks once a year; use the grease fitting if there is one.",
+   "soon_d": 30
+  },
+  {
+   "id": "r-rot",
+   "unit": "trailer",
+   "group": "Trailer tires",
+   "item": "Trailer tire rotation",
+   "int_mi": 5000,
+   "int_mo": 6,
+   "baseline": true,
+   "src": [
+    "btm"
+   ],
+   "note": "Big Tex OM p. 62: rotate at 5,000 mi; inspect tread and sidewalls every 6 months or 6,000 mi.",
+   "soon_mi": 500,
+   "soon_d": 21
   }
  ],
  "checklists": {
+  "pretrip_truck": {
+   "title": "Pre-trip: truck",
+   "src": "om",
+   "items": [
+    "Engine oil level, on level ground (Ram OM p. 286-287)",
+    "Coolant reservoir and DEF level; DEF 2 gal max from jugs at half (p. 197)",
+    "Tires cold to door placard, look for damage; no towing on a compact spare, 50 mph max on a full spare (p. 204, 327)",
+    "Lug nuts: 142 ft-lb if any wheel was off; re-check at 25 mi (p. 355-356)",
+    "Lights and wipers, mirrors extended (p. 287)",
+    "No warning lights: Water in Fuel, Wait to Start, DPF (p. 132, 169)",
+    "Warm up before load; avoid long idling (p. 172, 297)",
+    "TOW/HAUL on; exhaust brake on, never on ice (p. 177, 200)"
+   ]
+  },
+  "pretrip_trailer": {
+   "title": "Pre-trip: trailer and hitch",
+   "src": "btm",
+   "items": [
+    "Ball and receiver greased, no cracks or flats; latch closed and pinned; jack-lift test 1 in (Big Tex p. 45-46, 61)",
+    "Drop legs fully up and pinned (p. 46)",
+    "Safety chains to bed receivers, not the ball, with turn slack (p. 47)",
+    "Breakaway lanyard to truck, test pull, pin back in (p. 48)",
+    "Tires 80 psi cold, no cuts or bulges (p. 58, 61)",
+    "Lug nuts tight; 10/25/50 mi re-check after wheel work (p. 59, 61)",
+    "7-pin plugged in, trailer brake type and GAIN set (Ram OM p. 205-206)",
+    "Run the Ram trailer light check: turn, brake, marker (Ram OM p. 207)",
+    "Cargo 60% in front half, low and centered, tied down (Big Tex p. 55)",
+    "Ramps and dovetail stowed and latched (p. 56)",
+    "Scale it if 12,501+ lb cargo: GVWR, GAWR, GCWR, pin (Ram OM p. 204)"
+   ]
+  },
+  "enroute": {
+   "title": "Every stop (about once an hour)",
+   "src": "btm",
+   "items": [
+    "Coupler still locked; re-check it after the first 50 mi (Big Tex p. 21)",
+    "Plugs connected, chain and lanyard slack right (p. 21)",
+    "Tires not visibly low; hubs not hot to the touch (p. 21, 68)",
+    "Cargo and straps tight (p. 21)",
+    "Under 60 mph towing (Big Tex p. 21)"
+   ]
+  },
+  "posttrip": {
+   "title": "Post-trip and shutdown",
+   "src": "om",
+   "items": [
+    "Idle 3-5 min after full-load or uphill running before shutdown (Ram OM p. 173)",
+    "Let a DPF regen finish if the cluster says regen in process (p. 132-133)",
+    "Top up DEF; do not overfill in freezing weather (p. 196-197)",
+    "Walk around: tires, hubs, lights, leaks, straps stowed",
+    "Park level; parking brake, PARK; never park on a grade with the trailer (p. 204)",
+    "Note any lug nut, brake or light issue in the Log",
+    "Plug in the block heater below 0 F (required below -20 F, 1+ h) (p. 175)",
+    "Write down the odometer (Update odometer above)"
+   ]
+  },
   "monthly": {
-   "title": "Truck: monthly or before a long trip",
+   "title": "Truck: monthly or before a long trip (Ram OM p. 287)",
    "src": "om",
    "items": [
     "Engine oil level (30 min after a warm shutdown)",
@@ -608,34 +746,23 @@
     "Steering, suspension, axle boots",
     "Wipers, washer fluid",
     "Coolant reservoir",
-    "DEF level"
-   ]
-  },
-  "pretrip": {
-   "title": "Trailer: every trip",
-   "src": "tr",
-   "items": [
-    "Tires: 80 psi cold, no bulges or cuts, spare ok",
-    "Lug nuts tight (re-torque after any wheel work)",
-    "Gooseneck latch pinned and locked, safety chains hooked",
-    "Breakaway cable attached, battery ok",
-    "Brake controller gain set, trailer brakes tested",
-    "Lights: turn, brake, marker, clearance",
-    "Straps, chains and binders checked, tarps secured",
-    "Ramps and dovetail latched"
+    "DEF level",
+    "Tire pressure incl. spare, cold (OM p. 327)"
    ]
   }
  },
  "sources": {
-  "om": "2026 Ram 2500/3500 Owner's Manual, Scheduled Servicing and Maintenance Plan - Diesel Models, pp. 62-66 (box copy hamilton-guide/src/om2026.pdf)",
+  "om": "2026 Ram 2500/3500 Owner's Manual (Mopar digital E5): diesel maintenance plan pp. 291-294, servicing notes pp. 286-287, towing pp. 197-208, tires pp. 323-334, fluids and lug torque pp. 347-356",
   "co-oil": "Company rule: oil every 5,000 mi (Claudio 11/20, stricter than warranty)",
-  "sev": "Ram/Cummins severe-duty (trailer towing) oil: 7,500 mi or 6 months (warranty research 10/8). Owner's manual maximum 15,000 mi or 12 months",
-  "dex": "Dexter Axle service manual: bearings every 12 months or 12,000 mi, brake adjust every 3,000 mi, brake inspection 12 months (dextergroup.com)",
-  "bt": "Big Tex dealer (Mike Piazza, 10/8): axle gear oil 80/90 at 15,000 mi. Axle maker not confirmed",
-  "tr": "General trailer practice. The Big Tex owner's manual is not on file",
+  "sev": "Ram/Cummins severe-duty (trailer towing) oil: 7,500 mi or 6 months (warranty research 10/8). The 2026 owner's manual itself gives one diesel plan (15,000 mi or 12 months max) and says trailer towing may reduce oil change intervals (OM p. 287)",
+  "dex": "Dexter 9,000-15,000 lb Axle Service Manual (LIT-006-00): maintenance schedule p. 4, new-axle setup p. 5, brake adjust p. 14, bearings pp. 57-62, wheel torque pp. 75-76, fastener torque p. 79",
+  "bt": "Big Tex dealer (Mike Piazza, 10/8): axle gear oil 80/90 at 15,000 mi. Superseded by the Dexter manual (12 months or 12,000 mi)",
+  "tr": "General trailer practice, now checked against the Big Tex owner's manual and the Dexter 9-15K manual",
   "co-deck": "Company maintenance plan: reseal wood deck every 6 to 12 months",
   "cfr": "49 CFR 396.17: every commercial motor vehicle (over 10,000 lb GVWR or combination weight, interstate) needs an annual inspection",
-  "g": "General guidance (not from a manual): common shop practice for the job"
+  "g": "General guidance (not from a manual): common shop practice for the job",
+  "tow": "2026 Ram Heavy Duty Payload and Towing chart v1.9 (ramtrucks.com): Ram 3500 Mega Cab DRW 4x4 Cummins HO 3.42: GVWR 14,000, GCWR 41,950, max trailer 32,890, max payload 5,380 lb",
+  "btm": "Big Tex Trailers Owner's Manual (rev. March 2020): coupling pp. 42-49, loading and tongue weight pp. 51-57, pre-tow checklist p. 58, break-in p. 59, service charts pp. 61-62, service pp. 63-70"
  },
  "warranty": {
   "ram": [
@@ -657,10 +784,13 @@
   ],
   "ram_src": "2026 Ram HD Warranty Information booklet (mopar.com) and Ram's 2026 10 yr / 100K powertrain release. Read your own booklet for exact terms.",
   "rules": [
-   "Follow the severe-duty oil schedule and keep every service receipt.",
-   "Stay inside tow and weight ratings.",
+   "Keep every service receipt (Ram OM p. 287: Retain all receipts).",
+   "Follow the severe-duty oil schedule; the manual says towing may shorten it (OM p. 287).",
+   "Stay inside GVWR, GAWR, GCWR and hitch ratings (OM p. 197-204).",
    "No Hamilton cam kit while under warranty.",
-   "Use Ram-specified oil and Mopar-grade filters and fluids."
+   "Use Ram-specified oil (MS-10902 CK-4), OAT coolant only, ATF 818, API-certified DEF (OM p. 349-353). Non-OAT coolant needs a dealer flush (p. 349).",
+   "ULSD only; biodiesel above B20 can cause severe damage (OM p. 347-348).",
+   "Trailer: log every lug nut torque check with date and miles (Big Tex OM p. 70). Normal wear items are not covered (p. 71)."
   ],
   "lds": "Separate dealer mechanical warranty (Louisiana Dealer Services, 48 months or 150,000 mi) allows company use with a single driver. It prohibits multiple drivers and overloading. Contract copy not on file.",
   "tire_note": "Trailer tires and wheels: TrailerGard 7 years to 10/5/2033, commercial use, no deductible. Before any tire work the shop must call the warranty company. Only page 1 of 4 is on file. Ram tires: no warranty paperwork on file."
@@ -671,9 +801,13 @@
   "11/11 tire: truck or trailer, which tire, which shop, the cost, who paid, and the TrailerGard claim number.",
   "What happened to the nail-flat trailer tire from 11/3 (repaired, replaced, or still carrying the spare)?",
   "Trailer axle tag: maker (Dexter?), brake type (manual or self-adjust), and whether hubs are grease or oil bath.",
-  "The Big Tex owner's manual or maintenance sheet for the 25GN.",
   "Annual DOT inspection reports for the truck and trailer from Totni (or book one).",
-  "Ram tire warranty or road hazard paperwork and TrailerGard pages 2 to 4."
+  "Ram tire warranty or road hazard paperwork and TrailerGard pages 2 to 4.",
+  "Photo of the Ram door-jamb tire placard and the certification label (cold psi front/rear, front and rear GAWR).",
+  "The CAT scale ticket from 10/7: steer, drive and trailer axle weights, and whether the empty trailer was hooked up for the 10,940 lb.",
+  "Trailer wheel nuts: flange nut or cone nut (sets the 150-325 ft-lb torque row).",
+  "Rating stamped on the gooseneck ball (must be at least 25,900 lb) and whether the hitch is the Ram factory puck system.",
+  "Was the trailer brake 200-mile adjustment ever done? (Big Tex and Dexter require it.)"
  ],
  "sop": {
   "t-oil": {
@@ -693,7 +827,22 @@
    "specs": [
     [
      "Oil capacity with filter",
-     "12 qt (11.4 L)",
+     "12 qt (11.4 L) (OM p. 354)",
+     "m"
+    ],
+    [
+     "Maximum interval",
+     "15,000 mi or 12 months or 500 h, sooner if the indicator says (OM p. 286, 291). Company rule 5,000 mi",
+     "m"
+    ],
+    [
+     "Severe service",
+     "Trailer towing and heavy loading may reduce the interval (OM p. 287)",
+     "m"
+    ],
+    [
+     "Biodiesel B6-B20",
+     "Never past 15,000 mi or 500 h (OM p. 348)",
      "m"
     ],
     [
@@ -736,7 +885,14 @@
     "Use Ram-specified oil only while under warranty (10W-30 or the 5W-40 for cold). No switch to 15W-40 until off the factory lifters."
    ],
    "basis": "mixed",
-   "note": ""
+   "note": "",
+   "cite": [
+    "Ram OM p. 286-287 (intervals, level check, severe service, keep receipts)",
+    "Ram OM p. 291 (diesel plan)",
+    "Ram OM p. 350 (oil grade)",
+    "Ram OM p. 354 (capacity)",
+    "Ram OM p. 126 (reset)"
+   ]
   },
   "t-rot": {
    "about": "Rotate the tires and look them over. Ram diesel plan: every 7,500 mi, and at the first sign of uneven wear.",
@@ -753,22 +909,32 @@
    "specs": [
     [
      "Interval",
-     "Every 7,500 mi (diesel plan)",
+     "Every 7,500 mi or 6 months; sooner at the first sign of irregular wear (OM p. 287, 291)",
      "m"
     ],
     [
-     "Lug nut tightening",
-     "Star pattern, each nut tightened twice. Use a torque wrench",
+     "DRW lug nut torque",
+     "Flanged two-piece M14 x 1.50 nuts, 22 mm hex deep socket: min 134, nominal 142, max 149 ft-lb (OM p. 355)",
      "m"
     ],
     [
-     "Lug torque for the DRW 3500",
-     "Not in the owner's manual. Get it from the dealer service information or the wheel maker",
-     "g"
+     "Re-torque",
+     "Retighten after 25 miles (OM p. 356)",
+     "m"
+    ],
+    [
+     "Pattern",
+     "Star pattern for 8 or 10 nuts, tighten in steps to final torque (OM p. 356)",
+     "m"
     ],
     [
      "Do not oil wheel studs",
-     "Stated in the owner's manual",
+     "Clean the nut-to-washer face of the two-piece nuts at each rotation (OM p. 355)",
+     "m"
+    ],
+    [
+     "Tire pressure",
+     "Door-jamb placard, cold (OM p. 327). About 1 psi per 12 F change (p. 331)",
      "m"
     ]
    ],
@@ -779,8 +945,8 @@
     "Jack at the frame point, set stands. Never lift on the axle tube alone for a long job.",
     "Remove wheels. Look at the tread, sidewalls and valve stems. Check brake pads and rotors while the wheel is off (see the brake item).",
     "Move the wheels using the pattern your tire shop or the dealer recommends for dual rear wheels (general guidance, ask which one they want for these tires).",
-    "Refit and snug in a star pattern, lower the truck, then torque in a star pattern twice.",
-    "Reset pressures. Re-check the torque after about 50 miles.",
+    "Refit and snug in a star pattern, lower the truck, then torque in a star pattern in steps to 142 ft-lb (134-149).",
+    "Reset pressures. Re-check the torque after 25 miles (OM p. 356).",
     "Log date and odometer."
    ],
    "safety": [
@@ -789,46 +955,62 @@
     "Dually wheels must be seated and the duals spaced so they do not touch."
    ],
    "basis": "mixed",
-   "note": "The rotation pattern is general guidance. The manual only says to rotate at the first sign of uneven wear and every 7,500 mi."
+   "note": "The dual-wheel rotation pattern is general guidance. Torque and interval are from the owner's manual.",
+   "cite": [
+    "Ram OM p. 287, 291 (interval)",
+    "Ram OM p. 355-356 (lug torque, pattern, 25 mi re-check)",
+    "Ram OM p. 327, 331 (cold pressure)"
+   ]
   },
   "t-lug": {
-   "about": "Check the Ram wheel nut torque with a torque wrench.",
+   "about": "Check the Ram dually wheel nuts with a torque wrench: 142 ft-lb nominal (134-149), and again 25 miles after any wheel work.",
    "tools": [
-    "Torque wrench",
-    "Correct socket (thin-wall if needed for duals)"
+    "Torque wrench (25-250 ft-lb)",
+    "22 mm six-sided deep wall socket (thin-wall if needed for the duals)",
+    "Wire brush, rag"
    ],
    "parts": [
     "None"
    ],
    "specs": [
     [
-     "Method",
-     "Star pattern, each nut tightened twice, check with a torque wrench",
+     "DRW lug nut torque",
+     "Flanged two-piece M14 x 1.50 nuts, 22 mm hex deep socket: min 134, nominal 142, max 149 ft-lb (OM p. 355)",
      "m"
     ],
     [
      "After any wheel removal",
-     "Re-check at about 50 miles",
-     "g"
+     "Retighten after 25 miles (OM p. 356)",
+     "m"
     ],
     [
-     "DRW torque value",
-     "Not in the owner's manual. Ask the dealer or read the wheel maker's spec",
-     "g"
+     "Method",
+     "Seat all nuts, then tighten in increments, star pattern, opposite nut each time (OM p. 356)",
+     "m"
+    ],
+    [
+     "Do not oil studs",
+     "Clean the nut and washer faces instead (OM p. 355)",
+     "m"
     ]
    ],
    "steps": [
-    "Find the torque value first. Do not guess.",
-    "Truck cold and parked, wheels on the ground.",
-    "Set the wrench and pull each nut in a star pattern until it clicks (do not keep pulling after the click).",
-    "Look at the studs and nut seats for rust streaks or cracks.",
+    "Truck parked and cold, wheels on the ground (do not torque fully with the truck on a jack, OM p. 356).",
+    "Set the wrench to 142 ft-lb.",
+    "Pull each nut in the star pattern until it clicks. Do not keep pulling after the click.",
+    "If any nut turns before the click, note which one and recheck all nuts on that wheel.",
+    "Look at studs and nut seats for rust streaks or cracks.",
     "Log date and odometer."
    ],
    "safety": [
-    "A loose dually wheel can come off. If a nut turns before the click, stop and have a shop check the studs."
+    "A loose dually wheel can come off. If a nut keeps losing torque, have a shop check the studs and wheel."
    ],
-   "basis": "general",
-   "note": "Torque value to be filled in from the dealer."
+   "basis": "manual",
+   "note": "From the owner's manual. Our DRW uses flanged nuts.",
+   "cite": [
+    "Ram OM p. 355 (torque table, socket, two-piece nuts)",
+    "Ram OM p. 356 (pattern, retighten after 25 mi)"
+   ]
   },
   "t-fuel": {
    "about": "Replace both engine-mounted fuel filters at 15,000 mi.",
@@ -846,7 +1028,7 @@
    "specs": [
     [
      "Interval",
-     "Every 15,000 mi, both filters",
+     "Front and rear filters every 15,000 mi or 12 months (OM p. 292-293)",
      "m"
     ],
     [
@@ -863,6 +1045,16 @@
      "Hard-start warning",
      "2025-26 canisters can trap air after a change",
      "g"
+    ],
+    [
+     "Water in Fuel light",
+     "Do not start the engine until the water is drained from the filters (OM p. 169-170)",
+     "m"
+    ],
+    [
+     "After running out of fuel",
+     "Ignition ON 30 s, OFF 30 s, three times before cranking (OM p. 194)",
+     "m"
     ]
    ],
    "steps": [
@@ -879,10 +1071,16 @@
     "Use only filters that meet the stated micron ratings. A wrong filter harms the injection system."
    ],
    "basis": "mixed",
-   "note": "Prime sequence is general guidance. Ask the dealer for the priming steps for this VIN."
+   "note": "Prime sequence is general guidance. Ask the dealer for the priming steps for this VIN.",
+   "cite": [
+    "Ram OM p. 292-293 (interval)",
+    "Ram OM p. 169-170 (water in fuel)",
+    "Ram OM p. 194 (out of fuel priming)",
+    "Ram OM p. 347, 351 (ULSD only, B20 max)"
+   ]
   },
   "t-air": {
-   "about": "Inspect the engine air filter and replace it when dirty, never past 15,000 mi or 24 months.",
+   "about": "Inspect the engine air filter every 15,000 mi or 12 months and replace it if dirty. Never run it past 30,000 mi or 24 months.",
    "tools": [
     "Basic hand tools",
     "Flashlight"
@@ -892,13 +1090,23 @@
    ],
    "specs": [
     [
-     "Max interval",
-     "15,000 mi or 24 months",
+     "Inspect",
+     "Every 15,000 mi or 12 months, replace if necessary (OM p. 291)",
+     "m"
+    ],
+    [
+     "Hard maximum",
+     "30,000 mi or 24 months (OM p. 291 note 2)",
      "m"
     ],
     [
      "Dusty work",
-     "Inspect at each oil change",
+     "Inspect at each oil change (OM p. 287)",
+     "m"
+    ],
+    [
+     "Lid screws",
+     "Do not overtighten (OM p. 300)",
      "m"
     ]
    ],
@@ -914,7 +1122,12 @@
     "Never run the engine without the filter."
    ],
    "basis": "mixed",
-   "note": ""
+   "note": "",
+   "cite": [
+    "Ram OM p. 291 (interval and 30,000 mi max)",
+    "Ram OM p. 287 (dusty)",
+    "Ram OM p. 299-300 (procedure)"
+   ]
   },
   "t-cabin": {
    "about": "Replace the cabin air filter every 12,000 mi.",
@@ -942,8 +1155,11 @@
    "safety": [
     "None special."
    ],
-   "basis": "general",
-   "note": "Location steps are general guidance."
+   "basis": "manual",
+   "note": "Location steps are general guidance.",
+   "cite": [
+    "Ram OM p. 292 (every 12,000 mi)"
+   ]
   },
   "t-front": {
    "about": "Inspect the front end, CV and U-joints and suspension every 7,500 mi.",
@@ -982,7 +1198,11 @@
     "A loose steering part is a safety item. Do not drive on it."
    ],
    "basis": "mixed",
-   "note": ""
+   "note": "",
+   "cite": [
+    "Ram OM p. 291 (front end lube, 7,500 mi / 6 mo)",
+    "Ram OM p. 292 (CV/U-joints; front suspension 15,000 mi / 12 mo)"
+   ]
   },
   "t-brake": {
    "about": "Inspect brake linings and the parking brake. Heavy towing wears them faster than the 22,500 mi manual interval.",
@@ -1026,7 +1246,12 @@
     "If the pedal is soft or the truck pulls, stop and have it looked at."
    ],
    "basis": "mixed",
-   "note": ""
+   "note": "",
+   "cite": [
+    "Ram OM p. 292 (22,500 mi / 18 mo)",
+    "Ram OM p. 287 (monthly checks)",
+    "Ram OM p. 353 (DOT 3)"
+   ]
   },
   "t-belt": {
    "about": "Inspect the drive belt every 22,500 mi.",
@@ -1055,7 +1280,10 @@
     "Keep hands and hair away if the engine is running."
    ],
    "basis": "mixed",
-   "note": ""
+   "note": "",
+   "cite": [
+    "Ram OM p. 292 (22,500 mi / 18 mo)"
+   ]
   },
   "t-axle": {
    "about": "Change the front and rear axle gear oil. The manual says to change it for frequent trailer towing, at 22,500 mi.",
@@ -1094,8 +1322,8 @@
     ],
     [
      "Trailer axles (separate item)",
-     "Big Tex dealer advised 15,000 mi; unconfirmed whether the same for the Ram",
-     "b"
+     "Dexter: hub grease or oil every 12 months or 12,000 mi (Dexter p. 57-58)",
+     "d"
     ]
    ],
    "steps": [
@@ -1114,7 +1342,11 @@
     "Hot gear oil burns."
    ],
    "basis": "mixed",
-   "note": ""
+   "note": "",
+   "cite": [
+    "Ram OM p. 293 (22,500 mi / 18 mo, change for towing)",
+    "Ram OM p. 353 (75W-140 pre-mixed rear, 75W-85 front)"
+   ]
   },
   "t-whl": {
    "about": "Inspect the wheel bearings at 30,000 mi.",
@@ -1145,7 +1377,10 @@
     "Use jack stands rated for the load. Never work under a vehicle held only by a jack."
    ],
    "basis": "mixed",
-   "note": ""
+   "note": "",
+   "cite": [
+    "Ram OM p. 292 (30,000 mi / 24 mo)"
+   ]
   },
   "t-tcase": {
    "about": "Change the transfer case fluid. Manual: inspect at 30,000 mi and change for frequent trailer towing; routine change at 60,000 mi.",
@@ -1189,7 +1424,11 @@
     "Use only the specified fluid."
    ],
    "basis": "mixed",
-   "note": ""
+   "note": "",
+   "cite": [
+    "Ram OM p. 293 (inspect 30,000, change 60,000; towing)",
+    "Ram OM p. 353 (BW44-44)"
+   ]
   },
   "t-trans": {
    "about": "Change the automatic transmission fluid (Torqueflite 8-speed) every 60,000 mi. Heavy towing may call for earlier service: ask the dealer.",
@@ -1221,6 +1460,11 @@
      "Software check",
      "Ask whether this VIN needs the Ram 2026 Cummins transmission software update (built before 2025-12-11)",
      "g"
+    ],
+    [
+     "When towing",
+     "Use TOW/HAUL in hills; lower gear on steep grades; no cruise on hills or heavy loads (OM p. 208)",
+     "m"
     ]
    ],
    "steps": [
@@ -1233,7 +1477,12 @@
     "Wrong fluid or a wrong fill level can damage the transmission and the warranty."
    ],
    "basis": "mixed",
-   "note": ""
+   "note": "",
+   "cite": [
+    "Ram OM p. 293 (60,000 mi / 48 mo)",
+    "Ram OM p. 353 (ATF 818)",
+    "Ram OM p. 208 (TOW/HAUL)"
+   ]
   },
   "t-ccv": {
    "about": "Replace the crankcase ventilation (CCV) filter at 75,000 mi or when the cluster shows Perform Service.",
@@ -1265,7 +1514,11 @@
     "Do not ignore the Perform Service message."
    ],
    "basis": "mixed",
-   "note": ""
+   "note": "",
+   "cite": [
+    "Ram OM p. 293 (75,000 mi / 60 mo)",
+    "Ram OM p. 287 (Perform Service)"
+   ]
   },
   "t-ps": {
    "about": "Flush and replace the power steering fluid at 97,500 mi.",
@@ -1296,7 +1549,11 @@
     "Do not top off with other fluids."
    ],
    "basis": "mixed",
-   "note": ""
+   "note": "",
+   "cite": [
+    "Ram OM p. 294 (97,500 mi / 78 mo)",
+    "Ram OM p. 353 (fluid)"
+   ]
   },
   "t-cool": {
    "about": "Flush and replace the coolant at 10 years or 150,000 mi, whichever comes first. Check the reservoir monthly.",
@@ -1326,6 +1583,11 @@
      "Who",
      "The manual strongly recommends cooling system work be done by the dealer",
      "m"
+    ],
+    [
+     "Gauge limit",
+     "Coolant must not pass 240 F; below 140 F for long periods harms the engine (OM p. 173-174)",
+     "m"
     ]
    ],
    "steps": [
@@ -1339,7 +1601,13 @@
     "Do not use water alone or alcohol-based products or rust inhibitors."
    ],
    "basis": "mixed",
-   "note": ""
+   "note": "",
+   "cite": [
+    "Ram OM p. 294 (150,000 mi / 10 yr, dealer)",
+    "Ram OM p. 348-351 (OAT only, do not mix)",
+    "Ram OM p. 354 (22 qt)",
+    "Ram OM p. 173 (240 F max gauge, 21 psi cap)"
+   ]
   },
   "t-monthly": {
    "about": "The Ram owner's manual monthly (or before a long trip) walk-around for the truck.",
@@ -1355,6 +1623,11 @@
     [
      "Interval",
      "Once a month or before a long trip",
+     "m"
+    ],
+    [
+     "Tires",
+     "Check pressure of each tire incl. the spare at least monthly, cold, to the door placard (OM p. 327)",
      "m"
     ]
    ],
@@ -1373,7 +1646,12 @@
     "Do the engine and coolant checks cold."
    ],
    "basis": "manual",
-   "note": ""
+   "note": "",
+   "cite": [
+    "Ram OM p. 287 (monthly list)",
+    "Ram OM p. 286 (oil level every 3,000 mi)",
+    "Ram OM p. 327 (tire pressure monthly incl. spare)"
+   ]
   },
   "t-dot": {
    "about": "Get the annual DOT inspection (49 CFR 396.17) for the truck. Under the lease Totni is the carrier, so ask them for a copy first.",
@@ -1406,58 +1684,71 @@
     "Do not run interstate without a current report if the carrier requires it."
    ],
    "basis": "general",
-   "note": "Check with Totni for what they require."
+   "note": "Check with Totni for what they require.",
+   "cite": [
+    "49 CFR 396.17 (not in any manual)"
+   ]
   },
   "r-brake": {
-   "about": "Check and adjust the trailer brakes. Dexter: first 200 mi, every 3,000 mi if manual-adjust (not needed for self-adjusting brakes), full inspection yearly. The axle maker and brake type are not confirmed.",
+   "about": "Adjust the trailer electric brakes: after the first 200 miles, then every 3,000 miles or 3 months, and sync the Ram brake controller gain.",
    "tools": [
-    "Jack and stands rated for the trailer",
-    "Brake adjusting tool or screwdriver",
-    "Torque wrench",
-    "Flashlight",
-    "Brake controller"
+    "Floor jack and jack stands",
+    "Brake spoon or screwdriver (modified 80 degree tool for drop spindles)",
+    "Lug wrench and torque wrench",
+    "Flashlight"
    ],
    "parts": [
-    "None unless worn (shoes, magnets)"
+    "Adjusting-hole covers if lost"
    ],
    "specs": [
     [
-     "Adjust (manual-adjust brakes)",
-     "After the first 200 miles, then every 3,000 miles or as performance needs",
+     "First adjustment",
+     "After the first 200 miles (Big Tex OM p. 59; Dexter p. 5)",
+     "b"
+    ],
+    [
+     "Then",
+     "Every 3,000 miles or 3 months (Big Tex p. 59, 64; Dexter p. 4, 14)",
      "d"
     ],
     [
-     "Brake inspection",
-     "Linings, magnets, drums, wiring: every 12 months or 12,000 mi",
-     "d"
+     "Self-adjusting brakes",
+     "Adjust by hard stops in reverse; read the axle tag (Big Tex p. 64)",
+     "b"
     ],
     [
-     "Wheel nuts",
-     "Torque after any wheel removal, re-check at 10, 25 and 50 miles",
-     "d"
+     "Ram controller",
+     "Brake type Heavy Electric above 10,000 lb; set GAIN just below wheel lockup at 20-25 mph with the manual lever (OM p. 205-206)",
+     "m"
     ]
    ],
    "steps": [
-    "Chock the truck and trailer wheels. Hitch up the trailer to the truck.",
-    "Test first: with the truck running, pull the brake controller lever and listen and feel for each wheel braking. Check the gain setting.",
-    "Jack one axle at a time on the frame (never on the axle tube) and set rated stands.",
-    "Spin each wheel. It should turn freely with a slight drag.",
-    "If manual-adjust: remove the adjusting hole cover, turn the star wheel to lock the shoes, then back off until the wheel turns with a slight drag. Set all wheels the same.",
-    "Look at the lining thickness and the magnet face through the hole or with the drum off. Look for oil or grease on the linings.",
-    "Check the wiring and the connectors at each brake for bare spots.",
-    "Refit covers and wheels, torque the wheel nuts in a star pattern.",
-    "Do a short drive test with the controller and log date and trailer miles."
+    "Find the axle tag: manual-adjust or self-adjusting. Self-adjusting: do several firm stops in reverse instead, then skip to the gain step.",
+    "Park level, chock, jack one wheel by the frame and set a stand (Big Tex p. 63 jack points).",
+    "Remove the adjusting-hole cover on the back of the backing plate.",
+    "Turn the star wheel to expand the shoes until the wheel is very hard to turn.",
+    "Back the star wheel off until the wheel turns freely with a slight drag (Big Tex p. 64; Dexter p. 14).",
+    "Refit the cover. Repeat on all 4 brakes.",
+    "Lower the trailer. On a dry empty lot at 20-25 mph, squeeze the Ram manual brake lever fully; raise GAIN until just below lockup (OM p. 206).",
+    "Log date and trailer miles."
    ],
    "safety": [
     "Use jack stands rated for the load. Never work under a vehicle held only by a jack.",
-    "Grease on the linings means a bad seal: stop and fix it.",
-    "Never go under the trailer when it is only on a jack."
+    "Never crawl under the trailer unless it is on firm level ground on jack stands (Big Tex p. 63).",
+    "Do not get grease on linings or magnets (Dexter p. 15)."
    ],
-   "basis": "mixed",
-   "note": "Steps are general shop practice. Intervals are from Dexter. Confirm the axle maker and brake type from the axle tag."
+   "basis": "manual",
+   "note": "",
+   "cite": [
+    "Big Tex OM p. 59 (200 mi, then 3,000 mi; sync)",
+    "Big Tex OM p. 64 (manual adjust steps)",
+    "Dexter 9-15K p. 4-5 (schedule, new axle setup)",
+    "Dexter 9-15K p. 14 (adjust procedure)",
+    "Ram OM p. 205-206 (ITBM gain and brake type)"
+   ]
   },
   "r-hub": {
-   "about": "Service the trailer hub bearings: repack the grease (Dexter: every 12 months or 12,000 mi) or change the axle gear oil at 15,000 mi (Big Tex dealer). Do it at the earlier mark and look at the brakes at the same time.",
+   "about": "Service the trailer hub bearings every 12 months or 12,000 miles: repack grease (or change the hub oil if the hubs have clear oil caps). Inspect drums, seals and magnets while the hub is off.",
    "tools": [
     "Jack and stands",
     "Torque wrench",
@@ -1474,23 +1765,33 @@
    ],
    "specs": [
     [
-     "Bearing lubrication",
-     "Every 12 months or 12,000 miles",
+     "Interval",
+     "Grease or hub oil every 12 months or 12,000 mi (Dexter p. 57-58)",
      "d"
-    ],
-    [
-     "Axle gear oil",
-     "80/90 at 15,000 miles",
-     "b"
     ],
     [
      "Grease",
-     "Do not mix lithium, calcium, sodium or barium complex greases",
+     "Lithium complex NLGI No. 2 EP; do not mix grease types (Dexter p. 57, 59)",
      "d"
     ],
     [
+     "Hub oil (if oil caps)",
+     "SAE 90, 80W-90 or 75W-90 to the line on the cap (Dexter p. 58-59)",
+     "d"
+    ],
+    [
+     "12K bearing adjust",
+     "Inner nut 100 ft-lb while turning, back off, then per Dexter steps; outer locknut 100-175 ft-lb (Dexter p. 61-62)",
+     "d"
+    ],
+    [
+     "Water",
+     "Replace any bearing that was under water (Big Tex OM p. 69)",
+     "b"
+    ],
+    [
      "Hub type",
-     "Grease or oil bath is not confirmed. Read the axle tag or ask Big Tex",
+     "Grease or oil bath is not confirmed. Read the axle tag or look for clear oil caps",
      "g"
     ]
    ],
@@ -1500,8 +1801,8 @@
     "Remove the wheel, dust cap, cotter pin and spindle nut. Pull the hub and drum straight off.",
     "Wipe off old grease. Inspect each bearing and cup. Replace in sets if pitted, blue or rough.",
     "Pack the bearings by hand or with a packer until grease shows through the rollers.",
-    "Fit a new seal. Refit the hub, tighten the spindle nut then back off per the Dexter manual and fit a new cotter pin.",
-    "Oil bath: drain the old oil, refill to the line with 80/90 gear oil.",
+    "Fit a new seal. Refit the hub, tighten the inner spindle nut to 100 ft-lb while turning, back off, then finish per Dexter p. 61-62 (outer locknut 100-175 ft-lb) and fit a new cotter pin.",
+    "Oil bath: drain the old oil, refill to the line on the cap with SAE 90 / 80W-90 / 75W-90.",
     "Check the brake linings and magnets while the drum is off.",
     "Refit the wheel, torque the nuts in a star pattern, re-check at 10, 25 and 50 miles.",
     "Log date and trailer miles."
@@ -1511,8 +1812,14 @@
     "Bearings are replaced in a cone and cup set.",
     "Wash hands: bearing grease and old oil are dirty and irritate skin."
    ],
-   "basis": "mixed",
-   "note": "Steps are general shop practice. Get the Dexter service manual for the exact spindle nut procedure."
+   "basis": "manual",
+   "note": "Steps are general shop practice. Get the Dexter service manual for the exact spindle nut procedure.",
+   "cite": [
+    "Dexter 9-15K p. 4 (schedule)",
+    "Dexter 9-15K p. 57-59 (grease, oil, approved lubes)",
+    "Dexter 9-15K p. 61-62 (12K spindle nut torque)",
+    "Big Tex OM p. 62, 68-69 (yearly or 12,000 mi; water)"
+   ]
   },
   "r-gn": {
    "about": "Inspect and grease the gooseneck coupler, latch, safety chains and breakaway cable. General guidance, every 3 months or 3,000 mi.",
@@ -1528,36 +1835,58 @@
    ],
    "specs": [
     [
-     "Interval",
-     "Every 3 months or 3,000 mi",
-     "g"
+     "Before each use",
+     "Ball and receiver: cracks, pits, flats; grease; lock works (Big Tex OM p. 61)",
+     "b"
+    ],
+    [
+     "After the first 50 mi of a tow",
+     "Check coupler tightness (Big Tex p. 21)",
+     "b"
+    ],
+    [
+     "Coupler",
+     "2-5/16 in Demco EZ Latch (Big Tex spec sheet). Ball must match size and be rated at least the trailer GVWR 25,900 lb (Big Tex p. 42)",
+     "b"
+    ],
+    [
+     "Ram gooseneck rating",
+     "37,100 lb trailer, 5,565 lb pin weight (OM p. 200)",
+     "m"
     ],
     [
      "Safety chains",
-     "Crossed under the gooseneck, hooked to the truck, no dragging",
-     "g"
+     "To the bed safety chain receivers, never to the ball or its support; slack for turns but keep the neck on the bed (Big Tex p. 47)",
+     "b"
     ],
     [
-     "Breakaway",
-     "Check battery charge and switch at every use",
-     "d"
+     "Height bolts",
+     "Coupler height bolts tight, then jam nuts; do not over-tighten (Big Tex p. 42)",
+     "b"
     ]
    ],
    "steps": [
-    "Hook the trailer to the ball. Latch it and pin the lock.",
-    "Wiggle the coupler: there should be no up-down play at the ball.",
-    "Look at the latch, lock pin and spring for wear or cracks. Look at the welds.",
-    "Grease the coupler zerks and the jack if it has fittings.",
-    "Check the safety chains: no cracked links, hooks close tight, enough slack to turn.",
-    "Check the breakaway cable and clip, and test it (see the breakaway item).",
-    "Check the nuts on the coupler and the jack.",
+    "Wipe the receiver, look and feel for cracks, worn spots and pits (Big Tex p. 45).",
+    "Grease the inside of the receiver and the ball with automotive bearing grease (p. 45, 66).",
+    "Couple: lower onto the ball, close and pin the latch, then use the jack to raise the truck about 1 in to prove the lock (p. 45-46). Do not lift more than 1 in.",
+    "Raise the drop legs fully; keep feet clear, they spring up (p. 46).",
+    "Hook chains to the bed receivers with turn slack (p. 47).",
+    "Breakaway lanyard to the truck so the pin pulls before the chains go tight; not to a chain or the ball (p. 48).",
+    "Check the height-adjust bolts and jam nuts.",
     "Log date and trailer miles."
    ],
    "safety": [
     "A coupler that pops off the ball is dangerous. Do not tow with a worn latch."
    ],
-   "basis": "general",
-   "note": ""
+   "basis": "manual",
+   "note": "",
+   "cite": [
+    "Big Tex OM p. 42-49 (gooseneck coupling, chains, breakaway)",
+    "Big Tex OM p. 61, 66 (before each use, grease)",
+    "Big Tex OM p. 21 (check coupler after 50 mi)",
+    "Big Tex spec sheet (Demco EZ Latch 2-5/16)",
+    "Ram OM p. 200 (Ram gooseneck rating)"
+   ]
   },
   "r-lights": {
    "about": "Check the trailer lights and wiring every trip and inspect the wiring yearly.",
@@ -1594,7 +1923,12 @@
     "Do not cut or splice wiring near the brake magnet leads unless you know the wire colors."
    ],
    "basis": "mixed",
-   "note": ""
+   "note": "",
+   "cite": [
+    "Dexter 9-15K p. 4 (brake wiring 12 mo)",
+    "Ram OM p. 207-208 (trailer light check, 7-pin)",
+    "Big Tex OM p. 58 (pre-tow)"
+   ]
   },
   "r-ramps": {
    "about": "Inspect the ramps, dovetail, deck bolts and hinges every 6 months. General guidance.",
@@ -1628,7 +1962,11 @@
     "Keep fingers clear of the springs and hinges."
    ],
    "basis": "general",
-   "note": ""
+   "note": "",
+   "cite": [
+    "Big Tex OM p. 55-56 (ramp secure top and bottom, stow and secure)",
+    "Big Tex OM p. 62-63 (structure, hinges)"
+   ]
   },
   "r-deck": {
    "about": "Reseal the wood deck with penetrating oil every 6 to 12 months (company plan).",
@@ -1660,7 +1998,11 @@
     "A fresh oiled deck is slippery."
    ],
    "basis": "general",
-   "note": ""
+   "note": "",
+   "cite": [
+    "Big Tex OM p. 55 (inspect deck, hold-downs and D-rings before loading)",
+    "Company plan (reseal interval)"
+   ]
   },
   "r-tireage": {
    "about": "Check the DOT date code on each trailer tire and plan to replace by 6 years from the date. The trailer was built Aug 2026.",
@@ -1693,7 +2035,11 @@
     "An old tire can fail even with good tread."
    ],
    "basis": "general",
-   "note": ""
+   "note": "",
+   "cite": [
+    "Big Tex OM p. 67-68 (pressure loss 1-3 psi a month, inspect wheels yearly)",
+    "Industry guideline (6 yr age)"
+   ]
   },
   "r-dot": {
    "about": "Get the annual DOT inspection for the trailer along with the truck.",
@@ -1720,54 +2066,73 @@
     "Brake and light defects are the most common out-of-service items."
    ],
    "basis": "general",
-   "note": ""
+   "note": "",
+   "cite": [
+    "49 CFR 396.17 (not in any manual)"
+   ]
   },
   "r-lug": {
-   "about": "Torque the trailer wheel nuts. Dexter: torque before first road use and after any wheel removal, re-check at 10, 25 and 50 miles, then periodically (we use every 3 months or 3,000 mi).",
+   "about": "Torque the trailer wheel nuts with a torque wrench: before the first road use and after any wheel removal, re-check at 10, 25, 50 and 100 miles, then every 3 months or 3,000 miles.",
    "tools": [
-    "Torque wrench (up to 200 ft-lb)",
+    "Torque wrench (up to 350 ft-lb)",
     "Socket for the nuts",
-    "Wire brush"
+    "Wire brush",
+    "Chalk"
    ],
    "parts": [
     "None"
    ],
    "specs": [
     [
-     "If 16 in wheels, 8 on 6.5 in, 9/16-18 studs",
-     "1st 20-25, 2nd 50-60, final 140-170 ft-lb (60 degree cone nuts)",
+     "5/8-18 non-swivel flange nut",
+     "275-325 ft-lb (Dexter p. 76)",
      "d"
     ],
     [
-     "If 1/2-20 studs on 16 in wheels (6 on 5.5)",
-     "Final 100-120 ft-lb",
+     "5/8-18 swivel flange nut",
+     "150-175 ft-lb (Dexter p. 76)",
      "d"
     ],
     [
-     "Check these on your trailer",
-     "Wheel maker spec wins. Our stud size is not confirmed",
+     "5/8-18 90 degree cone nut with clamp ring",
+     "190-210 ft-lb, greased threads (Dexter p. 76)",
+     "d"
+    ],
+    [
+     "Re-check after wheel work",
+     "Big Tex: 10, 25 and 50 mi (OM p. 59, 61). Dexter: 50 and 100 mi (p. 76). Do all of them",
+     "b"
+    ],
+    [
+     "Then",
+     "Every 3 months or 3,000 mi (Dexter p. 4), before each tow and at least twice a year (Big Tex p. 70)",
+     "d"
+    ],
+    [
+     "Our nut type",
+     "Not confirmed. Look at the nuts: flat flange washer (flange nut) or tapered seat (cone). Wheel maker spec wins",
      "g"
-    ],
-    [
-     "Re-torque",
-     "After 10, 25 and 50 miles from any wheel work",
-     "d"
     ]
    ],
    "steps": [
-    "Confirm the stud size and the wheel size from the wheel or the axle tag. Use the wheel maker's value.",
-    "Start with the trailer on the ground, wheels chocked.",
-    "Pull each nut in a star pattern: first stage, second stage, final torque.",
-    "A wheel stud should show about 3 threads past the nut.",
-    "Look for rust streaks around the studs or cracks at the nut seats.",
-    "Log date and trailer miles."
+    "Identify the nut type first and pick the row. Do not guess the torque.",
+    "Trailer on the ground, chocked.",
+    "Start all nuts by hand, then tighten in stages in the 8-bolt star sequence (Dexter p. 75-76).",
+    "Final torque with a torque wrench. A 4-way or impact is for emergencies only (Big Tex p. 70).",
+    "Note any nut that lost torque. If one keeps losing torque, the studs, nuts, wheel or hub need a technician (Big Tex p. 70).",
+    "Log date and approximate trailer miles (Big Tex p. 70 asks for a record)."
    ],
    "safety": [
-    "Do not exceed the stud limit (9/16-18 max 170 ft-lb).",
-    "Never grease or oil studs unless the wheel maker says so."
+    "A loose dual wheel can come off. Over-torque stretches studs."
    ],
-   "basis": "mixed",
-   "note": "Our trailer has ST235/80R16 tires on 8-lug 12K axles. The 9/16-18 row is the likely one but is not confirmed."
+   "basis": "manual",
+   "note": "Earlier SOP used the 2-8K Dexter chart (9/16 studs, 140-170). Our 12K axles fall under the 9-15K manual.",
+   "cite": [
+    "Dexter 9-15K p. 75-76 (sequence, torque by nut type, 50/100 mi re-check)",
+    "Dexter 9-15K p. 4 (3 mo / 3,000 mi)",
+    "Big Tex OM p. 59, 61 (10, 25, 50 mi)",
+    "Big Tex OM p. 69-70 (torque wrench, keep a record)"
+   ]
   },
   "r-breakaway": {
    "about": "Test the breakaway switch and check the breakaway battery. Dexter: at every use. We use monthly plus before a long trip.",
@@ -1781,13 +2146,28 @@
    "specs": [
     [
      "Interval",
-     "At every use (we log it monthly)",
-     "d"
+     "Before every use (Big Tex OM p. 61; Dexter p. 4). We log it monthly",
+     "b"
     ],
     [
-     "Pass",
-     "Pulling the pin locks the trailer brakes with the truck unplugged",
-     "g"
+     "Test",
+     "Pull the pin and try to pull forward: the trailer must resist. Put the pin back at once (Big Tex p. 48)",
+     "b"
+    ],
+    [
+     "Lanyard",
+     "To the truck, pulls before the chains take up slack; never to a chain or the ball (p. 48)",
+     "b"
+    ],
+    [
+     "Storage",
+     "If unused 3+ months or in winter: battery indoors, charge every 3 months (p. 48)",
+     "b"
+    ],
+    [
+     "Never tow with the pin out",
+     "Brakes overheat and can fail for good (p. 48)",
+     "b"
     ]
    ],
    "steps": [
@@ -1802,8 +2182,13 @@
    "safety": [
     "Do the pull-pin test with wheels chocked so the trailer cannot roll."
    ],
-   "basis": "mixed",
-   "note": ""
+   "basis": "manual",
+   "note": "",
+   "cite": [
+    "Big Tex OM p. 47-48 (test, lanyard, storage)",
+    "Big Tex OM p. 61 (before each use)",
+    "Dexter 9-15K p. 4 (every use)"
+   ]
   },
   "r-tires": {
    "about": "Check the trailer tire pressure (80 psi cold) and condition before each trip and at least monthly.",
@@ -1818,13 +2203,28 @@
    "specs": [
     [
      "Pressure",
-     "80 psi cold (ST235/80R16 load range E)",
+     "Cold, to the trailer VIN / certification label (Big Tex OM p. 58, 67). 80 psi for ST235/80R16 LRE",
      "b"
     ],
     [
+     "How often",
+     "Weekly (Dexter p. 4) and before every trip (Big Tex p. 61)",
+     "d"
+    ],
+    [
      "Cold means",
-     "Not driven for 3 hours or more",
-     "g"
+     "Not driven 3 h, or under 1 mi after 3 h parked (Ram OM p. 327)",
+     "m"
+    ],
+    [
+     "Heat",
+     "Pressure rises 2-6 psi when hot; never bleed hot tires (Ram OM p. 331)",
+     "m"
+    ],
+    [
+     "Loaded vs empty",
+     "The manuals give one cold pressure: the label value at GVWR. Run 80 psi loaded or empty",
+     "b"
     ]
    ],
    "steps": [
@@ -1838,8 +2238,442 @@
    "safety": [
     "Do not exceed the tire sidewall maximum. Under-inflation overheats a loaded tire fast."
    ],
+   "basis": "manual",
+   "note": "",
+   "cite": [
+    "Big Tex OM p. 58, 67-68 (label pressure, cold, 1-3 psi a month loss)",
+    "Dexter 9-15K p. 4 (weekly)",
+    "Ram OM p. 204-205, 327, 331 (trailer tires before towing; cold; heat rise)"
+   ]
+  },
+  "r-magnets": {
+   "about": "Check the trailer brake magnets and the Ram brake controller output every 6 months or 6,000 miles.",
+   "tools": [
+    "Multimeter (DC amps and volts)",
+    "Jack and stands",
+    "Straightedge"
+   ],
+   "parts": [
+    "Magnets in pairs if worn"
+   ],
+   "specs": [
+    [
+     "Interval",
+     "6 months or 6,000 mi (Dexter p. 4; Big Tex OM p. 62)",
+     "d"
+    ],
+    [
+     "Magnet wear",
+     "Replace if uneven, or coil shows through the facing; replace in pairs per axle (Dexter p. 16)",
+     "d"
+    ],
+    [
+     "Amperage",
+     "Measure system and per-magnet current against the Dexter amperage chart (Dexter p. 21-22)",
+     "d"
+    ],
+    [
+     "Controller",
+     "Ram ITBM GAIN 0-10 in 0.5 steps; Heavy Electric over 10,000 lb (OM p. 205-206)",
+     "m"
+    ]
+   ],
+   "steps": [
+    "With the trailer hooked up, slide the manual lever fully and read the system amps at the trailer plug (Dexter p. 21-22).",
+    "Low or uneven amps: check grounds and connectors first (corrosion raises resistance).",
+    "With a drum off (do it with the hub service), lay a straightedge on each magnet face.",
+    "Replace worn magnets in pairs and reface the drum armature at the same time (Dexter p. 56).",
+    "Re-set GAIN on a dry lot at 20-25 mph (OM p. 206).",
+    "Log date, trailer miles and the amp readings."
+   ],
+   "safety": [
+    "Use jack stands rated for the load. Never work under a vehicle held only by a jack."
+   ],
+   "basis": "manual",
+   "note": "",
+   "cite": [
+    "Dexter 9-15K p. 4 (schedule)",
+    "Dexter 9-15K p. 16, 21-22 (magnets, amperage)",
+    "Big Tex OM p. 62 (6 months)",
+    "Ram OM p. 205-206 (controller)"
+   ]
+  },
+  "r-brkyr": {
+   "about": "Yearly (or 12,000 mi) trailer brake inspection: shoes, drums, armature face, wiring. Big Tex says have the dealer inspect brakes and magnets at least once a year.",
+   "tools": [
+    "Jack and stands",
+    "Brake cleaner",
+    "Drum micrometer (shop)"
+   ],
+   "parts": [
+    "Shoes, magnets as needed"
+   ],
+   "specs": [
+    [
+     "Interval",
+     "12 months or 12,000 mi (Dexter p. 4; Big Tex OM p. 62, 64-65)",
+     "d"
+    ],
+    [
+     "Drums",
+     "Inspect for scoring and abnormal wear; reface armature when magnets are replaced (Dexter p. 55-56)",
+     "d"
+    ],
+    [
+     "Who",
+     "Dealer at least yearly (Big Tex p. 64-65)",
+     "b"
+    ]
+   ],
+   "steps": [
+    "Book it with the hub bearing service (same teardown).",
+    "Inspect shoes and linings for wear or grease; drums for scoring.",
+    "Inspect magnets (see Brake magnets item) and the brake wiring for bare spots.",
+    "Clean with brake cleaner. Light grease on anchor pins and actuating arm only, never on linings (Dexter p. 15).",
+    "Adjust the brakes after reassembly.",
+    "Log date, trailer miles, shop and findings."
+   ],
+   "safety": [
+    "Use jack stands rated for the load. Never work under a vehicle held only by a jack.",
+    "Brake dust is harmful: do not blow it with air."
+   ],
+   "basis": "manual",
+   "note": "",
+   "cite": [
+    "Dexter 9-15K p. 4, 15, 55-56",
+    "Big Tex OM p. 62, 64-65"
+   ]
+  },
+  "r-susp": {
+   "about": "Inspect the trailer suspension every 6 months or 6,000 miles and re-torque any loose fasteners to the Dexter values.",
+   "tools": [
+    "Flashlight",
+    "Torque wrench (to 400 ft-lb)",
+    "Pry bar"
+   ],
+   "parts": [
+    "Bushings, bolts as needed"
+   ],
+   "specs": [
+    [
+     "Interval",
+     "Suspension parts 6 months or 6,000 mi; springs and hanger welds 12 months (Dexter p. 4, 66)",
+     "d"
+    ],
+    [
+     "12K U-bolt nuts (3/4-10)",
+     "160-200 ft-lb (Dexter p. 79)",
+     "d"
+    ],
+    [
+     "Spring eye (1-8, rubber bushed)",
+     "325-375 ft-lb (Dexter p. 79)",
+     "d"
+    ],
+    [
+     "Equalizer (1-1/8-7, rubber bushed)",
+     "350-400 ft-lb (Dexter p. 79)",
+     "d"
+    ],
+    [
+     "Axle attachment bolts",
+     "Checked by the dealer yearly (Big Tex OM p. 62)",
+     "b"
+    ]
+   ],
+   "steps": [
+    "Look at the springs for cracks, broken leaves or lost arch.",
+    "Look at the hangers and equalizers for cracked welds and elongated bolt holes.",
+    "Check the U-bolts and spring-eye bolts for looseness; torque only if loose or replaced (Dexter p. 66).",
+    "Check the HD adjustable suspension and the frame near the hangers.",
+    "Log date and trailer miles."
+   ],
+   "safety": [
+    "Do not lift or support the trailer on the axle or suspension (Dexter p. 66).",
+    "Use jack stands rated for the load. Never work under a vehicle held only by a jack."
+   ],
+   "basis": "manual",
+   "note": "",
+   "cite": [
+    "Dexter 9-15K p. 4, 66 (inspect)",
+    "Dexter 9-15K p. 79 (fastener torque)",
+    "Big Tex OM p. 62-63 (annual pro inspection, axle bolts by dealer)"
+   ]
+  },
+  "r-jack": {
+   "about": "Grease the 50K two-speed landing gear (drop-leg jacks) once a year.",
+   "tools": [
+    "Grease gun",
+    "Rags"
+   ],
+   "parts": [
+    "Multi-purpose grease"
+   ],
+   "specs": [
+    [
+     "Interval",
+     "Once a year (Big Tex OM p. 62, 67)",
+     "b"
+    ],
+    [
+     "How",
+     "Grease fitting if present; else remove the top and pack the gears (p. 67)",
+     "b"
+    ]
+   ],
+   "steps": [
+    "Lower the jacks a little to take load off the gears only if the trailer is supported safely.",
+    "Pump grease into each fitting until fresh grease shows.",
+    "If no fitting: remove the top cover and hand-pack the gears.",
+    "Crank through both speeds to spread the grease.",
+    "Log the date."
+   ],
+   "safety": [
+    "Drop legs are spring loaded: keep feet and hands clear (Big Tex p. 46)."
+   ],
+   "basis": "manual",
+   "note": "",
+   "cite": [
+    "Big Tex OM p. 62, 67 (jack lube)",
+    "Big Tex OM p. 46 (spring-loaded legs)",
+    "Big Tex spec sheet (50K dual 2-speed landing gear)"
+   ]
+  },
+  "r-rot": {
+   "about": "Rotate the trailer tires at 5,000 miles and look over tread and sidewalls.",
+   "tools": [
+    "Jack and stands",
+    "Torque wrench",
+    "Tire gauge",
+    "Chalk"
+   ],
+   "parts": [
+    "None"
+   ],
+   "specs": [
+    [
+     "Interval",
+     "Rotate at 5,000 mi; tread and sidewall check every 6 months or 6,000 mi (Big Tex OM p. 62)",
+     "b"
+    ],
+    [
+     "Then",
+     "Wheel nut re-check at 10, 25, 50 mi (Big Tex p. 59)",
+     "b"
+    ],
+    [
+     "TrailerGard",
+     "Call the warranty company before any tire work",
+     "g"
+    ]
+   ],
+   "steps": [
+    "Check cold pressures first.",
+    "Mark positions with chalk.",
+    "Jack by the frame, set stands; move wheels front to rear on the same side (general practice).",
+    "Torque the nuts (see Lug nut item) and set 80 psi cold.",
+    "Re-check nut torque at 10, 25 and 50 mi.",
+    "Log date and trailer miles."
+   ],
+   "safety": [
+    "Use jack stands rated for the load. Never work under a vehicle held only by a jack."
+   ],
    "basis": "mixed",
-   "note": ""
+   "note": "The rotation pattern is general guidance; the interval is from the Big Tex manual.",
+   "cite": [
+    "Big Tex OM p. 62 (rotate 5,000 mi)",
+    "Big Tex OM p. 59 (re-torque)",
+    "Dexter 9-15K p. 75-76 (torque)"
+   ]
   }
+ },
+ "manuals": {
+  "docs": [
+   [
+    "2026 Ram 2500/3500 Owner's Manual (E5)",
+    "https://vehicleinfo.mopar.com/assets/publications/en-us-ca/2026/Ram/2500_3500/106015_67_DJD2_OM_EN_USC_DIGITAL_E5.pdf"
+   ],
+   [
+    "2026 Ram HD Payload and Towing chart",
+    "https://www.ramtrucks.com/content/dam/fca-brands/na/ramtrucks/en_us/towing/towing-capacity-guide/brochure/my26_Ram_HD_Customer_TowPayChart_1.9.pdf"
+   ],
+   [
+    "Big Tex Trailers Owner's Manual (2020)",
+    "https://www.bigtextrailers.com/wp-content/uploads/2023/11/Big-Tex-Trailers_Owners-Manual_2020.pdf"
+   ],
+   [
+    "Dexter 9-15K Axle Service Manual",
+    "https://www.dextergroup.com/user_area/content_media/raw/9-15k_complete_service_manual.pdf"
+   ]
+  ],
+  "ratings": [
+   [
+    "Truck GVWR",
+    "14,000 lb",
+    "Ram tow chart (3500 DRW)"
+   ],
+   [
+    "Truck max payload",
+    "5,380 lb",
+    "Ram tow chart (Mega Cab DRW 4x4 HO)"
+   ],
+   [
+    "GCWR",
+    "41,950 lb",
+    "Ram tow chart (Mega Cab DRW HO 3.42)"
+   ],
+   [
+    "Max trailer (SAE J2807)",
+    "32,890 lb",
+    "Ram tow chart"
+   ],
+   [
+    "Ram gooseneck hitch",
+    "37,100 lb trailer / 5,565 lb pin",
+    "Ram OM p. 200"
+   ],
+   [
+    "Rear GAWR",
+    "On the door label (not yet on file)",
+    "Ram OM p. 197-198"
+   ],
+   [
+    "Trailer GVWR",
+    "25,900 lb",
+    "Big Tex spec sheet"
+   ],
+   [
+    "Trailer empty",
+    "8,770 lb (our trailer)",
+    "Rig tab"
+   ],
+   [
+    "Gooseneck pin weight",
+    "20-25% of loaded trailer",
+    "Big Tex OM p. 52"
+   ],
+   [
+    "Cargo placement",
+    "60% of cargo in the front half",
+    "Big Tex OM p. 55"
+   ],
+   [
+    "Fuel tank (Mega Cab)",
+    "31 gal; DEF 7.5 gal",
+    "Ram OM p. 354"
+   ]
+  ],
+  "fit": {
+   "title": "Fit rule vs. the ratings (rule unchanged)",
+   "rows": [
+    [
+     "Headroom under GVWR",
+     "14,000 - 10,940 (CAT) = 3,060 lb for the cargo share on the truck"
+    ],
+    [
+     "Cargo at 20% pin share",
+     "3,060 / 0.20 = 15,300 lb: matches the MAYBE cap"
+    ],
+    [
+     "Cargo at 25% pin share",
+     "3,060 / 0.25 = 12,240 lb: just under the 12,500 OK line"
+    ],
+    [
+     "Trailer at 15,300 cargo",
+     "8,770 + 15,300 = 24,070 lb, under 25,900 GVWR"
+    ],
+    [
+     "Combination at 15,300 cargo",
+     "About 32,800-33,300 lb, under 41,950 GCWR"
+    ],
+    [
+     "Pin at 15,300 cargo",
+     "About 4,800-5,250 lb, under the 5,565 lb hitch rating"
+    ]
+   ],
+   "note": "This holds only if the 10,940 lb CAT reading was the truck axles with the empty trailer hooked up. If it was the truck alone, the pin of a loaded trailer would push the truck over 14,000 lb well before 12,500 lb of cargo. Scale the first heavy load: steer, drive and trailer axles."
+  },
+  "insights": [
+   [
+    "Ram lug torque is in the manual",
+    "DRW flanged M14 nuts, 22 mm: 134-149 ft-lb (142 nominal). Retighten after 25 miles.",
+    "Ram OM p. 355-356"
+   ],
+   [
+    "Trailer hub service is 12,000 mi",
+    "Dexter: grease or hub oil every 12 months or 12,000 mi, not 15,000. Hub item moved up.",
+    "Dexter p. 57-58"
+   ],
+   [
+    "Trailer brakes: 200 mi, then 3,000 mi",
+    "Adjust after the first 200 mi and every 3,000 mi. No record of the 200 mi job.",
+    "Big Tex OM p. 59; Dexter p. 4-5"
+   ],
+   [
+    "Wheel work means re-torque",
+    "Trailer: 10, 25, 50 (and Dexter 100) mi after any wheel off. Applies after the 11/3 spare swap and 11/11 tire.",
+    "Big Tex OM p. 59; Dexter p. 76"
+   ],
+   [
+    "12K axles use the 9-15K torque table",
+    "Flange nut 275-325, swivel flange 150-175, cone with clamp ring 190-210 ft-lb. Old SOP used the light-duty 140-170.",
+    "Dexter p. 76"
+   ],
+   [
+    "Air filter hard limit",
+    "Inspect every 15,000 mi or 12 months; never past 30,000 mi or 24 months.",
+    "Ram OM p. 291"
+   ],
+   [
+    "Time limits on every Ram item",
+    "The diesel plan has months too: rotation 6, fuel filters 12, brakes 18, bearings 24, trans 48.",
+    "Ram OM p. 291-294"
+   ],
+   [
+    "TOW/HAUL, exhaust brake, cruise",
+    "TOW/HAUL for all towing; exhaust brake off on ice; no cruise on hills or heavy loads.",
+    "Ram OM p. 177, 200, 208"
+   ],
+   [
+    "Speed",
+    "Big Tex: generally never over 60 mph towing. Ram: 50 mph max on a full-size spare.",
+    "Big Tex OM p. 21; Ram OM p. 204"
+   ],
+   [
+    "Cool-down",
+    "Idle 3-5 min after full load or climbing before shutdown; avoid long idles (soot, regen).",
+    "Ram OM p. 172-173"
+   ],
+   [
+    "DPF regen",
+    "At 70% full the cluster asks for highway driving; never let it reach 100% (dealer cleaning).",
+    "Ram OM p. 132-133"
+   ],
+   [
+    "Cold weather",
+    "Block heater below 0 F, required below -20 F, 1+ h. Below 20 F use winter blend or treatment. DEF freezes at 12 F.",
+    "Ram OM p. 171, 175, 195-197, 347"
+   ],
+   [
+    "Pin weight and loading",
+    "Gooseneck pin 20-25% of loaded trailer; 60% of cargo in the front half; low and centered.",
+    "Big Tex OM p. 52, 55"
+   ],
+   [
+    "Break-in",
+    "No towing first 500 mi; first 500 towing mi under 50 mph. Cummins needs no special engine break-in. Long past for us.",
+    "Ram OM p. 204, 297"
+   ],
+   [
+    "Keep records",
+    "Ram: retain all receipts. Big Tex: log every lug torque check with date and miles.",
+    "Ram OM p. 287; Big Tex OM p. 70"
+   ],
+   [
+    "Fuel tank is 31 gal",
+    "Mega Cab is 31 gal (the trip planner used 32). Planner fixed to 31 gal, 30 gal fills.",
+    "Ram OM p. 354"
+   ]
+  ]
  }
 }
