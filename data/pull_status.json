@@ -3,11 +3,19 @@
   "pct": 20,
   "origin": "Jacksonville, FL",
   "started_at": "2026-11-26 14:31 CT",
+<<<<<<< Updated upstream
   "updated_at": "2026-11-26 14:31 CT",
   "counts": {
     "truckstop": 0,
     "df": 0,
     "fits": 0
+=======
+  "updated_at": "2026-11-26 14:38 CT",
+  "counts": {
+    "truckstop": 25,
+    "df": 0,
+    "fits": 1
+>>>>>>> Stashed changes
   },
   "message": "Searching Truckstop"
 }
