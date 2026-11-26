@@ -129,6 +129,71 @@
     };
   }
 
+  var FIN_KEY = 'blackram_fin_session_v1';
+  var RELAY = 'https://blackram-relay.sandlilypad.workers.dev';
+  var cocFin = { data: null, tried: false };
+
+  function readCoc() {
+    try {
+      var c = sessionStorage.getItem(FIN_KEY);
+      if (c) {
+        var j = JSON.parse(c);
+        if (j && j.accounting && j.accounting.coc) return j.accounting.coc;
+      }
+    } catch (e) { /* ignore */ }
+    if (cocFin.data && cocFin.data.accounting && cocFin.data.accounting.coc) return cocFin.data.accounting.coc;
+    return null;
+  }
+
+  function loadCoc() {
+    if (readCoc()) return;
+    var p = '';
+    try { p = (localStorage.getItem('blackram_relay_pin_v1') || '').trim(); } catch (e) { p = ''; }
+    if (!p || cocFin.tried) return;
+    cocFin.tried = true;
+    fetch(RELAY + '/financials', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pin: p }), cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) {
+        if (j && j.ok && j.data && j.data.accounting) {
+          cocFin.data = j.data;
+          try { sessionStorage.setItem(FIN_KEY, JSON.stringify(j.data)); } catch (e) { /* ignore */ }
+          render();
+        }
+      }).catch(function () { /* offline */ });
+  }
+
+  // Plan CoC from the current sliders. Meshach is paid only from actual profit; a shortfall is not accrued.
+  function cocPlan(coc) {
+    if (!coc || !coc.invested) return null;
+    var m = model();
+    var inv = Number(coc.invested);
+    var net = m.net;
+    var driver = Number(tgt.driverMo) || 0;
+    var pay = Math.min(driver, Math.max(net, 0));
+    var after = net - pay;
+    var needMo = (coc.needed && coc.needed.mo_after != null) ? Number(coc.needed.mo_after) : 0.20 * inv / 12;
+    var needAnn = (coc.needed && coc.needed.ann_after != null) ? Number(coc.needed.ann_after) : 0.20 * inv;
+    var needNet = driver + needMo;
+    var keep = 1 - Number(tgt.fee) / 100;
+    var loadsWk = m.contrib > 0 ? (m.fixed + needNet) / m.contrib / WEEKS / Number(tgt.miLoad) : null;
+    var minRpm = m.loadedMo > 0 ? ((m.fixed + needNet) / m.loadedMo + m.perMileCosts) / keep : null;
+    return {
+      net: net, pay: pay, after: after, before: net,
+      ann_before: net * 12, ann_after: after * 12,
+      coc_before: net * 12 / inv, coc_after: after * 12 / inv,
+      needMo: needMo, needNet: needNet, needAnn: needAnn,
+      loadsWk: loadsWk, minRpm: minRpm,
+      invested: inv, target: coc.target || 0.20
+    };
+  }
+
+  function pctCoc(n) {
+    if (n == null || !isFinite(n)) return '-';
+    var p = n * 100;
+    var t = (Math.abs(p) >= 10 ? p.toFixed(0) : p.toFixed(1)).replace(/\.0$/, '');
+    return t + '%';
+  }
+
   function structures() {
     var s = costs();
     var totni = model({ feePct: 13 });
@@ -245,6 +310,7 @@
   function render() {
     var root = $('targets-root');
     if (!root) return;
+    loadCoc();
     var m = model();
     var st = structures();
     var act = actuals();
@@ -264,11 +330,17 @@
     if (act && act.fig.perLoaded != null) {
       callouts.push('This month so far: ' + act.loads + ' loads at ' + rpm(act.fig.perLoaded) + ' loaded. ' + (Math.abs(act.fig.perLoaded - m.minRpmBE) < 0.05 ? 'That is right at break-even $/mi, so every load needs more.' : (act.fig.perLoaded < m.minRpmBE ? 'That is below break-even $/mi.' : 'That clears break-even $/mi.')));
     }
+    var coc = readCoc();
+    var plan = cocPlan(coc);
+    if (plan && plan.loadsWk != null) {
+      callouts.push('To hit a <b>20% cash-on-cash</b> return (after Meshach is paid from profit): <b>' + num(plan.loadsWk, 1) + ' loads/wk</b> at <b>' + rpm(+tgt.rpm) + '</b>, or <b>' + rpm(plan.minRpm) + '</b> at ' + num(+tgt.loadsWk, 1) + ' loads/wk. Plan at your inputs: <b>' + pctCoc(plan.coc_after) + '</b> after Meshach (' + pctCoc(plan.coc_before) + ' before).');
+    }
 
     var headline = '<section class="big tg-head"><div class="kicker">Break-even (Totni ' + tgt.fee + '%)</div>' +
       '<span class="n phrase">' + (m.beGross != null ? money(m.beGross) + '/mo gross' : 'Not reachable') + '</span>' +
       '<p class="sub">' + (m.beLoadsWk != null ? num(m.beLoadsWk, 1) + ' loads/wk | ' + num(m.beMi / WEEKS, 0) + ' loaded mi/wk | bills ' + money(m.fixed) + '/mo' : 'Contribution per mile is negative') + '</p>' +
-      (m.beGrossDriver != null ? '<div class="tg-be2"><div class="kicker">Break-even incl. Meshach ' + money(tgt.driverMo) + '</div><span class="n phrase">' + money(m.beGrossDriver) + '/mo gross</span><p class="sub">' + num(m.beLoadsWkDriver, 1) + ' loads/wk | ' + num(m.beMiDriver / WEEKS, 0) + ' loaded mi/wk | expenses + his pay ' + money(m.fixedDriver) + '/mo</p></div>' : '') + '</section>';
+      (m.beGrossDriver != null ? '<div class="tg-be2"><div class="kicker">Break-even incl. Meshach ' + money(tgt.driverMo) + '</div><span class="n phrase">' + money(m.beGrossDriver) + '/mo gross</span><p class="sub">' + num(m.beLoadsWkDriver, 1) + ' loads/wk | ' + num(m.beMiDriver / WEEKS, 0) + ' loaded mi/wk | expenses + his pay ' + money(m.fixedDriver) + '/mo</p></div>' : '') +
+      cocBlock(coc, plan) + '</section>';
 
     var outs = '<div class="stats">' +
       metricBox(money(m.goalGross) , 'Gross needed / month', money(m.goalGross / WEEKS) + ' a week') +
@@ -346,6 +418,19 @@
     return (M[Number(p[1]) - 1] || ym);
   }
 
+  function cocBlock(coc, plan) {
+    if (!plan) {
+      return '<div class="tg-be2 tg-coc tg-coc-lock" id="tg-coc-lock"><div class="kicker">20% cash-on-cash</div>' +
+        '<p class="sub">Unlock with the app PIN (Finance, Accounting or Daily PDFs) to see the loads/wk and $/mi that hit a 20% cash-on-cash return.</p></div>';
+    }
+    var need = (plan.loadsWk != null)
+      ? 'Need <b>' + num(plan.loadsWk, 1) + ' loads/wk</b> at ' + rpm(+tgt.rpm) + ', or <b>' + rpm(plan.minRpm) + '</b> at ' + num(+tgt.loadsWk, 1) + ' loads/wk, after Meshach is paid from profit.'
+      : 'Contribution per mile is negative, so a 20% return is not reachable at this $/mi.';
+    return '<div class="tg-be2 tg-coc"><div class="kicker">20% cash-on-cash</div>' +
+      '<span class="n phrase">' + pctCoc(plan.coc_after) + ' plan after Meshach</span>' +
+      '<p class="sub">' + need + ' Cash in ' + money(plan.invested) + '. Target ' + money(plan.needAnn) + '/yr (' + money(plan.needMo) + '/mo leftover). Before Meshach: ' + pctCoc(plan.coc_before) + '.</p></div>';
+  }
+
   function metricBox(value, label, sub) {
     return '<div class="metric"><div class="n">' + value + '</div><div class="l">' + esc(label) + '</div>' +
       (sub ? '<div class="sub">' + esc(sub) + '</div>' : '') + '</div>';
@@ -413,5 +498,7 @@
     });
   }
 
-  window.BlackRamTargets = { render: render, model: model, structures: structures };
+  window.BlackRamTargets = { render: render, model: model, structures: structures, cocPlan: cocPlan };
+  document.addEventListener('blackram:financials', function () { render(); });
+  window.addEventListener('storage', function (e) { if (e.key === FIN_KEY || e.key === 'blackram_relay_pin_v1') { cocFin.tried = false; render(); } });
 })();

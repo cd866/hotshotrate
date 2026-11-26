@@ -53,7 +53,10 @@
         });
       })
       .catch(function () { st.error = 'Offline - showing the last copy if any.'; })
-      .then(function () { st.loading = false; render(); });
+      .then(function () {
+        st.loading = false; render();
+        if (st.data) { try { document.dispatchEvent(new CustomEvent('blackram:financials')); } catch (e) { /* ignore */ } }
+      });
   }
 
   /* ---------- charts (inline SVG) ---------- */
@@ -209,6 +212,60 @@
       '<div class="ac-tot' + (w.left > 0 ? '' : ' ac-dim') + '">' + thirds + '</div>' +
       '<p class="ac-fine">Order: gross, less ALL expenses (Totni, ELD, fuel, DEF, tolls, repairs, insurance, software, overhead and the truck and trailer notes) = net after expenses. Meshach\'s $' + D.monthly.toLocaleString('en-US') + '/mo is a priority payout from that net, capped at what is available; any unpaid part is carried as driver pay owed. The remainder is split in thirds among Claudio, Ben and Meshach. Meshach\'s third is on top of his wage.</p>';
     return card('Profit waterfall', esc(monLbl(st.sel)), body, 'ac-wf');
+  }
+  function pctCoc(n) {
+    if (n == null || !isFinite(n)) return '-';
+    var p = n * 100;
+    var txt = (Math.abs(p) >= 10 ? p.toFixed(0) : p.toFixed(1)).replace(/\.0$/, '');
+    return txt + '%';
+  }
+  function cocFill(val, lo, hi) {
+    function x(v) { return Math.max(0, Math.min(100, (v - lo) / ((hi - lo) || 1) * 100)); }
+    var v = (val == null || !isFinite(val)) ? lo : val;
+    var a = x(0), b = x(v);
+    var left = Math.min(a, b), w = Math.max(Math.abs(b - a), 1.2);
+    return { left: left, w: w, zero: a, mark: x(0.20), pos: v >= 0, pct: pctCoc(val) };
+  }
+  function secCoc(A) {
+    var c = A.coc;
+    if (!c) return '';
+    var s = c.since_start || {}, t30 = c.trailing_30 || {}, need = c.needed || {};
+    var plan = (window.BlackRamTargets && window.BlackRamTargets.cocPlan) ? window.BlackRamTargets.cocPlan(c) : null;
+    var views = [
+      { key: 'start', label: 'Since start', sub: (s.days || '') + ' days (' + day(s.from) + ' to ' + day(s.to) + ')', v: s },
+      { key: 't30', label: 'Last 30 days', sub: day(t30.from) + ' to ' + day(t30.to), v: t30 },
+      { key: 'plan', label: 'Plan (Targets)', sub: 'Updates with the sliders', v: plan ? { coc_after: plan.coc_after, coc_before: plan.coc_before, ann_after: plan.ann_after, ann_before: plan.ann_before, cash_after: plan.after, cash_before: plan.before, paid_from_profit: plan.pay } : null }
+    ];
+    var vals = [];
+    views.forEach(function (vw) { if (vw.v && isFinite(vw.v.coc_after)) vals.push(vw.v.coc_after); if (vw.v && isFinite(vw.v.coc_before)) vals.push(vw.v.coc_before); });
+    var lo = Math.min(0, -0.4), hi = Math.max(0.3, c.target || 0.20);
+    vals.forEach(function (v) { if (v > -1 && v < 1.5) { lo = Math.min(lo, v); hi = Math.max(hi, v); } });
+    var rows = views.map(function (vw) {
+      var v = vw.v;
+      if (!v) return '<div class="ac-coc-view"><div class="ac-coc-lab"><b>' + esc(vw.label) + '</b><span>' + esc(vw.sub) + '</span></div><div class="ac-coc-n">Unlock Targets math</div></div>';
+      var fa = cocFill(v.coc_after, lo, hi), fb = cocFill(v.coc_before, lo, hi);
+      return '<div class="ac-coc-view">' +
+        '<div class="ac-coc-lab"><b>' + esc(vw.label) + '</b><span>' + esc(vw.sub) + '</span></div>' +
+        '<div class="ac-coc-n ' + (v.coc_after < 0 ? 'neg' : 'pos') + '">' + fa.pct + '<small>after Meshach</small></div>' +
+        '<div class="ac-coc-track" aria-hidden="true"><i class="' + (fa.pos ? 'pos' : '') + '" style="left:' + fa.left.toFixed(1) + '%;width:' + fa.w.toFixed(1) + '%"></i><em class="zero" style="left:calc(' + fa.zero.toFixed(1) + '% - 1px)"></em><em style="left:calc(' + fa.mark.toFixed(1) + '% - 1px)"></em></div>' +
+        '<p class="ac-fine">Before Meshach: <b>' + pctCoc(v.coc_before) + '</b>' +
+          (v.ann_after != null ? ' | Annualized ' + m0(v.ann_after) + ' after, ' + m0(v.ann_before) + ' before' : '') +
+          (v.cash_after != null && vw.key !== 'plan' ? ' | Cash in period ' + m2(v.cash_after) : '') +
+          (v.paid_from_profit ? ' | Meshach paid ' + m2(v.paid_from_profit) : '') + '.</p></div>';
+    }).join('');
+    var parts = (c.partners || []).map(function (p) {
+      var w = c.invested ? (p.amount / c.invested * 100) : 0;
+      return '<div class="ac-xr"><span class="ac-xv">' + esc(p.name) + '</span><span class="ac-coc-bar"><i style="width:' + w.toFixed(1) + '%"></i></span><b>' + m2(p.amount) + '</b></div>';
+    }).join('');
+    var needLine = (plan && plan.loadsWk != null)
+      ? 'To hit 20% after Meshach is paid from profit: <b>' + (plan.loadsWk.toFixed(1)) + ' loads/wk</b> at your Targets $/mi, or the $/mi on the Targets tab at your loads/wk. Leftover needed: ' + m0(need.mo_after) + '/mo (' + m0(need.ann_after) + '/yr).'
+      : '20% of cash in is ' + m0(need.ann_after) + '/yr, or ' + m0(need.mo_after) + '/mo leftover after Meshach is paid from profit.';
+    var math = '<p class="ac-fine">CoC = annualized pre-tax cash flow / cash invested. Annualize as cash / days x 365. Cash flow is net after all expenses including the truck and trailer notes. After Meshach subtracts only pay actually paid from profit; unpaid shortfalls are not accrued and are not a cash outflow.</p>' +
+      '<p class="ac-fine">' + needLine + ' White mark is the 20% target.</p>';
+    var body = '<div class="ac-coc-hero"><div class="ac-kicker">Since start, after Meshach</div><div class="ac-coc-big ' + (s.coc_after < 0 ? 'neg' : 'pos') + '">' + pctCoc(s.coc_after) + '</div>' +
+      '<p>vs 20% target | cash in ' + m0(c.invested) + ' | ' + (s.days || '') + ' days annualized</p></div>' +
+      rows + '<div class="ac-coc-cap"><div class="ac-kicker">Cash invested</div>' + parts + '</div>' + math;
+    return card('Cash on cash', 'Target 20%', body, 'ac-coc');
   }
   function secDriver(A) {
     var d = A.driver, rows = d.accrual.map(function (a) {
@@ -378,8 +435,8 @@
       '<div class="ac-top"><div><div class="ac-kicker">Sand Lily Pad LLC</div><h2>Accounting</h2></div>' +
       '<div class="ac-acts"><button type="button" class="ac-btn" id="ac-csv" aria-label="Export CSV">CSV</button><button type="button" class="ac-btn" id="ac-refresh" aria-label="Refresh">' + (st.loading ? '...' : 'Refresh') + '</button></div></div>' +
       '<div class="ac-chips" role="tablist" aria-label="Month">' + chips + '</div>' +
-      '<nav class="ac-jump">' + [['ac-pl', 'P&amp;L'], ['ac-wf', 'Waterfall'], ['ac-driver', 'Driver'], ['ac-rev', 'Revenue'], ['ac-exp', 'Expenses'], ['ac-ar', 'AR'], ['ac-bills', 'Bills'], ['ac-cash', 'Cash'], ['ac-partners', 'Partners'], ['ac-bs', 'Balance']].map(function (j) { return '<a href="#' + j[0] + '" data-ac-jump="' + j[0] + '">' + j[1] + '</a>'; }).join('') + '</nav>' +
-      secPL(A) + secWaterfall(A) + secDriver(A) + secRevenue(A) + secExpenses(A) + secAR(A) + secBills(A) + secCash(A) + secPartners(A) + secBalance(A) + gaps +
+      '<nav class="ac-jump">' + [['ac-pl', 'P&amp;L'], ['ac-wf', 'Waterfall'], ['ac-coc', 'CoC'], ['ac-driver', 'Driver'], ['ac-rev', 'Revenue'], ['ac-exp', 'Expenses'], ['ac-ar', 'AR'], ['ac-bills', 'Bills'], ['ac-cash', 'Cash'], ['ac-partners', 'Partners'], ['ac-bs', 'Balance']].map(function (j) { return '<a href="#' + j[0] + '" data-ac-jump="' + j[0] + '">' + j[1] + '</a>'; }).join('') + '</nav>' +
+      secPL(A) + secWaterfall(A) + secCoc(A) + secDriver(A) + secRevenue(A) + secExpenses(A) + secAR(A) + secBills(A) + secCash(A) + secPartners(A) + secBalance(A) + gaps +
       '<p class="ac-foot">Built ' + esc(stamp) + ' from the ledger and Bluevine ...' + esc(A.cash.last4) + '. Basis: ' + esc(A.basis) + '. Not tax advice.' + (st.error && st.error !== 'nopin' ? ' ' + esc(st.error) : '') + '</p>';
     bind();
   }
@@ -491,6 +548,23 @@
       '.ac-pt-bar{height:6px;border-radius:var(--radius-pill);background:var(--c-surface-3);overflow:hidden}.ac-pt-bar i{display:block;height:100%;background:var(--c-accent)}' +
       '.ac-pt .ac-xr{border-color:var(--c-line)}' +
       '.ac-pt-f{display:flex;justify-content:space-between;font-size:12px;color:var(--c-text-3);border-top:1px solid var(--c-line);padding-top:6px}.ac-pt-f b{color:var(--c-text-1)}' +
+      '.ac-coc-hero{text-align:center;padding:var(--s-1) 0 var(--s-1h);border-bottom:1px solid var(--c-line);margin-bottom:var(--s-1h)}' +
+      '.ac-coc-big{font-size:44px;font-weight:800;letter-spacing:-.03em;line-height:1;color:var(--c-text-1);font-variant-numeric:tabular-nums}' +
+      '.ac-coc-big.neg,.ac-coc-n.neg{color:#F87171}.ac-coc-big.pos,.ac-coc-n.pos{color:var(--c-take,#34D399)}' +
+      '.ac-coc-hero p{margin:6px 0 0;font-size:13px;color:var(--c-text-3)}' +
+      '.ac-coc-view{padding:10px 0;border-bottom:1px solid var(--c-line)}' +
+      '.ac-coc-lab{display:flex;justify-content:space-between;gap:8px;align-items:baseline}' +
+      '.ac-coc-lab b{font-size:13px;color:var(--c-text-1)}.ac-coc-lab span{font-size:12px;color:var(--c-text-3)}' +
+      '.ac-coc-n{font-size:22px;font-weight:800;margin:4px 0 6px;font-variant-numeric:tabular-nums}' +
+      '.ac-coc-n small{margin-left:8px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--c-text-3)}' +
+      '.ac-coc-track{position:relative;height:10px;border-radius:99px;background:var(--c-surface-3,#2a2440);overflow:hidden;margin:0 0 6px}' +
+      '.ac-coc-track i{position:absolute;top:0;bottom:0;border-radius:99px;background:#F87171}' +
+      '.ac-coc-track i.pos{background:var(--c-take,#34D399)}' +
+      '.ac-coc-track em{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--c-text-1);border-radius:2px}' +
+      '.ac-coc-track em.zero{background:#8b8fb0}' +
+      '.ac-coc-cap{margin-top:var(--s-1h)}.ac-coc-cap .ac-kicker{margin-bottom:8px}.ac-coc-cap .ac-xr{align-items:center}' +
+      '.ac-coc-bar{flex:1;height:8px;border-radius:99px;background:var(--c-surface-3,#2a2440);overflow:hidden;margin:0 8px}' +
+      '.ac-coc-bar i{display:block;height:100%;background:var(--c-gold,#F2C94C);border-radius:99px}' +
       '.ac-gaps{background:var(--c-surface-1);border:1px solid var(--c-line);border-radius:var(--radius-lg);padding:var(--s-1) var(--s-2)}' +
       '.ac-gaps ul{margin:0 0 var(--s-1);padding-left:18px;font-size:var(--fs-xs);color:var(--c-text-2);line-height:1.45}' +
       '.ac-foot{margin:0;font-size:11px;color:var(--c-text-3);text-align:center}' +

@@ -25,6 +25,25 @@
     return (r < 0 ? '-$' : '$') + Math.abs(r).toLocaleString('en-US');
   }
   function pct(n, d) { return (n == null || !isFinite(n)) ? '-' : (n * 100).toFixed(d == null ? 0 : d) + '%'; }
+  function pctCoc(n) {
+    if (n == null || !isFinite(n)) return '-';
+    var p = n * 100;
+    var t = (Math.abs(p) >= 10 ? p.toFixed(0) : p.toFixed(1)).replace(/\.0$/, '');
+    return t + '%';
+  }
+  function cocPlan(coc) {
+    return (window.BlackRamTargets && window.BlackRamTargets.cocPlan) ? window.BlackRamTargets.cocPlan(coc) : null;
+  }
+  function cocTrack(val, lo, hi, mark) {
+    function x(v) { return Math.max(0, Math.min(100, (v - lo) / (hi - lo) * 100)); }
+    var v = val == null || !isFinite(val) ? lo : val;
+    var a = x(0), b = x(v);
+    var left = Math.min(a, b), w = Math.abs(b - a);
+    var cls = v >= 0 ? ' pos' : '';
+    var zero = '<em class="zero" style="left:calc(' + a.toFixed(1) + '% - 1px)"></em>';
+    var tgt = mark != null ? '<em style="left:calc(' + x(mark).toFixed(1) + '% - 1px)"></em>' : '';
+    return '<div class="sb-coc-track" aria-hidden="true"><i class="' + cls.trim() + '" style="left:' + left.toFixed(1) + '%;width:' + Math.max(w, 1.2).toFixed(1) + '%"></i>' + zero + tgt + '</div>';
+  }
   function num(n, d) { return (n == null || !isFinite(n)) ? '-' : Number(n).toFixed(d == null ? 0 : d).replace(/\.0+$/, ''); }
   function rpmT(n) { return (n == null || !isFinite(n)) ? '-' : '$' + n.toFixed(2); }
   function tg() {
@@ -89,7 +108,18 @@
       '.sb-tr.up{color:var(--good-ink,#A7F3D0)}.sb-tr.dn{color:var(--bad-ink,#FECACA)}',
       '.sb-f svg{flex:0 0 auto;display:block}',
       '.sb-fine{font-size:12px;color:var(--c-text-3,#b9b3cc);line-height:1.4;margin:10px 2px 0}',
-      '.sb-lock{cursor:pointer}'
+      '.sb-lock{cursor:pointer}',
+      '.sb-coc{grid-column:1/-1}',
+      '.sb-coc .sb-v{font-size:40px;letter-spacing:-.03em}',
+      '.sb-coc-rows{display:flex;flex-direction:column;gap:7px;margin:8px 0 2px}',
+      '.sb-coc-row{display:grid;grid-template-columns:92px 1fr 58px;gap:8px;align-items:center;font-size:12px;color:var(--c-text-2,#d2cce4)}',
+      '.sb-coc-row b{font-variant-numeric:tabular-nums;text-align:right;color:var(--c-text-1,#f2f0f7)}',
+      '.sb-coc-track{position:relative;height:10px;border-radius:99px;background:#2a2440;overflow:hidden}',
+      '.sb-coc-track i{position:absolute;top:0;bottom:0;border-radius:99px;background:#F87171}',
+      '.sb-coc-track i.pos{background:var(--c-take,#34D399)}',
+      '.sb-coc-track em{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--c-text-1,#f2f0f7);border-radius:2px}',
+      '.sb-coc-track em.zero{background:#8b8fb0}',
+      '.sb-coc-sub{margin:4px 0 0;font-size:12px;color:var(--c-text-3,#b9b3cc);line-height:1.35}'
     ].join('');
     document.head.appendChild(s);
   }
@@ -180,8 +210,8 @@
   }
 
   function loadFin() {
-    if (fin.data) return;
-    try { var c = sessionStorage.getItem(FIN_KEY); if (c) { fin.data = JSON.parse(c); return; } } catch (e) { /* ignore */ }
+    try { var c = sessionStorage.getItem(FIN_KEY); if (c) fin.data = JSON.parse(c); } catch (e) { /* ignore */ }
+    if (fin.data && fin.data.accounting && fin.data.accounting.coc) return;
     var p = '';
     try { p = (localStorage.getItem('blackram_relay_pin_v1') || '').trim(); } catch (e) { p = ''; }
     if (!p || fin.tried) return;
@@ -192,6 +222,7 @@
         if (j && j.ok && j.data) {
           fin.data = j.data;
           try { sessionStorage.setItem(FIN_KEY, JSON.stringify(j.data)); } catch (e) { /* ignore */ }
+          try { document.dispatchEvent(new CustomEvent('blackram:financials')); } catch (e) { /* ignore */ }
           if (visible()) render();
         }
       }).catch(function () { /* offline */ });
@@ -332,6 +363,45 @@
     }
     tiles.push(finTile);
 
+    // Cash-on-cash: PIN-gated. After Meshach uses pay actually paid from profit only.
+    var coc = fin.data && fin.data.accounting && fin.data.accounting.coc;
+    var cocTile;
+    if (coc && coc.invested) {
+      var plan = cocPlan(coc);
+      var s = coc.since_start || {};
+      var t30 = coc.trailing_30 || {};
+      var after = s.coc_after;
+      var target = coc.target || 0.20;
+      var vals = [after, t30.coc_after, plan && plan.coc_after].filter(function (x) { return x != null && isFinite(x); });
+      var lo = Math.min(0, -0.4);
+      var hi = Math.max(0.3, target);
+      vals.forEach(function (v) { if (v > -1 && v < 1.5) { lo = Math.min(lo, v); hi = Math.max(hi, v); } });
+      if (lo > -0.05) lo = Math.min(-0.05, lo);
+      var cls = status(after, target);
+      if (after != null && after < 0) cls = 'r';
+      var rows = [
+        ['Since start', s.coc_after, s.coc_before],
+        ['Last 30 days', t30.coc_after, t30.coc_before],
+        ['Plan', plan ? plan.coc_after : null, plan ? plan.coc_before : null]
+      ].map(function (r) {
+        return '<div class="sb-coc-row"><span>' + esc(r[0]) + '</span>' + cocTrack(r[1], lo, hi, target) + '<b>' + pctCoc(r[1]) + '</b></div>';
+      }).join('');
+      var parts = (coc.partners || []).map(function (p) { return esc(p.name) + ' ' + money(p.amount); }).join(', ');
+      var need = coc.needed || {};
+      var needLine = (plan && plan.loadsWk != null)
+        ? '20% needs <b>' + num(plan.loadsWk, 1) + ' loads/wk</b> at your $/mi, or <b>' + rpmT(plan.minRpm) + '/mi</b> at ' + num(tg().loadsWk, 1) + ' loads/wk.'
+        : '20% target is <b>' + money(need.ann_after) + '/yr</b> leftover after Meshach is paid from profit.';
+      cocTile = '<article class="sb-t wide sb-coc ' + cls + '"><div class="sb-l"><span>Cash on cash</span><span class="sb-dot">' + (SLABEL[cls] || 'NO DATA') + '</span></div>' +
+        '<div class="sb-v">' + pctCoc(after) + '</div>' +
+        '<p class="sb-tg">Target <b>' + pctCoc(target) + '</b> - since start, after Meshach pay. Before Meshach: <b>' + pctCoc(s.coc_before) + '</b>.</p>' +
+        '<div class="sb-coc-rows">' + rows + '</div>' +
+        '<p class="sb-coc-sub">White mark is 20%. Cash in <b>' + money(coc.invested) + '</b> (' + parts + '). ' + needLine + '</p></article>';
+    } else {
+      cocTile = '<article class="sb-t wide sb-coc sb-lock" id="sb-coc-lock"><div class="sb-l"><span>Cash on cash</span><span class="sb-dot">LOCKED</span></div>' +
+        '<div class="sb-v"><small>Enter PIN in Finance</small></div><p class="sb-tg">Return on cash you put in, vs a 20% target. One PIN unlocks it.</p></article>';
+    }
+    tiles.unshift(cocTile);
+
     // Hero: break-even ring.
     var be = beRatio == null ? 0 : Math.max(0, Math.min(1, beRatio));
     var R = 48, C = 2 * Math.PI * R;
@@ -364,8 +434,10 @@
       hero + '<section class="sb-calls">' + calls.slice(0, 3).map(function (c) { return '<p>' + c + '</p>'; }).join('') + '</section>' +
       '<div class="sb-grid">' + tiles.join('') + '</div>' +
       '<p class="sb-fine">Net kept = gross - carrier fee - fuel - other costs (ledger), before truck, trailer and insurance bills. Pace = target x ' + day + '/' + dim + ' of the month. Trends compare to ' + esc(prevLbl || 'last period') + ' and last week. Sparklines show the last 6 weeks.</p>';
-    var lock = $('sb-fin-lock');
-    if (lock) lock.addEventListener('click', function () { var b = $('tab-fin'); if (b) b.click(); });
+    ['sb-fin-lock', 'sb-coc-lock'].forEach(function (id) {
+      var lock = $(id);
+      if (lock) lock.addEventListener('click', function () { var b = $('tab-fin'); if (b) b.click(); });
+    });
   }
 
   function visible() { var p = $('panel-kpis'); return p && !p.hidden; }
@@ -379,6 +451,10 @@
     if (k) new MutationObserver(soon).observe(k, { childList: true }); // app.js re-rendered KPIs (new feed / month switch)
     new MutationObserver(function () { if (!$('scoreboard-root')) soon(); }).observe(p, { childList: true });
     document.addEventListener('blackram:tab', function (e) { if (e.detail && e.detail.tab === 'kpis') soon(); });
+    document.addEventListener('blackram:financials', function () {
+      try { var c = sessionStorage.getItem(FIN_KEY); if (c) fin.data = JSON.parse(c); } catch (e) { /* ignore */ }
+      soon();
+    });
     window.addEventListener('storage', function (e) { if (e.key === TKEY) soon(); });
     var tr = $('targets-root');
     if (tr) tr.addEventListener('input', soon);
