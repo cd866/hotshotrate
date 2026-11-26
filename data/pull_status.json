@@ -1,13 +1,13 @@
 {
-  "state": "idle",
-  "pct": 0,
-  "origin": "",
-  "started_at": "",
-  "updated_at": "",
+  "state": "truckstop",
+  "pct": 25,
+  "origin": "Cottondale, FL",
+  "started_at": "2026-11-25 17:55 CT",
+  "updated_at": "2026-11-25 18:03 CT",
   "counts": {
-    "truckstop": 0,
+    "truckstop": 38,
     "df": 0,
-    "fits": 0
+    "fits": 5
   },
-  "message": ""
+  "message": "Searching Truckstop"
 }
