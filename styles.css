@@ -5347,3 +5347,8 @@ html.rig-zoom-open .appbar {
   user-select: none;
   -webkit-user-drag: none;
 }
+
+.rig-list .rig-list {
+  margin: var(--s-1, 8px) 0 var(--s-h, 4px);
+  padding-left: 1.15em;
+}
