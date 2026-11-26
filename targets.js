@@ -94,8 +94,9 @@
     var rate = o.rpm != null ? o.rpm : Number(tgt.rpm);
     var dead = Math.min(0.9, Math.max(0, Number(tgt.dead) / 100));
     var deadPerLoaded = dead / (1 - dead);
-    // Business break-even = covering expenses. Meshach's living wage is a priority payout from profit
-    // AFTER expenses (Claudio 11/26), so it is a second target, not part of fixed.
+    // Business break-even = covering expenses. Meshach's $3,000/mo is a target paid ONLY from
+    // actual profit after all bills and expenses (Claudio 11/26 1:24 PM CT). A shortfall is not
+    // a debt. Break-even incl. Meshach is the target to fully cover that $3,000, not a liability.
     var driverMo = Number(tgt.driverMo) || 0;
     var fixed = s.trailer + insurance + s.otherFixed + Number(tgt.otherMo) + extraFixed;
     var keep = 1 - feePct / 100;
@@ -377,7 +378,7 @@
       slider('daysMo', 'Work days per month', 10, 28, 1, tgt.daysMo, FMT.daysMo) +
       slider('fee', 'Carrier fee', 0, 35, 1, tgt.fee, FMT.fee) +
       slider('maint', 'Tires and maintenance reserve', 0, 0.4, 0.01, tgt.maint, FMT.maint) +
-      slider('driverMo', 'Driver pay (Meshach, paid first from profit)', 0, 6000, 100, tgt.driverMo, FMT.driverMo) +
+      slider('driverMo', 'Driver pay (Meshach, only from profit after bills)', 0, 6000, 100, tgt.driverMo, FMT.driverMo) +
       slider('otherMo', 'Other monthly (Truckstop $42 + phone, software)', 0, 500, 1, tgt.otherMo, FMT.otherMo) +
       '<p class="fine">Fuel and DEF: ' + (function () { var fp = fuelPm(s); var A = app(); return fp.live && A && A.fuelUsedText ? esc(A.fuelUsedText(fp.f)) : 'no diesel price on file, fallback ' + rpm(s.loadedCost) + ' loaded, ' + rpm(s.deadheadCost) + ' empty.'; })() + ' Bills: truck ' + money(s.otherFixed) + ', trailer ' + money(s.trailer) + ', insurance ' + money(s.insurance) +
         (Number(tgt.otherMo) ? ', other ' + money(tgt.otherMo) : '') +

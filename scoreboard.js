@@ -317,14 +317,15 @@
     tiles.push(tile({ label: 'Net kept MTD', actual: fig.net, target: netT, paceTarget: netT != null ? netT * pace : null,
       value: money(fig.net), targetText: 'Plan <b>' + money(netT) + '</b> before bills - pace ' + money(netT != null ? netT * pace : null),
       trend: trend(fig.net, prevFig && prevFig.net, prevLbl, money), spark: spark(col('net')) }));
-    // Meshach's living wage is paid first (Claudio 11/26): how much of it this month's net kept covers.
+    // Bills and expenses first; Meshach's $3,000/mo only from actual profit after that (Claudio 11/26 1:24 PM CT).
+    // Shortfall is not a debt. Target is the full $3,000, not prorated by days.
     var wage = t.driverMo || 0, billsMo = fixed || 0;
     var afterBills = fig.net - billsMo;                                   // profit after ALL expenses incl. notes (month's full bills)
     var wcov = Math.max(0, Math.min(afterBills, wage));
     var wprev = prevFig ? Math.max(0, Math.min(prevFig.net - billsMo, wage)) : null;
-    tiles.push(tile({ label: 'Meshach pay covered', actual: wcov, target: wage, paceTarget: wage * pace,
-      value: money(wcov) + ' <small>/ ' + money(wage) + '</small>',
-      targetText: 'Profit after all bills ' + money(afterBills) + ' covers <b>' + pct(wage ? wcov / wage : null) + '</b> of his ' + money(wage) + '. He is paid first from profit; leftover is split in thirds (his third on top of his pay).',
+    tiles.push(tile({ label: 'Driver pay this month', actual: wcov, target: wage, paceTarget: wage,
+      value: money(wcov) + ' <small>of ' + money(wage) + '</small>',
+      targetText: 'Driver pay this month: ' + money(wcov) + ' of ' + money(wage) + '. Profit after all bills ' + money(afterBills) + '. A shortfall is not a debt. Leftover is split in thirds (his third on top of his pay).',
       trend: trend(wcov, wprev, prevLbl, money) }));
     tiles.push(tile({ label: 'Avg $/loaded mi', actual: fig.perLoaded, target: t.rpm, barMax: Math.max(t.rpm, fig.perLoaded || 0) * 1.15,
       value: rpmT(fig.perLoaded), targetText: 'Target <b>' + rpmT(t.rpm) + '</b> - ' + num(fig.loadedMi, 0) + ' loaded mi',
@@ -418,7 +419,7 @@
       '<div class="sb-big">' + (beRatio != null && beRatio >= 1 ? 'Past break-even' : money(fixed - fig.net) + ' to go') + '</div>' +
       '<p>Net kept ' + money(fig.net) + ' vs ' + money(fixed) + ' monthly bills. Pace mark ' + pct(pace) + '. ' +
       (M && M.beLoadsWk ? 'Break-even is about ' + num(M.beLoadsWk, 1) + ' loads/wk at your Targets inputs.' : '') + '</p>' +
-      (M && M.beGrossDriver != null ? '<p class="sb-be2"><b>Break-even incl. Meshach ' + money(t.driverMo) + ':</b> ' + money(M.beGrossDriver) + '/mo gross, ' + num(M.beLoadsWkDriver, 1) + ' loads/wk. His pay comes first from profit after expenses; leftover is split in thirds. ' + money(Math.max(0, fixed + t.driverMo - fig.net)) + ' to go.</p>' : '') + '</div></section>';
+      (M && M.beGrossDriver != null ? '<p class="sb-be2"><b>Break-even incl. Meshach ' + money(t.driverMo) + ':</b> ' + money(M.beGrossDriver) + '/mo gross, ' + num(M.beLoadsWkDriver, 1) + ' loads/wk. His $3,000 is a target to cover from profit after bills, not a debt. Leftover is split in thirds. ' + money(Math.max(0, fixed + t.driverMo - fig.net)) + ' to go.</p>' : '') + '</div></section>';
 
     // Callouts: the three biggest gaps, one line each.
     var calls = [];

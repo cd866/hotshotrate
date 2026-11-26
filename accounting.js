@@ -143,8 +143,8 @@
     });
     var wf = p.waterfall;
     rows.push('<div class="ac-l ac-l-net"><span>Net after all expenses</span><b class="' + (p.net < 0 ? 'neg' : 'pos') + '">' + m2(p.net) + '</b></div>');
-    if (wf.accrued) rows.push('<div class="ac-l ac-l-sub"><span>Priority payout - Meshach <small>' + m0(wf.accrued) + ' due</small></span><b>' + (wf.driver_pay ? '-' + m2(wf.driver_pay).replace('-', '') : '$0.00') + '</b></div>' +
-      '<div class="ac-l"><span>Driver pay owed (unpaid)</span><b class="' + (wf.driver_short > 0 ? 'neg' : 'pos') + '">' + m2(wf.driver_short) + '</b></div>');
+    var tgt = wf.target || 0;
+    if (tgt) rows.push('<div class="ac-l ac-l-sub"><span>Driver pay this month <small>' + m0(wf.driver_pay) + ' of ' + m0(tgt) + '</small></span><b>' + (wf.driver_pay ? '-' + m2(wf.driver_pay).replace('-', '') : '$0.00') + '</b></div>');
     rows.push('<div class="ac-l ac-l-net"><span>Left to split (1/3 each)</span><b class="' + (wf.left > 0 ? 'pos' : '') + '">' + m2(wf.left) + '</b></div>');
     if (wf.split) {
       ['Claudio', 'Ben', 'Meshach'].forEach(function (n) {
@@ -200,17 +200,18 @@
     var thirds = ['Claudio', 'Ben', 'Meshach'].map(function (n) {
       return '<div><span>' + n + (n === 'Meshach' ? ' <small>+ wage</small>' : '') + '</span><b>' + m0(w.split && w.split[n] || w.third || 0) + '</b></div>';
     }).join('');
+    var tgt = w.target || 0;
     var need = w.net < 0 ? Math.ceil(-w.net / 0.87 / 10) * 10 : 0;
-    var needD = (w.net - w.accrued) < 0 ? Math.ceil((w.accrued - w.net) / 0.87 / 10) * 10 : 0;
+    var needD = tgt && (w.net - tgt) < 0 ? Math.ceil((tgt - w.net) / 0.87 / 10) * 10 : 0;
     var body = wfChart(w) +
       '<div class="ac-calls">' +
-      (w.net < 0 ? call('bad', 'Net after ALL expenses is <b>' + m0(w.net) + '</b> in ' + esc(lab) + '. Nothing is available to pay Meshach or the partners.') :
+      (w.net < 0 ? call('bad', 'Net after ALL expenses is <b>' + m0(w.net) + '</b> in ' + esc(lab) + '. Nothing is left to pay Meshach or the partners.') :
         call('good', 'Net after all expenses <b>' + m0(w.net) + '</b>')) +
-      (w.accrued ? call(w.driver_short > 0 ? 'bad' : 'good', 'Meshach priority pay: <b>' + m0(w.driver_pay) + '</b> of ' + m0(w.accrued) + ' covered' + (w.driver_short > 0 ? '. <b>' + m0(w.driver_short) + '</b> goes to driver pay owed.' : '.')) : '') +
-      (needD ? call('ok', 'Needs about <b>' + m0(needD) + '</b> more gross (after Totni 13%) to cover expenses AND Meshach\'s ' + m0(w.accrued)) : '') +
+      (tgt ? call('ok', 'Driver pay this month: <b>' + m0(w.driver_pay) + '</b> of ' + m0(tgt) + ' covered from profit. A shortfall is not a debt.') : '') +
+      (needD ? call('ok', 'Needs about <b>' + m0(needD) + '</b> more gross (after Totni 13%) to cover expenses AND Meshach\'s ' + m0(tgt) + ' target') : '') +
       call(w.left > 0 ? 'good' : 'ok', 'Left to split three ways: <b>' + m0(w.left) + '</b> (' + m0(w.third || 0) + ' each)') + '</div>' +
       '<div class="ac-tot' + (w.left > 0 ? '' : ' ac-dim') + '">' + thirds + '</div>' +
-      '<p class="ac-fine">Order: gross, less ALL expenses (Totni, ELD, fuel, DEF, tolls, repairs, insurance, software, overhead and the truck and trailer notes) = net after expenses. Meshach\'s $' + D.monthly.toLocaleString('en-US') + '/mo is a priority payout from that net, capped at what is available; any unpaid part is carried as driver pay owed. The remainder is split in thirds among Claudio, Ben and Meshach. Meshach\'s third is on top of his wage.</p>';
+      '<p class="ac-fine">Order: all bills and expenses first (Totni, ELD, fuel, DEF, tolls, repairs, insurance, software, overhead and the truck and trailer notes) = net after expenses. Meshach\'s $' + D.monthly.toLocaleString('en-US') + '/mo comes ONLY from actual profit left after that. A shortfall is not accrued and is not a debt. The remainder is split in thirds among Claudio, Ben and Meshach. Meshach\'s third is on top of his pay.</p>';
     return card('Profit waterfall', esc(monLbl(st.sel)), body, 'ac-wf');
   }
   function pctCoc(n) {
@@ -268,14 +269,15 @@
     return card('Cash on cash', 'Target 20%', body, 'ac-coc');
   }
   function secDriver(A) {
-    var d = A.driver, rows = d.accrual.map(function (a) {
-      return '<div class="ac-xr"><span class="ac-xd">' + esc(monShort(a.month)) + '</span><span class="ac-xv">' + (a.partial ? a.days + ' of ' + a.dim + ' days' : 'Full month') + '<small>Covered from profit ' + m2(a.covered_from_profit) + '</small></span><b>' + m2(a.accrued) + '</b></div>';
+    var d = A.driver, tgt = d.target || d.monthly, cov = d.covered_from_profit || 0;
+    var months = (d.months || []).map(function (a) {
+      return '<div class="ac-xr"><span class="ac-xd">' + esc(monShort(a.month)) + '</span><span class="ac-xv">Covered from profit<small>Driver pay this month: ' + m2(a.covered_from_profit) + ' of ' + m2(a.target) + '</small></span><b>' + m2(a.covered_from_profit) + '</b></div>';
     }).join('');
-    var paid = d.paid.map(function (p) { return '<div class="ac-xr rep"><span class="ac-xd">' + day(p.date) + '</span><span class="ac-xv">Paid to Meshach<small>' + esc(p.source) + '</small></span><b>' + m2(p.amount) + '</b></div>'; }).join('');
-    return card('Driver pay owed - Meshach', '$' + d.monthly.toLocaleString('en-US') + '/mo, priority payout',
-      '<div class="ac-tot"><div><span>Accrued</span><b>' + m0(d.accrued_total) + '</b></div><div><span>Paid</span><b>' + m0(d.paid_total) + '</b></div><div><span>Owed</span><b>' + m0(d.owed) + '</b></div></div>' +
-      (d.owed > 0 ? call('bad', 'Meshach is owed <b>' + m2(d.owed) + '</b>. It is on the balance sheet as a debt.') : call('good', 'Meshach is paid up')) +
-      rows + paid + '<p class="ac-fine">' + esc(d.rule) + ' ' + esc(d.assumption) + ' ' + esc(d.note) + '</p>', 'ac-driver');
+    var paid = (d.paid || []).map(function (p) { return '<div class="ac-xr rep"><span class="ac-xd">' + day(p.date) + '</span><span class="ac-xv">Paid to Meshach<small>' + esc(p.source) + '</small></span><b>' + m2(p.amount) + '</b></div>'; }).join('');
+    return card('Driver pay - Meshach', '$' + d.monthly.toLocaleString('en-US') + '/mo from profit after bills',
+      '<div class="ac-tot"><div><span>This month</span><b>' + m0(cov) + ' of ' + m0(tgt) + '</b></div><div><span>Paid out</span><b>' + m0(d.paid_total) + '</b></div></div>' +
+      call('ok', 'Driver pay this month: <b>' + m2(cov) + '</b> of ' + m0(tgt) + '. Paid only from actual profit after all bills and expenses. A shortfall is not a debt.') +
+      months + paid + '<p class="ac-fine">' + esc(d.rule) + ' ' + esc(d.assumption || '') + ' ' + esc(d.note || '') + '</p>', 'ac-driver');
   }
 
   function secRevenue(A) {
@@ -345,7 +347,7 @@
     }).join('');
     var wh = b.withheld.map(function (w) { return esc(w.payee) + ' ' + (w.amount != null ? m2(w.amount) : esc(w.amount_text || 'varies')); }).join('; ');
     return card('Bills and payables', 'Next 60 days',
-      '<div class="ac-calls">' + call('bad', '<b>' + m0(t30) + '</b> due in the next 30 days') + call('ok', 'AmEx about <b>' + m0(ax.est_balance) + '</b> EST, due date?') + (A.driver && A.driver.owed > 0 ? call('bad', 'Meshach wage owed <b>' + m0(A.driver.owed) + '</b>, not in the 30-day cash projection') : '') + '</div>' +
+      '<div class="ac-calls">' + call('bad', '<b>' + m0(t30) + '</b> due in the next 30 days') + call('ok', 'AmEx about <b>' + m0(ax.est_balance) + '</b> EST, due date?') + '</div>' +
       rows + '<div class="ac-sub">Company AmEx</div>' +
       '<div class="ac-tot"><div><span>Charged (receipts)</span><b>' + m0(ax.charges_logged) + '</b></div><div><span>Paid down</span><b>' + m0(ax.paid_total) + '</b></div><div><span>Balance EST</span><b>' + m0(ax.est_balance) + '</b></div></div>' +
       '<p class="ac-fine">' + esc(ax.note) + '</p>' +
@@ -368,7 +370,7 @@
     var tot = A.partners.reduce(function (s, p) { return s + p.capital_total; }, 0);
     var cards = A.partners.map(function (p) {
       var items = p.capital.map(function (i) { return '<div class="ac-xr"><span class="ac-xd">' + day(i.date) + '</span><span class="ac-xv">' + esc(i.label) + '</span><b>' + m2(i.amount) + '</b></div>'; }).join('');
-      var wg = p.wage ? '<div class="ac-sub">Priority payout from profit</div><div class="ac-xr rep"><span class="ac-xd">Nov</span><span class="ac-xv">Accrued ' + m2(p.wage.accrued) + ', paid ' + m2(p.wage.paid) + '<small>$' + p.wage.monthly.toLocaleString('en-US') + '/mo, paid first from profit after expenses</small></span><b>' + m2(p.wage.owed) + ' owed</b></div>' : '';
+      var wg = p.wage ? '<div class="ac-sub">Driver pay from profit</div><div class="ac-xr rep"><span class="ac-xd">This month</span><span class="ac-xv">Driver pay this month: ' + m2(p.wage.covered_from_profit || 0) + ' of ' + m2(p.wage.target || p.wage.monthly) + '<small>$' + p.wage.monthly.toLocaleString('en-US') + '/mo only from profit after all bills. A shortfall is not a debt.</small></span><b>' + m2(p.wage.covered_from_profit || 0) + '</b></div>' : '';
       var rep = p.repaid.map(function (i) { return '<div class="ac-xr rep"><span class="ac-xd">' + day(i.date) + '</span><span class="ac-xv">' + esc(i.note) + '</span><b>' + m2(i.amount) + '</b></div>'; }).join('');
       return '<div class="ac-pt"><div class="ac-pt-h"><b>' + esc(p.name) + '</b><span>' + esc(p.share) + ' owner</span><strong>' + m0(p.capital_total) + '</strong></div>' +
         '<div class="ac-pt-bar"><i style="width:' + (tot ? (p.capital_total / tot * 100).toFixed(1) : 0) + '%"></i></div>' + items +
