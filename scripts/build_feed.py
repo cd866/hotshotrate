@@ -52,7 +52,7 @@ feed["rig"]["trailer"] = "2027 Big Tex 25GN 40 ft gooseneck"
 feed["rig"]["truck"] = "2026 Ram 3500 dually"
 feed["fixed_costs"] = {
   "as_of": "2026-11-03",
-  "monthly_total": 3229.50,
+  "monthly_total": 3271.50,
   "items": [
     {"name": "Truck note (Chase, 84 mo)", "monthly": 1573.04, "source": "loan terms in capital model; Oct payment confirmed paid 10/23"},
     {"name": "Trailer note (Synchrony, 84 mo)", "monthly": 434.84, "source": "trailer financing terms"},
@@ -62,6 +62,8 @@ feed["fixed_costs"] = {
      "installments": {"count": 10, "amount": 1221.62, "last_amount": 1221.61, "due_dates_known": False},
      "total_cash_12mo": 14600.00, "avg_monthly_incl_down": 1216.67,
      "unconfirmed": "Installment due dates (payment schedule not on file); whether premium drops after own DOT; dashcam (Snapshot Pro) cost"}
+    {"name": "Truckstop Freight Match (INV-4492445)", "monthly": 42.00,
+     "source": "Charged 11/14 to the company AmEx; Totni did not pay it. Service 11/14-12/13."}
   ],
   "per_load_deductions": [
     {"name": "Totni insurance add-on", "amount": 50.00, "seen_on": "158756", "recurring": "UNCONFIRMED (one-time vs per load)"}

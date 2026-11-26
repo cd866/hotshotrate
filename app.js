@@ -293,25 +293,27 @@
   }
 
   // One monthly bill basis everywhere (same as Targets / Scoreboard):
-  // trailer + insurance + truck note from settings, plus any real "other monthly"
-  // on Targets (phone, software). The Truckstop $42 (INV-4492445) is billed to
-  // Totni, paid by Totni, and taken from load pay, so it is not a company bill.
+  // trailer + insurance + truck note from settings, plus other monthly
+  // (Truckstop Freight Match $42 default, plus phone/software). The $42
+  // (INV-4492445) was charged 11/14 to company AmEx ...8008; Totni did not pay it.
+  // v68 had dropped it from the company basis; v71 puts it back.
   var TARGETS_KEY = 'blackram_targets_v1';
-  function dropTruckstop42(t) {
+  function restoreTruckstop42(t) {
     t = t || {};
-    if (Number(t.otherMo) === 42 && !t.droppedTruckstop42) {
-      t.otherMo = 0;
-      t.droppedTruckstop42 = 1;
+    if (t.droppedTruckstop42 && Number(t.otherMo) === 0 && !t.restoredTruckstop42) {
+      t.otherMo = 42;
+      t.restoredTruckstop42 = 1;
+      t.droppedTruckstop42 = 0;
       try { localStorage.setItem(TARGETS_KEY, JSON.stringify(t)); } catch (e) { /* private mode */ }
     }
     return t;
   }
   function targetsOtherMo() {
     try {
-      var t = dropTruckstop42(JSON.parse(localStorage.getItem(TARGETS_KEY) || '{}'));
+      var t = restoreTruckstop42(JSON.parse(localStorage.getItem(TARGETS_KEY) || '{}'));
       if (t && t.otherMo != null && t.otherMo !== '' && isFinite(Number(t.otherMo))) return Number(t.otherMo);
     } catch (e) { /* ignore */ }
-    return 0;
+    return 42;
   }
 
   function monthlyBills(s) {
@@ -1665,7 +1667,7 @@
     var b = monthlyBills();
     return '<p class="fine">Monthly bills ' + money(b.total) + ' (trailer ' + money(b.trailer) + ', insurance ' +
       money(b.insurance) + ', truck ' + money(b.truck) + (b.otherMo ? ', other ' + money(b.otherMo) : '') +
-      '). The Truckstop $42 is a Totni load-pay deduction, not a company bill. Break-even here, on the Scoreboard and on Targets all use these bills.</p>';
+      '). Truckstop Freight Match $42 is a company bill (charged 11/14 to AmEx ...8008). Break-even here, on the Scoreboard and on Targets all use these bills.</p>';
   }
 
   function scoreLedgerLoad(load, pct) {
@@ -2554,7 +2556,7 @@
         : (money(fig.net) + ' net vs ' + money(fixed) + ' fixed (' +
           Math.round(ratio * 100) + '%). Trailer ' + money(s.trailer) + ' + insurance ' + money(s.insurance) +
           ' + truck ' + money(s.otherFixed) + (bills.otherMo ? ' + other monthly ' + money(bills.otherMo) : '') +
-          ' (same bills as Targets; Truckstop $42 is a Totni load-pay deduction, not a company bill).');
+          ' (same bills as Targets; Truckstop Freight Match $42 is a company bill, charged 11/14 to AmEx ...8008).');
       be = '<section class="big"><div class="kicker">Break-even | ' +
         esc(all ? 'All time' : monthTitle(month.month)) + '</div>' +
         '<span class="n phrase">' + esc(headline) + '</span>' +

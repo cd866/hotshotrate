@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-26T06:34:55Z",
+  "generated_at": "2026-11-26T18:28:28Z",
   "company": "Sand Lily Pad LLC",
   "dba": "Black Ram Logistics",
   "authority": "Leased onto Totni Enterprise",
@@ -59,7 +59,8 @@
           "net_per_mile": 3.37,
           "hours": 4.51,
           "per_hour": 93.69,
-          "days": 2.0,
+          "days_span": 2,
+          "days": 2,
           "net_per_day": 211.26,
           "flags": [
             "net per day under $300"
@@ -275,7 +276,8 @@
           "net_per_mile": 1.23,
           "hours": 11.67,
           "per_hour": 50.9,
-          "days": 2.0,
+          "days_span": 2,
+          "days": 2,
           "net_per_day": 297.03,
           "flags": [
             "net per day under $300"
@@ -538,7 +540,8 @@
           "net_per_mile": 3.79,
           "hours": 8.0,
           "per_hour": 142.12,
-          "days": 2.0,
+          "days_span": 2,
+          "days": 2,
           "net_per_day": 568.5,
           "route": {
             "legs": [
@@ -764,7 +767,8 @@
           "net_per_mile": 1.68,
           "hours": 8.23,
           "per_hour": 63.44,
-          "days": 2.0,
+          "days_span": 2,
+          "days": 2,
           "net_per_day": 261.05,
           "flags": [
             "net per day under $300"
@@ -1108,7 +1112,8 @@
           "net_per_mile": 0.47,
           "hours": 14.62,
           "per_hour": 20.13,
-          "days": 3.0,
+          "days_span": 3,
+          "days": 3,
           "net_per_day": 98.12,
           "flags": [
             "net per day under $300"
@@ -1484,15 +1489,15 @@
         },
         {
           "date": "2026-10-28",
-          "vendor": "RecNation Texas City TX (overnight truck/trailer parking)",
-          "amount": 35.71,
-          "category": "parking"
+          "vendor": "Pilot - Huntsville TX 77320",
+          "amount": 156.81,
+          "category": "fuel"
         },
         {
           "date": "2026-10-28",
-          "vendor": "Truck stop Huntsville TX 77320",
-          "amount": 160.0,
-          "category": "fuel"
+          "vendor": "RecNation Texas City TX (overnight truck/trailer parking)",
+          "amount": 35.71,
+          "category": "parking"
         }
       ],
       "cancelled": [
@@ -1596,7 +1601,8 @@
           "net_per_mile": 0.32,
           "hours": 18.7,
           "per_hour": 14.15,
-          "days": 2.0,
+          "days_span": 2,
+          "days": 2,
           "net_per_day": 132.3,
           "flags": [
             "net per day under $300"
@@ -1854,7 +1860,8 @@
           "net_per_mile": 0.84,
           "hours": 15.1,
           "per_hour": 36.5,
-          "days": 2.0,
+          "days_span": 2,
+          "days": 2,
           "net_per_day": 275.55,
           "flags": [
             "net per day under $300"
@@ -2175,8 +2182,9 @@
           "net_per_mile": 0.27,
           "hours": 12.33,
           "per_hour": 11.23,
-          "days": 1.5,
-          "net_per_day": 92.32,
+          "days_span": 1,
+          "days": 1,
+          "net_per_day": 138.48,
           "flags": [
             "net per day under $300"
           ],
@@ -2456,7 +2464,8 @@
           "net_per_mile": 1.1,
           "hours": 8.17,
           "per_hour": 41.39,
-          "days": 2.0,
+          "days_span": 2,
+          "days": 2,
           "net_per_day": 169.07,
           "flags": [
             "net per day under $300"
@@ -2805,7 +2814,8 @@
           "net_per_mile": 0.49,
           "hours": 11.46,
           "per_hour": 20.37,
-          "days": 2.0,
+          "days_span": 2,
+          "days": 2,
           "net_per_day": 116.7,
           "flags": [
             "net per day under $300"
@@ -3120,7 +3130,7 @@
         {
           "date": "2026-11-03",
           "vendor": "Shell Fast Stop Red Dog Egan LA",
-          "amount": 160.0,
+          "amount": 157.22,
           "category": "fuel"
         },
         {
@@ -3131,6 +3141,12 @@
         },
         {
           "date": "2026-11-04",
+          "vendor": "Circle K (Pensacola FL) - DEF",
+          "amount": 28.26,
+          "category": "DEF"
+        },
+        {
+          "date": "2026-11-04",
           "vendor": "Circle K Travel Center #2721591 Pensacola FL",
           "amount": 115.0,
           "category": "fuel",
@@ -3138,16 +3154,9 @@
         },
         {
           "date": "2026-11-04",
-          "vendor": "DEF - convenience store Pensacola FL",
-          "amount": 26.29,
-          "category": "DEF"
-        },
-        {
-          "date": "2026-11-04",
-          "vendor": "Fuel prepay - diesel",
-          "amount": 160.0,
-          "category": "fuel",
-          "notes": "Diesel (confirmed 11/4); station not shown on receipt"
+          "vendor": "ExxonMobil Inside Sales",
+          "amount": 154.32,
+          "category": "fuel"
         },
         {
           "date": "2026-11-05",
@@ -3163,14 +3172,20 @@
         },
         {
           "date": "2026-11-06",
+          "vendor": "Pilot Travel Centers (truck diesel)",
+          "amount": 160.92,
+          "category": "fuel"
+        },
+        {
+          "date": "2026-11-06",
           "vendor": "TA Jacksonville South #0148 (diesel #2)",
           "amount": 90.0,
           "category": "fuel"
         },
         {
           "date": "2026-11-09",
-          "vendor": "Pilot (diesel)",
-          "amount": 160.0,
+          "vendor": "Pilot #090 Fort Pierce FL (truck diesel)",
+          "amount": 146.52,
           "category": "fuel"
         },
         {
@@ -3201,15 +3216,21 @@
         },
         {
           "date": "2026-11-13",
-          "vendor": "Pilot (Blue DEF $27.99 + $2.10 tax)",
+          "vendor": "Pilot #087 Baldwin FL (Blue DEF $27.99 + $2.10 tax)",
           "amount": 30.09,
           "category": "DEF"
         },
         {
           "date": "2026-11-13",
-          "vendor": "Pilot (diesel)",
-          "amount": 160.0,
+          "vendor": "Pilot #087 Baldwin FL (diesel)",
+          "amount": 137.63,
           "category": "fuel"
+        },
+        {
+          "date": "2026-11-14",
+          "vendor": "Truckstop.com Freight Match (INV-4492445)",
+          "amount": 42.0,
+          "category": "load board"
         },
         {
           "date": "2026-11-16",
@@ -3222,6 +3243,54 @@
           "vendor": "Pilot Store 260, Albany GA (truck diesel)",
           "amount": 140.0,
           "category": "fuel"
+        },
+        {
+          "date": "2026-11-22",
+          "vendor": "Pilot Travel Centers (truck diesel)",
+          "amount": 140.0,
+          "category": "fuel",
+          "est": true,
+          "notes": "Estimate; final receipt not posted yet"
+        },
+        {
+          "date": "2026-11-23",
+          "vendor": "Pilot Travel Centers (truck diesel)",
+          "amount": 134.57,
+          "category": "fuel",
+          "est": true,
+          "notes": "Estimate; final receipt not posted yet"
+        },
+        {
+          "date": "2026-11-23",
+          "vendor": "Truckstop.com subscription (THE INTERNET TRUCKSTOP)",
+          "amount": 28.99,
+          "category": "load board"
+        },
+        {
+          "date": "2026-11-24",
+          "vendor": "Marathon Petroleum (diesel)",
+          "amount": 129.51,
+          "category": "fuel"
+        },
+        {
+          "date": "2026-11-24",
+          "vendor": "QuikTrip (diesel)",
+          "amount": 114.6,
+          "category": "fuel"
+        },
+        {
+          "date": "2026-11-25",
+          "vendor": "Flying J (diesel)",
+          "amount": 140.0,
+          "category": "fuel",
+          "est": true,
+          "notes": "Estimate; final receipt not posted yet"
+        },
+        {
+          "date": "2026-11-26",
+          "vendor": "LLC/legal - add as member",
+          "amount": 125.0,
+          "category": "legal/LLC admin"
         }
       ],
       "cancelled": [],
@@ -3267,7 +3336,7 @@
   ],
   "fixed_costs": {
     "as_of": "2026-11-03",
-    "monthly_total": 3229.5,
+    "monthly_total": 3271.5,
     "items": [
       {
         "name": "Truck note (Chase, 84 mo)",
@@ -3297,6 +3366,11 @@
         "total_cash_12mo": 14600.0,
         "avg_monthly_incl_down": 1216.67,
         "unconfirmed": "Whether premium drops after own DOT; dashcam (Snapshot Pro) cost"
+      },
+      {
+        "name": "Truckstop Freight Match (INV-4492445)",
+        "monthly": 42.0,
+        "source": "Charged 11/14 to the company AmEx; Totni did not pay it. Service 11/14-12/13."
       }
     ],
     "per_load_deductions": [
