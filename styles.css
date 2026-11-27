@@ -4534,7 +4534,7 @@ article.combo-card.cc.cc-flash { animation: ccFlash 2s ease-out 1; }
    Type: --fs-xs 12 / sm 13 / md 15 / base 16 / lg 18 / xl 22 / 2xl 28 / 3xl 34
    Hierarchy: numbers are big and bold (--fs-2xl/800), labels small (--fs-xs/700, muted).
    Buttons: .btn-primary (gold), .btn-secondary (filled), .btn-ghost (outline), all >= 44px.
-   Glow: --glow-gold / .btn-glow on primary CTAs only; .btn-glow-pulse for one home CTA.
+   Glow: --glow-gold / .btn-glow on primary CTAs only. Halo lives on ::after; opacity breathes.
    Verdicts: --c-take (green), --c-maybe (amber), --c-pass (muted grey).
    ===================================================================== */
 :root {
@@ -4558,7 +4558,7 @@ article.combo-card.cc.cc-flash { animation: ccFlash 2s ease-out 1; }
   --c-gold: #F2C94C;
   --c-gold-ink: #17120a;
   --num-yellow: var(--c-gold); /* #F2C94C ram-logo gold; headline figures */
-  /* Soft gold halo for primary action buttons. Box-shadow only (no filters). */
+  /* Soft gold halo for primary action buttons. Lives on ::after; opacity is animated, not the shadow. */
   --glow-gold: 0 0 0 1px rgba(242, 201, 76, 0.22), 0 0 14px rgba(242, 201, 76, 0.42), 0 6px 16px rgba(242, 201, 76, 0.16);
   --glow-gold-pulse: 0 0 0 1px rgba(242, 201, 76, 0.4), 0 0 22px rgba(242, 201, 76, 0.6), 0 8px 22px rgba(242, 201, 76, 0.26);
   --glow-gold-soft: 0 0 0 1px rgba(242, 201, 76, 0.3), 0 0 12px rgba(242, 201, 76, 0.3);
@@ -5690,65 +5690,103 @@ header.top .rig-stage[data-r360] .rig-floor { transition: opacity 0.5s ease; }
 
 
 /* =====================================================================
-   v104 BUTTON GLOW
-   Soft gold box-shadow halo on primary / action buttons only.
-   Do not glow tiles, chips, secondary, ghost, or destructive buttons.
-   No filters (keeps scroll cheap on phones). Pulse is one CTA only.
+   v109 BUTTON GLOW BREATHE
+   Gold halo lives on a ::after pseudo (box-shadow stays static).
+   Opacity eases in and out so the glow breathes without animating
+   box-shadow or using filters (cheap on phones). Disabled stays flat.
+   The active bottom-nav tab uses the softer halo and a tighter range.
    ===================================================================== */
-.btn-glow {
-  box-shadow: var(--glow-gold);
-}
-.btn-glow-pulse {
-  animation: btnGlowPulse 2.8s ease-in-out infinite;
-}
-@keyframes btnGlowPulse {
-  0%, 100% { box-shadow: var(--glow-gold); }
-  50% { box-shadow: var(--glow-gold-pulse); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .btn-glow-pulse { animation: none; }
-}
-
-/* Primary gold buttons and named CTAs share the same halo. */
+.btn-glow,
 .btn.primary:not(:disabled):not(.btn-danger):not(.btn-destructive):not(.danger),
 .btn.gold:not(:disabled):not(.btn-danger):not(.btn-destructive):not(.danger),
 .btn-primary:not(:disabled):not(.btn-danger):not(.btn-destructive):not(.danger),
 button.btn.primary:not(:disabled):not(.btn-danger):not(.btn-destructive):not(.danger),
 button.btn.gold:not(:disabled):not(.btn-danger):not(.btn-destructive):not(.danger),
 #rc-save:not(:disabled),
-#refresh-btn,
-#search-refresh-btn,
+#refresh-btn:not(:disabled),
+#search-refresh-btn:not(:disabled),
 #dailyreports-root .dr-btn.pri,
 #drep-view .dr-btn.pri,
 #drep-pin-form .dr-btn.pri,
 .td-q,
-.td-btn.gold {
-  box-shadow: var(--glow-gold);
+.td-btn.gold,
+nav.tabbar.bnav > button[aria-selected="true"],
+nav.tabbar.bnav > button.tb-more.is-active {
+  position: relative;
+  overflow: visible;
+  --glow-delay: 0s;
+  --glow-shadow: var(--glow-gold);
 }
 
-/* Rate Check's real CTA is Save check (the form scores as you type). */
-#rc-save:not(:disabled) {
-  background: var(--c-gold);
-  border-color: var(--c-gold);
-  color: var(--c-gold-ink);
+.btn-glow::after,
+.btn.primary:not(:disabled):not(.btn-danger):not(.btn-destructive):not(.danger)::after,
+.btn.gold:not(:disabled):not(.btn-danger):not(.btn-destructive):not(.danger)::after,
+.btn-primary:not(:disabled):not(.btn-danger):not(.btn-destructive):not(.danger)::after,
+button.btn.primary:not(:disabled):not(.btn-danger):not(.btn-destructive):not(.danger)::after,
+button.btn.gold:not(:disabled):not(.btn-danger):not(.btn-destructive):not(.danger)::after,
+#rc-save:not(:disabled)::after,
+#refresh-btn:not(:disabled)::after,
+#search-refresh-btn:not(:disabled)::after,
+#dailyreports-root .dr-btn.pri::after,
+#drep-view .dr-btn.pri::after,
+#drep-pin-form .dr-btn.pri::after,
+.td-q::after,
+.td-btn.gold::after,
+nav.tabbar.bnav > button[aria-selected="true"]::after,
+nav.tabbar.bnav > button.tb-more.is-active::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: var(--glow-shadow, var(--glow-gold));
+  pointer-events: none;
+  opacity: 0.22;
+  animation: btnGlowBreathe 2.8s ease-in-out infinite;
+  animation-delay: var(--glow-delay, 0s);
 }
 
-/* Single pulsing CTA: Today's gold action (Find a load / Mark delivered). */
-.td-btn.gold {
-  animation: btnGlowPulse 2.8s ease-in-out infinite;
-}
-@media (prefers-reduced-motion: reduce) {
-  .td-btn.gold { animation: none; }
+@keyframes btnGlowBreathe {
+  0%, 100% { opacity: 0.22; }
+  50% { opacity: 1; }
 }
 
-/* Active bottom-nav tab: a softer halo so it does not compete with gold CTAs. */
+/* Soft tab halo: same timing, tighter opacity so it does not compete. */
 nav.tabbar.bnav {
   overflow: visible;
   padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
 }
 nav.tabbar.bnav > button[aria-selected="true"],
 nav.tabbar.bnav > button.tb-more.is-active {
-  box-shadow: var(--glow-gold-soft);
+  --glow-shadow: var(--glow-gold-soft);
+  --glow-delay: 0.9s;
+}
+nav.tabbar.bnav > button[aria-selected="true"]::after,
+nav.tabbar.bnav > button.tb-more.is-active::after {
+  animation-name: btnGlowBreatheSoft;
+}
+@keyframes btnGlowBreatheSoft {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.85; }
+}
+
+/* Slight stagger so a row of buttons does not blink in lockstep. */
+.td-q:nth-child(4n+1) { --glow-delay: 0s; }
+.td-q:nth-child(4n+2) { --glow-delay: 0.35s; }
+.td-q:nth-child(4n+3) { --glow-delay: 0.7s; }
+.td-q:nth-child(4n+4) { --glow-delay: 1.05s; }
+.td-btn.gold { --glow-delay: 0.45s; }
+#rc-save:not(:disabled) { --glow-delay: 0.6s; }
+#refresh-btn:not(:disabled) { --glow-delay: 0.25s; }
+#search-refresh-btn:not(:disabled) { --glow-delay: 0.8s; }
+#dailyreports-root .dr-btn.pri,
+#drep-view .dr-btn.pri,
+#drep-pin-form .dr-btn.pri { --glow-delay: 0.5s; }
+
+/* Rate Check's real CTA is Save check (the form scores as you type). */
+#rc-save:not(:disabled) {
+  background: var(--c-gold);
+  border-color: var(--c-gold);
+  color: var(--c-gold-ink);
 }
 
 /* Room for the halo; overflow-hidden parents would clip it. */
@@ -5766,31 +5804,59 @@ nav.tabbar.bnav > button.tb-more.is-active {
 #dailyreports-root .dr-card,
 #dailyreports-root .dr-btns { overflow: visible; }
 
-/* Disabled / secondary / destructive stay flat. */
-.btn-glow:disabled,
-.btn.primary:disabled,
-.btn.gold:disabled,
-.btn-primary:disabled,
-#rc-save:disabled,
-.btn.btn-ghost,
-.btn.btn-danger,
-.btn.btn-destructive,
-.btn.danger,
-.rc-hist-del,
-#settings-relay-clear,
-#deliver-sheet-cancel,
-#compare-clear-btn {
-  box-shadow: none;
+/* Disabled / secondary / destructive stay flat: no halo, no animation. */
+.btn-glow:disabled::after,
+.btn.primary:disabled::after,
+.btn.gold:disabled::after,
+.btn-primary:disabled::after,
+#rc-save:disabled::after,
+#refresh-btn:disabled::after,
+#search-refresh-btn:disabled::after,
+.btn.btn-ghost::after,
+.btn.btn-danger::after,
+.btn.btn-destructive::after,
+.btn.danger::after,
+.rc-hist-del::after,
+#settings-relay-clear::after,
+#deliver-sheet-cancel::after,
+#compare-clear-btn::after {
+  content: none;
   animation: none;
+  box-shadow: none;
+  opacity: 0;
 }
 
 /* Load-board action chips stay plain even when a call button is gold. */
-body .search-actions > a,
-body .search-actions > button,
-body .search-actions .trip-plan-btn {
+body .search-actions > a::after,
+body .search-actions > button::after,
+body .search-actions .trip-plan-btn::after {
+  content: none;
+  animation: none;
   box-shadow: none;
 }
 
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-glow::after,
+  .btn.primary:not(:disabled)::after,
+  .btn.gold:not(:disabled)::after,
+  .btn-primary:not(:disabled)::after,
+  button.btn.primary:not(:disabled)::after,
+  button.btn.gold:not(:disabled)::after,
+  #rc-save:not(:disabled)::after,
+  #refresh-btn:not(:disabled)::after,
+  #search-refresh-btn:not(:disabled)::after,
+  #dailyreports-root .dr-btn.pri::after,
+  #drep-view .dr-btn.pri::after,
+  #drep-pin-form .dr-btn.pri::after,
+  .td-q::after,
+  .td-btn.gold::after,
+  nav.tabbar.bnav > button[aria-selected="true"]::after,
+  nav.tabbar.bnav > button.tb-more.is-active::after {
+    animation: none;
+    opacity: 0.75;
+  }
+}
 
 /* =====================================================================
    v105 APPBAR WEATHER CHIP (wxbar.js): current weather for the truck city, tap for details.
