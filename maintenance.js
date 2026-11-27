@@ -696,8 +696,8 @@
     var P = st.pub;
     if (!P) {
       el.innerHTML = '<div class="mt-top"><div><div class="mt-kicker">Sand Lily Pad LLC</div><h2>Maintenance</h2></div></div>' +
-        '<section class="mt-card"><p class="mt-fine">' + esc(st.pubErr || 'Loading maintenance records...') + '</p>' +
-        (st.pubErr ? '<button type="button" class="btn" id="mt-retry">Try again</button>' : '') + '</section>';
+        '<section class="mt-card' + (st.pubErr ? ' err-card' : '') + '"' + (st.pubErr ? ' role="alert"' : '') + '>' + (st.pubErr ? '<b>Could not load</b>' : '') + '<p class="mt-fine">' + esc(st.pubErr ? 'Maintenance records did not load. Check the connection.' : 'Loading maintenance records...') + '</p>' +
+        (st.pubErr ? '<button type="button" class="btn err-retry" id="mt-retry">Try again</button>' : '') + '</section>';
       var rt = document.getElementById('mt-retry'); if (rt) rt.addEventListener('click', function () { st.pub = null; st.pubErr = ''; loadPublic(); render(); });
       return;
     }

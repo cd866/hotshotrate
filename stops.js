@@ -10,7 +10,7 @@
   var VIEW_LIMIT = 80;
   var BRAND = {
     loves: { label: "Love's", short: 'L', color: '#F2C94C', ink: '#0E0E10' },
-    ta: { label: 'TA', short: 'TA', color: '#E24B4B', ink: '#F5F1E6' },
+    ta: { label: 'TA', short: 'TA', color: '#C23333', ink: '#F5F1E6' },
     'ta-express': { label: 'TA Express', short: 'TX', color: '#7EB6FF', ink: '#0E0E10' },
     petro: { label: 'Petro', short: 'P', color: '#FF8A3D', ink: '#0E0E10' }
   };

@@ -271,6 +271,17 @@
     var feed = A && A.getFeed ? A.getFeed() : null;
     if (!feed || !feed.months || !feed.months.length || !A.monthFigures) {
       root.innerHTML = '<div class="sb-h"><h2>Scoreboard</h2><span>loading the ledger...</span></div>';
+      /* v148: if the ledger has not arrived after 10 s, say so and offer a retry instead of loading forever */
+      clearTimeout(window.__sbSlow);
+      window.__sbSlow = setTimeout(function () {
+        var A2 = window.BlackRamApp, f2 = A2 && A2.getFeed ? A2.getFeed() : null;
+        var r2 = mount();
+        if (f2 && f2.months && f2.months.length) return;
+        if (!r2 || r2.querySelector('.err-card')) return;
+        r2.innerHTML = '<div class="sb-h"><h2>Scoreboard</h2></div><section class="err-card" role="alert"><b>Could not load</b><p>The ledger did not load. Check the connection.</p><button type="button" class="btn err-retry">Try again</button></section>';
+        var b2 = r2.querySelector('.err-retry');
+        if (b2) b2.addEventListener('click', function () { if (A2 && A2.refreshFeed) A2.refreshFeed(); render(); });
+      }, 10000);
       return;
     }
     var t = tg();

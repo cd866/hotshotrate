@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v147';
+  var APP_VERSION = 'v148';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -1920,7 +1920,7 @@
     var feed = state.feed;
     var months = feed ? sortedMonths(feed) : [];
     var head = '<div id="pull" class="pull">Pull to refresh</div>' +
-      '<div class="status"><p id="feed-status-text">' + esc(feed ? statusLine(feed) : (state.error || 'Loading the month...')) +
+      '<div class="status"><p id="feed-status-text">' + esc(feed ? statusLine(feed) : (state.error ? 'Not loaded' : 'Loading the month...')) +
       '</p><button type="button" class="btn" id="refresh-btn">Refresh</button></div>';
     if (!months.length) {
       root.innerHTML = head + (state.error ? '<p class="offline">' + esc(state.error) + '</p>' : '');

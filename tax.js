@@ -340,7 +340,12 @@
   }
   function render() {
     var el = root(); if (!el) return;
-    if (st.pubErr) { el.innerHTML = '<section class="dr-card"><p class="dr-p">' + esc(st.pubErr) + '</p></section>'; return; }
+    if (st.pubErr) {
+      /* v148: one plain error card with a retry button on every tab */
+      el.innerHTML = '<section class="err-card" role="alert"><b>Could not load</b><p>' + esc(st.pubErr.replace(/\s*\(.*\)\.?$/, '.')) + ' Check the connection.</p><button type="button" class="btn err-retry">Try again</button></section>';
+      var rb = el.querySelector('.err-retry'); if (rb) rb.addEventListener('click', function () { st.pub = null; st.pubErr = ''; loadPublic(); render(); });
+      return;
+    }
     if (!st.pub) { el.innerHTML = '<section class="dr-card"><p class="dr-p">Loading the tax calendar...</p></section>'; return; }
     var rs = rows(), q = queue().length;
     var sync = q ? '<div class="dr-sync"><span>' + q + ' waiting to sync' + (st.syncMsg ? '. ' + esc(st.syncMsg) : '') + '</span><button type="button" class="dr-mini" data-tx-sync="1">' + (st.flushing ? 'Sending...' : 'Sync now') + '</button></div>' : (st.syncMsg ? '<p class="dr-fine">' + esc(st.syncMsg) + '</p>' : '');

@@ -6423,3 +6423,56 @@ body .search-actions .trip-plan-btn::after {
   nav.tabbar.bnav > button { font-size: 10.5px; letter-spacing: 0; }
   nav.tabbar.bnav > button .tb-lbl { overflow: visible; text-overflow: clip; }
 }
+
+/* ===== v148 polish round (tap targets, spacing, states, scrolling) ===== */
+/* 44px tap targets: real height for chips and buttons, invisible hit-area for small icon controls */
+.ai-fb, .mt-seg, .in-btn, .td-more, .tg-reset, .chart-mode-btns button, .search-filter-row button, .dr-leg { min-height: 44px !important; }
+.mt-tabs .mt-seg { min-height: 44px !important; }
+.tx-rule, .mt-next.tl-tap { min-height: 44px; }
+.chart-mode-btns button { min-width: 64px; }
+.in-jump a, .mt-jump a { display: inline-flex; align-items: center; min-height: 44px; padding-top: 0; padding-bottom: 0; }
+.in-jump, .mt-jump { margin: -4px 0; }
+.hdr-wx { min-width: 44px; justify-content: center; }
+.appbar button.hdr-wxnow, .ai-chk, .ai-obar { position: relative; }
+.appbar button.hdr-wxnow::after { content: ""; position: absolute; inset: -4px -2px; }
+.ai-chk::after { content: ""; position: absolute; inset: -5px; }
+.ai-obar::after { content: ""; position: absolute; inset: -9px 0; }
+.ai-rm { min-height: 44px; justify-content: center; }
+.leaflet-touch .leaflet-bar a, .leaflet-bar a { width: 40px !important; height: 40px !important; line-height: 40px !important; }
+.leaflet-control-attribution a { display: inline-block; padding: 8px 4px; margin: -8px -4px; }
+@media (max-width: 559px) and (min-width: 380px) {
+  .appbar-icon { flex: 0 0 44px; width: 44px; height: 44px; }
+}
+@media (max-width: 379px) {
+  .appbar-icon { position: relative; }
+  .appbar-icon::after { content: ""; position: absolute; inset: -2px; }
+}
+
+/* one consistent top gap under the header on every phone tab */
+@media (max-width: 1023px) {
+  #panel-actions, #panel-kpis, #panel-ins, #panel-maint, #panel-dot, #panel-tax { padding-top: 16px; }
+  #panel-today { padding-top: 4px; }
+}
+
+/* long lists: skip layout and paint for off-screen cards so phones scroll smoothly */
+.search-card.is-collapsed { content-visibility: auto; contain-intrinsic-size: auto 75px; }
+.stop { content-visibility: auto; contain-intrinsic-size: auto 108px; }
+.mt-due { content-visibility: auto; contain-intrinsic-size: auto 150px; }
+
+/* contrast: white-ish text on the delivered pill was under 4.5:1 */
+.pay-delivered { background: #2F7A5E; }
+
+/* one look for every "could not load" state */
+.err-card { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 14px; margin: 0 0 12px; border: 1px solid var(--c-line-strong, #3a3454); border-left: 4px solid #F87171; border-radius: var(--radius-lg, 16px); background: var(--c-surface-1, #1a1726); }
+.err-card b { font-size: var(--fs-md, 16px); color: var(--c-text-1, #f1eefb); }
+.err-card p { margin: 0; font-size: var(--fs-sm, 14px); line-height: 1.45; color: var(--c-text-2, #c9c3dc); }
+.err-card .err-retry { min-height: 44px; padding: 0 18px; }
+
+/* smooth press feedback and no 300ms tap delay on controls */
+button, [role="button"], .tl-tap, .tab, nav.tabbar.bnav > button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+@media (prefers-reduced-motion: reduce) {
+  * { scroll-behavior: auto !important; }
+}
+.star-btn, .cmp-btn { min-height: 44px !important; min-width: 44px !important; }
+.dr-gbs { gap: 0 !important; }
+.dr-gb { min-height: 44px !important; }
