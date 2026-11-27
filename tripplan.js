@@ -65,7 +65,7 @@
   }
   function money(n) {
     if (n == null || !isFinite(n)) return '-';
-    var neg = n < 0;
+    var neg = n < 0 && Math.round(Math.abs(n)) > 0;
     var s = Math.round(Math.abs(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     return (neg ? '-$' : '$') + s;
   }
@@ -510,6 +510,18 @@
         if (!item.isCombo) {
           var r = item.row;
           var dh = stops[0].truck ? (legs[0] != null ? legs[0] : r.origin_dh_mi) : (r.origin_dh_mi != null ? Number(r.origin_dh_mi) : legs[0]);
+          if (stops[0].truck && legs[0] == null) {
+            // v138: no road route. The card's deadhead is from the scan origin, not the truck, so
+            // do not show "leave <truck town>, 1 mi empty". Use a straight-line x 1.2 road estimate
+            // from the truck, or start the plan at the scan origin when the pickup has no point.
+            if (stops[0].coord && stops[1] && stops[1].coord) {
+              dh = Math.round(haversineMi(stops[0].coord, stops[1].coord) * 1.2);
+              notes.push('Empty miles from the truck are a straight-line estimate x 1.2 (no road route).');
+            } else if (data && data.origin) {
+              stops[0] = { kind: 'start', name: cityOnly(data.origin), coord: null, truck: false };
+              notes.push('Truck location could not be routed, so the plan starts at the scan origin like the card.');
+            }
+          }
           var lm = r.trip_mi != null ? Number(r.trip_mi) : legs[1];
           if (route && legs[0] + legs[1] > 0) scale *= ((dh || 0) + (lm || 0)) / (legs[0] + legs[1]);
           legs = [dh || 0, lm || 0];
@@ -629,6 +641,7 @@
                 drive: sim.totals.drive, loadedMi: sim.totals.loadedMi, emptyMi: sim.totals.emptyMi, waitHrs: sim.totals.waitHrs,
                 fuelBought: fuelBought, refill: refill, fuelAll: fuelBought + refill, def: def,
                 net: src.net_est != null ? Number(src.net_est) : null,
+                netTruck: netFromTruck(item, stops, sim, src),
                 rate: item.isCombo ? src.posted_rate : src.posted_rate,
                 feedDays: feedDays, planDays: planDays,
                 perDay: src.net_est != null && feedDays ? Number(src.net_est) / feedDays : null,
@@ -639,6 +652,16 @@
         });
       });
     });
+  }
+  // v138: the card's net EST counts empty miles from the scan origin. When the plan starts at
+  // the truck and that is more than 5 mi off, show the net after the extra empty fuel too.
+  function netFromTruck(item, stops, sim, src) {
+    if (item.isCombo || !stops[0] || !stops[0].truck || src.net_est == null || src.origin_dh_mi == null) return null;
+    var perMi = src.fuel && src.fuel.fuel_per_mi != null ? Number(src.fuel.fuel_per_mi) : null;
+    if (perMi == null || !isFinite(perMi)) return null;
+    var extra = sim.totals.emptyMi - Number(src.origin_dh_mi);
+    if (!isFinite(extra) || Math.abs(extra) <= 5) return null;
+    return { net: Number(src.net_est) - extra * perMi, extra: extra };
   }
   function fallbackComboLegs(combo, stops) {
     var out = [];
@@ -840,7 +863,8 @@
       (T.waitHrs > 0.05 ? row('Waiting at docks', hrs(T.waitHrs)) : '') +
       row('Fuel stops', plan.sim.fuels.length + ' stops, ' + money(T.fuelBought)) +
       row('Fuel EST (all miles)', money(T.fuelAll) + ' + DEF ' + money(T.def)) +
-      row('Net EST', money(T.net)) +
+      row('Net EST', money(T.net) + (T.netTruck ? ' (card)' : '')) +
+      (T.netTruck ? row('Net EST from truck', money(T.netTruck.net) + ' (' + (T.netTruck.extra > 0 ? '+' : '') + num(T.netTruck.extra, 0) + ' empty mi)') : '') +
       row('Days', (T.feedDays != null ? T.feedDays + ' (card)' : '-') + ' | ' + T.planDays + ' on this plan') +
       row('$/day', money(T.perDay) + (T.perPlanDay != null && T.planDays !== T.feedDays ? ' (' + money(T.perPlanDay) + ' on plan days)' : '')) +
       '</dl></div>';
@@ -886,6 +910,7 @@
     L.push('TOTALS');
     L.push('Drive ' + hrs(T.drive) + ' | Loaded ' + num(T.loadedMi, 0) + ' mi | Empty ' + num(T.emptyMi, 0) + ' mi' + (T.waitHrs > 0.05 ? ' | Wait ' + hrs(T.waitHrs) : ''));
     L.push('Fuel EST ' + money(T.fuelAll) + ' (' + plan.sim.fuels.length + ' stops ' + money(T.fuelBought) + ') + DEF ' + money(T.def));
+    if (T.netTruck) L.push('Net EST from truck ' + money(T.netTruck.net) + ' (' + (T.netTruck.extra > 0 ? '+' : '') + num(T.netTruck.extra, 0) + ' empty mi vs card)');
     L.push('Net EST ' + money(T.net) + ' | ' + (T.feedDays != null ? T.feedDays : T.planDays) + ' days | ' + money(T.perDay != null ? T.perDay : T.perPlanDay) + '/day');
     L.push('Plan only - confirm times with the broker and check parking before rolling.');
     // Plain ASCII for WhatsApp.
