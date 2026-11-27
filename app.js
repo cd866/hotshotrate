@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v129';
+  var APP_VERSION = 'v130';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -6257,8 +6257,22 @@
         '<text class="chart-val" x="' + (left + w + 6) + '" y="' + (y + 15) + '">' + esc(searchMoney(row.net_est)) + '</text>' +
         '</g>';
     }).join('');
+    var cssRows = top.map(function (row) {
+      var pct = Math.max(2, Math.round(Math.abs(row.net_est) / maxAbs * 100));
+      var kind = row.net_est < 0 ? 'neg' : (row.verdict === 'TAKE' ? 'take' : (row.verdict === 'MAYBE' ? 'maybe' : 'pass'));
+      var lane = (row.origin || '') + ' \u2192 ' + (row.destination || '');
+      var tip = (row.origin || '') + ' -> ' + (row.destination || '') +
+        ' | ' + searchMoney(row.net_est) + ' net EST | ' + perHourLabel(row) +
+        ' | Gross ' + (grossPerMileValue(row) != null ? rateMoney(grossPerMileValue(row), 2) : 'n/a') +
+        '/mi | Net ' + netPerMileLabel(row);
+      return '<li class="nc-row nc-' + kind + '" title="' + esc(tip) + '">' +
+        '<span class="nc-lane">' + esc(lane) + '</span>' +
+        '<span class="nc-track"><span class="nc-bar" style="width:' + pct + '%"></span></span>' +
+        '<span class="nc-val">' + esc(searchMoney(row.net_est)) + '</span></li>';
+    }).join('');
     return '<div class="net-chart"><h3>Best to take first</h3>' +
-      '<svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="Net EST, dollars per hour, and net dollars per mile bar chart">' + bars + '</svg></div>';
+      '<svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="Net EST, dollars per hour, and net dollars per mile bar chart">' + bars + '</svg>' +
+      '<ol class="nc-desktop" aria-label="Net EST, dollars per hour, and net dollars per mile">' + cssRows + '</ol></div>';
   }
 
 
@@ -7963,6 +7977,11 @@
     pdfs: '<path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M12 10v7M9 14l3 3 3-3"/>',
     scoreboard: '<path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5v2a3 3 0 0 0 3 3M16 6h3v2a3 3 0 0 1-3 3M12 13v4M8.5 20h7"/>',
     more: '<circle cx="5.5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18.5" cy="12" r="1.6"/>',
+    team: '<circle cx="8" cy="8.2" r="3"/><circle cx="16" cy="8.2" r="3"/><path d="M3.2 19a5.2 5.2 0 0 1 9.6 0M11.2 19a5.2 5.2 0 0 1 9.6 0"/>',
+    driver: '<circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/>',
+    callsheet: '<path d="M6.6 3.5h2.6l1.4 4-1.9 1.3a11 11 0 0 0 6.5 6.5l1.3-1.9 4 1.4v2.6A2.1 2.1 0 0 1 18.3 20 15.8 15.8 0 0 1 4 5.7a2.1 2.1 0 0 1 2.6-2.2z"/>',
+    rig: '<path d="M2 15V9h9v6M11 11h5l3 3v1M2 15h19"/><circle cx="6" cy="17" r="2"/><circle cx="16.5" cy="17" r="2"/>',
+    about: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
     def: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/>'
   };
   function navIcon(name) {
@@ -7999,7 +8018,69 @@
     } else if (more !== nav.lastElementChild) {
       nav.appendChild(more);
     }
+    ensureSideExtras();
     updateNavActive();
+    syncSideActive();
+  }
+
+  var SIDE_EXTRAS = [
+    ['tab-team', 'Team', 'team'],
+    ['tab-driver', 'Driver 360', 'driver'],
+    ['tab-rig', 'Our rig', 'rig'],
+    ['tab-callsheet', 'Call sheet', 'callsheet'],
+    ['tab-about', 'About', 'about']
+  ];
+
+  function ensureSideBtn(id, label, iconKey) {
+    var btn = document.getElementById(id);
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.type = 'button';
+      btn.id = id;
+      btn.className = 'tb-side';
+      btn.setAttribute('aria-label', label);
+      btn.innerHTML = '<span class="tb-ico">' + navIcon(iconKey) + '</span><span class="tb-lbl">' + esc(label) + '</span><span class="tb-lbl-full">' + esc(label) + '</span>';
+    }
+    return btn;
+  }
+
+  function ensureSideExtras() {
+    var nav = document.querySelector('.tabbar');
+    if (!nav) return;
+    var more = document.getElementById('tab-more');
+    var label = document.getElementById('tb-side-label');
+    if (!label) {
+      label = document.createElement('p');
+      label.id = 'tb-side-label';
+      label.className = 'tb-side-label';
+      label.textContent = 'More';
+    }
+    var items = [label];
+    SIDE_EXTRAS.forEach(function (it) { items.push(ensureSideBtn(it[0], it[1], it[2])); });
+    var anchor = more;
+    for (var i = items.length - 1; i >= 0; i--) {
+      if (anchor) nav.insertBefore(items[i], anchor);
+      else if (items[i].parentNode !== nav) nav.appendChild(items[i]);
+      anchor = items[i];
+    }
+  }
+
+  function syncSideActive() {
+    var team = document.getElementById('tm-view');
+    var person = document.getElementById('p360-view');
+    var driver = document.getElementById('d3-view');
+    var teamOn = (team && !team.hidden) || (person && !person.hidden);
+    var driverOn = !!(driver && !driver.hidden);
+    var tBtn = document.getElementById('tab-team');
+    var dBtn = document.getElementById('tab-driver');
+    if (tBtn) {
+      tBtn.classList.toggle('is-active', !!teamOn && !driverOn);
+      tBtn.setAttribute('aria-current', teamOn && !driverOn ? 'page' : 'false');
+    }
+    if (dBtn) {
+      dBtn.classList.toggle('is-active', driverOn);
+      dBtn.setAttribute('aria-current', driverOn ? 'page' : 'false');
+    }
   }
 
   function updateNavActive() {
@@ -8112,11 +8193,34 @@
           if (sheet && !sheet.hidden) closeMoreSheet(); else openMoreSheet();
           return;
         }
+        if (btn.id === 'tab-team') {
+          if (window.BlackRamDriver && window.BlackRamDriver.close) window.BlackRamDriver.close();
+          if (window.BlackRamTeam) window.BlackRamTeam.open();
+          syncSideActive();
+          return;
+        }
+        if (btn.id === 'tab-driver') {
+          if (window.BlackRamTeam && window.BlackRamTeam.close) window.BlackRamTeam.close();
+          if (window.BlackRamDriver) window.BlackRamDriver.open();
+          syncSideActive();
+          return;
+        }
+        if (btn.id === 'tab-callsheet') { openCallSheet(); return; }
+        if (btn.id === 'tab-about') { openAbout(); return; }
+        if (btn.id === 'tab-rig') {
+          showTab('check');
+          var d = document.querySelector('.rig-specs-panel');
+          if (d) d.open = true;
+          var card = document.querySelector('.rig-card');
+          if (card) window.scrollTo({ top: card.getBoundingClientRect().top + window.pageYOffset - stickyTopOffset(), behavior: 'smooth' });
+          return;
+        }
         var tab = btn.getAttribute('data-tab');
         if (tab) showTab(tab);
       });
       if (typeof MutationObserver === 'function') {
         new MutationObserver(function () { enhanceNav(); }).observe(nav, { childList: true });
+        new MutationObserver(syncSideActive).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['hidden'] });
       }
     }
     var sheet = document.getElementById('more-sheet');

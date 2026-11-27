@@ -7,6 +7,11 @@
 /* ---------- tablet and up: wider centered column, 2-col cards ---------- */
 /* sidebar full labels exist in the DOM on every size; only the desktop sidebar shows them */
 .tb-lbl-full { display: none; }
+/* Desktop-only sidebar links and the responsive Load Boards chart.
+   Hidden at every width here; turned on inside min-width: 1024px. */
+nav.tabbar.bnav > button.tb-side,
+.tb-side-label { display: none; }
+.nc-desktop { display: none; }
 
 @media (min-width: 768px) {
   .app { width: min(920px, 100%); }
@@ -126,8 +131,8 @@
   nav.tabbar.bnav > button {
     flex: 0 0 auto;
     flex-direction: row; justify-content: flex-start; gap: var(--s-1h);
-    min-height: 42px; padding: 6px var(--s-1h);
-    font-size: var(--fs-md); text-align: left;
+    min-height: 34px; padding: 4px var(--s-1h);
+    font-size: var(--fs-sm); text-align: left;
   }
   nav.tabbar.bnav > button.tb-overflow { display: flex; }
   nav.tabbar.bnav > button .tb-lbl { display: none; }
@@ -144,10 +149,133 @@
   header.top .tag { display: block; width: fit-content; margin-left: max(0px, calc((100% - 1100px) / 2)); }
 }
 
+/* ---------- desktop polish (1024+ only) ---------- */
+@media (min-width: 1024px) {
+  /* Every More item lives in the sidebar; More button is hidden */
+  nav.tabbar.bnav > button#tab-more { display: none; }
+  nav.tabbar.bnav > button.tb-side { display: flex; }
+  nav.tabbar.bnav > button.tb-side.is-active {
+    color: var(--c-accent-hi);
+    background: rgba(167, 139, 250, 0.16);
+  }
+  nav.tabbar.bnav > button.tb-side.is-active .tb-ico { color: var(--c-gold); }
+  .tb-side-label {
+    display: block;
+    margin: auto 8px 4px;
+    padding-top: 10px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--c-text-3);
+  }
+
+  /* Today + Insurance: pack cards down each column; masonry when the engine has it */
+  html :is(#today-root, #ins-root) {
+    columns: 3;
+    column-gap: var(--s-3);
+    column-fill: auto;
+  }
+  @supports (grid-template-rows: masonry) {
+    html :is(#today-root, #ins-root) {
+      display: grid;
+      columns: unset;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-rows: masonry;
+      gap: 14px var(--s-3);
+    }
+    html :is(#today-root, #ins-root) > * { margin-bottom: 0; }
+    #today-root > .td-hdr,
+    #today-root > .td-foot,
+    #today-root > .td-card:first-of-type,
+    #ins-root > .in-top,
+    #ins-root > .in-tiles,
+    #ins-root > .in-jump,
+    #ins-root > .in-sechead,
+    #ins-root > .in-foot { grid-column: 1 / -1; }
+  }
+
+  /* Action items: summary card sticky on the left, list on the right */
+  html #ai-root {
+    display: grid;
+    columns: unset;
+    grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+    gap: var(--s-3);
+    align-items: start;
+  }
+  html #ai-root > * { margin-bottom: 0; min-width: 0; }
+  html #ai-root > .dr-top,
+  html #ai-root > .dr-fine { grid-column: 1 / -1; }
+  html #ai-root > .dr-card:first-of-type {
+    position: sticky;
+    top: calc(var(--appbar-h) + 12px);
+  }
+
+  /* Load Boards chart: use the full content width, CSS rows instead of a 440px SVG */
+  html #search-list { grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr); }
+  html .net-chart svg { display: none; }
+  html .net-chart .nc-desktop {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    margin: 8px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  html .nc-row {
+    display: grid;
+    grid-template-columns: minmax(140px, 1.15fr) minmax(72px, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    min-height: 26px;
+    padding: 3px 0;
+  }
+  html .nc-lane {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--c-text-1);
+    line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  html .nc-track {
+    height: 14px;
+    border-radius: 3px;
+    background: var(--c-surface-3);
+    overflow: hidden;
+  }
+  html .nc-bar { display: block; height: 100%; border-radius: 3px; background: #F87171; }
+  html .nc-take .nc-bar { background: #F2C94C; }
+  html .nc-maybe .nc-bar { background: #C4B5FD; }
+  html .nc-pass .nc-bar,
+  html .nc-neg .nc-bar { background: #F87171; }
+  html .nc-val {
+    font-size: 13px;
+    font-weight: 800;
+    font-family: var(--display, inherit);
+    color: var(--c-accent-hi, #c4b5fd);
+    white-space: nowrap;
+    min-width: 3.6em;
+    text-align: right;
+  }
+
+  /* Daily PDFs: latest report beside the past-report list */
+  html #dailyreports-root {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    gap: var(--s-3);
+    max-width: 1200px;
+  }
+  html #dailyreports-root > .dr-card { margin: 0; }
+  html #dailyreports-root > .dr-lock,
+  html #dailyreports-root > .loading-state { grid-column: 1 / -1; max-width: 520px; }
+}
+
 /* short desktop windows: tighter sidebar rows so every section and More stay on screen */
-@media (min-width: 1024px) and (max-height: 860px) {
-  nav.tabbar.bnav { gap: 0; padding-top: var(--s-1); padding-bottom: var(--s-1); }
-  nav.tabbar.bnav > button { min-height: 36px; padding-top: 3px; padding-bottom: 3px; }
+@media (min-width: 1024px) and (max-height: 980px) {
+  nav.tabbar.bnav { gap: 0; padding-top: 6px; padding-bottom: 8px; }
+  nav.tabbar.bnav > button { min-height: 32px; padding-top: 2px; padding-bottom: 2px; }
 }
 
 /* ---------- desktop: bottom sheets become centered dialogs ---------- */
