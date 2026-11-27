@@ -46,6 +46,10 @@
      the neck, flat dovetail with MEGA ramps folded on it. 'Specs' shows tap dots
      with compact spec cards (drags that start on a dot still orbit).
      Static meshes are merged per material (fewer draw calls).
+   - v137: opens on the full Rig 360 every time; paint reads true Diamond Black
+     (envMapIntensity now actually applied); 17 in black DRW wheels with machined
+     eyelets like Claudio's photo (WHEEL_IN / NIGHT_BADGE switches); black RAM door
+     badge; toolbox lid stops under the neck rails (no clipping); MEGA hold-downs.
    Units in the model are feet. x = length (truck front +x), y = up, z = width. */
 (function () {
   'use strict';
@@ -120,7 +124,8 @@
 
     var saved = null;
     try { saved = localStorage.getItem(MODE_KEY); } catch (e) { saved = null; }
-    setMode(saved === 'photo' ? 'photo' : '360', false, saved === 'truck' ? 'truck' : saved === 'trailer' ? 'trailer' : 'rig');
+    // The view always opens on the full Rig 360 (truck + trailer); the saved choice is not restored.
+    setMode('360', false, 'rig');
 
     if (typeof IntersectionObserver === 'function') {
       new IntersectionObserver(function (entries) {
@@ -209,6 +214,12 @@
     scene.add(turntable);
     var rig = buildRig(THREE);
     turntable.add(rig.group);
+    // v137: three r163+ only applies material.envMapIntensity to material.envMap, so
+    // give the tuned materials (paint, gloss trim, glass) the studio map explicitly.
+    rig.group.traverse(function (o) {
+      if (!o.isMesh) return;
+      [].concat(o.material).forEach(function (m) { if (m && m.envMapIntensity !== undefined && m.envMapIntensity !== 1 && !m.envMap) { m.envMap = scene.environment; m.needsUpdate = true; } });
+    });
     var shadowLight = new THREE.DirectionalLight(0xffffff, 0.35);
     shadowLight.position.set(2, 40, 3);
     shadowLight.target.position.set(0, 0, 0);
@@ -309,6 +320,7 @@
 
     // Tailgate / toolbox inspect: open the part, ease the camera, pause auto-spin.
     var inspectKind = null; // 'tailgate' | 'toolbox' | null
+    var TB_OPEN = Math.PI * 0.155; // v137: toolbox lid travel (~28 deg) so it stays under the neck rails and spine
     var inspectOpen = 0;    // 0 closed .. 1 open (eased)
     var anim = null;
     var camHold = null; // frame a part from the front without opening it
@@ -389,7 +401,7 @@
       var tb = rig.tb;
       // High front-passenger 3/4, well out to the side so the neck is behind
       // the box, looking down onto the lid and into the open chest.
-      return { look: worldAt(tb.x, tb.y - 0.2, tb.z, ang), cam: worldAt(tb.x + 4.6, tb.y + 8.0, tb.z + 10.2, ang), angle: 0.55 };
+      return { look: worldAt(tb.x + 0.3, tb.y + 0.2, tb.z, ang), cam: worldAt(tb.x + 4.2, tb.y + 5.2, tb.z + 7.6, ang), angle: 0.55 }; // v137: lower, so you see under the ~28 deg lid
     }
     function applyHeldCam() {
       if (!camHold || anim || inspectKind) return;
@@ -401,7 +413,7 @@
     }
     function applyPartPose(open) {
       if (rig.tailgate) rig.tailgate.rotation.z = (inspectKind === 'tailgate' ? open : 0) * (Math.PI / 2);
-      if (rig.toolboxLid) rig.toolboxLid.rotation.z = (inspectKind === 'toolbox' ? open : 0) * (Math.PI * 0.55); // v135: rear hinge
+      if (rig.toolboxLid) rig.toolboxLid.rotation.z = (inspectKind === 'toolbox' ? open : 0) * TB_OPEN; // rear hinge; stops under the neck rails
       if (rig.ballLight) rig.ballLight.intensity = (inspectKind === 'tailgate' ? open : 0) * 2.2;
       setHood(inspectKind === 'hood' ? open : 0);
       setLock(inspectKind === 'lock' ? open : 0);
@@ -1410,7 +1422,7 @@
   }
 
   function wheelFaceTex(THREE, kind) {
-    // 'night': 17 in black-painted aluminum, 8 windows with machined (bright) eyelets.
+    // 'night': 17 in black-painted aluminum DRW wheel with machined eyelets (Night Edition WFQ).
     // 'steel': black steel trailer wheel with round holes.
     return canvasTex(THREE, 256, 256, function (g, w, h) {
       var c = w / 2;
@@ -1428,23 +1440,24 @@
         g.fillStyle = '#1e1e22'; g.beginPath(); g.arc(c, c, c * 0.32, 0, Math.PI * 2); g.fill();
         return;
       }
-      // outer machined lip
-      g.strokeStyle = '#b9bcc4'; g.lineWidth = 5;
-      g.beginPath(); g.arc(c, c, c - 4, 0, Math.PI * 2); g.stroke();
-      for (var k = 0; k < 8; k++) {
-        var a0 = k / 8 * Math.PI * 2 + 0.12, a1 = a0 + Math.PI * 2 / 8 - 0.24;
-        g.beginPath();
-        g.arc(c, c, c * 0.86, a0, a1);
-        g.arc(c, c, c * 0.5, a1 - 0.06, a0 + 0.06, true);
-        g.closePath();
-        g.fillStyle = '#000'; g.fill();
-        g.strokeStyle = '#c7cad1'; g.lineWidth = 4; g.stroke(); // machined eyelet edge
+      // v137: matches Claudio's truck photo: gloss-black face, 10 round windows
+      // with bright machined eyelet rims, black hub ring with 8 lugs.
+      var grd = g.createRadialGradient(c * 0.8, c * 0.7, c * 0.1, c, c, c);
+      grd.addColorStop(0, '#1c1c22'); grd.addColorStop(1, '#060608');
+      g.fillStyle = grd; g.beginPath(); g.arc(c, c, c - 1, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = '#2c2c33'; g.lineWidth = 6;
+      g.beginPath(); g.arc(c, c, c - 6, 0, Math.PI * 2); g.stroke();
+      for (var k = 0; k < 10; k++) {
+        var a0 = k / 10 * Math.PI * 2;
+        var hx = c + Math.cos(a0) * c * 0.72, hy = c + Math.sin(a0) * c * 0.72;
+        g.fillStyle = '#d4d7de'; g.beginPath(); g.arc(hx, hy, c * 0.15, 0, Math.PI * 2); g.fill(); // machined eyelet
+        g.fillStyle = '#000'; g.beginPath(); g.arc(hx + 2, hy + 1, c * 0.118, 0, Math.PI * 2); g.fill(); // window
       }
-      // 8 lug nuts on the hub ring
+      g.fillStyle = '#0a0a0c'; g.beginPath(); g.arc(c, c, c * 0.5, 0, Math.PI * 2); g.fill();
       for (var j = 0; j < 8; j++) {
         var b = j / 8 * Math.PI * 2 + Math.PI / 8;
-        g.fillStyle = '#2a2a30';
-        g.beginPath(); g.arc(c + Math.cos(b) * c * 0.38, c + Math.sin(b) * c * 0.38, c * 0.055, 0, Math.PI * 2); g.fill();
+        g.fillStyle = '#34343b';
+        g.beginPath(); g.arc(c + Math.cos(b) * c * 0.34, c + Math.sin(b) * c * 0.34, c * 0.05, 0, Math.PI * 2); g.fill();
       }
     });
   }
@@ -1555,11 +1568,11 @@
     var flake = flakeTex(THREE);
     var M = {
       // Diamond Black Crystal Pearl: near-black base, metallic flake, deep clearcoat.
-      paint: new THREE.MeshPhysicalMaterial({ color: 0x08090c, metalness: 0.2, roughness: 0.3, normalMap: flake, normalScale: new THREE.Vector2(0.22, 0.22), clearcoat: 1, clearcoatRoughness: 0.035, envMapIntensity: 1.7 }),
+      paint: new THREE.MeshPhysicalMaterial({ color: 0x010102, metalness: 0.2, roughness: 0.5, specularIntensity: 0.15, normalMap: flake, normalScale: new THREE.Vector2(0.18, 0.18), clearcoat: 1, clearcoatRoughness: 0.02, envMapIntensity: 0.4 }),
       gloss: new THREE.MeshPhysicalMaterial({ color: 0x040405, metalness: 0.15, roughness: 0.1, clearcoat: 1, clearcoatRoughness: 0.04, envMapIntensity: 1.2 }),
       bchrome: new THREE.MeshStandardMaterial({ color: 0x2a2b31, metalness: 1, roughness: 0.16 }),
       satin: new THREE.MeshStandardMaterial({ color: 0x0f0f12, metalness: 0.2, roughness: 0.62 }),
-      glass: new THREE.MeshPhysicalMaterial({ color: 0x000000, metalness: 0, roughness: 0.04, clearcoat: 0.6, clearcoatRoughness: 0.02, envMapIntensity: 0.9 }),
+      glass: new THREE.MeshPhysicalMaterial({ color: 0x000000, metalness: 0, roughness: 0.04, clearcoat: 0.6, clearcoatRoughness: 0.02, envMapIntensity: 0.45 }),
       mirror: new THREE.MeshStandardMaterial({ color: 0x8b8f99, metalness: 1, roughness: 0.04 }),
       tire: new THREE.MeshPhysicalMaterial({ color: 0x0c0c0e, roughness: 0.6, metalness: 0, clearcoat: 0.45, clearcoatRoughness: 0.32, bumpMap: treadTex(THREE), bumpScale: 1.4 }),
       rim: new THREE.MeshStandardMaterial({ color: 0x0c0c0f, metalness: 0.7, roughness: 0.3 }),
@@ -1648,8 +1661,10 @@
     // Lathe tire: rounded shoulders and a bulged sidewall (tread band carries the bump map).
     var tireGeoCache = {};
     function wheel(x, y, z, r, width, outward, kind) {
-      var rr = r * 0.56;
-      var k = r + '_' + width;
+      var truckW = kind === 'front' || kind === 'rearOuter' || kind === 'rearInner';
+      // Rim radius from the wheel size in inches (+ ~0.6 in for the lip/bead).
+      var rr = Math.min(r - 0.3, ((truckW ? WHEEL_IN : 16) + 1.2) / 24);
+      var k = r + '_' + width + '_' + rr.toFixed(3);
       if (!tireGeoCache[k]) {
         var hw = width / 2, pts = [
           [rr, -hw * 0.84], [rr + 0.05, -hw], [(rr + r) / 2, -hw * 1.06], [r - 0.07, -hw * 0.96], [r, -hw * 0.74],
@@ -1659,7 +1674,7 @@
           tire: new THREE.LatheGeometry(pts, 40),
           barrel: new THREE.CylinderGeometry(rr, rr, width * 0.86, 28, 1, true),
           face: new THREE.CircleGeometry(rr * 1.01, 32),
-          ext: new THREE.CylinderGeometry(r * 0.15, r * 0.27, 0.46, 20),
+          ext: new THREE.CylinderGeometry(r * 0.2, r * 0.33, 0.5, 20),
           cover: new THREE.CylinderGeometry(r * 0.3, r * 0.34, 0.2, 24),
           cap: new THREE.CylinderGeometry(r * 0.12, r * 0.12, 0.05, 16)
         };
@@ -1701,7 +1716,15 @@
        body-color grille surround and bumpers, gloss-black billet grille insert,
        black badges, black mirrors, black headlamp and taillamp bezels, 17 in
        black-painted wheels with machined eyelets (DRW). */
-    var FX = 5.97, RX = -7.4, TR = 1.325; // front axle, rear axle, tire radius
+    /* v137 truck config. Claudio confirmed Mega Cab with the 6 ft 4 in box (matches the
+       app data); the cab/bed constants below (CAB_F/CAB_R, BX0/BX1) are that layout.
+       WHEEL_IN: Ram builds the 3500 DRW Night Edition with 17 in black-painted wheels
+       with machined eyelets (WFQ); the 20 in black wheel (WF3) is SRW only, and
+       Claudio's truck photo shows the 17s. Set 20 here to preview 20s.
+       NIGHT_BADGE: Ram HD Night Edition has blacked-out badges and no NIGHT emblem;
+       true adds a black NIGHT badge on the front fenders. */
+    var WHEEL_IN = 17, NIGHT_BADGE = false;
+    var FX = 5.97, RX = -7.4, TR = 1.325; // front axle, rear axle, tire radius (LT235/80R17 31.8 in)
     var BODY_Y = 1.55, CAB_F = 3.85, CAB_R = -4.1;
     // Cab (full width), Mega Cab length: long rear doors plus a quarter window
     extrude(shape([[CAB_F, BODY_Y], [CAB_F, 4.86], [CAB_R, 4.82], [CAB_R, BODY_Y]]), 6.42, M.paint, 0, 0.12);
@@ -1873,6 +1896,8 @@
     // Badges (black): LARAMIE on the front doors, 3500 on the front fenders
     var lar = badgeMat('LARAMIE', { w: 1024, h: 128, color: '#4a4b53', font: '700 96px Georgia, "Times New Roman", serif', spread: 1.1 });
     var hd = badgeMat('3500', { w: 512, h: 128, color: '#4a4b53' });
+    var ramDoor = badgeMat('RAM', { w: 512, h: 128, color: '#3a3b42', spread: 1.25 });
+    var nightB = NIGHT_BADGE ? badgeMat('NIGHT', { w: 512, h: 128, color: '#3a3b42', spread: 1.1 }) : null;
     [-1, 1].forEach(function (s) {
       var b1 = new THREE.Mesh(new THREE.PlaneGeometry(1.15, 0.16), lar);
       if (s < 0) b1.rotation.y = Math.PI;
@@ -1880,6 +1905,15 @@
       var b2 = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.17), hd);
       if (s < 0) b2.rotation.y = Math.PI;
       add(b2, 4.6, 3.75, s * 3.405);
+      // black RAM badge low on the front door (Claudio's truck photo)
+      var b3 = new THREE.Mesh(new THREE.PlaneGeometry(0.85, 0.2), ramDoor);
+      if (s < 0) b3.rotation.y = Math.PI;
+      add(b3, 2.6, 2.05, s * 3.346);
+      if (NIGHT_BADGE) {
+        var b4 = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.15), nightB);
+        if (s < 0) b4.rotation.y = Math.PI;
+        add(b4, 4.6, 3.5, s * 3.405);
+      }
     });
     // Cab roof clearance lamps: 3 center ID lamps + 2 outer (DRW group)
     [-0.5, 0, 0.5, -2.45, 2.45].forEach(function (z) {
@@ -2154,7 +2188,7 @@
     // Storage toolbox under the gooseneck, in the gap ahead of the deck
     // (behind the truck when hooked up), between the drop-leg jacks and the header.
     // Placement and facing stay as they are; the lid is the top (chest-style).
-    var TB = { x: -12.35, y: 3.05, z: 0, lx: 1.9, ly: 1.8, lz: 3.7 };
+    var TB = { x: -12.12, y: 3.05, z: 0, lx: 1.9, ly: 1.8, lz: 3.7 }; // v137: rear edge clears the neck slope
     var bodyMat = M.frame.clone();
     var lidMat = M.diamond.clone();
     lidMat.color.set(0x9a9aa2);
@@ -2321,6 +2355,14 @@
     box(0.05, 0.55, 1.0, M.frame, -dvLen - 0.2, -0.95, 2.55, dv);       // plate bracket
     box(0.04, 0.48, 0.98, M.satin, -dvLen - 0.23, -0.95, 2.55, dv);      // blank plate area
     box(0.06, 0.06, 0.2, M.head, -dvLen - 0.22, -0.66, 2.55, dv);        // plate light
+    // v137: MEGA hold-down latches (Big Tex spec sheet): a handle bar and keeper on each
+    // ramp's front edge where it meets the deck.
+    [-1, 1].forEach(function (s) {
+      [s * 0.9, s * 3.0].forEach(function (z) {
+        box(0.32, 0.12, 0.34, M.frame, -0.28, 0.14, z, dv);            // keeper block
+        box(0.42, 0.05, 0.08, M.chrome, -0.32, 0.23, z, dv);            // latch handle
+      });
+    });
     // ramp seams across the dovetail plate
     box(dvLen, 0.02, 0.06, M.frame, -dvLen / 2, 0.01, 0, dv);
     // rear end bar with lights
