@@ -521,7 +521,7 @@
     } else {
       L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
         maxZoom: 16,
-        attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a>'
+        attribution: 'Tiles (c) <a href="https://www.esri.com/">Esri</a>'
       }).addTo(state.map);
     }
     state.map.on('moveend', function () {

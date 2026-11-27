@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v95';
+  var APP_VERSION = 'v96';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -1585,6 +1585,7 @@
     if (state.tab === 'targets' && window.BlackRamTargets) window.BlackRamTargets.render();
     }).then(function () {
       state.inflight = null;
+      try { document.dispatchEvent(new CustomEvent('blackram:data', { detail: { kind: 'feed' } })); } catch (err) { /* old browser */ }
     });
     return state.inflight;
   }
@@ -2752,6 +2753,7 @@
     }).then(function () {
       state.searchInflight = null;
       setSearchRefreshing(false);
+      try { document.dispatchEvent(new CustomEvent('blackram:data', { detail: { kind: 'searches' } })); } catch (err) { /* old browser */ }
       if (state.tab === 'searches') {
         var stamp = $('search-updated-text') || $('search-updated');
         if (stamp) stamp.textContent = searchUpdatedText();
@@ -4484,7 +4486,7 @@
     } else {
       L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
         maxZoom: 16,
-        attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a>'
+        attribution: 'Tiles (c) <a href="https://www.esri.com/">Esri</a>'
       }).addTo(truckMap);
     }
     var truckPin = L.circleMarker([p.lat, p.lon], {
@@ -6208,7 +6210,7 @@
     } else {
       L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
         maxZoom: 16,
-        attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a>'
+        attribution: 'Tiles (c) <a href="https://www.esri.com/">Esri</a>'
       }).addTo(map);
     }
     var bounds = [];
@@ -7571,9 +7573,10 @@
     return (bar ? bar.getBoundingClientRect().height : 0) + 8;
   }
 
-  var NAV_PRIMARY = ['check', 'searches', 'reports', 'targets'];
-  var NAV_SHORT = { check: 'Rate Check', searches: 'Boards', reports: 'Reports', targets: 'Targets', kpis: 'Scoreboard', fin: 'Finance', acct: 'Accounting', ins: 'Insurance', maint: 'Maint.', dot: 'DOT', stops: 'Stops', pdfs: 'PDFs' };
+  var NAV_PRIMARY = ['today', 'check', 'searches', 'reports'];
+  var NAV_SHORT = { today: 'Today', check: 'Rate Check', searches: 'Boards', reports: 'Reports', targets: 'Targets', kpis: 'Scoreboard', fin: 'Finance', acct: 'Accounting', ins: 'Insurance', maint: 'Maint.', dot: 'DOT', stops: 'Stops', pdfs: 'PDFs' };
   var NAV_ICON_PATHS = {
+    today: '<path d="M3.5 11.5L12 4l8.5 7.5"/><path d="M6 10v10h12V10"/><path d="M10 20v-5h4v5"/>',
     check: '<rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M8.5 7h7M8.5 11h2M13.5 11h2M8.5 14.5h2M13.5 14.5h2M8.5 18h2M13.5 18h2"/>',
     searches: '<path d="M4 6h16M4 12h16M4 18h10"/><circle cx="18.5" cy="17.5" r="2.5"/>',
     reports: '<path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 13v4M12 10v7M15 15v2"/>',
@@ -7752,7 +7755,7 @@
     }
     document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') closeMoreSheet(); });
     var home = document.getElementById('appbar-home');
-    if (home) home.addEventListener('click', function () { showTab('check'); });
+    if (home) home.addEventListener('click', function () { showTab('today'); });
     var stBtn = document.getElementById('appbar-status');
     if (stBtn) stBtn.addEventListener('click', function () { showTab('searches'); });
     var sw = document.getElementById('hdr-wx');
@@ -7812,6 +7815,9 @@
       panel.hidden = panel.id !== 'panel-' + name;
     });
     document.documentElement.setAttribute('data-tab', name);
+    // v96: deep links. The URL hash names the tab (#dot, #maint ...) so a shared link or a
+    // home-screen reopen lands on the same section. replaceState keeps Back from cycling tabs.
+    try { if (location.hash !== '#' + name) history.replaceState(null, '', '#' + name); } catch (err) { /* file:// */ }
     document.querySelector('.app').classList.toggle('tab-stops', name === 'stops');
     closeMoreSheet();
     updateNavActive();
@@ -8240,6 +8246,14 @@
     fuelModel: function () { return rateCheckFuel(null); },
     fuelUsedText: fuelUsedText,
     monthlyBills: monthlyBills,
+    withResolvedStatus: withResolvedStatus,
+    scoreLedgerLoad: function (l, pct) { return scoreLedgerLoad(l, pct); },
+    openDeliverSheet: openDeliverSheet,
+    canMarkDelivered: function (l) { return canMarkDelivered(l); },
+    loadId: loadId,
+    isOffline: function () { return !!state.offline; },
+    getScored: function () { return state.scoredSearches; },
+    openCallSheet: function () { openCallSheet(); },
     skeleton: function (t) { return loadingSkeletonHtml(t); }
   });
 
@@ -8297,6 +8311,13 @@
       if (state.tab === 'searches') renderSearches();
     });
     syncSettingsRelayUI();
+    // v96: land on Today unless the URL names a tab (#check, #dot ...).
+    var startTab = String(location.hash || '').replace(/^#/, '');
+    showTab($('panel-' + startTab) ? startTab : 'today');
+    window.addEventListener('hashchange', function () {
+      var h = String(location.hash || '').replace(/^#/, '');
+      if (h && h !== state.tab && $('panel-' + h)) showTab(h);
+    });
     window.addEventListener('online', function () { flushDeliveredOutbox(); });
     renderCheck();
     refreshFeed();

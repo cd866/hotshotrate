@@ -5536,3 +5536,13 @@ header.top .rig-stage[data-r360] .rig-floor { transition: opacity 0.5s ease; }
 .rc-verdict.maybe .rcv-net-n { color: var(--c-maybe); }
 .rc-verdict.pass .rcv-net-n { color: var(--c-text-2); }
 .dr-t-cdl b { color: var(--num-yellow); }
+
+/* v96: appbar fits the new search button on a 390 px phone without cutting the last-pull time */
+@media (max-width: 420px) {
+  .appbar { gap: 6px; padding-left: 8px; padding-right: 8px; }
+  .appbar-brand { min-width: 36px; padding: 0; }
+  .appbar-brand svg { width: 30px; height: 30px; }
+  .appbar-status { padding: 6px 10px; gap: 6px; }
+  .hdr-wx { padding: 0 2px; gap: 5px; }
+  .appbar-icon { flex-basis: 40px; width: 40px; height: 40px; }
+}

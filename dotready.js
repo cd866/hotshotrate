@@ -592,7 +592,7 @@
     window.addEventListener('online', flush);
     if (document.documentElement.getAttribute('data-tab') === 'dot') onShow();
   }
-  window.BlackRamDot = { ready: function () { return !!st.pub; }, load: loadPublic, status: function (id) { var it = itemById(id); if (!it) return null; var r = calc(it); return { s: r.s, label: r.label, date: r.date, exp: r.exp, t: it.t, cfr: it.cfr }; }, render: render, openItem: openSheet, closeSheet: closeSheet, flush: flush, score: function () { return score(rows()); }, refresh: function () { st.pub = null; st.srv = null; loadPublic(); fetchSrv(); } };
+  window.BlackRamDot = { ready: function () { return !!st.pub; }, load: loadPublic, status: function (id) { var it = itemById(id); if (!it) return null; var r = calc(it); return { s: r.s, label: r.label, date: r.date, exp: r.exp, t: it.t, cfr: it.cfr }; }, render: render, openItem: openSheet, closeSheet: closeSheet, flush: flush, score: function () { return score(rows()); }, list: function () { return rows().map(function (x) { return { id: x.it.id, t: x.it.t, g: x.it.g, cfr: x.it.cfr, w: x.it.w, s: x.r.s, label: x.r.label, days: x.r.days, exp: x.r.exp, lo: x.it.lo, hi: x.it.hi }; }).sort(function (a, b) { return (ORDER[a.s] - ORDER[b.s]) || ((b.w || 0) - (a.w || 0)); }); }, items: function () { return ((st.pub && st.pub.items) || []).map(function (it) { return { id: it.id, t: it.t, cfr: it.cfr }; }); }, refresh: function () { st.pub = null; st.srv = null; loadPublic(); fetchSrv(); } };
   window.BlackRamApp = Object.assign(window.BlackRamApp || {}, { dot: window.BlackRamDot });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

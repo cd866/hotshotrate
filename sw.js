@@ -8,49 +8,54 @@
    data/load_searches.json and data/pull_status.json are always fetched with
    cache: 'no-store' and are not precached. A cached copy is used only when
    the network request fails, so live search progress shows without a version bump. */
-var CACHE = 'blackram-v95';
+var CACHE = 'blackram-v96';
 var ASSETS = [
   './',
   './index.html',
   './styles.css',
-  './styles.css?v=95',
+  './styles.css?v=96',
   './app.js',
-  './app.js?v=95',
+  './app.js?v=96',
   './maps.js',
-  './maps.js?v=95',
+  './maps.js?v=96',
   './stops.js',
-  './stops.js?v=95',
+  './stops.js?v=96',
   './targets.js',
   './loadcosts.js',
-  './loadcosts.js?v=95',
+  './loadcosts.js?v=96',
   './tripplan.js',
-  './tripplan.js?v=95',
+  './tripplan.js?v=96',
   './data/pilot_fj.json',
-  './targets.js?v=95',
+  './targets.js?v=96',
   './reports.js',
-  './reports.js?v=95',
+  './reports.js?v=96',
   './scoreboard.js',
   './accounting.js',
-  './accounting.js?v=95',
+  './accounting.js?v=96',
   './insurance.js',
-  './insurance.js?v=95',
+  './insurance.js?v=96',
   './maintenance.js',
-  './maintenance.js?v=95',
+  './maintenance.js?v=96',
   './dotready.js',
-  './dotready.js?v=95',
+  './dotready.js?v=96',
   './rig360.js',
   './tiles.js',
-  './tiles.js?v=95',
-  './rig360.js?v=95',
+  './tiles.js?v=96',
+  './rig360.js?v=96',
   './driver360.js',
-  './driver360.js?v=95',
+  './driver360.js?v=96',
+  './today.js',
+  './today.js?v=96',
+  './search.js',
+  './search.js?v=96',
   './brand/meshach-360.jpg',
   './vendor/three/three.module.min.js',
-  './scoreboard.js?v=95',
+  './scoreboard.js?v=96',
   './manifest.json',
   './manifest.json?v=3',
   './manifest.webmanifest',
   './manifest.webmanifest?v=3',
+  './manifest.webmanifest?v=5',
   './brand/horizontal.svg',
   './brand/icon.svg',
   './brand/primary.svg',
@@ -103,7 +108,11 @@ function isShell(url, req) {
   var path = url.pathname;
   if (path.endsWith('/sw.js')) return true;
   if (path.endsWith('/index.html') || /\/$/.test(path)) return true;
-  if (path.endsWith('/app.js') || path.endsWith('/styles.css') || path.endsWith('/stops.js') || path.endsWith('/maps.js') || path.endsWith('/targets.js') || path.endsWith('/loadcosts.js') || path.endsWith('/tripplan.js') || path.endsWith('/reports.js') || path.endsWith('/scoreboard.js') || path.endsWith('/accounting.js') || path.endsWith('/insurance.js') || path.endsWith('/maintenance.js') || path.endsWith('/dotready.js') || path.endsWith('/rig360.js') || path.endsWith('/tiles.js')) return true;
+  // v96: every app script or stylesheet at the site root is shell (driver360.js was missing
+  // from the old hand-kept list, so it could sit in the HTTP cache for 10 min after a release).
+  var base = new URL(self.registration.scope).pathname;
+  var rel = path.indexOf(base) === 0 ? path.slice(base.length) : path;
+  if (/^[^/]+\.(js|css)$/.test(rel)) return true;
   if (path.endsWith('/manifest.json') || path.endsWith('/manifest.webmanifest')) return true;
   return false;
 }

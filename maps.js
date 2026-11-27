@@ -5,6 +5,8 @@
    City level only: nothing here carries a street address. */
 (function () {
   'use strict';
+  /* v96: plain ASCII zoom-out label (Leaflet default is a Unicode minus). */
+  if (window.L && L.Control && L.Control.Zoom) L.Control.Zoom.prototype.options.zoomOutText = '<span aria-hidden="true">-</span>';
   var HOME = { lat: 30.33, lon: -81.58, label: 'Home base (Jacksonville, FL)' };
   var STATE_FILL = ['#3B82F6', '#14B8A6', '#8B5CF6', '#D9658B'];
   var COL = {
@@ -89,7 +91,7 @@
   function tiles(map, maxZoom) {
     return L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
       maxZoom: maxZoom || 16,
-      attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a> | Census boundaries'
+      attribution: 'Tiles (c) <a href="https://www.esri.com/">Esri</a> | Census boundaries'
     }).addTo(map);
   }
 

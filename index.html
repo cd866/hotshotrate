@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-tab="check">
+<html lang="en" data-tab="today">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -11,16 +11,20 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black" />
   <meta name="apple-mobile-web-app-title" content="Black Ram" />
   <title>Black Ram Logistics</title>
-  <link rel="manifest" href="manifest.webmanifest?v=4" />
+  <link rel="manifest" href="manifest.webmanifest?v=5" />
   <link rel="icon" href="favicon.ico?v=3" sizes="any" />
   <link rel="icon" href="icons/favicon-32.png?v=3" sizes="32x32" type="image/png" />
   <link rel="icon" href="icons/icon-192.png?v=3" sizes="192x192" type="image/png" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=3" sizes="180x180" />
   <link rel="preload" href="fonts/nunito-sans-variable.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="fonts/oswald-700.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="styles.css?v=95" />
+  <link rel="stylesheet" href="styles.css?v=96" />
   <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
   <script>
+    try {
+      var h0 = String(location.hash || '').replace(/^#/, '');
+      if (/^[a-z]{2,12}$/.test(h0)) document.documentElement.setAttribute('data-tab', h0);
+    } catch (err) { /* ignore */ }
     try {
       if (localStorage.getItem('blackram_splash_seen') === '1') {
         document.documentElement.classList.add('splash-seen');
@@ -41,6 +45,7 @@
         <h2 id="about-title" class="sr-only">Black Ram Logistics</h2>
         <p>Black Ram Logistics is the hotshot DBA of Sand Lily Pad LLC, leased onto Totni Enterprise's MC authority.</p>
         <p>Our rig: 2026 Ram 3500 dually and a 40 ft Big Tex gooseneck. Cargo up to 12,500 lb is OK; 12,501-15,300 lb is MAYBE (scale check, load centered just ahead of trailer axles); over 15,300 lb is a PASS. The Ram GVWR of 14,000 lb binds (CAT empty 10,940 lb on the truck). Tarps, straps. $/hr EST = net EST / hours. Hours = (loaded mi + empty miles) / 50 mph + 2 h load/unload per load. Net $/mi EST = net EST / (loaded mi + empty miles).</p>
+        <p>Today is the home screen: the truck's current or last load, what needs attention (DOT gaps, overdue service, loads waiting on pay, stale boards), net kept vs monthly bills, readiness, the best loads on the boards and quick actions. The search button finds loads, service items, DOT items, checklist lines, manual notes and gear. Links like #dot or #maint open a section directly.</p>
         <p>Rate Check scores a broker's offer as you type: enter the rate, loaded miles and deadhead miles to get TAKE, MAYBE or PASS with net, net per day, net per mile and net per hour. Tap Save check to keep an offer on this phone. The last 10 saved checks stay here.</p>
         <p>Load Boards shows the latest Truckstop, Direct Freight and uShip scan. uShip Book now prices score like a posted rate; uShip bid listings use the shipper target, the low bid, or an estimated fair price and are never better than MAYBE. Net EST is the posted rate times 0.87, minus fuel and DEF on loaded and empty miles: the EIA regional diesel price plus our pump premium, at 8 mpg, plus $0.034/mi DEF. Rate Check and Targets use the same fuel model; the flat $1.14/loaded mi + $0.30/empty mi is only a fallback when no diesel price is on file. Driver pay is not in the per-load estimate; Meshach is paid out of profits. A single load needs at least $500 net EST, or $300 for a same-day run under 250 total miles. A chain or a 2- or 3-load combo needs at least $1,000 total with no losing leg. An overnight low of 45 F or below at the drop (or at any stop on a combo) is an automatic PASS, because the truck would have to idle overnight. Each load and combo also shows a route weather report. Ice or snow on the route, or gusts of 50+ mph, is a MAYBE and does not PASS by itself. Load Boards lists TAKE loads first, then MAYBE, then PASS. Tarp-required and F+T loads are a fit; the rig has tarps and straps. If a company email is listed, Email broker opens a draft in your mail app and does not send it. If there is no email, Call broker uses a company phone, or a looked-up company line marked Looked up. Direct Freight rows with no broker identity link to the board detail. Each load and combo shows a route map (grey dashed empty miles to pickup, solid purple loaded) and an Open in Google Maps directions link. Maps use Esri base tiles (no key) and only load when they scroll into view. The public list does not include contact person names, personal cell numbers, card numbers, or other confidential details.</p>
         <h2>Add to your iPhone</h2>
@@ -69,6 +74,9 @@
       <button type="button" class="hdr-wx on" id="hdr-wx" role="switch" aria-checked="true" aria-label="Weather rules">
         <span class="hdr-wx-track" aria-hidden="true"><span class="hdr-wx-knob"></span></span><span class="hdr-wx-label">WX ON</span>
       </button>
+      <button type="button" class="appbar-icon" id="search-open" aria-label="Search the app" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></g></svg>
+      </button>
       <button type="button" class="appbar-icon" id="callsheet-open" aria-label="Broker call sheet">
         <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6.6 3.5h2.6l1.4 4-1.9 1.3a11 11 0 0 0 6.5 6.5l1.3-1.9 4 1.4v2.6A2.1 2.1 0 0 1 18.3 20 15.8 15.8 0 0 1 4 5.7a2.1 2.1 0 0 1 2.6-2.2z"/></g></svg>
       </button>
@@ -87,7 +95,7 @@
               <source type="image/webp" srcset="brand/rig-800.webp 800w, brand/rig-1600.webp 1600w" sizes="(max-width: 480px) 92vw, 440px">
               <img id="rig-photo" class="rig-photo" alt="Diamond Black 2026 Ram 3500 dually and Big Tex 25GN 40 ft gooseneck trailer, hooked together." width="1600" height="563" src="brand/rig-800.png" srcset="brand/rig-800.png 800w, brand/rig-1600.png 1600w" sizes="(max-width: 480px) 92vw, 440px" decoding="async" fetchpriority="high">
             </picture>
-            <img id="rig-reflect" class="rig-reflect" alt="" width="1600" height="563" src="brand/rig-800.png" srcset="brand/rig-800.png 800w, brand/rig-1600.png 1600w" sizes="(max-width: 480px) 92vw, 440px" decoding="async" aria-hidden="true">
+            <img id="rig-reflect" class="rig-reflect" alt="" width="1600" height="563" src="brand/rig-800.webp" srcset="brand/rig-800.webp 800w, brand/rig-1600.webp 1600w" sizes="(max-width: 480px) 92vw, 440px" decoding="async" aria-hidden="true">
           </div>
         </figure>
         <details class="rig-specs-panel">
@@ -146,7 +154,7 @@
                 <button type="button" class="rig-diagram-open" id="rig-diagram-open" data-rig-zoom aria-haspopup="dialog" aria-controls="rig-zoom" aria-label="Open the labeled trailer diagram full size">
                   <picture>
                     <source type="image/webp" srcset="brand/trailer-diagram.webp">
-                    <img class="rig-diagram-img" alt="Labeled Big Tex 22GN and 25GN gooseneck trailer diagram, with callouts for the coupler, frame, ramps, axles, lights, and other features." width="4400" height="2688" src="brand/trailer-diagram.png" decoding="async">
+                    <img class="rig-diagram-img" alt="Labeled Big Tex 22GN and 25GN gooseneck trailer diagram, with callouts for the coupler, frame, ramps, axles, lights, and other features." width="4400" height="2688" src="brand/trailer-diagram.png" decoding="async" loading="lazy">
                   </picture>
                   <span class="rig-diagram-hint">Tap to zoom</span>
                 </button>
@@ -209,7 +217,8 @@
     </header>
 
     <nav class="tabbar bnav" role="tablist" aria-label="Sections">
-        <button type="button" id="tab-check" data-tab="check" role="tab" aria-selected="true" aria-controls="panel-check">Rate Check</button>
+        <button type="button" id="tab-today" data-tab="today" role="tab" aria-selected="true" aria-controls="panel-today">Today</button>
+        <button type="button" id="tab-check" data-tab="check" role="tab" aria-selected="false" aria-controls="panel-check">Rate Check</button>
         <button type="button" id="tab-searches" data-tab="searches" role="tab" aria-selected="false" aria-controls="panel-searches">Load Boards</button>
         <button type="button" id="tab-stops" data-tab="stops" role="tab" aria-selected="false" aria-controls="panel-stops">Stops</button>
         <button type="button" id="tab-reports" data-tab="reports" role="tab" aria-selected="false" aria-controls="panel-reports">Reports</button>
@@ -224,7 +233,11 @@
     </nav>
 
     <main>
-      <section id="panel-check" class="panel" role="tabpanel" aria-labelledby="tab-check">
+      <section id="panel-today" class="panel td-panel" role="tabpanel" aria-labelledby="tab-today">
+        <div id="today-root" class="td-root" aria-live="polite"></div>
+      </section>
+
+      <section id="panel-check" class="panel" role="tabpanel" aria-labelledby="tab-check" hidden>
         <div class="rc-title">
           <h1 class="rc-h1">Rate Check</h1>
           <p class="rc-sub">Type the broker's offer. The verdict updates as you type.</p>
@@ -658,27 +671,29 @@
     <div class="rig-zoom-stage" id="rig-zoom-stage">
       <picture>
         <source type="image/webp" srcset="brand/trailer-diagram.webp">
-        <img id="rig-zoom-img" alt="Labeled Big Tex 22GN and 25GN gooseneck trailer diagram, with callouts for the coupler, frame, ramps, axles, lights, and other features." width="4400" height="2688" src="brand/trailer-diagram.png">
+        <img id="rig-zoom-img" alt="Labeled Big Tex 22GN and 25GN gooseneck trailer diagram, with callouts for the coupler, frame, ramps, axles, lights, and other features." width="4400" height="2688" src="brand/trailer-diagram.png" loading="lazy" decoding="async">
       </picture>
     </div>
   </div>
   <noscript><p class="noscript">Black Ram Logistics needs JavaScript for Rate Check, stops, and reports.</p></noscript>
   <script src="vendor/leaflet/leaflet.js"></script>
-  <script src="tiles.js?v=95"></script>
-  <script src="maps.js?v=95"></script>
-  <script src="tripplan.js?v=95"></script>
-  <script src="app.js?v=95"></script>
-  <script src="stops.js?v=95"></script>
-  <script src="targets.js?v=95"></script>
-  <script src="loadcosts.js?v=95"></script>
-  <script src="reports.js?v=95"></script>
-  <script src="scoreboard.js?v=95"></script>
-  <script src="accounting.js?v=95"></script>
-  <script src="insurance.js?v=95"></script>
-  <script src="maintenance.js?v=95"></script>
-  <script src="dotready.js?v=95"></script>
-  <script src="rig360.js?v=95"></script>
-  <script src="driver360.js?v=95"></script>
+  <script src="tiles.js?v=96"></script>
+  <script src="maps.js?v=96"></script>
+  <script src="tripplan.js?v=96"></script>
+  <script src="app.js?v=96"></script>
+  <script src="stops.js?v=96"></script>
+  <script src="targets.js?v=96"></script>
+  <script src="loadcosts.js?v=96"></script>
+  <script src="reports.js?v=96"></script>
+  <script src="scoreboard.js?v=96"></script>
+  <script src="accounting.js?v=96"></script>
+  <script src="insurance.js?v=96"></script>
+  <script src="maintenance.js?v=96"></script>
+  <script src="dotready.js?v=96"></script>
+  <script src="rig360.js?v=96"></script>
+  <script src="driver360.js?v=96"></script>
+  <script src="today.js?v=96"></script>
+  <script src="search.js?v=96"></script>
   <script>
     (function () {
       if (!('serviceWorker' in navigator)) return;

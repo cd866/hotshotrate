@@ -633,19 +633,23 @@
   }
 
   function chkState() { return jget(CHK_KEY, {}); }
+  /* v96: daily lists (pre-trip, every stop, post-trip) store the check date and reset each day;
+     the monthly list keeps its checks until Clear checks. */
+  function chkOn(s, k) { var v = s[k]; if (!v) return false; return /^monthly/.test(k) ? true : v === todayIso(); }
   function secChecks(P) {
     var s = chkState(), C = P.checklists;
     function one(key) {
       var c = C[key];
       return '<div class="mt-sub">' + esc(c.title) + '</div><div class="mt-docs">' + c.items.map(function (t, i) {
         var k = key + ':' + i;
-        return '<button type="button" class="mt-doc' + (s[k] ? ' on' : '') + '" data-mt-chk="' + k + '" aria-pressed="' + (s[k] ? 'true' : 'false') + '"><span class="mt-ck" aria-hidden="true"></span><span>' + esc(t) + '</span></button>';
+        var on = chkOn(s, k);
+        return '<button type="button" class="mt-doc' + (on ? ' on' : '') + '" data-mt-chk="' + k + '" aria-pressed="' + (on ? 'true' : 'false') + '"><span class="mt-ck" aria-hidden="true"></span><span>' + esc(t) + '</span></button>';
       }).join('') + '</div>';
     }
     var keys = Object.keys(C || {}).filter(function (k) { return C[k] && Array.isArray(C[k].items) && C[k].items.length; });
     return card('mt-chk', 'Checklists', 'Pre-trip, every stop, post-trip',
       keys.map(one).join('') + '<button type="button" class="btn" id="mt-chk-reset">Clear checks</button>' +
-      '<p class="mt-fine">Built from the Ram owner\'s manual, the Big Tex owner\'s manual and the Dexter axle manual (pages in each line). Saved on this phone only.</p>');
+      '<p class="mt-fine">Built from the Ram owner\'s manual, the Big Tex owner\'s manual and the Dexter axle manual (pages in each line). Saved on this phone only. Pre-trip, every-stop and post-trip checks reset each day; monthly checks stay until Clear checks.</p>');
   }
   function secManuals(P) {
     var M = P.manuals || {};
@@ -731,7 +735,7 @@
     el.querySelectorAll('[data-mt-unit]').forEach(function (b) { b.addEventListener('click', function () { st.unit = b.getAttribute('data-mt-unit'); render(); }); });
     el.querySelectorAll('[data-mt-log]').forEach(function (b) { b.addEventListener('click', function () { st.logf = b.getAttribute('data-mt-log'); render(); }); });
     el.querySelectorAll('[data-mt-chk]').forEach(function (b) {
-      b.addEventListener('click', function () { var s = chkState(), k = b.getAttribute('data-mt-chk'); if (s[k]) delete s[k]; else s[k] = 1; jset(CHK_KEY, s); render(); });
+      b.addEventListener('click', function () { var s = chkState(), k = b.getAttribute('data-mt-chk'); if (chkOn(s, k)) delete s[k]; else s[k] = todayIso(); jset(CHK_KEY, s); render(); });
     });
     var cr = document.getElementById('mt-chk-reset'); if (cr) cr.addEventListener('click', function () { jset(CHK_KEY, {}); render(); });
     var gi = document.getElementById('mt-go-ins'); if (gi) gi.addEventListener('click', function () { if (window.BlackRamApp && window.BlackRamApp.showTab) window.BlackRamApp.showTab('ins'); });
@@ -869,7 +873,24 @@
     if (document.documentElement.getAttribute('data-tab') === 'maint') onShow();
   }
   if (window.BlackRamTiles) window.BlackRamTiles.on('mt', drill);
-  window.BlackRamMaintenance = { render: render, openItem: openSheet, closeSheet: closeSheet, flush: flush, refresh: function () { st.pub = null; loadPublic(); fetchPriv(true); } };
+  function pubRows() { return allRows().map(function (r) { return { id: r.it.id, item: r.it.item, unit: r.it.unit, status: r.status, remMi: r.remMi, remD: r.remD, dueDate: r.dueDate || null }; }); }
+  function checkStats() {
+    var P = st.pub; if (!P || !P.checklists) return [];
+    var s = chkState(), C = P.checklists;
+    return Object.keys(C).filter(function (k) { return C[k] && Array.isArray(C[k].items) && C[k].items.length; }).map(function (k) {
+      var done = 0; C[k].items.forEach(function (t, i) { if (chkOn(s, k + ':' + i)) done++; });
+      return { key: k, title: C[k].title, done: done, total: C[k].items.length };
+    });
+  }
+  function searchIndex() {
+    var P = st.pub; if (!P) return null;
+    return {
+      schedule: (P.schedule || []).map(function (it) { return { id: it.id, item: it.item, unit: it.unit }; }),
+      checks: Object.keys(P.checklists || {}).reduce(function (a, k) { var c = P.checklists[k]; (c && c.items || []).forEach(function (t) { a.push({ list: c.title, t: t }); }); return a; }, []),
+      insights: ((P.manuals && P.manuals.insights) || []).map(function (x) { return { t: x[0], s: x[1] }; })
+    };
+  }
+  window.BlackRamMaintenance = { ready: function () { return !!st.pub; }, load: loadPublic, rows: pubRows, checks: checkStats, index: searchIndex, render: render, openItem: openSheet, closeSheet: closeSheet, flush: flush, refresh: function () { st.pub = null; loadPublic(); fetchPriv(true); } };
   window.BlackRamApp = Object.assign(window.BlackRamApp || {}, { maintenance: window.BlackRamMaintenance });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
