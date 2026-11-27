@@ -1,5 +1,9 @@
-/* Black Ram Logistics - Daily Reports section (v52).
-   Lists each nightly PDF report (newest first) and opens it in-app.
+/* Black Ram Logistics - Daily Reports section (v101).
+   Lists each nightly PDF report (newest first) and opens it in-app as a
+   full-screen sheet (page previews). Styles live in #dailyreports-css, not
+   #dr-css: DOT Ready also used that id, so the viewer CSS never loaded and
+   Open report looked like a no-op on the phone. Element ids are drep-* so
+   they do not clash with DOT's #dr-pin / #dr-pin-form.
    PRIVATE: the PDFs carry partner capital, loans and bank figures, so they are
    NOT in this public repo. They live in Worker KV behind the PIN-gated relay:
      POST /reports {pin}                  -> index
@@ -40,49 +44,50 @@
   }
 
   function css() {
-    if ($('dr-css')) return;
+    if ($('dailyreports-css')) return;
     var s = document.createElement('style');
-    s.id = 'dr-css';
+    s.id = 'dailyreports-css';
     s.textContent = [
       '#dailyreports-root{margin:0 0 18px}',
-      '.dr-card{background:var(--c-surface-1,#1a1726);border:1px solid var(--c-line,#2e2940);border-radius:var(--radius-lg,16px);padding:14px;margin:0 0 12px}',
-      '.dr-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px}',
-      '.dr-head h2{margin:0;font-size:13px;letter-spacing:1.2px;text-transform:uppercase;color:var(--c-gold,#F2C94C);font-weight:800}',
-      '.dr-head span{font-size:12px;color:var(--c-text-3,#b9b3cc)}',
-      '.dr-latest{display:grid;grid-template-columns:96px 1fr;gap:12px;align-items:start}',
-      '.dr-thumb{width:96px;height:124px;border-radius:8px;background:#0b0a12 center/cover no-repeat;border:1px solid var(--c-line,#2e2940);display:flex;align-items:center;justify-content:center;color:var(--c-text-3,#b9b3cc);font-size:11px;text-align:center;padding:4px;cursor:pointer}',
-      '.dr-date{font-size:20px;font-weight:800;color:var(--c-text-1,#f2f0f7);margin:0 0 2px}',
-      '.dr-meta{font-size:12px;color:var(--c-text-3,#b9b3cc);margin:0 0 6px}',
-      '.dr-line{font-size:14px;line-height:1.35;color:var(--c-text-1,#f2f0f7);margin:0 0 6px}',
-      '.dr-chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 0}',
-      '.dr-chip{font-size:11.5px;font-weight:700;border-radius:999px;padding:3px 9px;background:#2a2440;color:var(--c-text-1,#f2f0f7)}',
-      '.dr-chip.action,.dr-chip.due{background:var(--bad-bg,#9F1239);color:var(--bad-ink,#FECACA)}',
-      '.dr-chip.watch{background:var(--ok-bg,#92400E);color:var(--ok-ink,#FDE68A)}',
-      '.dr-chip.good{background:var(--good-bg,#065F46);color:var(--good-ink,#A7F3D0)}',
-      '.dr-btns{display:flex;gap:8px;margin:12px 0 0}',
-      '.dr-btn{flex:1 1 0;min-height:44px;border-radius:var(--radius-md,12px);border:1px solid var(--c-line,#2e2940);background:var(--c-surface-2,#14111f);color:var(--c-text-1,#f2f0f7);font:700 15px var(--body,system-ui);cursor:pointer}',
-      '.dr-btn.pri{background:var(--c-gold,#F2C94C);color:var(--c-gold-ink,#0f0d17);border-color:transparent}',
-      '.dr-list{list-style:none;margin:0;padding:0}',
-      '.dr-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--c-line,#2e2940)}',
-      '.dr-row:first-child{border-top:0}',
-      '.dr-row .dr-rt{flex:1 1 auto;min-width:0;cursor:pointer}',
-      '.dr-row b{display:block;font-size:15px;color:var(--c-text-1,#f2f0f7)}',
-      '.dr-row small{display:block;font-size:12px;color:var(--c-text-3,#b9b3cc);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
-      '.dr-ico{flex:0 0 44px;width:44px;height:44px;border-radius:10px;border:1px solid var(--c-line,#2e2940);background:var(--c-surface-2,#14111f);color:var(--c-gold,#F2C94C);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0}',
-      '.dr-ico svg{width:20px;height:20px}',
-      '.dr-more{width:100%;margin-top:6px}',
-      '.dr-lock p{font-size:14px;color:var(--c-text-3,#b9b3cc);margin:0 0 10px}',
-      '.dr-pin{display:flex;gap:8px}',
-      '.dr-pin input{flex:1;min-height:44px;border-radius:var(--radius-md,12px);border:1px solid var(--c-line,#2e2940);background:#0b0a12;color:var(--c-text-1,#f2f0f7);font-size:16px;padding:0 12px}',
-      '.dr-err{color:var(--bad-ink,#FECACA)!important}',
-      '.dr-view{position:fixed;inset:0;z-index:2147483000;background:rgba(8,7,14,.97);display:flex;flex-direction:column}',
-      '.dr-vbar{display:flex;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top,0px) + 8px) 10px 8px;background:var(--c-surface-2,#14111f);border-bottom:1px solid var(--c-line,#2e2940)}',
-      '.dr-vbar h3{flex:1;margin:0;font-size:16px;color:var(--c-text-1,#f2f0f7);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
-      '.dr-vbar .dr-btn{flex:0 0 auto;padding:0 12px}',
-      '.dr-pages{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:10px 8px calc(env(safe-area-inset-bottom,0px) + 20px)}',
-      '.dr-pages img{display:block;width:100%;max-width:820px;margin:0 auto 10px;border-radius:6px;background:#fff}',
-      '.dr-pages .dr-pn{text-align:center;font-size:11px;color:var(--c-text-3,#b9b3cc);margin:-6px 0 10px}',
-      '.dr-wait{color:var(--c-text-3,#b9b3cc);text-align:center;padding:40px 10px}'
+      '#dailyreports-root .dr-card{background:var(--c-surface-1,#1a1726);border:1px solid var(--c-line,#2e2940);border-radius:var(--radius-lg,16px);padding:14px;margin:0 0 12px}',
+      '#dailyreports-root .dr-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px}',
+      '#dailyreports-root .dr-head h2{margin:0;font-size:13px;letter-spacing:1.2px;text-transform:uppercase;color:var(--c-gold,#F2C94C);font-weight:800}',
+      '#dailyreports-root .dr-head span{font-size:12px;color:var(--c-text-3,#b9b3cc)}',
+      '#dailyreports-root .dr-latest{display:grid;grid-template-columns:96px 1fr;gap:12px;align-items:start}',
+      '#dailyreports-root .dr-thumb{width:96px;height:124px;border-radius:8px;background:#0b0a12 center/cover no-repeat;border:1px solid var(--c-line,#2e2940);display:flex;align-items:center;justify-content:center;color:var(--c-text-3,#b9b3cc);font-size:11px;text-align:center;padding:4px;cursor:pointer}',
+      '#dailyreports-root .dr-date{font-size:20px;font-weight:800;color:var(--c-text-1,#f2f0f7);margin:0 0 2px}',
+      '#dailyreports-root .dr-meta{font-size:12px;color:var(--c-text-3,#b9b3cc);margin:0 0 6px}',
+      '#dailyreports-root .dr-line{font-size:14px;line-height:1.35;color:var(--c-text-1,#f2f0f7);margin:0 0 6px}',
+      '#dailyreports-root .dr-chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 0}',
+      '#dailyreports-root .dr-chip{font-size:11.5px;font-weight:700;border-radius:999px;padding:3px 9px;background:#2a2440;color:var(--c-text-1,#f2f0f7)}',
+      '#dailyreports-root .dr-chip.action,#dailyreports-root .dr-chip.due{background:var(--bad-bg,#9F1239);color:var(--bad-ink,#FECACA)}',
+      '#dailyreports-root .dr-chip.watch{background:var(--ok-bg,#92400E);color:var(--ok-ink,#FDE68A)}',
+      '#dailyreports-root .dr-chip.good{background:var(--good-bg,#065F46);color:var(--good-ink,#A7F3D0)}',
+      '#dailyreports-root .dr-btns{display:flex;gap:8px;margin:12px 0 0}',
+      '#dailyreports-root .dr-btn,#drep-view .dr-btn{flex:1 1 0;min-height:44px;border-radius:var(--radius-md,12px);border:1px solid var(--c-line,#2e2940);background:var(--c-surface-2,#14111f);color:var(--c-text-1,#f2f0f7);font:700 15px var(--body,system-ui);cursor:pointer}',
+      '#dailyreports-root .dr-btn.pri,#drep-view .dr-btn.pri{background:var(--c-gold,#F2C94C);color:var(--c-gold-ink,#0f0d17);border-color:transparent}',
+      '#dailyreports-root .dr-list{list-style:none;margin:0;padding:0}',
+      '#dailyreports-root .dr-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--c-line,#2e2940)}',
+      '#dailyreports-root .dr-row:first-child{border-top:0}',
+      '#dailyreports-root .dr-row .dr-rt{flex:1 1 auto;min-width:0;cursor:pointer}',
+      '#dailyreports-root .dr-row b{display:block;font-size:15px;color:var(--c-text-1,#f2f0f7)}',
+      '#dailyreports-root .dr-row small{display:block;font-size:12px;color:var(--c-text-3,#b9b3cc);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+      '#dailyreports-root .dr-ico{flex:0 0 44px;width:44px;height:44px;border-radius:10px;border:1px solid var(--c-line,#2e2940);background:var(--c-surface-2,#14111f);color:var(--c-gold,#F2C94C);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0}',
+      '#dailyreports-root .dr-ico svg{width:20px;height:20px}',
+      '#dailyreports-root .dr-more{width:100%;margin-top:6px}',
+      '#dailyreports-root .dr-lock p{font-size:14px;color:var(--c-text-3,#b9b3cc);margin:0 0 10px}',
+      '#dailyreports-root .dr-pin{display:flex;gap:8px}',
+      '#dailyreports-root .dr-pin input{flex:1;min-height:44px;border-radius:var(--radius-md,12px);border:1px solid var(--c-line,#2e2940);background:#0b0a12;color:var(--c-text-1,#f2f0f7);font-size:16px;padding:0 12px}',
+      '#dailyreports-root .dr-err{color:var(--bad-ink,#FECACA)!important}',
+      '#drep-view{position:fixed;top:0;right:0;bottom:0;left:0;width:100%;height:100%;height:100dvh;z-index:2147483000;background:rgba(8,7,14,.97);display:flex;flex-direction:column}',
+      '#drep-view .dr-vbar{display:flex;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top,0px) + 8px) 10px 8px;background:var(--c-surface-2,#14111f);border-bottom:1px solid var(--c-line,#2e2940);flex:0 0 auto}',
+      '#drep-view .dr-vbar h3{flex:1;margin:0;font-size:16px;color:var(--c-text-1,#f2f0f7);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+      '#drep-view .dr-vbar .dr-btn{flex:0 0 auto;padding:0 12px}',
+      '#drep-view .dr-pages{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:10px 8px calc(env(safe-area-inset-bottom,0px) + 20px)}',
+      '#drep-view .dr-pages img{display:block;width:100%;max-width:820px;margin:0 auto 10px;border-radius:6px;background:#fff}',
+      '#drep-view .dr-pages .dr-pn{text-align:center;font-size:11px;color:var(--c-text-3,#b9b3cc);margin:-6px 0 10px}',
+      '#drep-view .dr-wait{color:var(--c-text-3,#b9b3cc);text-align:center;padding:40px 10px}',
+      '#drep-view iframe.drep-frame{display:block;width:100%;height:100%;min-height:70vh;border:0;background:#fff;flex:1}'
     ].join('');
     document.head.appendChild(s);
   }
@@ -119,13 +124,13 @@
         '<h3>Daily PDFs are locked</h3>' +
         '<p' + (st.error === 'wrongpin' ? ' class="dr-err"' : '') + '>' +
         (st.error === 'wrongpin' ? 'Wrong PIN. Try again.' : 'The nightly reports include partner capital, loans and bank figures. Enter the app PIN to see them.') + '</p>' +
-        '<form class="dr-pin" id="dr-pin-form" autocomplete="off"><input id="dr-pin" type="password" inputmode="numeric" placeholder="App PIN" aria-label="App PIN" />' +
+        '<form class="dr-pin" id="drep-pin-form" autocomplete="off"><input id="drep-pin" type="password" inputmode="numeric" placeholder="App PIN" aria-label="App PIN" />' +
         '<button type="submit" class="dr-btn pri" style="flex:0 0 96px">Unlock</button></form>' +
         '<p class="pin-lock-note">One PIN unlocks Finance, Accounting, Daily PDFs, receipts and dispatch contact on this phone.</p></section>';
-      var f = $('dr-pin-form');
+      var f = $('drep-pin-form');
       if (f) f.addEventListener('submit', function (ev) {
         ev.preventDefault();
-        var v = ($('dr-pin').value || '').trim();
+        var v = ($('drep-pin').value || '').trim();
         if (!v) return;
         setPin(v); st.error = ''; st.idx = null; load(true);
       });
@@ -141,7 +146,7 @@
     if (!reps.length) { root.innerHTML = '<section class="dr-card">' + head + '<p class="dr-meta">No reports uploaded yet.</p></section>'; return; }
     var r0 = reps[0];
     var latest = '<section class="dr-card">' + head +
-      '<div class="dr-latest"><div class="dr-thumb" id="dr-thumb" data-open="' + esc(r0.id) + '">Tap to open</div><div>' +
+      '<div class="dr-latest"><div class="dr-thumb" id="drep-thumb" data-open="' + esc(r0.id) + '">Tap to open</div><div>' +
       '<p class="dr-date">' + esc(dayLabel(r0.date)) + '</p>' +
       '<p class="dr-meta">' + esc(r0.label + ' - ' + r0.pages + ' pages - ' + kb(r0.pdf_bytes) + (r0.built_at ? ' - built ' + builtText(r0.built_at) : '')) + '</p>' +
       (r0.headline ? '<p class="dr-line">' + esc(r0.headline) + '</p>' : '') +
@@ -160,7 +165,7 @@
           '<small>' + esc(r.pages + ' pages - ' + kb(r.pdf_bytes) + (r.today ? ' - ' + r.today : '')) + '</small></div>' +
           '<button type="button" class="dr-ico" data-dl="' + esc(r.id) + '" aria-label="Download ' + esc(r.date) + ' PDF">' + DL + '</button></li>';
       }).join('') + '</ul>' +
-      (rest.length > 6 ? '<button type="button" class="dr-btn dr-more" id="dr-more">' + (st.showAll ? 'Show fewer' : 'Show all ' + rest.length) + '</button>' : '') +
+      (rest.length > 6 ? '<button type="button" class="dr-btn dr-more" id="drep-more">' + (st.showAll ? 'Show fewer' : 'Show all ' + rest.length) + '</button>' : '') +
       '</section>';
     root.innerHTML = latest + list;
     bind(root);
@@ -175,7 +180,7 @@
     root.querySelectorAll('[data-dl]').forEach(function (el) {
       el.addEventListener('click', function () { download(el.getAttribute('data-dl')); });
     });
-    var more = $('dr-more');
+    var more = $('drep-more');
     if (more) more.addEventListener('click', function () { st.showAll = !st.showAll; render(); });
   }
 
@@ -230,10 +235,10 @@
   }
 
   function thumb(id) {
-    var el = $('dr-thumb');
+    var el = $('drep-thumb');
     if (!el) return;
     getPages(id).then(function (pages) {
-      var t = $('dr-thumb');
+      var t = $('drep-thumb');
       if (t && pages[0]) { t.style.backgroundImage = 'url(data:image/jpeg;base64,' + pages[0] + ')'; t.textContent = ''; t.setAttribute('aria-label', 'Open report'); }
     }).catch(function () { /* keep text */ });
   }
@@ -249,45 +254,58 @@
   }
 
   function openPdfTab(id) {
-    var w = window.open('', '_blank');
+    /* Stay in the in-app sheet. window.open after the PDF fetch is blocked on iOS Safari
+       and in a standalone home-screen app, and a blank tab looks like a glitch. */
+    if (!$('drep-view')) openViewer(id);
+    var box = $('drep-pages');
+    if (box) box.innerHTML = '<p class="dr-wait">Loading PDF...</p>';
     getPdf(id).then(function (url) {
-      if (w) w.location.href = url; else window.location.href = url;
-    }).catch(function (e) { if (w) w.close(); alert('Could not open PDF: ' + e.message); });
+      var el = $('drep-pages');
+      if (el) {
+        el.innerHTML = '<iframe class="drep-frame" title="Report PDF" src="' + url + '"></iframe>';
+        return;
+      }
+      window.location.href = url;
+    }).catch(function (e) { alert('Could not open PDF: ' + e.message); if (st.error === 'wrongpin') render(); });
   }
 
   function closeViewer() {
-    var v = $('dr-view');
+    var v = $('drep-view');
     if (v) v.remove();
     document.documentElement.classList.remove('sheet-open');
     st.open = null;
   }
 
+  var VIEW_STYLE = 'position:fixed;top:0;right:0;bottom:0;left:0;width:100%;height:100%;height:100dvh;z-index:2147483000;background:rgba(8,7,14,.97);display:flex;flex-direction:column';
+
   function openViewer(id) {
     var r = find(id);
     if (!r) return;
+    css();
     closeViewer();
     st.open = id;
     var v = document.createElement('div');
-    v.id = 'dr-view'; v.className = 'dr-view';
+    v.id = 'drep-view'; v.className = 'dr-view';
+    v.setAttribute('style', VIEW_STYLE);
     v.setAttribute('role', 'dialog'); v.setAttribute('aria-modal', 'true'); v.setAttribute('aria-label', 'Report ' + r.date);
-    v.innerHTML = '<div class="dr-vbar"><button type="button" class="dr-btn" id="dr-close" aria-label="Close">Close</button>' +
+    v.innerHTML = '<div class="dr-vbar"><button type="button" class="dr-btn" id="drep-close" aria-label="Close">Close</button>' +
       '<h3>' + esc(dayLabel(r.date)) + '</h3>' +
-      '<button type="button" class="dr-btn" id="dr-pdf">PDF</button>' +
-      '<button type="button" class="dr-btn pri" id="dr-dl" aria-label="Download PDF">' + 'Download' + '</button></div>' +
-      '<div class="dr-pages" id="dr-pages"><p class="dr-wait">Loading ' + r.pages + ' pages...</p></div>';
+      '<button type="button" class="dr-btn" id="drep-pdf">PDF</button>' +
+      '<button type="button" class="dr-btn pri" id="drep-dl" aria-label="Download PDF">' + 'Download' + '</button></div>' +
+      '<div class="dr-pages" id="drep-pages"><p class="dr-wait">Loading ' + r.pages + ' pages...</p></div>';
     document.body.appendChild(v);
     document.documentElement.classList.add('sheet-open');
-    $('dr-close').addEventListener('click', closeViewer);
-    $('dr-dl').addEventListener('click', function () { download(id); });
-    $('dr-pdf').addEventListener('click', function () { openPdfTab(id); });
+    $('drep-close').addEventListener('click', closeViewer);
+    $('drep-dl').addEventListener('click', function () { download(id); });
+    $('drep-pdf').addEventListener('click', function () { openPdfTab(id); });
     getPages(id).then(function (pages) {
-      var box = $('dr-pages');
+      var box = $('drep-pages');
       if (!box || st.open !== id) return;
       box.innerHTML = pages.map(function (b64, i) {
         return '<img alt="Report ' + esc(r.date) + ' page ' + (i + 1) + '" src="data:image/jpeg;base64,' + b64 + '" loading="lazy" decoding="async"><div class="dr-pn">Page ' + (i + 1) + ' of ' + pages.length + '</div>';
       }).join('');
     }).catch(function (e) {
-      var box = $('dr-pages');
+      var box = $('drep-pages');
       if (box) box.innerHTML = '<p class="dr-wait">' + esc(e.message) + '</p>';
       if (st.error === 'wrongpin') render();
     });
@@ -300,6 +318,7 @@
   function init() {
     var p = $('panel-pdfs') || $('panel-reports');
     if (!p) return;
+    css();
     document.addEventListener('blackram:tab', function (e) { if (e.detail && (e.detail.tab === 'pdfs' || e.detail.tab === 'reports')) onShow(); });
     new MutationObserver(onShow).observe(p, { attributes: true, attributeFilter: ['hidden'] });
     // app.js rewrites #reports-root; re-insert our block if it ever gets removed.
