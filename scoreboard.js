@@ -214,7 +214,7 @@
       T.open({ title: 'Break-even', sub: esc(c.mLabel), body: T.hero(c.beTxt, 'Net kept ' + money(c.net) + ' vs ' + money(c.fixed) + ' monthly bills', c.net >= c.fixed ? 'good' : 'bad') +
         T.sec('Monthly bills | soonest due first') + T.rows(B.map(function (b) { return { t: esc(b.label), s: b.dueHtml || '', v: money(b.amount), vc: 'neg' }; }).concat([{ t: 'Total bills', v: money(tot || c.fixed), cls: 'tl-tot' }])) +
         T.sec('Net kept so far') + T.rows([{ t: 'Gross - Totni fee - fuel - other costs', s: c.loadsM.length + ' loads', v: money(c.net), vc: c.net < 0 ? 'neg' : 'pos' }, { t: 'Still to cover', v: money(Math.max(0, c.fixed - c.net)), cls: 'tl-tot' }]) +
-        '<div>' + T.btn('See the loads and costs', 'sb', 'net') + '</div>' + T.fine('Bills come from the Targets tab inputs. Meshach is paid only from profit left after these bills.') });
+        '<div><button type="button" class="tl-go" data-bd-go="bills">Bill waterfall: what is due next</button> ' + T.btn('See the loads and costs', 'sb', 'net') + '</div>' + T.fine('Bills come from the Targets tab inputs. Meshach is paid only from profit left after these bills.') });
       return;
     }
     var o = map[arg]; if (!o) return;

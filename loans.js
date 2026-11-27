@@ -90,7 +90,7 @@
     var d = fin(); if (!d) return '';
     var B = decorate(list);
     if (!B.length) return '';
-    return '<div class="bd-strip tl-tap" role="button" tabindex="0" data-bd-go="loans" aria-label="Bills by due date. Open Loans and Schedules">' +
+    return '<div class="bd-strip tl-tap" role="button" tabindex="0" data-bd-go="bills" aria-label="Bills by due date. Open the Bill Waterfall">' +
       '<div class="bd-strip-h">Bills by due date</div>' + B.map(function (b) {
         return '<div class="bd-li"><span>' + esc(b.label || b.payee) + '</span><b>' + m0(b.amount) + '</b>' + b.dueHtml + '</div>';
       }).join('') + '</div>';
@@ -293,12 +293,12 @@
 
   function init() {
     document.addEventListener('blackram:tab', function (e) { if (e.detail && e.detail.tab === 'loans') onShow(); });
-    document.addEventListener('click', function (e) { var g = e.target.closest && e.target.closest('[data-bd-go]'); if (g && window.BlackRamApp && window.BlackRamApp.showTab) window.BlackRamApp.showTab('loans'); });
+    document.addEventListener('click', function (e) { var g = e.target.closest && e.target.closest('[data-bd-go]'); if (g && window.BlackRamApp && window.BlackRamApp.showTab) window.BlackRamApp.showTab(g.getAttribute('data-bd-go') || 'loans'); });
     var p = document.getElementById('panel-loans'); if (p && !p.hidden) onShow();
     // Warm the due dates once so the Break-even sheet and Today have them.
     if (pin() && !(fin() && fin().loans)) setTimeout(function () { ensure(null); }, 1500);
   }
-  window.BlackRamBills = { decorate: decorate, todayStrip: todayStrip, ensure: ensure, nextDue: nextDue, urg: urg, idFor: idFor, has: function () { return !!fin(); } };
+  window.BlackRamBills = { fin: fin, decorate: decorate, todayStrip: todayStrip, ensure: ensure, nextDue: nextDue, urg: urg, idFor: idFor, has: function () { return !!fin(); } };
   window.BlackRamLoans = { render: render, show: onShow };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

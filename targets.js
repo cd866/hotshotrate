@@ -528,7 +528,7 @@
           { t: 'Less tires + maintenance reserve', v: '-' + rpm((1 + m.deadPerLoaded) * Number(tgt.maint)), vc: 'neg' },
           { t: 'Keeps per loaded mile', v: rpm(m.contrib), cls: 'tl-tot', vc: m.contrib < 0 ? 'neg' : 'pos' }
         ]) + T.fine('Break-even miles = bills / keeps per mile. Deadhead ' + tgt.dead + '% of all miles is in the fuel and reserve lines.') +
-        '<div>' + T.btn('Change the inputs', 'tg', 'inputs') + '</div>' });
+        '<div><button type="button" class="tl-go" data-bd-go="bills">Bill waterfall: what is due next</button> ' + T.btn('Change the inputs', 'tg', 'inputs') + '</div>' });
       return;
     }
     if (/^act:/.test(arg)) {

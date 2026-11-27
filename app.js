@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v144';
+  var APP_VERSION = 'v145';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -8148,7 +8148,7 @@
   }
 
   var NAV_PRIMARY = ['today', 'check', 'searches', 'reports'];
-  var NAV_SHORT = { today: 'Today', check: 'Rate Check', searches: 'Boards', reports: 'Reports', targets: 'Targets', kpis: 'Scoreboard', fin: 'Finance', acct: 'Accounting', ins: 'Insurance', maint: 'Maint.', dot: 'DOT', tax: 'Tax', actions: 'Actions', loans: 'Loans', stops: 'Stops', pdfs: 'PDFs' };
+  var NAV_SHORT = { today: 'Today', check: 'Rate Check', searches: 'Boards', reports: 'Reports', targets: 'Targets', kpis: 'Scoreboard', fin: 'Finance', acct: 'Accounting', ins: 'Insurance', maint: 'Maint.', dot: 'DOT', tax: 'Tax', actions: 'Actions', loans: 'Loans', bills: 'Bills', stops: 'Stops', pdfs: 'PDFs' };
   var NAV_ICON_PATHS = {
     today: '<path d="M3.5 11.5L12 4l8.5 7.5"/><path d="M6 10v10h12V10"/><path d="M10 20v-5h4v5"/>',
     check: '<rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M8.5 7h7M8.5 11h2M13.5 11h2M8.5 14.5h2M13.5 14.5h2M8.5 18h2M13.5 18h2"/>',
@@ -8162,6 +8162,7 @@
     maint: '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.1L4 16.7 7.3 20l5.3-5.3a4 4 0 0 0 5.1-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/>',
     dot: '<path d="M9 4h6l1 2h3v14H5V6h3z"/><path d="M8.5 13.2l2.6 2.6 4.4-4.8"/>',
     tax: '<rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M4 10h16M8.5 3v4M15.5 3v4M9 14.5l2 2 4-4"/>',
+    bills: '<path d="M4 4v16h16"/><rect x="6.5" y="6" width="3" height="11" rx="1"/><rect x="11" y="9" width="3" height="4" rx="1"/><rect x="15.5" y="12" width="3" height="5" rx="1"/>',
     loans: '<path d="M4 20h16M5 17V10M9.5 17V10M14.5 17V10M19 17V10"/><path d="M3 8l9-5 9 5z"/>',
     actions: '<path d="M9 6h11M9 12h11M9 18h11"/><path d="M3.5 6l1.5 1.5L7.5 5M3.5 12l1.5 1.5L7.5 11M3.5 18l1.5 1.5L7.5 17"/>',
     stops: '<path d="M12 21s-6.5-6.2-6.5-11A6.5 6.5 0 0 1 18.5 10c0 4.8-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>',

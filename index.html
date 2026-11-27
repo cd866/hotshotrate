@@ -18,8 +18,8 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=4" sizes="180x180" />
   <link rel="preload" href="fonts/nunito-sans-variable.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="fonts/oswald-700.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="styles.css?v=144" />
-  <link rel="stylesheet" href="desktop.css?v=144" />
+  <link rel="stylesheet" href="styles.css?v=145" />
+  <link rel="stylesheet" href="desktop.css?v=145" />
   <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
   <script>
     try {
@@ -234,6 +234,7 @@
         <button type="button" id="tab-maint" data-tab="maint" role="tab" aria-selected="false" aria-controls="panel-maint">Maintenance</button>
         <button type="button" id="tab-dot" data-tab="dot" role="tab" aria-selected="false" aria-controls="panel-dot">DOT Ready</button>
         <button type="button" id="tab-tax" data-tab="tax" role="tab" aria-selected="false" aria-controls="panel-tax">Tax</button>
+        <button type="button" id="tab-bills" data-tab="bills" role="tab" aria-selected="false" aria-controls="panel-bills">Bill Waterfall</button>
         <button type="button" id="tab-loans" data-tab="loans" role="tab" aria-selected="false" aria-controls="panel-loans">Loans and Schedules</button>
     </nav>
 
@@ -520,6 +521,10 @@
         <div id="tx-root" aria-live="polite"></div>
       </section>
 
+      <section id="panel-bills" class="panel bw-panel" role="tabpanel" aria-labelledby="tab-bills" hidden>
+        <div id="bw-root" aria-live="polite"></div>
+      </section>
+
       <section id="panel-loans" class="panel ln-panel" role="tabpanel" aria-labelledby="tab-loans" hidden>
         <div id="ln-root" aria-live="polite"></div>
       </section>
@@ -697,31 +702,32 @@
   </div>
   <noscript><p class="noscript">Black Ram Logistics needs JavaScript for Rate Check, stops, and reports.</p></noscript>
   <script src="vendor/leaflet/leaflet.js"></script>
-  <script src="tiles.js?v=144"></script>
-  <script src="maps.js?v=144"></script>
-  <script src="wxicons.js?v=144"></script>
-  <script src="truckloc.js?v=144"></script>
-  <script src="tripplan.js?v=144"></script>
-  <script src="app.js?v=144"></script>
-  <script src="pullbar.js?v=144"></script>
-  <script src="stops.js?v=144"></script>
-  <script src="targets.js?v=144"></script>
-  <script src="loadcosts.js?v=144"></script>
-  <script src="reports.js?v=144"></script>
-  <script src="scoreboard.js?v=144"></script>
-  <script src="accounting.js?v=144"></script>
-  <script src="insurance.js?v=144"></script>
-  <script src="maintenance.js?v=144"></script>
-  <script src="dotready.js?v=144"></script>
-  <script src="tax.js?v=144"></script>
-  <script src="actions.js?v=144"></script>
-  <script src="loans.js?v=144"></script>
-  <script src="rig360.js?v=144"></script>
-  <script src="driver360.js?v=144"></script>
-  <script src="team.js?v=144"></script>
-  <script src="today.js?v=144"></script>
-  <script src="search.js?v=144"></script>
-  <script src="wxbar.js?v=144"></script>
+  <script src="tiles.js?v=145"></script>
+  <script src="maps.js?v=145"></script>
+  <script src="wxicons.js?v=145"></script>
+  <script src="truckloc.js?v=145"></script>
+  <script src="tripplan.js?v=145"></script>
+  <script src="app.js?v=145"></script>
+  <script src="pullbar.js?v=145"></script>
+  <script src="stops.js?v=145"></script>
+  <script src="targets.js?v=145"></script>
+  <script src="loadcosts.js?v=145"></script>
+  <script src="reports.js?v=145"></script>
+  <script src="scoreboard.js?v=145"></script>
+  <script src="accounting.js?v=145"></script>
+  <script src="insurance.js?v=145"></script>
+  <script src="maintenance.js?v=145"></script>
+  <script src="dotready.js?v=145"></script>
+  <script src="tax.js?v=145"></script>
+  <script src="actions.js?v=145"></script>
+  <script src="loans.js?v=145"></script>
+  <script src="billwf.js?v=145"></script>
+  <script src="rig360.js?v=145"></script>
+  <script src="driver360.js?v=145"></script>
+  <script src="team.js?v=145"></script>
+  <script src="today.js?v=145"></script>
+  <script src="search.js?v=145"></script>
+  <script src="wxbar.js?v=145"></script>
   <script>
     (function () {
       if (!('serviceWorker' in navigator)) return;
