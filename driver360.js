@@ -9,7 +9,7 @@
   var PIN_KEY = 'blackram_relay_pin_v1';
   var FIN_KEY = 'blackram_fin_session_v1';
   var NAME = 'Meshach';
-  var ART = 'brand/meshach-360.png';
+  var ART = 'brand/meshach-360.png?v=103';
   var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var DOT_IDS = ['d-cdl', 'd-med', 'd-dq', 'd-da', 'd-eld', 'd-hos', 'd-eldpack', 'd-blank', 't-pre', 't-dvir'];
   var DOT_SHORT = { 'd-cdl': 'Class A CDL', 'd-med': 'Med card', 'd-dq': 'DQ file (Totni)', 'd-da': 'Drug and alcohol pool', 'd-eld': 'ELD login', 'd-hos': 'HOS logs', 'd-eldpack': 'ELD packet in cab', 'd-blank': 'Blank paper logs', 't-pre': 'Pre-trip habit', 't-dvir': 'DVIR / post-trip' };
