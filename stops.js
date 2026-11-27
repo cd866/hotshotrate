@@ -711,7 +711,7 @@
     ((feed && feed.months) || []).forEach(function (month) {
       (month.loads || []).forEach(function (load) {
         var lane = String(load.lane || '');
-        var parts = lane.split(/\s*(?:→|->|–|—)\s*/);
+        var parts = lane.split(/\s*(?:\u2192|->|\u2013|\u2014)\s*|\s+to\s+/);
         if (parts.length < 2) return;
         var pickup = parts[0].trim();
         var delivery = parts[parts.length - 1].trim();

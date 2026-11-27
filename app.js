@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v139';
+  var APP_VERSION = 'v140';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -5970,6 +5970,50 @@
     return '<div><span>' + esc(label) + '</span><b>' + value + '</b></div>';
   }
 
+  // v140: when the scan's deadhead starts at the scan city but the saved truck spot is somewhere else,
+  // TAKE and MAYBE cards get one plain line: miles empty from the truck and the net after that fuel.
+  function truckHintOn() {
+    var tr = state.truckAt, so = scanOriginPoint();
+    if (!tr || !so || deadheadFromTruck()) return false;
+    var hv = haversineMi(tr, so);
+    return hv != null && hv > 5;
+  }
+  function truckHintSlot(row, verd) {
+    if (!(verd === 'take' || verd === 'maybe') || !truckHintOn() || row.net_est == null || row.origin_dh_mi == null) return '';
+    return '<p class="truck-hint" data-th-from="' + esc(String(row.origin || '')) + '" data-th-dh="' + esc(String(row.origin_dh_mi)) +
+      '" data-th-net="' + esc(String(row.net_est)) + '" data-th-pm="' + esc(String(row.fuel && row.fuel.fuel_per_mi != null ? row.fuel.fuel_per_mi : FALLBACK_DEADHEAD)) + '"></p>';
+  }
+  function fillTruckHints(scope) {
+    var nodes = (scope || document).querySelectorAll('.truck-hint[data-th-from]');
+    if (!nodes.length || !truckHintOn()) return;
+    var T = truckApi(), tr = state.truckAt, info = state.truckInfo || {};
+    if (!T || !T.cityOf || !T.geocode) return;
+    var cache = state.truckHintCache || (state.truckHintCache = {});
+    var who = (info.manual ? 'From truck' : 'From last drop') + ' (' + String(tr.city || tr.label || '').split(',')[0] + ')';
+    nodes.forEach(function (el) {
+      var from = el.getAttribute('data-th-from');
+      var c = T.cityOf(from);
+      if (!c) return;
+      var key = c.name + ', ' + c.st + '|' + tr.lat.toFixed(2) + ',' + tr.lon.toFixed(2);
+      var go = function (mi) {
+        if (mi == null || !el.isConnected) return;
+        var dh = Number(el.getAttribute('data-th-dh')), net = Number(el.getAttribute('data-th-net')), pm = Number(el.getAttribute('data-th-pm'));
+        var extra = mi - dh;
+        if (Math.abs(extra) < 5) return;
+        var n2 = net - extra * pm;
+        el.textContent = who + ': about ' + Math.round(mi) + ' mi empty, net about ' + searchMoney(n2);
+        el.setAttribute('data-th-ready', '1');
+      };
+      if (cache[key] != null) { go(cache[key]); return; }
+      T.geocode(c).then(function (pt) {
+        var hv = haversineMi(tr, { lat: pt.lat, lon: pt.lon });
+        if (hv == null) return;
+        cache[key] = Math.round(hv * CIRCUITY);
+        go(cache[key]);
+      }).catch(function () { /* city not found: no hint */ });
+    });
+  }
+
   function loadStatRow(row, emptyFrom) {
     var cells = [];
     var strip = milesStrip(rowLoadedMiles(row) || null, row.origin_dh_mi != null ? row.origin_dh_mi : null,
@@ -6844,6 +6888,7 @@
       netBlock(row.net_est, perHourValue(row), netPerMileValue(row), '', row) +
       milesStrip(rowLoadedMiles(row) || null, row.origin_dh_mi != null ? row.origin_dh_mi : null,
         { emptyFrom: searchOriginLabel() }) +
+      truckHintSlot(row, verd) +
       fitBadgesHtml(row) +
       alsoHtml +
       whyBoxHtml(row) +
@@ -7567,6 +7612,7 @@
       '</div>';
     bindSearchRefresh();
     updateAppbar();
+    fillTruckHints(root);
 
     root.querySelectorAll('.search-counts [data-filter]').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -8305,8 +8351,15 @@
       }
       /* v105: the age after the bar is its own span so phones can hide it to make room for the weather chip */
       var lp = label.split(' | ');
-      txt.textContent = lp[0];
-      if (lp.length > 1) { var ageEl = document.createElement('span'); ageEl.className = 'as-age'; ageEl.textContent = ' | ' + lp.slice(1).join(' | '); txt.appendChild(ageEl); }
+      txt.textContent = '';
+      var clockEl = document.createElement('span'); clockEl.className = 'as-clock'; clockEl.textContent = lp[0]; txt.appendChild(clockEl);
+      if (lp.length > 1) {
+        var ageEl = document.createElement('span'); ageEl.className = 'as-age'; ageEl.textContent = ' | ' + lp.slice(1).join(' | '); txt.appendChild(ageEl);
+        /* v140: on phones the clock time hides and this reads 'Pulled 1h ago' so freshness is readable at 390 wide */
+        var phEl = document.createElement('span'); phEl.className = 'as-ph'; phEl.textContent = 'Pulled ' + lp.slice(1).join(' ') + (/just now/.test(lp[1]) ? '' : ' ago'); txt.appendChild(phEl);
+        /* tight phones: drop the word 'ago' when 'Pulled 1h ago' would be cut off */
+        if (phEl.offsetParent !== null && txt.scrollWidth > txt.clientWidth + 1) phEl.textContent = phEl.textContent.replace(/ ago$/, '');
+      }
       dot.setAttribute('title', label);
       dot.setAttribute('data-state', cls);
     }

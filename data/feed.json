@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-27T04:42:48Z",
+  "generated_at": "2026-11-27T11:06:52Z",
   "company": "Sand Lily Pad LLC",
   "dba": "Black Ram Logistics",
   "authority": "Leased onto Totni Enterprise",
@@ -22,7 +22,7 @@
         {
           "date": "2026-10-12",
           "desc": "Wood mats",
-          "lane": "Near FL 32091 → Fernandina Beach FL",
+          "lane": "Starke, FL to Fernandina Beach, FL",
           "weight_lb": 12000,
           "loaded_mi": 73.63,
           "gross": 600.0,
@@ -36,11 +36,11 @@
           "pay_note": "Flex Solutions settlement 10/9-10/16",
           "status": "delivered",
           "rate_per_mi": 8.15,
-          "pickup_place": "Near FL 32091",
-          "drop_place": "Fernandina Beach FL",
+          "pickup_place": "Starke, FL",
+          "drop_place": "Fernandina Beach, FL",
           "pickup_coord": {
-            "lat": 29.9345,
-            "lon": -82.10404
+            "lat": 29.9583,
+            "lon": -82.11852
           },
           "drop_coord": {
             "lat": 30.63539,
@@ -123,12 +123,8 @@
                     -82.09649
                   ],
                   [
-                    29.94385,
-                    -82.11168
-                  ],
-                  [
-                    29.93458,
-                    -82.10385
+                    29.9583,
+                    -82.11852
                   ]
                 ],
                 "source": "osrm"
@@ -137,12 +133,8 @@
                 "kind": "loaded",
                 "path": [
                   [
-                    29.93458,
-                    -82.10385
-                  ],
-                  [
-                    29.94385,
-                    -82.11168
+                    29.9583,
+                    -82.11852
                   ],
                   [
                     29.99319,
@@ -201,12 +193,8 @@
                     -81.50819
                   ],
                   [
-                    30.63203,
-                    -81.46678
-                  ],
-                  [
-                    30.63544,
-                    -81.46853
+                    30.63539,
+                    -81.46883
                   ]
                 ],
                 "source": "osrm"
@@ -221,14 +209,14 @@
               },
               {
                 "kind": "pickup",
-                "label": "Near FL 32091",
-                "lat": 29.9345,
-                "lon": -82.10404,
+                "label": "Starke, FL",
+                "lat": 29.9583,
+                "lon": -82.11852,
                 "n": 1
               },
               {
                 "kind": "drop",
-                "label": "Fernandina Beach FL",
+                "label": "Fernandina Beach, FL",
                 "lat": 30.63539,
                 "lon": -81.46883,
                 "n": 2
@@ -239,7 +227,7 @@
         {
           "date": "2026-10-13",
           "desc": "JCB telehandler",
-          "lane": "Pooler GA → EquipmentShare Chattanooga TN",
+          "lane": "Pooler, GA to Chattanooga, TN",
           "weight_lb": 12000,
           "loaded_mi": 363,
           "gross": 1200.0,
@@ -253,8 +241,8 @@
           "pay_note": "Flex Solutions settlement 10/9-10/16",
           "status": "delivered",
           "rate_per_mi": 3.31,
-          "pickup_place": "Pooler GA",
-          "drop_place": "EquipmentShare Chattanooga TN",
+          "pickup_place": "Pooler, GA",
+          "drop_place": "Chattanooga, TN",
           "pickup_coord": {
             "lat": 32.11493,
             "lon": -81.25196
@@ -263,7 +251,7 @@
             "lat": 35.0455,
             "lon": -85.3081
           },
-          "empty_from": "Fernandina Beach FL",
+          "empty_from": "Fernandina Beach, FL",
           "empty_from_coord": {
             "lat": 30.63539,
             "lon": -81.46883
@@ -288,8 +276,8 @@
                 "kind": "deadhead",
                 "path": [
                   [
-                    30.63544,
-                    -81.46853
+                    30.63539,
+                    -81.46883
                   ],
                   [
                     30.61628,
@@ -364,16 +352,8 @@
                     -81.27575
                   ],
                   [
-                    32.09318,
-                    -81.2367
-                  ],
-                  [
-                    32.11222,
-                    -81.23698
-                  ],
-                  [
-                    32.11492,
-                    -81.25192
+                    32.11493,
+                    -81.25196
                   ]
                 ],
                 "source": "osrm"
@@ -382,8 +362,8 @@
                 "kind": "loaded",
                 "path": [
                   [
-                    32.11492,
-                    -81.25192
+                    32.11493,
+                    -81.25196
                   ],
                   [
                     32.07482,
@@ -466,8 +446,8 @@
                     -85.01855
                   ],
                   [
-                    35.04566,
-                    -85.30801
+                    35.0455,
+                    -85.3081
                   ]
                 ],
                 "source": "osrm"
@@ -476,21 +456,21 @@
             "points": [
               {
                 "kind": "empty",
-                "label": "Fernandina Beach FL",
+                "label": "Fernandina Beach, FL",
                 "lat": 30.63539,
                 "lon": -81.46883,
                 "n": 0
               },
               {
                 "kind": "pickup",
-                "label": "Pooler GA",
+                "label": "Pooler, GA",
                 "lat": 32.11493,
                 "lon": -81.25196,
                 "n": 1
               },
               {
                 "kind": "drop",
-                "label": "EquipmentShare Chattanooga TN",
+                "label": "Chattanooga, TN",
                 "lat": 35.0455,
                 "lon": -85.3081,
                 "n": 2
@@ -501,7 +481,7 @@
         {
           "date": "2026-10-14",
           "desc": "Bucket attachment (new)",
-          "lane": "Tag Mfg Chattanooga TN → Stribling Equipment Memphis TN",
+          "lane": "Chattanooga, TN to Memphis, TN",
           "weight_lb": 14226,
           "loaded_mi": 300,
           "gross": 1700.0,
@@ -517,8 +497,8 @@
           "pay_note": "Paid 11/9; net $1,479 = $1,700 less 13%, no stub seen",
           "status": "delivered",
           "rate_per_mi": 5.67,
-          "pickup_place": "Tag Mfg Chattanooga TN",
-          "drop_place": "Stribling Equipment Memphis TN",
+          "pickup_place": "Chattanooga, TN",
+          "drop_place": "Memphis, TN",
           "pickup_coord": {
             "lat": 35.0455,
             "lon": -85.3081
@@ -527,7 +507,7 @@
             "lat": 35.0337,
             "lon": -89.9343
           },
-          "empty_from": "EquipmentShare Chattanooga TN",
+          "empty_from": "Chattanooga, TN",
           "empty_from_coord": {
             "lat": 35.0455,
             "lon": -85.3081
@@ -549,8 +529,8 @@
                 "kind": "loaded",
                 "path": [
                   [
-                    35.04566,
-                    -85.30801
+                    35.0455,
+                    -85.3081
                   ],
                   [
                     35.0192,
@@ -689,12 +669,8 @@
                     -89.85074
                   ],
                   [
-                    35.03942,
-                    -89.91546
-                  ],
-                  [
                     35.0337,
-                    -89.9342
+                    -89.9343
                   ]
                 ],
                 "source": "osrm"
@@ -703,21 +679,21 @@
             "points": [
               {
                 "kind": "empty",
-                "label": "EquipmentShare Chattanooga TN",
+                "label": "Chattanooga, TN",
                 "lat": 35.0455,
                 "lon": -85.3081,
                 "n": 0
               },
               {
                 "kind": "pickup",
-                "label": "Tag Mfg Chattanooga TN",
+                "label": "Chattanooga, TN",
                 "lat": 35.0455,
                 "lon": -85.3081,
                 "n": 1
               },
               {
                 "kind": "drop",
-                "label": "Stribling Equipment Memphis TN",
+                "label": "Memphis, TN",
                 "lat": 35.0337,
                 "lon": -89.9343,
                 "n": 2
@@ -728,7 +704,7 @@
         {
           "date": "2026-10-22",
           "desc": "Machine part (\"4th load Brodie's\")",
-          "lane": "Southaven MS (MEM) to Springfield MO (SGF)",
+          "lane": "Southaven, MS to Springfield, MO",
           "weight_lb": 1080,
           "loaded_mi": 303,
           "gross": 1000.0,
@@ -744,8 +720,8 @@
           "status": "delivered",
           "eld_fee_withheld": 50.0,
           "rate_per_mi": 3.3,
-          "pickup_place": "Southaven MS (MEM)",
-          "drop_place": "Springfield MO (SGF)",
+          "pickup_place": "Southaven, MS",
+          "drop_place": "Springfield, MO",
           "pickup_coord": {
             "lat": 34.97707,
             "lon": -89.99917
@@ -754,7 +730,7 @@
             "lat": 37.2152,
             "lon": -93.295
           },
-          "empty_from": "Stribling Equipment Memphis TN",
+          "empty_from": "Memphis, TN",
           "empty_from_coord": {
             "lat": 35.0337,
             "lon": -89.9343
@@ -780,54 +756,14 @@
                 "path": [
                   [
                     35.0337,
-                    -89.9342
-                  ],
-                  [
-                    35.03251,
-                    -89.93396
-                  ],
-                  [
-                    35.03245,
-                    -89.92934
-                  ],
-                  [
-                    35.03312,
-                    -89.9283
-                  ],
-                  [
-                    35.03205,
-                    -89.92599
-                  ],
-                  [
-                    35.02464,
-                    -89.93143
-                  ],
-                  [
-                    35.02063,
-                    -89.93118
-                  ],
-                  [
-                    35.02065,
-                    -89.93689
-                  ],
-                  [
-                    35.00611,
-                    -89.93683
+                    -89.9343
                   ],
                   [
                     35.00647,
                     -89.9899
                   ],
                   [
-                    34.9776,
-                    -89.9899
-                  ],
-                  [
-                    34.97722,
-                    -89.99033
-                  ],
-                  [
-                    34.97734,
+                    34.97707,
                     -89.99917
                   ]
                 ],
@@ -837,7 +773,7 @@
                 "kind": "loaded",
                 "path": [
                   [
-                    34.97734,
+                    34.97707,
                     -89.99917
                   ],
                   [
@@ -1047,21 +983,21 @@
             "points": [
               {
                 "kind": "empty",
-                "label": "Stribling Equipment Memphis TN",
+                "label": "Memphis, TN",
                 "lat": 35.0337,
                 "lon": -89.9343,
                 "n": 0
               },
               {
                 "kind": "pickup",
-                "label": "Southaven MS (MEM)",
+                "label": "Southaven, MS",
                 "lat": 34.97707,
                 "lon": -89.99917,
                 "n": 1
               },
               {
                 "kind": "drop",
-                "label": "Springfield MO (SGF)",
+                "label": "Springfield, MO",
                 "lat": 37.2152,
                 "lon": -93.295,
                 "n": 2
@@ -1072,7 +1008,7 @@
         {
           "date": "2026-10-26",
           "desc": "Structural steel beams (load 5)",
-          "lane": "Kansas City MO (Park N Go MCI) to BUILTEC Taller, Trenton TX",
+          "lane": "Kansas City, MO to Trenton, TX",
           "weight_lb": 12000,
           "loaded_mi": 460,
           "gross": 1000.0,
@@ -1089,8 +1025,8 @@
           "pay_note": "Paid 11/9: $870 ACH (Totni side), $1,000 less 13%",
           "status": "delivered",
           "rate_per_mi": 2.17,
-          "pickup_place": "Kansas City MO (Park N Go MCI)",
-          "drop_place": "BUILTEC Taller, Trenton TX",
+          "pickup_place": "Kansas City, MO",
+          "drop_place": "Trenton, TX",
           "pickup_coord": {
             "lat": 39.16319,
             "lon": -94.56988
@@ -1099,7 +1035,7 @@
             "lat": 33.42349,
             "lon": -96.33975
           },
-          "empty_from": "Springfield MO (SGF)",
+          "empty_from": "Springfield, MO",
           "empty_from_coord": {
             "lat": 37.2152,
             "lon": -93.295
@@ -1126,10 +1062,6 @@
                   [
                     37.2152,
                     -93.295
-                  ],
-                  [
-                    37.21458,
-                    -93.31196
                   ],
                   [
                     37.295,
@@ -1212,8 +1144,8 @@
                     -94.55494
                   ],
                   [
-                    39.16322,
-                    -94.56977
+                    39.16319,
+                    -94.56988
                   ]
                 ],
                 "source": "osrm"
@@ -1222,8 +1154,8 @@
                 "kind": "loaded",
                 "path": [
                   [
-                    39.16322,
-                    -94.56977
+                    39.16319,
+                    -94.56988
                   ],
                   [
                     38.97744,
@@ -1266,8 +1198,8 @@
                     -96.53494
                   ],
                   [
-                    33.42325,
-                    -96.33977
+                    33.42349,
+                    -96.33975
                   ]
                 ],
                 "source": "osrm"
@@ -1276,21 +1208,21 @@
             "points": [
               {
                 "kind": "empty",
-                "label": "Springfield MO (SGF)",
+                "label": "Springfield, MO",
                 "lat": 37.2152,
                 "lon": -93.295,
                 "n": 0
               },
               {
                 "kind": "pickup",
-                "label": "Kansas City MO (Park N Go MCI)",
+                "label": "Kansas City, MO",
                 "lat": 39.16319,
                 "lon": -94.56988,
                 "n": 1
               },
               {
                 "kind": "drop",
-                "label": "BUILTEC Taller, Trenton TX",
+                "label": "Trenton, TX",
                 "lat": 33.42349,
                 "lon": -96.33975,
                 "n": 2
@@ -1576,7 +1508,7 @@
         {
           "date": "2026-11-03",
           "desc": "Open-top container",
-          "lane": "Houston TX (Finn Container Cargo, 6003 Murphy St) to Pensacola Yard FL",
+          "lane": "Houston, TX to Pensacola, FL",
           "weight_lb": 9600,
           "loaded_mi": 526,
           "gross": 1100.0,
@@ -1596,17 +1528,17 @@
           "eld_fee_est": true,
           "eld_fee_withheld": 28.38,
           "rate_per_mi": 2.09,
-          "pickup_place": "Houston TX (Finn Container Cargo, 6003 Murphy St)",
-          "drop_place": "Pensacola Yard FL",
+          "pickup_place": "Houston, TX",
+          "drop_place": "Pensacola, FL",
           "pickup_coord": {
-            "lat": 29.59616,
-            "lon": -95.45871
+            "lat": 29.76,
+            "lon": -95.37
           },
           "drop_coord": {
             "lat": 30.42228,
             "lon": -87.22476
           },
-          "empty_from": "BUILTEC Taller, Trenton TX",
+          "empty_from": "Trenton, TX",
           "empty_from_coord": {
             "lat": 33.42349,
             "lon": -96.33975
@@ -1631,8 +1563,8 @@
                 "kind": "deadhead",
                 "path": [
                   [
-                    33.42325,
-                    -96.33977
+                    33.42349,
+                    -96.33975
                   ],
                   [
                     33.24131,
@@ -1687,8 +1619,8 @@
                     -95.45045
                   ],
                   [
-                    29.59629,
-                    -95.45871
+                    29.76,
+                    -95.37
                   ]
                 ],
                 "source": "osrm"
@@ -1697,8 +1629,8 @@
                 "kind": "loaded",
                 "path": [
                   [
-                    29.59629,
-                    -95.45871
+                    29.76,
+                    -95.37
                   ],
                   [
                     29.60246,
@@ -1801,8 +1733,8 @@
                     -87.23086
                   ],
                   [
-                    30.42204,
-                    -87.2247
+                    30.42228,
+                    -87.22476
                   ]
                 ],
                 "source": "osrm"
@@ -1811,21 +1743,21 @@
             "points": [
               {
                 "kind": "empty",
-                "label": "BUILTEC Taller, Trenton TX",
+                "label": "Trenton, TX",
                 "lat": 33.42349,
                 "lon": -96.33975,
                 "n": 0
               },
               {
                 "kind": "pickup",
-                "label": "Houston TX (Finn Container Cargo, 6003 Murphy St)",
-                "lat": 29.59616,
-                "lon": -95.45871,
+                "label": "Houston, TX",
+                "lat": 29.76,
+                "lon": -95.37,
                 "n": 1
               },
               {
                 "kind": "drop",
-                "label": "Pensacola Yard FL",
+                "label": "Pensacola, FL",
                 "lat": 30.42228,
                 "lon": -87.22476,
                 "n": 2
@@ -1836,7 +1768,7 @@
         {
           "date": "2026-11-05",
           "desc": "Washing machines (tarped)",
-          "lane": "B&C Technologies Panama City Beach FL to STT Cargo Medley FL",
+          "lane": "Panama City Beach, FL to Medley, FL",
           "weight_lb": 6233,
           "loaded_mi": 560,
           "gross": 1400.0,
@@ -1855,17 +1787,17 @@
           "eld_fee_est": true,
           "eld_fee_withheld": 36.11,
           "rate_per_mi": 2.5,
-          "pickup_place": "B&C Technologies Panama City Beach FL",
-          "drop_place": "STT Cargo Medley FL",
+          "pickup_place": "Panama City Beach, FL",
+          "drop_place": "Medley, FL",
           "pickup_coord": {
             "lat": 30.19462,
             "lon": -85.79198
           },
           "drop_coord": {
-            "lat": 25.84065,
-            "lon": -80.32644
+            "lat": 25.841,
+            "lon": -80.326
           },
-          "empty_from": "Pensacola Yard FL",
+          "empty_from": "Pensacola, FL",
           "empty_from_coord": {
             "lat": 30.42228,
             "lon": -87.22476
@@ -1890,12 +1822,8 @@
                 "kind": "deadhead",
                 "path": [
                   [
-                    30.42204,
-                    -87.2247
-                  ],
-                  [
-                    30.41702,
-                    -87.19403
+                    30.42228,
+                    -87.22476
                   ],
                   [
                     30.3574,
@@ -1970,8 +1898,8 @@
                     -85.84239
                   ],
                   [
-                    30.19488,
-                    -85.79233
+                    30.19462,
+                    -85.79198
                   ]
                 ],
                 "source": "osrm"
@@ -1980,8 +1908,8 @@
                 "kind": "loaded",
                 "path": [
                   [
-                    30.19488,
-                    -85.79233
+                    30.19462,
+                    -85.79198
                   ],
                   [
                     30.18938,
@@ -2124,8 +2052,8 @@
                     -80.29512
                   ],
                   [
-                    25.8407,
-                    -80.32644
+                    25.841,
+                    -80.326
                   ]
                 ],
                 "source": "osrm"
@@ -2134,23 +2062,23 @@
             "points": [
               {
                 "kind": "empty",
-                "label": "Pensacola Yard FL",
+                "label": "Pensacola, FL",
                 "lat": 30.42228,
                 "lon": -87.22476,
                 "n": 0
               },
               {
                 "kind": "pickup",
-                "label": "B&C Technologies Panama City Beach FL",
+                "label": "Panama City Beach, FL",
                 "lat": 30.19462,
                 "lon": -85.79198,
                 "n": 1
               },
               {
                 "kind": "drop",
-                "label": "STT Cargo Medley FL",
-                "lat": 25.84065,
-                "lon": -80.32644,
+                "label": "Medley, FL",
+                "lat": 25.841,
+                "lon": -80.326,
                 "n": 2
               }
             ]
@@ -2159,7 +2087,7 @@
         {
           "date": "2026-11-13",
           "desc": "10' conduit",
-          "lane": "Jackson Lighting & Elec Supply, Jacksonville FL 32206 to 1800 E Paul Dirac Dr, Tallahassee FL 32310",
+          "lane": "Jacksonville, FL to Tallahassee, FL",
           "weight_lb": 1200,
           "loaded_mi": 168.5,
           "gross": 500.0,
@@ -2177,20 +2105,20 @@
           "pay_note": "Paid 11/20: $435 ACH (Totni side), $500 less 13%. Delivery assumed from payment and the 11/13 17:00 delivery window.",
           "status": "delivered",
           "rate_per_mi": 2.97,
-          "pickup_place": "Jackson Lighting & Elec Supply, Jacksonville FL 32206",
-          "drop_place": "1800 E Paul Dirac Dr, Tallahassee FL 32310",
+          "pickup_place": "Jacksonville, FL",
+          "drop_place": "Tallahassee, FL",
           "pickup_coord": {
-            "lat": 30.35156,
-            "lon": -81.65469
+            "lat": 30.33,
+            "lon": -81.66
           },
           "drop_coord": {
-            "lat": 30.41932,
-            "lon": -84.34544
+            "lat": 30.42856,
+            "lon": -84.25934
           },
-          "empty_from": "STT Cargo Medley FL",
+          "empty_from": "Medley, FL",
           "empty_from_coord": {
-            "lat": 25.84065,
-            "lon": -80.32644
+            "lat": 25.841,
+            "lon": -80.326
           },
           "empty_inferred_from": "previous drop",
           "empty_mi_est": 348.1,
@@ -2212,8 +2140,8 @@
                 "kind": "deadhead",
                 "path": [
                   [
-                    25.8407,
-                    -80.32644
+                    25.841,
+                    -80.326
                   ],
                   [
                     25.94851,
@@ -2284,8 +2212,8 @@
                     -81.32119
                   ],
                   [
-                    30.35147,
-                    -81.65501
+                    30.33,
+                    -81.66
                   ]
                 ],
                 "source": "osrm"
@@ -2294,8 +2222,8 @@
                 "kind": "loaded",
                 "path": [
                   [
-                    30.35147,
-                    -81.65501
+                    30.33,
+                    -81.66
                   ],
                   [
                     30.32086,
@@ -2406,8 +2334,8 @@
                     -84.3633
                   ],
                   [
-                    30.41932,
-                    -84.34442
+                    30.42856,
+                    -84.25934
                   ]
                 ],
                 "source": "osrm"
@@ -2416,23 +2344,23 @@
             "points": [
               {
                 "kind": "empty",
-                "label": "STT Cargo Medley FL",
-                "lat": 25.84065,
-                "lon": -80.32644,
+                "label": "Medley, FL",
+                "lat": 25.841,
+                "lon": -80.326,
                 "n": 0
               },
               {
                 "kind": "pickup",
-                "label": "Jackson Lighting & Elec Supply, Jacksonville FL 32206",
-                "lat": 30.35156,
-                "lon": -81.65469,
+                "label": "Jacksonville, FL",
+                "lat": 30.33,
+                "lon": -81.66,
                 "n": 1
               },
               {
                 "kind": "drop",
-                "label": "1800 E Paul Dirac Dr, Tallahassee FL 32310",
-                "lat": 30.41932,
-                "lon": -84.34544,
+                "label": "Tallahassee, FL",
+                "lat": 30.42856,
+                "lon": -84.25934,
                 "n": 2
               }
             ]
@@ -2441,7 +2369,7 @@
         {
           "date": "2026-11-16",
           "desc": "Office container (flatbed hotshot)",
-          "lane": "UR Albany GA (3268 Palmyra Rd, Albany GA 31707) to United Rentals, 11637 Camden Rd, Jacksonville FL 32218",
+          "lane": "Albany, GA to Jacksonville, FL",
           "weight_lb": 8980,
           "loaded_mi": 212.3,
           "gross": 700.0,
@@ -2453,26 +2381,27 @@
           "notes": "Rate con: $700.00, office container, 8,980 lb, flatbed hotshot. PU Albany GA 11/16, DEL Jacksonville FL 11/17. About 212.3 loaded mi EST plus about 96.1 deadhead mi EST from Tallahassee (not on rate con), about $3.30/mi loaded and $2.27/mi all-in EST. Totni 13% fee $91.00, expected net $609.00; payment not received. Delivered 11/17 (past delivery date). PPE required or $250 off; tracking required or $150 off; signed POD within 5 business days or $100 off.",
           "delivered_date": "2026-11-17",
           "pickup_date": "2026-11-16",
-          "pay_status": "unpaid",
+          "received_date": "2026-11-27",
+          "net_received": 609.0,
+          "pay_status": "paid",
           "net_due": 609.0,
-          "net_received": 0.0,
           "pay_note": "Delivered 11/17 at United Rentals Jacksonville (past delivery date; payment not received). $609 = $700 less 13% ($91). About 212.3 loaded mi EST plus about 96.1 deadhead mi EST from Tallahassee, about $2.27/mi all-in EST. PPE required or $250 off; tracking required or $150 off; signed POD within 5 business days or $100 off",
           "status": "delivered",
           "rate_per_mi": 3.3,
-          "pickup_place": "UR Albany GA (3268 Palmyra Rd, Albany GA 31707)",
-          "drop_place": "United Rentals, 11637 Camden Rd, Jacksonville FL 32218",
+          "pickup_place": "Albany, GA",
+          "drop_place": "Jacksonville, FL",
           "pickup_coord": {
-            "lat": 31.58923,
-            "lon": -84.20226
+            "lat": 31.56778,
+            "lon": -84.16192
           },
           "drop_coord": {
-            "lat": 30.45595,
-            "lon": -81.64243
+            "lat": 30.33,
+            "lon": -81.66
           },
-          "empty_from": "1800 E Paul Dirac Dr, Tallahassee FL 32310",
+          "empty_from": "Tallahassee, FL",
           "empty_from_coord": {
-            "lat": 30.41932,
-            "lon": -84.34544
+            "lat": 30.42856,
+            "lon": -84.25934
           },
           "empty_inferred_from": "previous drop",
           "empty_mi_est": 97.9,
@@ -2494,8 +2423,8 @@
                 "kind": "deadhead",
                 "path": [
                   [
-                    30.41932,
-                    -84.34442
+                    30.42856,
+                    -84.25934
                   ],
                   [
                     30.4783,
@@ -2574,12 +2503,8 @@
                     -84.14225
                   ],
                   [
-                    31.58143,
-                    -84.19946
-                  ],
-                  [
-                    31.58932,
-                    -84.20206
+                    31.56778,
+                    -84.16192
                   ]
                 ],
                 "source": "osrm"
@@ -2588,12 +2513,8 @@
                 "kind": "loaded",
                 "path": [
                   [
-                    31.58932,
-                    -84.20206
-                  ],
-                  [
-                    31.58143,
-                    -84.19946
+                    31.56778,
+                    -84.16192
                   ],
                   [
                     31.57663,
@@ -2752,12 +2673,8 @@
                     -81.65758
                   ],
                   [
-                    30.45666,
-                    -81.65003
-                  ],
-                  [
-                    30.45812,
-                    -81.64198
+                    30.33,
+                    -81.66
                   ]
                 ],
                 "source": "osrm"
@@ -2766,23 +2683,23 @@
             "points": [
               {
                 "kind": "empty",
-                "label": "1800 E Paul Dirac Dr, Tallahassee FL 32310",
-                "lat": 30.41932,
-                "lon": -84.34544,
+                "label": "Tallahassee, FL",
+                "lat": 30.42856,
+                "lon": -84.25934,
                 "n": 0
               },
               {
                 "kind": "pickup",
-                "label": "UR Albany GA (3268 Palmyra Rd, Albany GA 31707)",
-                "lat": 31.58923,
-                "lon": -84.20226,
+                "label": "Albany, GA",
+                "lat": 31.56778,
+                "lon": -84.16192,
                 "n": 1
               },
               {
                 "kind": "drop",
-                "label": "United Rentals, 11637 Camden Rd, Jacksonville FL 32218",
-                "lat": 30.45595,
-                "lon": -81.64243,
+                "label": "Jacksonville, FL",
+                "lat": 30.33,
+                "lon": -81.66,
                 "n": 2
               }
             ]
@@ -2791,7 +2708,7 @@
         {
           "date": "2026-11-24",
           "desc": "2 x 20 ft empty containers",
-          "lane": "Con Global, 321 Grange Rd, Port Wentworth GA 31407 to Battle's Containers, 4102 Hwy 77, Graceville FL 32440",
+          "lane": "Port Wentworth, GA to Graceville, FL",
           "weight_lb": 8500,
           "loaded_mi": 330,
           "gross": 750.0,
@@ -2809,15 +2726,15 @@
           "pay_note": "Delivered 11/25 at Battle's Containers, Graceville FL (unloading photos on file, 10:36 AM CT EXIF / reported ~1:17 PM CT; payment not received). $652.50 = $750 less 13% ($97.50). About 330 loaded mi EST plus about 143 deadhead mi EST from the Jacksonville home base, about $2.27/mi loaded and $1.59/mi all-in EST. Container number photos required before leaving the shipper or $500 off; tracking required or $250 off; 4% quickpay available; signed BOL within 24 hours",
           "status": "delivered",
           "rate_per_mi": 2.27,
-          "pickup_place": "Con Global, 321 Grange Rd, Port Wentworth GA 31407",
-          "drop_place": "Battle's Containers, 4102 Hwy 77, Graceville FL 32440",
+          "pickup_place": "Port Wentworth, GA",
+          "drop_place": "Graceville, FL",
           "pickup_coord": {
-            "lat": 32.18573,
-            "lon": -81.23543
+            "lat": 32.149,
+            "lon": -81.163
           },
           "drop_coord": {
-            "lat": 30.94046,
-            "lon": -85.52001
+            "lat": 30.9426,
+            "lon": -85.51362
           },
           "empty_from": "Home base (Jacksonville)",
           "empty_from_coord": {
@@ -2920,12 +2837,8 @@
                     -81.24012
                   ],
                   [
-                    32.16514,
-                    -81.21399
-                  ],
-                  [
-                    32.18428,
-                    -81.23695
+                    32.149,
+                    -81.163
                   ]
                 ],
                 "source": "osrm"
@@ -2934,12 +2847,8 @@
                 "kind": "loaded",
                 "path": [
                   [
-                    32.18428,
-                    -81.23695
-                  ],
-                  [
-                    32.16388,
-                    -81.23318
+                    32.149,
+                    -81.163
                   ],
                   [
                     32.1448,
@@ -3086,12 +2995,8 @@
                     -85.30072
                   ],
                   [
-                    30.95722,
-                    -85.50574
-                  ],
-                  [
-                    30.93888,
-                    -85.5184
+                    30.9426,
+                    -85.51362
                   ]
                 ],
                 "source": "osrm"
@@ -3106,16 +3011,16 @@
               },
               {
                 "kind": "pickup",
-                "label": "Con Global, 321 Grange Rd, Port Wentworth GA 31407",
-                "lat": 32.18573,
-                "lon": -81.23543,
+                "label": "Port Wentworth, GA",
+                "lat": 32.149,
+                "lon": -81.163,
                 "n": 1
               },
               {
                 "kind": "drop",
-                "label": "Battle's Containers, 4102 Hwy 77, Graceville FL 32440",
-                "lat": 30.94046,
-                "lon": -85.52001,
+                "label": "Graceville, FL",
+                "lat": 30.9426,
+                "lon": -85.51362,
                 "n": 2
               }
             ]
@@ -3315,7 +3220,7 @@
       "day_notes": [
         {
           "date": "2026-11-02",
-          "text": "No loads; Big Tex trailer titled and registered in Galveston County (Texas Token Trailer plate Z09-246) (done); title address updated, county system update within 48 hrs"
+          "text": "No loads; Big Tex trailer titled and registered in Galveston County (Texas) (done); title address updated, county system update within 48 hrs"
         },
         {
           "date": "2026-11-03",
