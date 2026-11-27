@@ -230,6 +230,97 @@
     var left = Math.min(a, b), w = Math.max(Math.abs(b - a), 1.2);
     return { left: left, w: w, zero: a, mark: x(0.20), pos: v >= 0, pct: pctCoc(val) };
   }
+
+  /* ---------- cash invested vs cash back (v100) ---------- */
+  var SRC_COL = { truck_down: '#8a84a3', trailer_down: '#a78bfa', equip: '#c4b5fd', ins_down: '#F472B6', llc: '#60A5FA', card: '#FB923C', trip: '#34D399' };
+  function cocInvestChart(c) {
+    var iv = c.invest, W = 340, rowH = 30, top = 6, lab = 62, right = 64, bw = W - lab - right;
+    var parts = iv.partners.slice();
+    var mx = 1; parts.forEach(function (p) { mx = Math.max(mx, p.total); });
+    var H = top + parts.length * rowH + 4;
+    var o = ['<svg class="ac-svg" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Cash invested by partner and source">'];
+    parts.forEach(function (pt, i) {
+      var y = top + i * rowH, x = lab;
+      o.push('<text x="0" y="' + (y + 17) + '" font-size="12" font-weight="700" fill="var(--c-text-2)">' + esc(pt.name) + '</text>');
+      iv.sources.forEach(function (sr) {
+        var v = sr.by_partner[pt.name] || 0; if (v <= 0) return;
+        var w = v / mx * bw;
+        o.push('<rect x="' + x.toFixed(1) + '" y="' + (y + 4) + '" width="' + Math.max(w - 1, 1).toFixed(1) + '" height="18" rx="3" fill="' + (SRC_COL[sr.key] || '#8a84a3') + '"/>');
+        x += w;
+      });
+      o.push('<text x="' + (x + 6).toFixed(1) + '" y="' + (y + 18) + '" font-size="12" font-weight="800" fill="var(--num-yellow,#F2C94C)">' + m0(pt.total) + '</text>');
+    });
+    o.push('</svg>');
+    var leg = iv.sources.map(function (sr) {
+      return '<span><i style="background:' + (SRC_COL[sr.key] || '#8a84a3') + '"></i>' + esc(sr.label.replace(' (EST)', '')) + '</span>';
+    }).join('');
+    return o.join('') + '<div class="ac-legend">' + leg + '</div>';
+  }
+  function cocBackChart(c) {
+    var b = c.back, inv = c.invest.total, W = 340, H = 176, padL = 26, padR = 62, top = 16, bot = 28;
+    var pts = [{ l: 'Start', v: 0 }].concat(b.months.map(function (m) { return { l: monShort(m.month), v: m.cum }; }));
+    var lo = Math.min(0, Math.min.apply(null, pts.map(function (q) { return q.v; }))), hi = Math.max(inv, 0);
+    var span = (hi - lo) || 1, ph = H - top - bot, pw = W - padL - padR;
+    function X(i) { return padL + (pts.length > 1 ? i / (pts.length - 1) : 0) * pw; }
+    function Y(v) { return top + (hi - v) / span * ph; }
+    var o = ['<svg class="ac-svg" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Cumulative cash back versus cash invested">'];
+    o.push('<line x1="' + padL + '" y1="' + Y(inv).toFixed(1) + '" x2="' + (W - padR + 6) + '" y2="' + Y(inv).toFixed(1) + '" stroke="#F2C94C" stroke-width="1.6" stroke-dasharray="5 4"/>');
+    o.push('<text x="' + (W - padR + 10) + '" y="' + (Y(inv) + 4).toFixed(1) + '" font-size="11" font-weight="800" fill="#F2C94C">' + m0(inv) + '</text>');
+    o.push('<text x="' + padL + '" y="' + (Y(inv) - 5).toFixed(1) + '" font-size="10" font-weight="700" fill="var(--c-text-3)">Cash invested = payback line</text>');
+    o.push('<line x1="' + padL + '" y1="' + Y(0).toFixed(1) + '" x2="' + (W - padR + 6) + '" y2="' + Y(0).toFixed(1) + '" stroke="var(--c-line-strong)"/>');
+    o.push('<text x="' + (W - padR + 10) + '" y="' + (Y(0) + 4).toFixed(1) + '" font-size="11" fill="var(--c-text-3)">$0</text>');
+    var d = pts.map(function (q, i) { return (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(q.v).toFixed(1); }).join(' ');
+    o.push('<path d="' + d + '" fill="none" stroke="#a78bfa" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>');
+    pts.forEach(function (q, i) {
+      o.push('<circle cx="' + X(i).toFixed(1) + '" cy="' + Y(q.v).toFixed(1) + '" r="4" fill="#a78bfa"/>');
+      o.push('<text x="' + X(i).toFixed(1) + '" y="' + (H - 10) + '" text-anchor="middle" font-size="12" font-weight="700" fill="var(--c-text-2)">' + esc(q.l) + '</text>');
+    });
+    var last = pts[pts.length - 1], li = pts.length - 1;
+    o.push('<text x="' + (X(li) + 8).toFixed(1) + '" y="' + (Y(last.v) + 4).toFixed(1) + '" font-size="12" font-weight="800" fill="var(--num-yellow,#F2C94C)">' + m0(last.v) + '</text>');
+    o.push('</svg>');
+    return o.join('');
+  }
+  function secCocMoney(A) {
+    var c = A.coc, iv = c.invest, b = c.back, s = c.since_start || {}, rr = b.run_rate || {}, need = c.needed || {};
+    var tgt = c.target || 0.2, pctT = Math.round(tgt * 100) + '%';
+    var cocA = (rr.ann != null && c.invested) ? rr.ann / c.invested : s.coc_after;
+    var tile = function (lab, val, sub) { return '<div class="ac-ci-t"><span>' + lab + '</span><b class="num-yellow">' + val + '</b><small>' + sub + '</small></div>'; };
+    var tiles = '<div class="ac-ci-tiles">' +
+      tile('Cash invested', m0(iv.total), iv.est_total ? 'incl. ' + m0(iv.est_total) + ' EST' : 'all documented') +
+      tile('Cash back to date', m0(b.to_date), 'net after bills | paid out ' + m0(b.returned_cash)) +
+      tile('Payback (EST)', b.payback_months != null ? b.payback_months.toFixed(1) + ' mo' : 'n/a', b.payback_months != null ? 'at current pace' : 'cash back is negative') + '</div>';
+    var rows = iv.sources.map(function (sr) {
+      var by = iv.partners.map(function (pt) { var v = sr.by_partner[pt.name] || 0; return v ? esc(pt.name) + ' ' + m0(v) : ''; }).filter(Boolean).join(' | ');
+      var none = !sr.total;
+      var sub = none ? esc(sr.note || 'not on file') : by + (sr.est ? ' | ' + m0(sr.est) + ' EST' : '');
+      return '<div class="ac-xr' + (none ? '' : ' tl-tap tl-chev-row"' + ta('src:' + sr.key, sr.label + ' ' + m2(sr.total) + '. Show items')) + (none ? '"' : '') + '><span class="ac-xv"><i class="ac-sw" style="background:' + (SRC_COL[sr.key] || '#8a84a3') + '"></i>' + esc(sr.label) + '<small>' + sub + '</small></span><b>' + m0(sr.total) + '</b></div>';
+    }).join('');
+    var mrows = b.months.map(function (m) {
+      return '<div class="ac-xr"><span class="ac-xd">' + esc(monShort(m.month)) + '</span><span class="ac-xv">Gross ' + m0(m.gross) + ' | bills and costs ' + m0(m.costs) + '<small>running total ' + m0(m.cum) + '</small></span><b class="' + (m.net < 0 ? 'ac-neg' : 'ac-pos') + '">' + m0(m.net) + '</b></div>';
+    }).join('');
+    var formula = 'CoC = annual cash back / cash invested = ' + (rr.ann != null ? m0(rr.ann) : 'not on file') + ' / ' + m0(c.invested) + ' = ' + pctCoc(cocA) + ' (EST) vs ' + pctT + ' target';
+    var pay = b.payback_months != null ? b.payback_months.toFixed(1) + ' months at the current pace (EST)' : 'not at the current pace (cash back is ' + (rr.mo < 0 ? 'negative' : 'zero') + ')';
+    var calls = [];
+    if (b.to_date < 0) calls.push(call('bad', 'Nothing has come back yet. After all bills, <b>' + m0(-b.to_date) + '</b> more went out than came in.'));
+    else calls.push(call('good', 'Cash back to date <b>' + m0(b.to_date) + '</b> after all bills.'));
+    calls.push(call('ok', 'To earn ' + pctT + ' you need <b>' + m0(need.mo_after) + '/mo</b> left after bills and Meshach (' + m0(need.ann_after) + '/yr). Payback at that pace: ' + (b.payback_at_target_months != null ? b.payback_at_target_months.toFixed(0) + ' months' : 'not on file') + '.'));
+    var nof = (iv.not_on_file || []).map(function (x) { return '<li>' + esc(x) + ': not on file</li>'; }).join('');
+    return '<div class="ac-coc-hero"><div class="ac-kicker">Cash on cash, EST run rate, after Meshach</div><div class="ac-coc-big">' + pctCoc(cocA) + '</div>' +
+        '<p>vs ' + pctT + ' target | ' + (rr.days || '') + ' days annualized</p></div>' + tiles +
+      '<div class="ac-sub">Cash invested by partner and source</div>' + cocInvestChart(c) +
+      '<div class="ac-sub">Cash back vs cash invested (running total)</div>' + cocBackChart(c) +
+      '<div class="ac-calls">' + calls.join('') + '</div>' +
+      '<div class="ac-sub">Invested by source (tap for items)</div>' + rows +
+      '<div class="ac-sub">Cash back by month (net after bills)</div>' + mrows +
+        '<div class="ac-xr rep"><span class="ac-xv">Paid out to partners ' + m0(b.paid_to_partners) + ' | to Meshach ' + m0(b.paid_to_meshach) + '</span><b>' + m0(b.returned_cash) + '</b></div>' +
+      '<div class="ac-sub">Run rate (ESTIMATE)</div>' +
+        '<div class="ac-xr"><span class="ac-xv">Since start, ' + (rr.days || '') + ' days<small>cash / days x 365</small></span><b>' + (rr.ann != null ? m0(rr.ann) + '/yr' : 'not on file') + '</b></div>' +
+        '<div class="ac-xr"><span class="ac-xv">Last 30 days<small>cash / days x 365</small></span><b>' + (rr.ann_30 != null ? m0(rr.ann_30) + '/yr' : 'not on file') + '</b></div>' +
+        '<div class="ac-xr"><span class="ac-xv">Payback months<small>cash invested / monthly cash back</small></span><b>' + (b.payback_months != null ? b.payback_months.toFixed(1) : 'n/a') + '</b></div>' +
+      '<p class="ac-fine ac-formula"><b>' + esc(formula) + '</b></p>' +
+      '<p class="ac-fine">Payback: ' + esc(pay) + '. Invested counts partner cash only (down payments, hardware, insurance down, setup, card paydowns). Truck and trailer loan principal is debt and is not counted. Cash back is net after all bills including the loan payments, with Meshach paid only from profit.</p>' +
+      (nof ? '<div class="ac-sub">Not on file</div><ul class="ac-nof">' + nof + '</ul>' : '');
+  }
   function secCoc(A) {
     var c = A.coc;
     if (!c) return '';
@@ -266,9 +357,10 @@
       : '20% of cash in is ' + m0(need.ann_after) + '/yr, or ' + m0(need.mo_after) + '/mo leftover after Meshach is paid from profit.';
     var math = '<p class="ac-fine">CoC = annualized pre-tax cash flow / cash invested. Annualize as cash / days x 365. Cash flow is net after all expenses including the truck and trailer notes. After Meshach subtracts only pay actually paid from profit; unpaid shortfalls are not accrued and are not a cash outflow.</p>' +
       '<p class="ac-fine">' + needLine + ' White mark is the 20% target.</p>';
-    var body = '<div class="ac-coc-hero"><div class="ac-kicker">Since start, after Meshach</div><div class="ac-coc-big ' + (s.coc_after < 0 ? 'neg' : 'pos') + '">' + pctCoc(s.coc_after) + '</div>' +
-      '<p>vs 20% target | cash in ' + m0(c.invested) + ' | ' + (s.days || '') + ' days annualized</p></div>' +
-      rows + '<div class="ac-coc-cap"><div class="ac-kicker">Cash invested</div>' + parts + '</div>' + math;
+    var lead = (c.invest && c.back) ? secCocMoney(A) : ('<div class="ac-coc-hero"><div class="ac-kicker">Since start, after Meshach</div><div class="ac-coc-big ' + (s.coc_after < 0 ? 'neg' : 'pos') + '">' + pctCoc(s.coc_after) + '</div>' +
+      '<p>vs 20% target | cash in ' + m0(c.invested) + ' | ' + (s.days || '') + ' days annualized</p></div>');
+    var body = lead + '<div class="ac-sub">Other views</div>' + rows +
+      (c.invest ? '' : '<div class="ac-coc-cap"><div class="ac-kicker">Cash invested</div>' + parts + '</div>') + math;
     return card('Cash on cash', 'Target 20%', body, 'ac-coc');
   }
   function secDriver(A) {
@@ -465,6 +557,11 @@
           T.rows(Object.keys(by).sort(function (a, b) { return by[b] - by[a]; }).map(function (c) { return { t: '<i style="display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px;background:' + COL[c] + '"></i>' + esc(catLabel(A, c)), v: m2(by[c]) }; })) +
           T.sec('Lines') + T.rows(xRows(O)) });
       }
+    } else if (k === 'src') {
+      var SR = ((A.coc && A.coc.invest && A.coc.invest.sources) || []).filter(function (x) { return x.key === id; })[0]; if (!SR) return;
+      T.open({ title: SR.label, sub: 'Cash invested', body: T.hero(m2(SR.total), SR.items.length + ' item' + (SR.items.length === 1 ? '' : 's') + (SR.est ? ' | ' + m0(SR.est) + ' EST' : '')) +
+        T.rows(SR.items.slice().sort(function (a, b) { return a.date < b.date ? 1 : -1; }).map(function (i) { return { d: day(i.date), t: esc(i.label) + (i.est ? ' <em>EST</em>' : ''), s: esc(i.partner), v: m2(i.amount) }; }), 'None.') +
+        (SR.note ? T.fine(esc(SR.note)) : '') });
     } else if (k === 'cap') {
       var P = A.partners.filter(function (x) { return x.name === id; })[0]; if (!P) return;
       T.open({ title: P.name + ' - capital put in', sub: esc(P.share) + ' owner', body: T.hero(m2(P.capital_total), P.capital.length + ' contributions') +
@@ -676,6 +773,15 @@
       '.ac-pt-bar{height:6px;border-radius:var(--radius-pill);background:var(--c-surface-3);overflow:hidden}.ac-pt-bar i{display:block;height:100%;background:var(--c-accent)}' +
       '.ac-pt .ac-xr{border-color:var(--c-line)}' +
       '.ac-pt-f{display:flex;justify-content:space-between;font-size:12px;color:var(--c-text-3);border-top:1px solid var(--c-line);padding-top:6px}.ac-pt-f b{color:var(--c-text-1)}' +
+      '.ac-ci-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 var(--s-1h)}' +
+      '.ac-ci-t{background:var(--c-surface-2,#221c38);border:1px solid var(--c-line);border-radius:var(--radius-sm,12px);padding:10px 8px;display:flex;flex-direction:column;gap:3px;min-width:0}' +
+      '.ac-ci-t span{font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--c-text-3)}' +
+      '.ac-ci-t b{font-size:20px;font-weight:800;letter-spacing:-.02em;line-height:1.05;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}' +
+      '.ac-ci-t small{font-size:10px;color:var(--c-text-3);line-height:1.25}' +
+      '.ac-sw{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px}' +
+      '.ac-neg{color:#FCA5A5}.ac-pos{color:var(--c-take)}' +
+      '.ac-formula{margin-top:var(--s-1);padding:8px 10px;border-radius:var(--radius-sm,12px);background:rgba(167,139,250,.12);color:var(--c-text-1)}' +
+      '.ac-nof{margin:4px 0 0;padding-left:18px;font-size:var(--fs-xs);color:var(--c-text-3);line-height:1.5}' +
       '.ac-coc-hero{text-align:center;padding:var(--s-1) 0 var(--s-1h);border-bottom:1px solid var(--c-line);margin-bottom:var(--s-1h)}' +
       '.ac-coc-big{font-size:44px;font-weight:800;letter-spacing:-.03em;line-height:1;color:var(--num-yellow,var(--c-gold,#F2C94C));font-variant-numeric:tabular-nums}' +
       '.ac-coc-big.neg,.ac-coc-n.neg{color:#F87171}.ac-coc-big.pos,.ac-coc-n.pos{color:var(--c-take,#34D399)}' +

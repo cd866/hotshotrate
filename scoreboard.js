@@ -428,7 +428,7 @@
         '<div class="sb-v">' + pctCoc(after) + '</div>' +
         '<p class="sb-tg">Target <b>' + pctCoc(target) + '</b> - since start, after Meshach pay. Before Meshach: <b>' + pctCoc(s.coc_before) + '</b>.</p>' +
         '<div class="sb-coc-rows">' + rows + '</div>' +
-        '<p class="sb-coc-sub">White mark is 20%. Cash in <b>' + money(coc.invested) + '</b> (' + parts + '). ' + needLine + '</p></article>';
+        '<p class="sb-coc-sub">White mark is 20%. Cash invested <b class="num-yellow">' + money(coc.invested) + '</b>' + (coc.back ? ', cash back to date <b class="num-yellow">' + money(coc.back.to_date) + '</b> net after bills' : '') + ' (' + parts + '). ' + needLine + '</p></article>';
     } else {
       cocTile = '<article class="sb-t wide sb-coc sb-lock" id="sb-coc-lock"><div class="sb-l"><span>Cash on cash</span><span class="sb-dot">LOCKED</span></div>' +
         '<div class="sb-v"><small>Enter PIN in Finance</small></div><p class="sb-tg">Return on cash you put in, vs a 20% target. One PIN unlocks it.</p></article>';
