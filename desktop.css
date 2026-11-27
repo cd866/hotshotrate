@@ -9,8 +9,7 @@
 .tb-lbl-full { display: none; }
 /* Desktop-only sidebar links and the responsive Load Boards chart.
    Hidden at every width here; turned on inside min-width: 1024px. */
-nav.tabbar.bnav > button.tb-side,
-.tb-side-label { display: none; }
+nav.tabbar.bnav > button.tb-side { display: none; }
 .nc-desktop { display: none; }
 
 @media (min-width: 768px) {
@@ -159,16 +158,6 @@ nav.tabbar.bnav > button.tb-side,
     background: rgba(167, 139, 250, 0.16);
   }
   nav.tabbar.bnav > button.tb-side.is-active .tb-ico { color: var(--c-gold); }
-  .tb-side-label {
-    display: block;
-    margin: auto 8px 4px;
-    padding-top: 10px;
-    font-size: 11px;
-    font-weight: 800;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--c-text-3);
-  }
 
   /* Today + Insurance: pack cards down each column; masonry when the engine has it */
   html :is(#today-root, #ins-root) {

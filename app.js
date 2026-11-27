@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v131';
+  var APP_VERSION = 'v132';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -8124,15 +8124,10 @@
   function ensureSideExtras() {
     var nav = document.querySelector('.tabbar');
     if (!nav) return;
+    var leftover = document.getElementById('tb-side-label');
+    if (leftover && leftover.parentNode) leftover.parentNode.removeChild(leftover);
     var more = document.getElementById('tab-more');
-    var label = document.getElementById('tb-side-label');
-    if (!label) {
-      label = document.createElement('p');
-      label.id = 'tb-side-label';
-      label.className = 'tb-side-label';
-      label.textContent = 'More';
-    }
-    var items = [label];
+    var items = [];
     SIDE_EXTRAS.forEach(function (it) { items.push(ensureSideBtn(it[0], it[1], it[2])); });
     var anchor = more;
     for (var i = items.length - 1; i >= 0; i--) {
