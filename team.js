@@ -10,7 +10,7 @@
   var RELAY = 'https://blackram-relay.sandlilypad.workers.dev';
   var PIN_KEY = 'blackram_relay_pin_v1';
   var FIN_KEY = 'blackram_fin_session_v1';
-  var ART_V = '129';
+  var ART_V = '133';
   var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var PEOPLE = [
     {
@@ -21,7 +21,7 @@
       role: 'Partner / owner | Dispatch, loads, finances, and back office',
       short: 'Owner · dispatch and back office',
       chips: ['1/3 partner', 'Does not drive'],
-      art: 'brand/claudio-360.jpg?v=' + ART_V,
+      art: 'brand/claudio-360.png?v=' + ART_V, w: 849, h: 1136,
       alt: 'Illustration of Claudio, gray hair and sunglasses, arms crossed in front of a white Audi RS Q8 at sunset.',
       duties: [
         { t: 'Dispatch', s: 'In-house', d: 'since Nov 1, 2026' },
@@ -40,7 +40,7 @@
       role: 'Partner | Trailer capital and company paydowns',
       short: 'Partner · trailer capital',
       chips: ['1/3 partner', 'Trailer capital'],
-      art: 'brand/ben-360.jpg?v=' + ART_V,
+      art: 'brand/ben-360.png?v=' + ART_V, w: 851, h: 1131,
       alt: 'Illustration of Ben in a tan coat, in front of the black Ram 3500 dually and Big Tex gooseneck at sunset.',
       duties: [
         { t: 'Trailer capital', s: 'Cash down', d: 'invoice minus financed' },
@@ -59,7 +59,7 @@
       role: 'Driver and 1/3 partner | Black Ram Logistics',
       short: 'Driver + partner',
       chips: ['1/3 partner', 'Driver'],
-      art: 'brand/meshach-360.png?v=' + ART_V,
+      art: 'brand/meshach-360.png?v=' + ART_V, w: 858, h: 1150,
       alt: 'Illustration of Meshach, arms crossed, in front of the black Ram 3500 dually with the Big Tex gooseneck hitch at sunset.',
       driver360: true
     },
@@ -71,7 +71,7 @@
       role: 'Carrier owner | Totni, our lease-on carrier',
       short: 'Totni owner · lease-on carrier',
       chips: ['MC 1122113', '13% cut', 'COI 12/10/26'],
-      art: 'brand/felix-360.jpg?v=' + ART_V,
+      art: 'brand/felix-360.png?v=' + ART_V, w: 846, h: 1131,
       alt: 'Illustration of Felix in a dark suit, in front of a Ram and freight trucks at sunset.',
       duties: [
         { t: 'MC authority', s: '1122113', d: 'Totni MC' },
@@ -259,7 +259,7 @@
     if (p.group === 'partner' && s && s.loads && (p.id === 'claudio' || p.id === 'meshach')) {
       chips += '<span class="d3-chip">' + s.loads + ' company loads</span><span class="d3-chip">' + n0(s.loaded + s.dead) + ' mi</span>';
     }
-    return '<figure class="d3-hero"><img src="' + esc(p.art) + '" width="864" height="1152" alt="' + esc(p.alt) + '" decoding="async">' +
+    return '<figure class="d3-hero"><img src="' + esc(p.art) + '" width="' + (p.w || 864) + '" height="' + (p.h || 1152) + '" alt="' + esc(p.alt) + '" decoding="async">' +
       '<figcaption><span class="d3-kick">' + esc(p.kick) + '</span><b>' + esc(p.name) + '</b><span class="d3-role">' + esc(p.role) + '</span>' +
       '<span class="d3-chips">' + chips + '</span></figcaption></figure>';
   }
@@ -440,7 +440,7 @@
       '.d3-back{min-height:40px;min-width:64px;border-radius:var(--radius-pill,999px);border:1px solid var(--c-line-strong);background:var(--c-surface-2);color:var(--c-text-1);font-weight:800;font-size:14px}' +
       '.d3-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 12px calc(env(safe-area-inset-bottom,0px) + var(--bnav-h,64px) + 28px);max-width:560px;width:100%;margin:0 auto;box-sizing:border-box;display:flex;flex-direction:column;gap:12px}' +
       '.d3-scroll>*{flex-shrink:0}' +
-      '.d3-hero{position:relative;margin:0;border-radius:14px;overflow:hidden;border:1px solid var(--c-line);aspect-ratio:3/4;background:#2a1a33}.d3-hero img{display:block;width:100%;height:100%;object-fit:cover}' +
+      '.d3-hero{position:relative;margin:0;border-radius:14px;overflow:hidden;border:1px solid var(--c-line);aspect-ratio:3/4;background:#2a1a33}.d3-hero img{display:block;width:100%;height:100%;object-fit:cover;object-position:center;border:0;outline:0;box-shadow:none;padding:0;margin:0;background:transparent}' +
       '.d3-hero figcaption{position:absolute;left:0;right:0;bottom:0;padding:48px 14px 14px;background:linear-gradient(180deg,rgba(15,13,23,0),rgba(15,13,23,.78) 45%,rgba(15,13,23,.95));display:flex;flex-direction:column;gap:2px}' +
       '.d3-kick{font-size:11px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:var(--c-gold)}.d3-hero figcaption>b{font-size:34px;font-weight:900;line-height:1;letter-spacing:.01em}.d3-role{font-size:13px;font-weight:700;color:var(--c-text-2)}' +
       '.d3-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.d3-chip{font-size:12px;font-weight:800;padding:4px 10px;border-radius:999px;background:rgba(242,201,76,.16);color:var(--c-gold);border:1px solid rgba(242,201,76,.35)}' +
@@ -474,7 +474,7 @@
       '.tm-h{margin:8px 2px 0;font-size:12px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:var(--c-text-3)}' +
       '.tm-list{display:flex;flex-direction:column;gap:8px}' +
       '.tm-card{display:flex;align-items:center;gap:12px;margin:0;padding:10px 10px;border:1px solid var(--c-line);border-radius:14px;background:var(--c-surface-1);color:var(--c-text-1);text-align:left;width:100%;min-height:88px;box-sizing:border-box}' +
-      '.tm-face{flex:0 0 72px;width:72px;height:72px;border-radius:50%;background-repeat:no-repeat;border:2px solid var(--c-gold);box-shadow:0 0 0 2px var(--c-surface-1)}' +
+      '.tm-face{flex:0 0 72px;width:72px;height:72px;border-radius:50%;overflow:hidden;background-color:#2a1a33;background-repeat:no-repeat;background-clip:padding-box;border:2px solid var(--c-gold);box-shadow:0 0 0 2px var(--c-surface-1);padding:0;outline:0}' +
       '.tm-face.is-claudio{background-size:150%;background-position:62% 6%}' +
       '.tm-face.is-ben{background-size:200%;background-position:54% 4%}' +
       '.tm-face.is-meshach{background-size:330%;background-position:31% 13%}' +

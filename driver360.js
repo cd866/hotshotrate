@@ -9,7 +9,7 @@
   var PIN_KEY = 'blackram_relay_pin_v1';
   var FIN_KEY = 'blackram_fin_session_v1';
   var NAME = 'Meshach';
-  var ART = 'brand/meshach-360.png?v=129';
+  var ART = 'brand/meshach-360.png?v=133';
   var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var DOT_IDS = ['d-cdl', 'd-med', 'd-dq', 'd-da', 'd-eld', 'd-hos', 'd-eldpack', 'd-blank', 't-pre', 't-dvir'];
   var DOT_SHORT = { 'd-cdl': 'Class A CDL', 'd-med': 'Med card', 'd-dq': 'DQ file (Totni)', 'd-da': 'Drug and alcohol pool', 'd-eld': 'ELD login', 'd-hos': 'HOS logs', 'd-eldpack': 'ELD packet in cab', 'd-blank': 'Blank paper logs', 't-pre': 'Pre-trip habit', 't-dvir': 'DVIR / post-trip' };
@@ -192,7 +192,7 @@
     var c = s.current;
     var now = c ? '<b>Now:</b> ' + esc(city(c.pickup_place)) + ' to ' + esc(city(c.drop_place)) + ' | ' + esc(c.status || 'booked') :
       (s.last ? '<b>Now:</b> no load booked. Last drop ' + esc(city(s.last.drop_place)) + ' ' + day(s.last.delivered_date || s.last.delivery_date) : '<b>Now:</b> no loads yet');
-    return '<figure class="d3-hero"><img src="' + ART + '" width="864" height="1152" alt="Illustration of Meshach, arms crossed, in front of the black Ram 3500 dually with the Big Tex gooseneck hitch at sunset." decoding="async">' +
+    return '<figure class="d3-hero"><img src="' + ART + '" width="858" height="1150" alt="Illustration of Meshach, arms crossed, in front of the black Ram 3500 dually with the Big Tex gooseneck hitch at sunset." decoding="async">' +
       '<figcaption><span class="d3-kick">Driver 360</span><b>' + NAME + '</b><span class="d3-role">Driver and 1/3 partner | Black Ram Logistics</span>' +
       '<span class="d3-chips"><span class="d3-chip">' + s.loads + ' loads</span><span class="d3-chip">' + n0(s.loaded + s.dead) + ' mi</span><span class="d3-chip">Since ' + day(s.first) + '</span></span></figcaption></figure>' +
       '<div class="d3-now tl-tap tl-chev"' + ta('d3', 'now', 'Current or next load. Show') + '>' + now + '</div>';
@@ -592,7 +592,7 @@
     var s = document.createElement('style'); s.id = 'd3-css';
     s.textContent =
       '.d3-teaser{display:flex;align-items:center;gap:10px;margin:8px 0 0;padding:8px 10px;border:1px solid var(--c-line);border-radius:10px;background:var(--c-surface-1);color:var(--c-text-1);text-align:left}' +
-      '.d3-face{flex:0 0 52px;width:52px;height:52px;border-radius:50%;background-size:330%;background-position:31% 13%;border:2px solid var(--c-gold);box-shadow:0 0 0 2px var(--c-surface-1)}' +
+      '.d3-face{flex:0 0 52px;width:52px;height:52px;border-radius:50%;overflow:hidden;background-color:#2a1a33;background-size:330%;background-position:31% 13%;background-repeat:no-repeat;background-clip:padding-box;border:2px solid var(--c-gold);box-shadow:0 0 0 2px var(--c-surface-1);padding:0;outline:0}' +
       '.d3-tm{display:flex;flex-direction:column;min-width:0;line-height:1.15}.d3-tm small{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--c-gold)}.d3-tm b{font-size:17px;font-weight:900}.d3-tm span{font-size:11px;color:var(--c-text-3);font-weight:700}' +
       '.d3-ts{display:flex;gap:8px;margin-left:auto}.d3-ts span{display:flex;flex-direction:column;align-items:center;font-size:9.5px;color:var(--c-text-3);font-weight:700;line-height:1.1}.d3-ts b{font-size:14px;color:var(--num-yellow,var(--c-gold,#F2C94C));font-weight:900}' +
       '.d3-tchev{font-size:24px;color:var(--c-text-3);line-height:1;margin-left:2px}' +
@@ -602,7 +602,7 @@
       '.d3-back{min-height:40px;min-width:64px;border-radius:var(--radius-pill,999px);border:1px solid var(--c-line-strong);background:var(--c-surface-2);color:var(--c-text-1);font-weight:800;font-size:14px}' +
       '.d3-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 12px calc(env(safe-area-inset-bottom,0px) + var(--bnav-h,64px) + 28px);max-width:560px;width:100%;margin:0 auto;box-sizing:border-box;display:flex;flex-direction:column;gap:12px}' +
       '.d3-scroll>*{flex-shrink:0}' +
-      '.d3-hero{position:relative;margin:0;border-radius:14px;overflow:hidden;border:1px solid var(--c-line);aspect-ratio:3/4;background:#2a1a33}.d3-hero img{display:block;width:100%;height:100%;object-fit:cover}.d3-orbit{position:relative;overflow:hidden;perspective:900px;touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}.d3-orbit.d3-grab{cursor:grabbing}.d3-hero-stage{width:100%;height:100%;transform-style:preserve-3d;transform-origin:50% 46%;will-change:transform}.d3-orbit .d3-hero-stage img{display:block;width:100%;height:100%;object-fit:cover;pointer-events:none;-webkit-user-drag:none}' +
+      '.d3-hero{position:relative;margin:0;border-radius:14px;overflow:hidden;border:1px solid var(--c-line);aspect-ratio:3/4;background:#2a1a33}.d3-hero img{display:block;width:100%;height:100%;object-fit:cover;object-position:center;border:0;outline:0;box-shadow:none;padding:0;margin:0;background:transparent}.d3-orbit{position:relative;overflow:hidden;perspective:900px;touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}.d3-orbit.d3-grab{cursor:grabbing}.d3-hero-stage{width:100%;height:100%;transform-style:preserve-3d;transform-origin:50% 46%;will-change:transform}.d3-orbit .d3-hero-stage img{display:block;width:100%;height:100%;object-fit:cover;object-position:center;pointer-events:none;-webkit-user-drag:none;border:0;outline:0;box-shadow:none;padding:0;margin:0;background:transparent}' +
       '.d3-hero figcaption{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:48px 14px 14px;background:linear-gradient(180deg,rgba(15,13,23,0),rgba(15,13,23,.78) 45%,rgba(15,13,23,.95));display:flex;flex-direction:column;gap:2px;pointer-events:none}' +
       '.d3-hero-hint{position:absolute;left:50%;top:14px;transform:translateX(-50%);z-index:3;padding:5px 10px;border-radius:999px;background:rgba(15,13,23,.72);color:#F2C94C;font-size:11px;font-weight:800;letter-spacing:.04em;pointer-events:none;opacity:0}.d3-orbit:not([data-d3-touched]) .d3-hero-hint{opacity:1}' +
       '.d3-hero-reset{position:absolute;top:10px;left:10px;z-index:3;display:none;min-height:32px;padding:0 10px;border-radius:999px;border:1px solid rgba(242,201,76,.35);background:rgba(15,13,23,.72);color:#F2C94C;font-size:12px;font-weight:800}.d3-orbit[data-d3-adjusted] .d3-hero-reset{display:block}' +
