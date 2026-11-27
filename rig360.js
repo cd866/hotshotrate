@@ -2,8 +2,8 @@
    A low-poly 3D model of our 2026 Ram 3500 dually crew cab (Diamond Black)
    and the Big Tex 25GN-40 gooseneck (40 ft deck incl. 5 ft dovetail, 102 in
    wide, 34 in deck height), built in code with Three.js r170 (vendored at
-   vendor/three/three.module.min.js, MIT). The real photo stays as the poster
-   and as the "Photo" toggle. "Truck" spins the Ram alone; "Trailer" spins the
+   vendor/three/three.module.min.js, MIT). The real photo stays as the loading
+   poster only; the Photo view toggle was removed in v150. "Truck" spins the Ram alone; "Trailer" spins the
    Big Tex 25GN-40D5A-MRBK on its own (unhitched, on its drop-leg jacks).
    - Three.js only loads after first paint (idle) and once the stage is on screen.
    - Slow auto-spin (about 26 s per turn) starts as soon as the 360 is ready
@@ -36,7 +36,7 @@
      closes it. Taps are raycast and ignored if the pointer dragged.
    - prefers-reduced-motion: no auto-spin and no coasting; openings snap;
      drag still works.
-   - Pauses when the stage is off screen, the tab is hidden, or Photo is on.
+   - Pauses when the stage is off screen or the tab is hidden.
    - v135 Night Edition: the truck is rebuilt as our 2026 Ram 3500 Laramie Night
      Edition Mega Cab DRW (6 ft 4 in box) to buyer's-guide proportions; Diamond
      Black clearcoat paint with flake, gloss-black trim, black 17 in wheels, LED
@@ -78,9 +78,28 @@
      eases smoothly. The model stays fixed, so shadows and part-focus
      targets stay lined up. Around a focused part the arrows orbit that
      part. Reset view still returns to the default framing.
+   - v150: Photo view is gone (Rig 360 is the default; a leftover
+     "photo" preference falls back to it). iOS Safari / home-screen PWA
+     shadows: skipWaiting + clients.claim and one reload on a new SW;
+     no low-power WebGL path; BasicShadowMap on iOS (PCFSoft on desktop);
+     every mesh casts and receives; the ground receives; contact blobs
+     use depthWrite off, renderOrder and polygonOffset.
    Units in the model are feet. x = length (truck front +x), y = up, z = width. */
 (function () {
   'use strict';
+  // iPhone / iPad Safari (including a home-screen PWA) and WebKit mobile.
+  // Playwright's iPhone 13 emulation also matches.
+  function isIosSafari() {
+    try {
+      var ua = navigator.userAgent || '';
+      var plat = navigator.platform || '';
+      if (/iP(hone|od|ad)/.test(ua) || /iP(hone|od|ad)/.test(plat)) return true;
+      if (plat === 'MacIntel' && (navigator.maxTouchPoints || 0) > 1) return true;
+      if (/WebKit/i.test(ua) && /Mobile/i.test(ua) && !/CriOS|FxiOS|EdgiOS|Chrome|Chromium|Android/i.test(ua)) return true;
+    } catch (e) { /* ignore */ }
+    return false;
+  }
+
   var TURN_SECONDS = 26;
   var IDLE_RESUME_MS = 3000;
   var MODE_KEY = 'blackram_rig_view';
@@ -98,20 +117,22 @@
   function $(sel, root) { return (root || document).querySelector(sel); }
 
   function setMode(next, save, subj) {
-    mode = next === 'photo' ? 'photo' : '360';
+    // v150: Photo view is gone. A leftover preference, deep link or
+    // caller asking for "photo" always falls back to Rig 360.
+    mode = '360';
+    if (next === 'photo') subject = 'rig';
     if (subj === 'rig' || subj === 'truck' || subj === 'trailer') subject = subj;
     if (!stage) return;
     stage.setAttribute('data-view', mode);
     stage.setAttribute('data-subject', subject);
     var btns = toggle ? toggle.querySelectorAll('button') : [];
     for (var i = 0; i < btns.length; i++) {
-      var on = btns[i].getAttribute('data-view') === mode &&
-        (mode === 'photo' || btns[i].getAttribute('data-subject') === subject);
+      var on = btns[i].getAttribute('data-subject') === subject;
       btns[i].setAttribute('aria-pressed', on ? 'true' : 'false');
     }
-    if (save) { try { localStorage.setItem(MODE_KEY, mode === 'photo' ? 'photo' : (subject === 'rig' ? '360' : subject)); } catch (e) { /* ignore */ } }
+    if (save) { try { localStorage.setItem(MODE_KEY, subject === 'rig' ? '360' : subject); } catch (e) { /* ignore */ } }
     if (view) view.setSubject(subject);
-    if (mode === '360') maybeStart();
+    maybeStart();
     if (view) view.update();
   }
 
@@ -137,8 +158,7 @@
     toggle.setAttribute('aria-label', 'Rig view');
     toggle.innerHTML = '<button type="button" data-view="360" data-subject="rig" aria-pressed="true" aria-label="Truck and trailer 360">Rig 360</button>' +
       '<button type="button" data-view="360" data-subject="truck" aria-pressed="false" aria-label="Ram 3500 truck 360">Truck</button>' +
-      '<button type="button" data-view="360" data-subject="trailer" aria-pressed="false" aria-label="Big Tex trailer 360">Trailer</button>' +
-      '<button type="button" data-view="photo" aria-pressed="false">Photo</button>';
+      '<button type="button" data-view="360" data-subject="trailer" aria-pressed="false" aria-label="Big Tex trailer 360">Trailer</button>';
     stage.appendChild(toggle);
     toggle.addEventListener('click', function (ev) {
       var b = ev.target.closest('button[data-view]');
@@ -153,6 +173,10 @@
     var saved = null;
     try { saved = localStorage.getItem(MODE_KEY); } catch (e) { saved = null; }
     // The view always opens on the full Rig 360 (truck + trailer); the saved choice is not restored.
+    // v150: a leftover "photo" preference is rewritten so nothing can land on Photo.
+    if (saved === 'photo') {
+      try { localStorage.setItem(MODE_KEY, '360'); } catch (e) { /* ignore */ }
+    }
     setMode('360', false, 'rig');
 
     if (typeof IntersectionObserver === 'function') {
@@ -196,21 +220,26 @@
   function fail() {
     failed = true;
     if (stage) stage.setAttribute('data-r360-failed', '1');
-    setMode('photo', false);
+    // Keep the poster visible; do not switch to a Photo "view".
   }
 
   /* ------------------------------------------------------------------ */
   function createView(THREE) {
-    var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true, powerPreference: 'low-power' });
+    var appleShadows = isIosSafari();
+    // v150: "low-power" on iOS Safari often picks a GPU path that drops
+    // shadow maps. Use high-performance there; default everywhere else.
+    var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true, powerPreference: appleShadows ? 'high-performance' : 'default' });
     renderer.setClearColor(0x000000, 0);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.12;
     // v135: soft shadow under the rig from one overhead light that turns with
     // the turntable, so the shadow map only re-renders when a part moves.
+    // v150: iOS / WebKit has no VSM and PCFSoft can be a no-op, so use Basic
+    // there. Keep autoUpdate on so a missed needsUpdate cannot blank shadows.
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    renderer.shadowMap.autoUpdate = false;
+    renderer.shadowMap.type = appleShadows ? THREE.BasicShadowMap : THREE.PCFSoftShadowMap;
+    renderer.shadowMap.autoUpdate = !!appleShadows;
     renderer.shadowMap.needsUpdate = true;
     var prCap = 2; // pixel-ratio cap; lowered once if frames run slow
     var ftEma = 16.7, ftSlow = 0;
@@ -260,14 +289,20 @@
     shadowLight.shadow.bias = -0.0003;
     shadowLight.shadow.normalBias = 0.04;
     turntable.add(shadowLight, shadowLight.target);
-    var catcher = new THREE.Mesh(new THREE.PlaneGeometry(110, 36), new THREE.ShadowMaterial({ opacity: 0.38, depthWrite: false }));
+    var catcher = new THREE.Mesh(new THREE.PlaneGeometry(110, 36), new THREE.ShadowMaterial({
+      opacity: appleShadows ? 0.55 : 0.38,
+      depthWrite: false,
+      polygonOffset: true,
+      polygonOffsetFactor: -1,
+      polygonOffsetUnits: -2
+    }));
     catcher.rotation.x = -Math.PI / 2;
     catcher.position.y = 0.008;
     catcher.receiveShadow = true;
     catcher.renderOrder = 0;
     turntable.add(catcher);
     function isSmallShadowMap() {
-      return window.innerWidth < 768 || (Math.min(window.innerWidth, window.innerHeight) <= 500);
+      return appleShadows || window.innerWidth < 768 || (Math.min(window.innerWidth, window.innerHeight) <= 500);
     }
     function fitShadowCam() {
       var t = subject === 'trailer', k = subject === 'truck';
@@ -278,19 +313,60 @@
       cam.top = halfW; cam.bottom = -halfW;
       cam.near = 10; cam.far = 90;
       cam.updateProjectionMatrix();
-      var map = isSmallShadowMap() ? 1024 : 2048;
+      var cap = (renderer.capabilities && renderer.capabilities.maxTextureSize) || 2048;
+      var webgl2 = !!(renderer.capabilities && renderer.capabilities.isWebGL2);
+      var map = 2048;
+      if (appleShadows || !webgl2 || isSmallShadowMap()) map = 1024;
+      if (appleShadows && !webgl2) map = 512;
+      map = Math.max(256, Math.min(map, cap));
       var sh = shadowLight.shadow;
+      shadowLight.castShadow = true;
+      renderer.shadowMap.enabled = true;
       if (sh.mapSize.x !== map || sh.mapSize.y !== map) {
         sh.mapSize.set(map, map);
         if (sh.map) { sh.map.dispose(); sh.map = null; }
       }
-      sh.bias = -0.0003;
-      sh.normalBias = 0.04;
-      sh.radius = isSmallShadowMap() ? 3 : 4.5;
+      sh.bias = appleShadows ? -0.0008 : -0.0003;
+      sh.normalBias = appleShadows ? 0.06 : 0.04;
+      sh.radius = (appleShadows || isSmallShadowMap()) ? 3 : 4.5;
       renderer.shadowMap.needsUpdate = true;
     }
     var floor = buildFloor(THREE);
+    floor.receiveShadow = true;
+    if (appleShadows && floor.material) {
+      // MeshBasicMaterial cannot receive a shadow map. On iOS, ShadowMaterial
+      // is also unreliable, so light the decorative floor with Lambert.
+      floor.material = new THREE.MeshLambertMaterial({
+        map: floor.material.map,
+        transparent: true,
+        depthWrite: false,
+        polygonOffset: true,
+        polygonOffsetFactor: 1,
+        polygonOffsetUnits: 1
+      });
+    }
     scene.add(floor);
+    canvas.addEventListener('webglcontextlost', function (ev) { ev.preventDefault(); });
+    canvas.addEventListener('webglcontextrestored', function () {
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = appleShadows ? THREE.BasicShadowMap : THREE.PCFSoftShadowMap;
+      renderer.shadowMap.autoUpdate = !!appleShadows;
+      renderer.shadowMap.needsUpdate = true;
+      if (shadowLight.shadow.map) { shadowLight.shadow.map.dispose(); shadowLight.shadow.map = null; }
+      w = 0;
+      update();
+    });
+    window.addEventListener('pageshow', function () {
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.needsUpdate = true;
+      update();
+    });
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) return;
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.needsUpdate = true;
+      update();
+    });
 
     var angle = -0.62; // 3/4 front, passenger side, like the photo
     var velocity = 0;  // rad/s from a flick
@@ -1554,7 +1630,30 @@
       },
       closeInspect: closeInspect,
       inspecting: function () { return inspectKind; },
-      inspectOpen: function () { return inspectOpen; }
+      inspectOpen: function () { return inspectOpen; },
+      shadows: function () {
+        var sh = shadowLight.shadow;
+        var nCast = 0, nRecv = 0, nMesh = 0;
+        scene.traverse(function (o) {
+          if (!(o.isMesh || o.isInstancedMesh)) return;
+          nMesh++;
+          if (o.castShadow) nCast++;
+          if (o.receiveShadow) nRecv++;
+        });
+        return {
+          enabled: !!renderer.shadowMap.enabled,
+          type: renderer.shadowMap.type,
+          autoUpdate: !!renderer.shadowMap.autoUpdate,
+          lightCast: !!shadowLight.castShadow,
+          mapSize: sh.mapSize.x,
+          catcherReceive: !!catcher.receiveShadow,
+          floorReceive: !!floor.receiveShadow,
+          apple: !!appleShadows,
+          webgl2: !!(renderer.capabilities && renderer.capabilities.isWebGL2),
+          maxTexture: (renderer.capabilities && renderer.capabilities.maxTextureSize) || 0,
+          meshes: nMesh, casting: nCast, receiving: nRecv
+        };
+      }
     };
     window.BlackRamApp = Object.assign(window.BlackRamApp || {}, { rig360: api });
     return api;
@@ -2887,12 +2986,24 @@
     group.add(truck, trailer);
     // Soft under-body AO (light) plus tighter contact blobs under each tire
     // and under the jack pads when the landing gear is down.
-    var softBody = new THREE.MeshBasicMaterial({ map: blobTex(THREE), transparent: true, depthWrite: false, opacity: 0.22 });
-    var contactMat = new THREE.MeshBasicMaterial({ map: contactTex(THREE), transparent: true, depthWrite: false, opacity: 0.72 });
+    var appleBlobs = isIosSafari();
+    var softBody = new THREE.MeshBasicMaterial({
+      map: blobTex(THREE), transparent: true, depthWrite: false,
+      depthTest: true, opacity: appleBlobs ? 0.42 : 0.22,
+      polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2
+    });
+    var contactMat = new THREE.MeshBasicMaterial({
+      map: contactTex(THREE), transparent: true, depthWrite: false,
+      depthTest: true, opacity: appleBlobs ? 0.92 : 0.78,
+      polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4
+    });
     function shadowUnder(parent, x0, x1, wz) {
       var m = new THREE.Mesh(new THREE.PlaneGeometry((x0 - x1) * 1.12, wz * 1.6), softBody);
       m.rotation.x = -Math.PI / 2;
-      m.position.set((x0 + x1) / 2, 0.015, 0);
+      m.position.set((x0 + x1) / 2, appleBlobs ? 0.04 : 0.02, 0);
+      m.renderOrder = 1;
+      m.castShadow = false;
+      m.receiveShadow = false;
       parent.add(m);
     }
     shadowUnder(truck, front, BX0 - 0.4, 8.2);
@@ -2900,8 +3011,10 @@
     function contactBlob(parent, x, z, size) {
       var m = new THREE.Mesh(new THREE.PlaneGeometry(size, size), contactMat);
       m.rotation.x = -Math.PI / 2;
-      m.position.set(x, 0.018, z);
-      m.renderOrder = 1;
+      m.position.set(x, appleBlobs ? 0.055 : 0.028, z);
+      m.renderOrder = 2;
+      m.castShadow = false;
+      m.receiveShadow = false;
       parent.add(m);
       return m;
     }
@@ -2936,7 +3049,18 @@
     mergeStatic(THREE, truck);
     mergeStatic(THREE, trailer);
     group.traverse(function (o) {
-      if ((o.isMesh || o.isInstancedMesh) && o.material && !o.material.transparent && o.material.visible !== false) o.castShadow = true;
+      if (!(o.isMesh || o.isInstancedMesh) || !o.material) return;
+      var mats = [].concat(o.material);
+      var visible = false, transparent = false;
+      for (var i = 0; i < mats.length; i++) {
+        if (!mats[i]) continue;
+        if (mats[i].visible !== false) visible = true;
+        if (mats[i].transparent) transparent = true;
+      }
+      if (!visible) return;
+      // Contact blobs stay transparent and never cast or receive a map.
+      o.castShadow = !transparent;
+      o.receiveShadow = !transparent;
     });
 
     // Spec hotspots (group coordinates). Only verified figures; no VIN or plate.
@@ -2975,6 +3099,8 @@
     m.rotation.x = -Math.PI / 2;
     m.position.y = 0;
     m.renderOrder = -1;
+    m.receiveShadow = true;
+    m.castShadow = false;
     return m;
   }
 
