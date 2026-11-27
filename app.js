@@ -7703,7 +7703,11 @@
           cls = 'stale';
         }
       }
-      txt.textContent = label;
+      /* v105: the age after the bar is its own span so phones can hide it to make room for the weather chip */
+      var lp = label.split(' | ');
+      txt.textContent = lp[0];
+      if (lp.length > 1) { var ageEl = document.createElement('span'); ageEl.className = 'as-age'; ageEl.textContent = ' | ' + lp.slice(1).join(' | '); txt.appendChild(ageEl); }
+      dot.setAttribute('title', label);
       dot.setAttribute('data-state', cls);
     }
     var sw = document.getElementById('hdr-wx');

@@ -18,7 +18,7 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=4" sizes="180x180" />
   <link rel="preload" href="fonts/nunito-sans-variable.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="fonts/oswald-700.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="styles.css?v=104" />
+  <link rel="stylesheet" href="styles.css?v=105" />
   <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
   <script>
     try {
@@ -71,7 +71,8 @@
       <button type="button" class="appbar-status" id="appbar-status" data-state="idle" aria-label="Last pull status. Open Load Boards">
         <span class="as-dot" aria-hidden="true"></span><span id="appbar-status-text">Last pull --</span>
       </button>
-      <button type="button" class="hdr-wx on" id="hdr-wx" role="switch" aria-checked="true" aria-label="Weather rules">
+      <button type="button" class="hdr-wxnow" id="hdr-wxnow" data-state="busy" aria-label="Truck weather loading. Open details" aria-haspopup="dialog"><span class="wxb-na">WX --</span></button>
+      <button type="button" class="hdr-wx on" id="hdr-wx" role="switch" aria-checked="true" aria-label="Weather rules" title="Weather rules">
         <span class="hdr-wx-track" aria-hidden="true"><span class="hdr-wx-knob"></span></span><span class="hdr-wx-label">WX ON</span>
       </button>
       <button type="button" class="appbar-icon" id="search-open" aria-label="Search the app" aria-haspopup="dialog">
@@ -519,7 +520,7 @@
       <footer class="footer">
         <p><strong>Black Ram Logistics</strong> | DBA of Sand Lily Pad LLC</p>
         <p>Estimates are marked EST. Not a quote and not tax advice.</p>
-        <p class="app-version" id="app-version">v104</p>
+        <p class="app-version" id="app-version">v105</p>
       </footer>
       <div class="pad" aria-hidden="true"></div>
     </main>
@@ -684,24 +685,25 @@
   </div>
   <noscript><p class="noscript">Black Ram Logistics needs JavaScript for Rate Check, stops, and reports.</p></noscript>
   <script src="vendor/leaflet/leaflet.js"></script>
-  <script src="tiles.js?v=104"></script>
-  <script src="maps.js?v=104"></script>
-  <script src="tripplan.js?v=104"></script>
-  <script src="app.js?v=104"></script>
-  <script src="stops.js?v=104"></script>
-  <script src="targets.js?v=104"></script>
-  <script src="loadcosts.js?v=104"></script>
-  <script src="reports.js?v=104"></script>
-  <script src="scoreboard.js?v=104"></script>
-  <script src="accounting.js?v=104"></script>
-  <script src="insurance.js?v=104"></script>
-  <script src="maintenance.js?v=104"></script>
-  <script src="dotready.js?v=104"></script>
-  <script src="tax.js?v=104"></script>
-  <script src="rig360.js?v=104"></script>
-  <script src="driver360.js?v=104"></script>
-  <script src="today.js?v=104"></script>
-  <script src="search.js?v=104"></script>
+  <script src="tiles.js?v=105"></script>
+  <script src="maps.js?v=105"></script>
+  <script src="tripplan.js?v=105"></script>
+  <script src="app.js?v=105"></script>
+  <script src="stops.js?v=105"></script>
+  <script src="targets.js?v=105"></script>
+  <script src="loadcosts.js?v=105"></script>
+  <script src="reports.js?v=105"></script>
+  <script src="scoreboard.js?v=105"></script>
+  <script src="accounting.js?v=105"></script>
+  <script src="insurance.js?v=105"></script>
+  <script src="maintenance.js?v=105"></script>
+  <script src="dotready.js?v=105"></script>
+  <script src="tax.js?v=105"></script>
+  <script src="rig360.js?v=105"></script>
+  <script src="driver360.js?v=105"></script>
+  <script src="today.js?v=105"></script>
+  <script src="search.js?v=105"></script>
+  <script src="wxbar.js?v=105"></script>
   <script>
     (function () {
       if (!('serviceWorker' in navigator)) return;
