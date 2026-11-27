@@ -228,7 +228,7 @@
   document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') poll(); });
 
   /* ---------- Refresh buttons: instant feedback ---------- */
-  var REFRESH_SEL = '#search-refresh-btn,#refresh-btn,#fin-refresh,#fin-bv-refresh,#ac-refresh,#in-refresh,#mt-refresh,#ln-refresh';
+  var REFRESH_SEL = '#search-refresh-btn,#refresh-btn,#fin-refresh,#fin-bv-refresh,#ac-refresh,#in-refresh,#in-prog-refresh,#mt-refresh,#ln-refresh';
   var DONE_TEXT = {
     'search-refresh-btn': function () { var t = $('search-updated-text'); return 'Loads reloaded' + (t && t.textContent && !/Updating/.test(t.textContent) ? ' - ' + t.textContent : ''); },
     'refresh-btn': function () { return 'Reports reloaded'; },
@@ -236,6 +236,7 @@
     'fin-bv-refresh': function () { return 'Bluevine pull requested. It takes a few minutes.'; },
     'ac-refresh': function () { return 'Accounting updated'; },
     'in-refresh': function () { return 'Insurance updated'; },
+    'in-prog-refresh': function () { return 'Progressive pull requested. It takes a few minutes.'; },
     'mt-refresh': function () { return 'Maintenance updated'; },
     'ln-refresh': function () { return 'Loans updated'; }
   };

@@ -10,7 +10,7 @@
    the network request fails, so live search progress shows without a version bump.
    Open-Meteo (appbar weather chip, wxbar.js) is cross-origin: this worker never touches or
    caches it, the page keeps its own 30 min copy in localStorage. */
-var CACHE = 'blackram-v120';
+var CACHE = 'blackram-v121';
 var ASSETS = [
   './',
   './index.html',

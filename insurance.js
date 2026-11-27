@@ -3,6 +3,9 @@
    PIN-gated part: limits, deductibles, premiums, payments, drivers, claims, open items. These come from the relay /financials
    payload key "insurance" (built on the box by insurance_build.py, pushed with push_financials.py). Nothing financial is in this repo.
    Policy numbers show the last 4 only. No phones, emails, addresses, VINs, DOBs or license numbers anywhere.
+   v121: "Progressive live" card on top reads relay /insurance (KV insurance + ins_status, parsed on the box by
+   progressive-pull/prog_finish.py, last 4 only) and "Refresh from Progressive" posts /insurance-refresh (routine runs a
+   read-only portal pull), then polls every 20 s for up to 12 min.
    Uses v51 tokens; extends window.BlackRamApp (never overwrites it). Plain ASCII text. */
 (function () {
   'use strict';
@@ -92,6 +95,123 @@
       })
       .catch(function () { st.error = 'Offline - showing the last copy if any.'; })
       .then(function () { st.loading = false; render(); });
+  }
+
+
+  /* ---------- live Progressive pull (relay /insurance + /insurance-refresh, KV insurance + ins_status) ---------- */
+  var LREQ_KEY = 'blackram_ins_req_v1';
+  var LIVE_KEY = 'blackram_ins_live_v1';
+  var POLL_MS = 20000, POLL_MAX_MS = 12 * 60 * 1000;
+  var lv = { data: null, status: null, msg: '', busy: false, timer: null, loading: false };
+  function lvCache() { try { var c = sessionStorage.getItem(LIVE_KEY); if (c) { var j = JSON.parse(c); lv.data = j.data || null; lv.status = j.status || null; } } catch (e) { /* ignore */ } }
+  function reqGet() { try { return JSON.parse(localStorage.getItem(LREQ_KEY) || 'null'); } catch (e) { return null; } }
+  function reqSet(v) { try { if (v) localStorage.setItem(LREQ_KEY, JSON.stringify(v)); else localStorage.removeItem(LREQ_KEY); } catch (e) { /* ignore */ } }
+  function pulling() {
+    var r = reqGet(), s = lv.status;
+    if (!r && s && s.status === 'requested' && s.webhook_ok !== false && s.requested_at && Date.now() - Date.parse(s.requested_at) < POLL_MAX_MS) return true;
+    if (!r) return false;
+    if (Date.now() - r.at > POLL_MAX_MS) return false;
+    if (s && s.status !== 'requested' && s.status !== 'seeded') {
+      var t = Date.parse(s.done_at || s.at || 0);
+      if (t && t >= r.at - 60000) return false;
+    }
+    return true;
+  }
+  function liveFetch(cb) {
+    var p = pin(); if (!p) { if (cb) cb(); return; }
+    lv.loading = true;
+    fetch(RELAY + '/insurance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pin: p }), cache: 'no-store' })
+      .then(function (r) { return r.json().catch(function () { return null; }).then(function (j) {
+        if (r.ok && j && j.ok) {
+          lv.data = j.data || null; lv.status = j.status || null;
+          try { sessionStorage.setItem(LIVE_KEY, JSON.stringify({ data: lv.data, status: lv.status })); } catch (e) { /* ignore */ }
+        } else if (r.status === 401) { lv.data = null; lv.status = null; }
+      }); })
+      .catch(function () { /* offline: keep last copy */ })
+      .then(function () {
+        lv.loading = false;
+        var r = reqGet();
+        if (r && !pulling()) {
+          var s = lv.status && lv.status.status;
+          if (s === 'done') { lv.msg = 'Updated from Progressive'; reqSet(null); }
+          else if (s === 'needs_login') { lv.msg = ''; reqSet(null); }
+          else if (s === 'error') { lv.msg = ''; reqSet(null); }
+          else if (Date.now() - r.at > POLL_MAX_MS) { lv.msg = 'No answer after 12 min. Tap to try again.'; reqSet(null); }
+        }
+        schedulePoll(); render(); if (cb) cb();
+      });
+  }
+  function schedulePoll() {
+    clearTimeout(lv.timer); lv.timer = null;
+    if (pulling()) lv.timer = setTimeout(function () { liveFetch(); }, POLL_MS);
+  }
+  function requestPull() {
+    var p = pin(); if (!p || lv.busy) return;
+    lv.busy = true; lv.msg = 'Sending request...'; render();
+    fetch(RELAY + '/insurance-refresh', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pin: p }), cache: 'no-store' })
+      .then(function (r) { return r.json().catch(function () { return null; }).then(function (j) {
+        if (r.ok && j && j.ok) {
+          var s = j.status || {};
+          reqSet({ at: Date.parse(s.requested_at) || Date.now(), seq: s.seq || 0 });
+          lv.status = s; lv.msg = '';
+        } else if (r.status === 401) { lv.msg = 'Wrong PIN.'; }
+        else lv.msg = (j && j.error) || ('Could not start (' + r.status + ')');
+      }); })
+      .catch(function () { lv.msg = 'Offline. Tap to try again.'; })
+      .then(function () { lv.busy = false; schedulePoll(); render(); });
+  }
+  function asOfInfo(D) {
+    if (!D || !D.as_of) return null;
+    var t = new Date(D.as_of); if (isNaN(t.getTime())) return null;
+    var days = Math.floor((Date.now() - t.getTime()) / 86400000);
+    return { txt: t.toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'numeric', day: 'numeric' }) + (D.source === 'portal' ? ' ' + t.toLocaleString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit' }) + ' CT' : ''), days: days, stale: days > 7, src: D.source || '' };
+  }
+  function dueTone(n) { return n < 0 ? 'bad' : (n <= 3 ? 'bad' : (n <= 10 ? 'warn' : 'ok')); }
+  function k0(n) { if (n == null || !isFinite(n)) return '-'; return n >= 1000 ? '$' + (Math.round(n / 100) / 10).toString().replace(/\.0$/, '') + 'k' : '$' + Math.round(n); }
+  function covShort(D) {
+    var c = {}; (D.coverages || []).forEach(function (x) { c[x.name] = x; });
+    function n(str) { var m = String(str || '').match(/\$([\d,]+)/g); return m ? m.map(function (v) { return Number(v.replace(/[$,]/g, '')) / 1000; }) : []; }
+    var bi = n(c['Bodily injury'] && c['Bodily injury'].limit), pd = n(c['Property damage'] && c['Property damage'].limit);
+    var um = n(c['UM/UIM'] && c['UM/UIM'].limit), pip = c['PIP'] && c['PIP'].limit;
+    return { liab: bi.length >= 2 && pd.length ? bi[0] + '/' + bi[1] + '/' + pd[0] : '-', um: um.length >= 2 ? um[0] + '/' + um[1] : '-', pip: pip ? k0(n(pip)[0] * 1000) : '-' };
+  }
+  function secLive() {
+    var D = lv.data, S = lv.status || {}, busy = lv.busy || pulling();
+    var a = asOfInfo(D);
+    var line;
+    if (busy) line = '<span class="ip-st ip-st-busy" role="status"><i class="ip-spin" aria-hidden="true"></i>' + esc(lv.busy ? (lv.msg || 'Sending request...') : 'Pulling from Progressive...') + '</span>';
+    else if (S.status === 'needs_login') line = '<span class="ip-st ip-st-bad" role="status">Sign-in needed</span>';
+    else if (S.status === 'error') line = '<span class="ip-st ip-st-bad" role="status">Pull failed' + (S.note ? ': ' + esc(S.note) : '') + '</span>';
+    else if (lv.msg) line = '<span class="ip-st" role="status">' + esc(lv.msg) + '</span>';
+    else line = '';
+    var head = '<div class="ip-head"><div class="ip-asof' + (a && a.stale ? ' stale' : '') + '">' + (a ? 'As of ' + esc(a.txt) + (a.src ? ' <small>' + esc(a.src) + '</small>' : '') + (a.stale ? ' <small>' + a.days + ' d old</small>' : '') : 'Not pulled yet') + '</div>' +
+      '<button type="button" class="in-btn ip-btn" id="in-prog-refresh"' + (busy ? ' disabled aria-busy="true"' : '') + '>' + (busy ? '<i class="ip-spin" aria-hidden="true"></i>Pulling...' : 'Refresh from Progressive') + '</button></div>' + (line ? '<div class="ip-line">' + line + '</div>' : '');
+    if (!D) return card('in-live', 'Progressive live', 'Policy ...4265', head + '<p class="in-fine">No data on the server yet.</p>');
+    var B = D.billing || {}, nd = B.next_due ? daysTo(B.next_due) : null, tone = nd == null ? 'ok' : dueTone(nd);
+    var bill = '<div class="ip-bill ip-' + tone + '"><div><span>Next bill</span><b>' + m2(B.next_amount) + '</b></div><div class="ip-due"><span>Due ' + (B.next_due ? md(B.next_due) : '-') + '</span><b>' + (nd == null ? '-' : (nd < 0 ? (-nd) + ' d late' : nd === 0 ? 'Today' : nd + ' d')) + '</b><small>Autopay ' + esc(B.autopay || 'unknown') + '</small></div></div>';
+    var cs = covShort(D), V = D.vehicles || [], ram = V[0] || {}, trl = V[1] || {}, cg = D.cargo || {};
+    var tiles = '<div class="ip-tiles">' +
+      tile('Liability', cs.liab, 'per person / accident / property ($k)', 'ok') +
+      tile('Cargo', cg.limit ? cg.limit.replace(',000', 'k') : '-', 'Ded ' + (cg.deductible || '-') + (cg.endorsement ? ', ' + cg.endorsement : ''), 'ok') +
+      tile((ram.make || 'Truck') + ' comp/coll', k0(ram.stated), 'Stated, ' + k0(ram.comp_ded) + ' ded' + (ram.loss_payee ? ', ' + ram.loss_payee : ''), 'ok') +
+      tile((trl.make || 'Trailer') + ' comp/coll', k0(trl.stated), 'Stated, ' + k0(trl.comp_ded) + ' ded' + (trl.loss_payee ? ', ' + trl.loss_payee : ''), 'ok') +
+      tile('UM/UIM', cs.um, 'per person / accident ($k)', 'ok') +
+      tile('PIP', cs.pip, 'each person. Med pay rejected', 'ok') + '</div>';
+    var sch = B.schedule || [], paid = {}, mx = 0, t = todayIso(), nextSeen = false;
+    (B.paid || []).forEach(function (x) { paid[x[0]] = 1; });
+    sch.forEach(function (x) { mx = Math.max(mx, x[1]); });
+    var bars = sch.length ? '<div class="ip-bars" role="img" aria-label="Payment schedule, ' + sch.length + ' payments">' + sch.map(function (x) {
+      var cls = paid[x[0]] ? 'paid' : (!nextSeen && x[0] >= t ? (nextSeen = true, 'next') : (x[0] < t ? 'late' : ''));
+      return '<div class="ip-bar ' + cls + '" title="' + esc(md(x[0]) + ' ' + m2(x[1])) + '"><i style="height:' + Math.max(x[1] / (mx || 1) * 100, 6).toFixed(0) + '%"></i><span>' + MON[+x[0].slice(5, 7) - 1].charAt(0) + '</span></div>';
+    }).join('') + '</div><div class="ip-legend"><span><i class="paid"></i>Paid</span><span><i class="next"></i>Next</span><span><i></i>Later</span><b>' + sch.filter(function (x) { return !paid[x[0]]; }).length + ' left, ' + m0(sch.filter(function (x) { return !paid[x[0]]; }).reduce(function (s2, x) { return s2 + x[1]; }, 0)) + '</b></div>' : '';
+    var SP = D.snapshot_pro || {}, spd = SP.deadline ? daysTo(SP.deadline) : null;
+    var spOk = /connected|complete|active/i.test(SP.status || '') && !/not/i.test(SP.status || '');
+    var snap = SP.required ? '<div class="in-call ip-call in-call-' + (spOk ? 'ok' : (spd != null && spd <= 3 ? 'bad' : 'warn')) + '"><b>Snapshot Pro required</b> Dashcams in every vehicle, connected' + (SP.deadline ? ' by ' + md(SP.deadline) + ' (' + (spd < 0 ? (-spd) + ' d past' : spd + ' d') + ')' : '') + '. Status: ' + esc(SP.status || 'unknown') + '. Missing it can cancel the policy.</div>' : '';
+    var TT = D.totni || {}, td = TT.coi_expires ? daysTo(TT.coi_expires) : null;
+    var tot = TT.coi_expires ? '<div class="in-call ip-call in-call-' + (td < 0 ? 'bad' : td <= 14 ? 'bad' : td <= 30 ? 'warn' : 'ok') + '"><b>Totni COI ends ' + md(TT.coi_expires) + '/' + TT.coi_expires.slice(2, 4) + '</b> ' + (td < 0 ? (-td) + ' d ago' : td + ' d') + '. Separate policy (...' + esc(TT.last4 || '') + '), not in our login. Get the renewal.</div>' : '';
+    var drv = (D.drivers || []).map(function (d) { return '<span class="in-chip' + (d.excluded ? ' ip-x' : '') + '">' + esc(d.name) + (d.excluded ? ' EXCLUDED' : '') + '</span>'; }).join('');
+    return card('in-live', 'Progressive live', 'Policy ...' + esc((D.policy || {}).last4 || '') + ' ' + esc((D.policy || {}).named_insured || ''),
+      head + bill + tiles + bars + snap + tot + (drv ? '<div class="in-chips">' + drv + '</div>' : ''));
   }
 
   /* ---------- pieces ---------- */
@@ -318,6 +438,7 @@
   function render() {
     var el = root(); if (!el) return;
     if (!st.data && st.error !== 'wrongpin') st.data = fromCache();
+    if (!lv.data && !lv.status) lvCache();
     var D = st.data, I = D && D.insurance;
     var gated;
     if (I) gated = secPremium(I) + secPay(I) + secLimits(I) + secDrivers(I) + secClaims(I);
@@ -325,7 +446,7 @@
     else if (st.error === 'nopin') gated = lockCard('Limits, deductibles, premiums, payments, drivers and claim status. Enter the app PIN to see them.');
     else if (st.loading) gated = (window.BlackRamApp && window.BlackRamApp.skeleton) ? window.BlackRamApp.skeleton('Loading insurance') : '<section class="in-card"><p class="in-fine">Loading...</p></section>';
     else gated = lockCard(st.error || 'Loading...');
-    var nav = [['in-pols', 'Ours'], ['in-prem', 'Premium'], ['in-pay', 'Payments'], ['in-lim', 'Limits'], ['in-claims', 'Claims'], ['in-totni', 'Totni'], ['in-cmp', 'Who pays first'], ['in-tire', 'Tires'], ['in-theft', 'Anti-theft'], ['in-steps', 'Accident'], ['in-docs', 'Documents']];
+    var nav = [['in-live', 'Live'], ['in-pols', 'Ours'], ['in-prem', 'Premium'], ['in-pay', 'Payments'], ['in-lim', 'Limits'], ['in-claims', 'Claims'], ['in-totni', 'Totni'], ['in-cmp', 'Who pays first'], ['in-tire', 'Tires'], ['in-theft', 'Anti-theft'], ['in-steps', 'Accident'], ['in-docs', 'Documents']];
     var built = D && D.built_at ? new Date(D.built_at) : null;
     var stamp = built && !isNaN(built.getTime()) ? ' Private data built ' + built.toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + ' CT.' : '';
     el.innerHTML =
@@ -333,7 +454,7 @@
       '<div class="in-acts"><button type="button" class="in-btn" id="in-refresh" aria-label="Refresh">' + (st.loading ? '...' : 'Refresh') + '</button></div></div>' +
       secTiles() +
       '<nav class="in-jump">' + nav.map(function (j) { return '<a href="#' + j[0] + '" data-in-jump="' + j[0] + '">' + j[1] + '</a>'; }).join('') + '</nav>' +
-      secPolicies() + gated + secTotni(I) + secTire(I) + secTheft() + secSteps() + secDocs() +
+      (pin() && st.error !== 'wrongpin' ? secLive() : '') + secPolicies() + gated + secTotni(I) + secTire(I) + secTheft() + secSteps() + secDocs() +
       (I ? secNeed(I) : '') +
       '<p class="in-foot">Policy numbers show the last 4 only. Summary of the documents on file, not the policy contract. Check the dec page for the final word.' + esc(stamp) + (st.error && st.error !== 'nopin' && st.error !== 'wrongpin' ? ' ' + esc(st.error) : '') + '</p>';
     bind();
@@ -345,10 +466,12 @@
       e.preventDefault();
       var v = (document.getElementById('in-pin').value || '').trim();
       if (!v) return;
-      setPin(v); st.error = ''; st.data = null; fetchData(true);
+      setPin(v); st.error = ''; st.data = null; fetchData(true); liveFetch();
     });
     var r = document.getElementById('in-refresh');
-    if (r) r.addEventListener('click', function () { fetchData(true); });
+    if (r) r.addEventListener('click', function () { fetchData(true); liveFetch(); });
+    var pr = document.getElementById('in-prog-refresh');
+    if (pr) pr.addEventListener('click', function () { requestPull(); });
     el.querySelectorAll('[data-in-jump]').forEach(function (a) {
       a.addEventListener('click', function (e) { e.preventDefault(); var t = document.getElementById(a.getAttribute('data-in-jump')); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
     });
@@ -367,6 +490,32 @@
     if (document.getElementById('in-css')) return;
     var s = document.createElement('style'); s.id = 'in-css';
     s.textContent =
+      '.ip-head{display:flex;align-items:center;justify-content:space-between;gap:var(--s-1);flex-wrap:wrap}' +
+      '.ip-asof{font-size:12px;font-weight:800;color:var(--c-take);background:var(--c-take-bg);border-radius:var(--radius-pill);padding:4px 10px}' +
+      '.ip-asof small{font-weight:700;opacity:.85;margin-left:4px}.ip-asof.stale{color:var(--c-maybe);background:var(--c-maybe-bg)}' +
+      '.ip-btn{display:inline-flex;align-items:center;gap:6px;min-height:40px}.ip-btn[disabled]{opacity:.75}' +
+      '.ip-spin{width:12px;height:12px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;display:inline-block;animation:ipspin .8s linear infinite}' +
+      '@keyframes ipspin{to{transform:rotate(360deg)}}' +
+      '.ip-line{margin-top:-4px}.ip-st{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:800;color:var(--c-text-2)}' +
+      '.ip-st-busy{color:var(--c-gold)}.ip-st-bad{color:#FCA5A5}' +
+      '.ip-bill{display:flex;justify-content:space-between;align-items:stretch;gap:var(--s-1);border-radius:var(--radius-md);padding:var(--s-1h);border:1px solid var(--c-line)}' +
+      '.ip-bill span{display:block;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--c-text-3)}' +
+      '.ip-bill b{display:block;font-size:28px;font-weight:900;line-height:1.1;color:var(--num-yellow,var(--c-gold))}' +
+      '.ip-due{text-align:right}.ip-due small{display:block;font-size:11px;color:var(--c-text-3);font-weight:700}' +
+      '.ip-ok{background:var(--c-take-bg);border-color:var(--c-take)}.ip-ok .ip-due b{color:var(--c-take)}' +
+      '.ip-warn{background:var(--c-maybe-bg);border-color:var(--c-maybe)}.ip-warn .ip-due b{color:var(--c-maybe)}' +
+      '.ip-bad{background:rgba(248,113,113,.14);border-color:#F87171}.ip-bad .ip-due b{color:#FCA5A5}' +
+      '.ip-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s-1)}' +
+      '@media (max-width:360px){.ip-tiles{grid-template-columns:repeat(2,1fr)}}' +
+      '.ip-bars{display:flex;align-items:flex-end;gap:4px;height:76px;padding-top:4px}' +
+      '.ip-bar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0}' +
+      '.ip-bar i{display:block;width:100%;border-radius:4px 4px 1px 1px;background:var(--c-surface-3);border:1px solid var(--c-line-strong)}' +
+      '.ip-bar span{font-size:10px;font-weight:800;color:var(--c-text-3);margin-top:3px}' +
+      '.ip-bar.paid i{background:var(--c-take);border-color:var(--c-take)}.ip-bar.next i{background:var(--c-gold);border-color:var(--c-gold)}.ip-bar.late i{background:rgba(248,113,113,.5);border-color:#F87171}' +
+      '.ip-legend{display:flex;gap:10px;align-items:center;font-size:11px;color:var(--c-text-3);font-weight:700}.ip-legend i{display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--c-surface-3);border:1px solid var(--c-line-strong);margin-right:4px;vertical-align:-1px}' +
+      '.ip-legend i.paid{background:var(--c-take);border-color:var(--c-take)}.ip-legend i.next{background:var(--c-gold);border-color:var(--c-gold)}.ip-legend b{margin-left:auto;color:var(--c-text-1)}' +
+      '.ip-call{font-size:13px;line-height:1.35}.ip-call b{margin-right:4px}' +
+      '.in-chip.ip-x{color:#FCA5A5;border-color:#F87171}' +
       '#ins-root{display:flex;flex-direction:column;gap:var(--s-1h);padding-bottom:var(--s-3)}' +
       '.in-top{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--s-1)}' +
       '.in-top h2{margin:0;font-size:var(--fs-2xl);font-weight:var(--fw-black);color:var(--c-text-1);letter-spacing:-.01em}' +
@@ -453,7 +602,7 @@
     document.head.appendChild(s);
   }
 
-  function onShow() { render(); fetchData(false); }
+  function onShow() { render(); fetchData(false); liveFetch(); }
   function init() {
     css();
     document.addEventListener('blackram:tab', function (e) { if (e.detail && e.detail.tab === 'ins') onShow(); });
