@@ -1,11 +1,17 @@
-/* Black Ram Logistics - appbar weather chip (v105).
+/* Black Ram Logistics - appbar weather chip (v105, location picker).
    Shows current weather for the truck's city next to the last-pull time. Tap for a small
-   sheet: today's high/low, wind, rain chance, overnight low with the 45 F cold note.
-   Truck city (city level only, never GPS or a street address), best source first:
+   sheet: today's high/low, wind, rain chance, overnight low with the 45 F cold note, and a
+   city search to set the truck city the chip uses.
+   Auto truck city (city level only, never GPS or a street address), best source first:
      1. load in transit  -> its drop city ("en route")
      2. load booked      -> last delivered drop (the truck is still there until pickup)
      3. last delivered load's drop city
      4. base: Jacksonville, FL
+   A city picked in the sheet is saved in localStorage (blackram_wxloc_v1) and wins until
+   "Use truck location" clears it. "Use my phone location" is opt-in only: the point is
+   reverse-looked-up to the nearest city and stored as City, ST (centroid), never a pin.
+   This override is only for the weather chip. It does not change Rate Check "Truck is at"
+   (deadhead / fuel) or the Today "Truck now" load card.
    Coordinates are a city centroid (rounded to 2 decimals). Weather is Open-Meteo, fetched
    from the phone (no key), cached 30 min in localStorage. The service worker ignores
    cross-origin requests, so Open-Meteo is never cached there. Offline: "WX n/a".
@@ -18,10 +24,16 @@
   var STALE_MAX = 6 * 3600000;   /* show an older copy offline, labeled, up to 6 h */
   var KEY = 'blackram_wxbar_v1';
   var GEO_KEY = 'blackram_wxgeo_v1';
+  var OVR_KEY = 'blackram_wxloc_v1';
   var COLD_F = 45;
   var BASE = { city: 'Jacksonville, FL', lat: 30.33, lon: -81.66, src: 'base' };
   var STATES = 'AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY';
   var STATE_NAME = { AL: 'Alabama', AK: 'Alaska', AZ: 'Arizona', AR: 'Arkansas', CA: 'California', CO: 'Colorado', CT: 'Connecticut', DE: 'Delaware', FL: 'Florida', GA: 'Georgia', HI: 'Hawaii', ID: 'Idaho', IL: 'Illinois', IN: 'Indiana', IA: 'Iowa', KS: 'Kansas', KY: 'Kentucky', LA: 'Louisiana', ME: 'Maine', MD: 'Maryland', MA: 'Massachusetts', MI: 'Michigan', MN: 'Minnesota', MS: 'Mississippi', MO: 'Missouri', MT: 'Montana', NE: 'Nebraska', NV: 'Nevada', NH: 'New Hampshire', NJ: 'New Jersey', NM: 'New Mexico', NY: 'New York', NC: 'North Carolina', ND: 'North Dakota', OH: 'Ohio', OK: 'Oklahoma', OR: 'Oregon', PA: 'Pennsylvania', RI: 'Rhode Island', SC: 'South Carolina', SD: 'South Dakota', TN: 'Tennessee', TX: 'Texas', UT: 'Utah', VT: 'Vermont', VA: 'Virginia', WA: 'Washington', WV: 'West Virginia', WI: 'Wisconsin', WY: 'Wyoming' };
+  var ST_FROM_NAME = (function () {
+    var m = { 'District of Columbia': 'DC' }, k;
+    for (k in STATE_NAME) if (STATE_NAME.hasOwnProperty(k)) m[STATE_NAME[k]] = k;
+    return m;
+  })();
   var NOISE = /^(UR|Equipment|EquipmentShare|Containers|Cargo|Rentals|Yard|Mfg|Supply|Elec|Taller|Technologies|STT|Tag|Near|BUILTEC|Stribling|Con|Global|United)$/;
   /* City centroids (2 decimals) for cities on our lanes. Others use the Open-Meteo geocoder. */
   var CITY = {
@@ -35,7 +47,7 @@
     'atlanta, ga': [33.75, -84.39], 'dallas, tx': [32.78, -96.80], 'birmingham, al': [33.52, -86.80],
     'mobile, al': [30.69, -88.04], 'new orleans, la': [29.95, -90.07], 'nashville, tn': [36.16, -86.78]
   };
-  var st = { loc: null, wx: null, busy: false, timer: null, open: false };
+  var st = { loc: null, wx: null, busy: false, timer: null, open: false, gen: 0, searchTimer: null, hits: [], geoBusy: false };
 
   function $(id) { return document.getElementById(id); }
   function A() { return window.BlackRamApp || {}; }
@@ -44,7 +56,35 @@
   function rd(n) { return Math.round(Number(n)); }
   function lsGet(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }
   function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage blocked */ } }
+  function lsDel(k) { try { localStorage.removeItem(k); } catch (e) { /* storage blocked */ } }
   function wxRulesOn() { try { return localStorage.getItem('blackram_weather_on_v1') !== 'off'; } catch (e) { return true; } }
+  function pinSvg(cls) {
+    return '<svg class="' + (cls || 'wxb-pin') + '" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" focusable="false"><path fill="#F2C94C" d="M6 1.1A3.5 3.5 0 0 0 2.5 4.6c0 2.5 3.5 6.2 3.5 6.2s3.5-3.7 3.5-6.2A3.5 3.5 0 0 0 6 1.1zm0 4.8A1.3 1.3 0 1 1 6 3.3a1.3 1.3 0 0 1 0 2.6z"/></svg>';
+  }
+  function stateAbbr(v) {
+    if (!v) return null;
+    var s = ascii(v).trim();
+    var up = s.toUpperCase();
+    if (new RegExp('^(' + STATES + '|DC)$').test(up)) return up;
+    return ST_FROM_NAME[s] || ST_FROM_NAME[s.replace(/\b\w/g, function (c) { return c.toUpperCase(); })] || null;
+  }
+  function locLabel(name, abbr) { return ascii(name).replace(/\s+/g, ' ').trim() + ', ' + abbr; }
+  function asLoc(city, lat, lon, src, manual) {
+    return {
+      city: ascii(city).replace(/\s+/g, ' ').trim(),
+      lat: Math.round(Number(lat) * 100) / 100,
+      lon: Math.round(Number(lon) * 100) / 100,
+      src: src,
+      manual: !!manual
+    };
+  }
+  function readOverride() {
+    var o = lsGet(OVR_KEY);
+    if (o && o.city && isFinite(Number(o.lat)) && isFinite(Number(o.lon))) {
+      return asLoc(o.city, o.lat, o.lon, o.src || 'set by you', true);
+    }
+    return null;
+  }
 
   /* ---------- truck city ---------- */
   /* City and state only, never a street address. */
@@ -104,12 +144,193 @@
     });
   }
   function locate() {
+    var o = readOverride();
+    if (o) return Promise.resolve(o);
     var p = pickCity();
     if (!p) return Promise.resolve(st.useBase || (A().getFeed && A().getFeed()) ? BASE : null);
     var label = p.c.name + ', ' + p.c.st;
     return geocode(p.c).then(function (g) {
       return { city: label, lat: g.lat, lon: g.lon, src: p.src };
     }).catch(function () { return { city: BASE.city, lat: BASE.lat, lon: BASE.lon, src: 'base (could not place ' + label + ')' }; });
+  }
+
+  /* ---------- manual city override (chip only) ---------- */
+  function clearWxCache() { lsDel(KEY); }
+  function setOverride(loc) {
+    if (!loc || !loc.city || !isFinite(Number(loc.lat)) || !isFinite(Number(loc.lon))) return;
+    var rec = asLoc(loc.city, loc.lat, loc.lon, loc.src || 'set by you', true);
+    lsSet(OVR_KEY, { city: rec.city, lat: rec.lat, lon: rec.lon, src: rec.src });
+    clearWxCache();
+    st.loc = rec;
+    st.wx = null;
+    setHits([]);
+    setLocMsg('');
+    var q = $('wxs-q'); if (q) q.value = '';
+    refresh(true);
+  }
+  function clearOverride() {
+    lsDel(OVR_KEY);
+    clearWxCache();
+    st.wx = null;
+    setHits([]);
+    setLocMsg('');
+    var q = $('wxs-q'); if (q) q.value = '';
+    refresh(true);
+  }
+  function hitFromGeo(r, wantSt) {
+    if (!r || (r.country_code && String(r.country_code).toUpperCase() !== 'US')) return null;
+    var code = (r.feature_code || '');
+    if (code && code.charAt(0) !== 'P') return null; /* populated places only, not counties */
+    var abbr = stateAbbr(r.admin1);
+    if (!abbr || abbr === 'DC') return null;
+    if (wantSt && abbr !== wantSt) return null;
+    var name = ascii(r.name || '').replace(/\s+/g, ' ').trim();
+    if (!name) return null;
+    return asLoc(locLabel(name, abbr), r.latitude, r.longitude, 'set by you', true);
+  }
+  function parseQuery(q) {
+    q = ascii(q).replace(/\s+/g, ' ').trim();
+    var m = q.match(new RegExp('^(.+?)[, ]+(' + STATES + ')\\s*$', 'i'));
+    if (m) return { name: m[1].trim(), st: m[2].toUpperCase() };
+    return { name: q, st: null };
+  }
+  function searchCities(q) {
+    var p = parseQuery(q);
+    if (!p.name || p.name.length < 2) return Promise.resolve([]);
+    var url = 'https://geocoding-api.open-meteo.com/v1/search?name=' + encodeURIComponent(p.name) + '&count=10&language=en&format=json&countryCode=US';
+    return fetch(url).then(function (r) { if (!r.ok) throw new Error('geo'); return r.json(); }).then(function (j) {
+      var out = [], seen = {}, i, h, key;
+      var rows = (j && j.results) || [];
+      for (i = 0; i < rows.length; i++) {
+        h = hitFromGeo(rows[i], p.st);
+        if (!h) continue;
+        key = h.city.toLowerCase();
+        if (seen[key]) continue;
+        seen[key] = 1;
+        out.push(h);
+        if (out.length >= 8) break;
+      }
+      return out;
+    });
+  }
+  function setHits(list) {
+    st.hits = list || [];
+    var box = $('wxs-hits');
+    if (!box) return;
+    if (!st.hits.length) { box.innerHTML = ''; box.hidden = true; return; }
+    box.hidden = false;
+    box.innerHTML = st.hits.map(function (h, i) {
+      return '<li><button type="button" class="wxs-hit" data-idx="' + i + '">' + esc(h.city) + '</button></li>';
+    }).join('');
+  }
+  function setLocMsg(t) {
+    var el = $('wxs-loc-msg');
+    if (!el) return;
+    if (!t) { el.hidden = true; el.textContent = ''; return; }
+    el.hidden = false;
+    el.textContent = t;
+  }
+  function syncLocUi() {
+    var p = $('wxs-loc-now');
+    var loc = st.loc;
+    if (p) {
+      if (loc && loc.manual) p.textContent = 'Showing ' + loc.city + ' (set by you).';
+      else if (loc) p.textContent = 'Showing the truck city: ' + loc.city + '.';
+      else p.textContent = '';
+    }
+    var auto = $('wxs-auto');
+    if (auto) auto.disabled = !(loc && loc.manual);
+    var geo = $('wxs-geo');
+    if (geo) {
+      geo.disabled = !!st.geoBusy;
+      geo.textContent = st.geoBusy ? 'Finding city...' : 'Use my phone location';
+    }
+  }
+  function runSearch(q) {
+    q = ascii(q || '').trim();
+    if (q.length < 2) { setHits([]); setLocMsg(''); return; }
+    var token = (st.searchToken = (st.searchToken || 0) + 1);
+    setLocMsg('Searching...');
+    searchCities(q).then(function (hits) {
+      if (token !== st.searchToken) return;
+      setHits(hits);
+      setLocMsg(hits.length ? '' : 'No US cities matched. Try City, ST.');
+    }).catch(function () {
+      if (token !== st.searchToken) return;
+      setHits([]);
+      setLocMsg('City search is unavailable right now.');
+    });
+  }
+  function cityFromPhoton(p) {
+    if (!p) return null;
+    var cc = String(p.countrycode || p.country_code || '').toUpperCase();
+    if (cc && cc !== 'US') return null;
+    var abbr = stateAbbr(p.state);
+    var name = p.city || p.town || p.village || p.locality || '';
+    name = ascii(name).replace(/\s+/g, ' ').trim();
+    if (!name || !abbr || abbr === 'DC') return null;
+    return { name: name, st: abbr };
+  }
+  function reverseToCity(lat, lon) {
+    var url = 'https://photon.komoot.io/reverse?lat=' + encodeURIComponent(lat) + '&lon=' + encodeURIComponent(lon);
+    return fetch(url).then(function (r) { if (!r.ok) throw new Error('rev'); return r.json(); }).then(function (j) {
+      var feat = j && j.features && j.features[0];
+      var c = cityFromPhoton(feat && feat.properties);
+      if (!c) throw new Error('nocity');
+      return geocode(c).then(function (g) {
+        return asLoc(locLabel(c.name, c.st), g.lat, g.lon, 'phone location (nearest city)', true);
+      });
+    });
+  }
+  function usePhoneLocation() {
+    if (st.geoBusy) return;
+    if (!navigator.geolocation) { setLocMsg('This browser cannot share a location. Search a city instead.'); return; }
+    st.geoBusy = true;
+    syncLocUi();
+    setLocMsg('Finding the nearest city...');
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      reverseToCity(pos.coords.latitude, pos.coords.longitude).then(function (loc) {
+        st.geoBusy = false;
+        setOverride(loc);
+        setLocMsg('');
+      }).catch(function () {
+        st.geoBusy = false;
+        syncLocUi();
+        setLocMsg('Could not turn that into a city. Search City, ST instead.');
+      });
+    }, function () {
+      st.geoBusy = false;
+      syncLocUi();
+      setLocMsg('Location was not available. Search a city instead.');
+    }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 });
+  }
+  function bindLocUi(root) {
+    root.addEventListener('input', function (e) {
+      if (!e.target || e.target.id !== 'wxs-q') return;
+      var q = e.target.value || '';
+      if (st.searchTimer) clearTimeout(st.searchTimer);
+      if (ascii(q).trim().length < 2) { setHits([]); setLocMsg(''); return; }
+      st.searchTimer = setTimeout(function () { runSearch(q); }, 300);
+    });
+    root.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' || !e.target || e.target.id !== 'wxs-q') return;
+      e.preventDefault();
+      if (st.searchTimer) { clearTimeout(st.searchTimer); st.searchTimer = null; }
+      var q = e.target.value || '';
+      if (st.hits && st.hits[0] && ascii(q).trim()) { setOverride(st.hits[0]); return; }
+      runSearch(q);
+    });
+    root.addEventListener('click', function (e) {
+      var t = e.target && e.target.closest ? e.target.closest('button') : null;
+      if (!t) return;
+      if (t.id === 'wxs-auto') { e.preventDefault(); clearOverride(); return; }
+      if (t.id === 'wxs-geo') { e.preventDefault(); usePhoneLocation(); return; }
+      if (t.classList && t.classList.contains('wxs-hit')) {
+        e.preventDefault();
+        var rec = st.hits[Number(t.getAttribute('data-idx'))];
+        if (rec) setOverride(rec);
+      }
+    });
   }
 
   /* ---------- weather ---------- */
@@ -187,7 +408,7 @@
     return fetch(wxUrl(loc)).then(function (r) { if (!r.ok) throw new Error('wx ' + r.status); return r.json(); }).then(function (j) {
       var c = j.current || {}, d = j.daily || {};
       return {
-        city: loc.city, src: loc.src, lat: loc.lat, lon: loc.lon, t: Date.now(),
+        city: loc.city, src: loc.src, lat: loc.lat, lon: loc.lon, t: Date.now(), manual: !!loc.manual,
         temp: c.temperature_2m, code: c.weather_code, day: c.is_day, wind: c.wind_speed_10m, gust: c.wind_gusts_10m,
         hi: d.temperature_2m_max && d.temperature_2m_max[0], lo: d.temperature_2m_min && d.temperature_2m_min[0],
         pop: d.precipitation_probability_max && d.precipitation_probability_max[0], night: overnightLow(j)
@@ -205,18 +426,26 @@
     var el = chipEl();
     if (!el) return;
     var w = st.wx;
+    var manual = !!(st.loc && st.loc.manual) || !!(w && w.manual);
+    el.classList.toggle('manual', manual);
     if (!w || w.temp == null) {
       el.setAttribute('data-state', st.loc || st.busy ? (st.busy ? 'busy' : 'off') : 'busy');
-      el.innerHTML = '<span class="wxb-na">WX ' + (st.busy || !st.loc ? '--' : 'n/a') + '</span>';
-      el.setAttribute('aria-label', 'Truck weather ' + (st.busy || !st.loc ? 'loading' : 'not available') + '. Open details');
+      el.innerHTML = '<span class="wxb-na">WX ' + (st.busy || !st.loc ? '--' : 'n/a') + '</span>' + (manual ? pinSvg() : '');
+      el.setAttribute('aria-label', 'Truck weather ' + (st.busy || !st.loc ? 'loading' : 'not available') + (manual && st.loc ? ' for ' + st.loc.city + ', set by you' : '') + '. Open details');
+      syncLocUi();
+      if (st.open) renderSheet();
       return;
     }
     var old = Date.now() - w.t > TTL;
     var cold = w.temp <= COLD_F || (w.night != null && w.night <= COLD_F);
     el.setAttribute('data-state', old ? 'stale' : 'ok');
     el.classList.toggle('cold', !!cold);
-    el.innerHTML = iconFor(w.code, w.day) + '<span class="wxb-t num-yellow">' + rd(w.temp) + '<small>F</small></span><span class="wxb-city">' + esc(w.city.replace(/, .*/, '')) + '</span>';
-    el.setAttribute('aria-label', 'Weather in ' + w.city + ', ' + rd(w.temp) + ' F, ' + condLabel(w.code, w.day) + (old ? ', older reading' : '') + '. Open details');
+    el.innerHTML = iconFor(w.code, w.day) + '<span class="wxb-t num-yellow">' + rd(w.temp) + '<small>F</small></span>' +
+      (manual ? pinSvg() : '') +
+      '<span class="wxb-city">' + esc(w.city.replace(/, .*/, '')) + '</span>';
+    el.setAttribute('aria-label', 'Weather in ' + w.city + ', ' + rd(w.temp) + ' F, ' + condLabel(w.code, w.day) +
+      (manual ? ', location set by you' : '') + (old ? ', older reading' : '') + '. Open details');
+    syncLocUi();
     if (st.open) renderSheet();
   }
 
@@ -225,14 +454,20 @@
   function stat(label, val, sub) {
     return '<div class="wxs-stat"><span class="wxs-k">' + label + '</span><b class="wxs-v num-yellow">' + val + '</b>' + (sub ? '<span class="wxs-sub">' + sub + '</span>' : '') + '</div>';
   }
+  function cityLine(city, manual) {
+    return '<p class="wxs-city">' + (manual ? pinSvg('wxb-pin wxs-pin') : '') + '<span>' + esc(city) + '</span>' +
+      (manual ? '<span class="wxs-set">set by you</span>' : '') + '</p>';
+  }
   function renderSheet() {
     var box = $('wxs-body');
     if (!box) return;
     var w = st.wx, loc = st.loc;
+    var manual = !!(loc && loc.manual) || !!(w && w.manual);
     if (!w || w.temp == null) {
-      box.innerHTML = '<h2 id="wxs-title">Truck weather</h2>' + (loc ? '<p class="wxs-city">' + esc(loc.city) + '</p>' : '') +
+      box.innerHTML = '<h2 id="wxs-title">Truck weather</h2>' + (loc ? cityLine(loc.city, manual) : '') +
         '<p class="wxs-note">' + (st.busy ? 'Loading...' : 'WX n/a. No weather reading yet (offline or Open-Meteo did not answer). It retries when the phone is back online.') + '</p>' +
         '<p class="wxs-fine">City level only. ' + (loc ? 'Location: ' + esc(loc.src) + '.' : '') + '</p>';
+      syncLocUi();
       return;
     }
     var old = Date.now() - w.t > TTL;
@@ -248,7 +483,7 @@
       note = '<p class="wxs-ok">Overnight low ' + nl + ' F is above the ' + COLD_F + ' F cold limit.</p>';
     } else note = '';
     box.innerHTML =
-      '<h2 id="wxs-title">Truck weather</h2><p class="wxs-city">' + esc(w.city) + '</p>' +
+      '<h2 id="wxs-title">Truck weather</h2>' + cityLine(w.city, manual) +
       '<div class="wxs-now">' + iconFor(w.code, w.day).replace('width="20" height="20"', 'width="56" height="56"').replace('wxb-ico', 'wxb-ico wxb-big') +
       '<div><b class="wxs-temp num-yellow">' + rd(w.temp) + ' F</b><span class="wxs-cond">' + esc(condLabel(w.code, w.day)) + '</span></div></div>' +
       '<div class="wxs-grid">' +
@@ -259,7 +494,8 @@
       stat('Overnight low', nl != null ? nl + ' F' : '-') +
       '</div>' + note +
       '<p class="wxs-fine">' + (old ? 'Older reading from ' + ago(Date.now() - w.t) + ' (offline). ' : 'Updated ' + ago(Date.now() - w.t) + '. ') +
-      'Truck location: ' + esc(w.src || '') + '. City level only, never GPS. Weather by Open-Meteo.</p>';
+      'Truck location: ' + esc(w.src || '') + '. City level only' + (manual ? '' : ', never GPS') + '. Weather by Open-Meteo.</p>';
+    syncLocUi();
   }
   function openSheet() {
     var s = $('wxs');
@@ -282,20 +518,29 @@
 
   /* ---------- refresh ---------- */
   function refresh(force) {
-    if (st.busy) return;
+    var my = ++st.gen;
     st.busy = true;
     locate().then(function (loc) {
+      if (my !== st.gen) return null;
       if (!loc) { st.busy = false; render(); return null; }
       st.loc = loc;
       var c = cacheFor(loc);
       if (c && !force && Date.now() - c.t < TTL) { st.wx = c; st.busy = false; render(); return null; }
       if (c) { st.wx = c; render(); }   /* show the saved copy while the new one loads */
       return fetchWx(loc).then(function (w) {
+        if (my !== st.gen) return;
         st.wx = w; lsSet(KEY, w);
       }).catch(function () {
+        if (my !== st.gen) return;
         if (!(c && Date.now() - c.t < STALE_MAX)) st.wx = null;
-      }).then(function () { st.busy = false; render(); });
-    }).catch(function () { st.busy = false; render(); });
+      }).then(function () {
+        if (my !== st.gen) return;
+        st.busy = false; render();
+      });
+    }).catch(function () {
+      if (my !== st.gen) return;
+      st.busy = false; render();
+    });
   }
 
   function build() {
@@ -305,11 +550,24 @@
       var d = document.createElement('div');
       d.id = 'wxs'; d.className = 'wxs'; d.hidden = true;
       d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-labelledby', 'wxs-title');
-      d.innerHTML = '<div class="wxs-card"><div class="wxs-top"><button type="button" class="about-btn" id="wxs-close">Close</button></div><div id="wxs-body"></div></div>';
+      d.innerHTML = '<div class="wxs-card"><div class="wxs-top"><button type="button" class="about-btn" id="wxs-close">Close</button></div><div id="wxs-body"></div>' +
+        '<div class="wxs-loc" id="wxs-loc">' +
+        '<h3 class="wxs-loc-h">Change city</h3>' +
+        '<p class="wxs-loc-now" id="wxs-loc-now"></p>' +
+        '<label class="wxs-k" for="wxs-q">Search a city</label>' +
+        '<input type="search" id="wxs-q" placeholder="City, ST" autocomplete="off" autocapitalize="words" autocorrect="off" spellcheck="false" enterkeyhint="search">' +
+        '<ul class="wxs-hits" id="wxs-hits" hidden role="listbox"></ul>' +
+        '<div class="wxs-loc-actions">' +
+        '<button type="button" class="about-btn" id="wxs-auto">Use truck location</button>' +
+        '<button type="button" class="about-btn" id="wxs-geo">Use my phone location</button>' +
+        '</div>' +
+        '<p class="wxs-loc-msg" id="wxs-loc-msg" hidden></p>' +
+        '</div></div>';
       document.body.appendChild(d);
       d.addEventListener('click', function (e) { if (e.target === d) closeSheet(); });
       $('wxs-close').addEventListener('click', closeSheet);
       document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && st.open) closeSheet(); });
+      bindLocUi(d);
     }
     chip.addEventListener('click', openSheet);
     document.addEventListener('blackram:data', function (e) { if (!e.detail || e.detail.kind === 'feed') refresh(false); });
@@ -321,6 +579,6 @@
     /* no feed after 6 s: use the base city so the chip is never empty */
     setTimeout(function () { if (!st.loc && !st.busy) { st.useBase = true; refresh(false); } }, 6000);
   }
-  window.BlackRamWxBar = { iconFor: iconFor, refresh: refresh, kindOf: kindOf };
+  window.BlackRamWxBar = { iconFor: iconFor, refresh: refresh, kindOf: kindOf, setCity: setOverride, useTruckLocation: clearOverride };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', build); else build();
 })();

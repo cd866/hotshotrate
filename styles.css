@@ -5916,6 +5916,87 @@ body .search-actions .trip-plan-btn::after {
 .wxs-ok, .wxs-note { margin: 0 0 10px; color: var(--c-text-2); font-size: var(--fs-sm); }
 .wxs-fine { margin: 0; color: var(--c-text-3); font-size: var(--fs-xs); line-height: 1.45; }
 
+/* Manual-location marker on the chip. 12 px pin, no extra type, so 390 px still fits. */
+.hdr-wxnow .wxb-pin { width: 12px; height: 12px; flex: 0 0 12px; display: block; margin: 0; }
+.hdr-wxnow.manual { border-color: rgba(242, 201, 76, 0.55); }
+
+/* City picker lives in the same weather sheet; built once so typing is not wiped on refresh. */
+.wxs-city { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.wxs-city .wxs-pin { width: 14px; height: 14px; flex: 0 0 14px; }
+.wxs-set {
+  font-size: var(--fs-xs); font-weight: var(--fw-bold);
+  color: var(--num-yellow, #F2C94C);
+  letter-spacing: 0.02em;
+}
+.wxs-loc {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--c-line);
+}
+.wxs-loc-h {
+  margin: 0 0 4px;
+  font-size: var(--fs-md, 16px);
+  font-weight: var(--fw-black);
+}
+.wxs-loc-now { margin: 0 0 10px; color: var(--c-text-2); font-size: var(--fs-xs); line-height: 1.4; }
+.wxs-loc .wxs-k { display: block; margin-bottom: 4px; }
+.wxs-loc input[type="search"] {
+  width: 100%;
+  min-height: 48px;
+  margin: 0;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--c-line);
+  background: var(--c-surface-2);
+  color: var(--c-text-1, #f5f1e6);
+  font-size: 16px;
+}
+.wxs-loc input[type="search"]:focus {
+  outline: 2px solid var(--num-yellow, #F2C94C);
+  border-color: var(--num-yellow, #F2C94C);
+}
+.wxs-hits {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  max-height: 200px;
+  overflow: auto;
+  border: 1px solid var(--c-line);
+  border-radius: var(--radius-md, 10px);
+  background: var(--c-surface-2);
+}
+.wxs-hits[hidden] { display: none; }
+.wxs-hits li { margin: 0; padding: 0; }
+.wxs-hit {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  text-align: left;
+  border: 0;
+  border-bottom: 1px solid var(--c-line);
+  border-radius: 0;
+  background: transparent;
+  color: var(--c-text-1, #f5f1e6);
+  font-size: var(--fs-sm, 14px);
+  font-weight: var(--fw-bold);
+}
+.wxs-hits li:last-child .wxs-hit { border-bottom: 0; }
+.wxs-hit:hover, .wxs-hit:focus { background: var(--c-surface-3, rgba(255,255,255,0.06)); }
+.wxs-loc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.wxs-loc-actions .about-btn {
+  flex: 1 1 140px;
+  min-height: 44px;
+  text-transform: none;
+}
+.wxs-loc-actions .about-btn:disabled { opacity: 0.45; }
+.wxs-loc-msg { margin: 8px 0 0; color: var(--c-text-2); font-size: var(--fs-xs); line-height: 1.4; }
+
+
 /* v105: make room for the weather chip on phones. The WX rules switch keeps its knob (name in
    its aria-label); letters return at 560 px. The last-pull age drops below 420 px, the time and
    the freshness dot stay. */
