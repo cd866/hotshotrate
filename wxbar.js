@@ -8,7 +8,8 @@
      3. last delivered load's drop city
      4. base: Jacksonville, FL
    A city picked in the sheet is saved in localStorage (blackram_wxloc_v1) and wins until
-   "Use truck location" clears it. "Use my phone location" is opt-in only: the point is
+   "Use truck location" clears it. Home sets Jacksonville, FL (base centroid) in one tap.
+   "Use my phone location" is opt-in only: the point is
    reverse-looked-up to the nearest city and stored as City, ST (centroid), never a pin.
    This override is only for the weather chip. It does not change Rate Check "Truck is at"
    (deadhead / fuel) or the Today "Truck now" load card.
@@ -177,6 +178,13 @@
     var q = $('wxs-q'); if (q) q.value = '';
     refresh(true);
   }
+  function isHome(loc) {
+    return !!(loc && loc.city === BASE.city && Math.abs(loc.lat - BASE.lat) < 0.02 && Math.abs(loc.lon - BASE.lon) < 0.02);
+  }
+  function setHome() {
+    setOverride(asLoc(BASE.city, BASE.lat, BASE.lon, 'home (Jacksonville, FL)', true));
+  }
+  var HOME_ICO = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4.2l8.5 7.3"/><path d="M6 10.5V20h12v-9.5"/><path d="M10 20v-6h4v6"/></g></svg>';
   function hitFromGeo(r, wantSt) {
     if (!r || (r.country_code && String(r.country_code).toUpperCase() !== 'US')) return null;
     var code = (r.feature_code || '');
@@ -234,9 +242,16 @@
     var p = $('wxs-loc-now');
     var loc = st.loc;
     if (p) {
-      if (loc && loc.manual) p.textContent = 'Showing ' + loc.city + ' (set by you).';
+      if (loc && loc.manual && isHome(loc)) p.textContent = 'Showing ' + loc.city + ' (home).';
+      else if (loc && loc.manual) p.textContent = 'Showing ' + loc.city + ' (set by you).';
       else if (loc) p.textContent = 'Showing the truck city: ' + loc.city + '.';
       else p.textContent = '';
+    }
+    var home = $('wxs-home');
+    if (home) {
+      var on = !!(loc && loc.manual && isHome(loc));
+      home.classList.toggle('on', on);
+      home.setAttribute('aria-pressed', on ? 'true' : 'false');
     }
     var auto = $('wxs-auto');
     if (auto) auto.disabled = !(loc && loc.manual);
@@ -323,6 +338,7 @@
     root.addEventListener('click', function (e) {
       var t = e.target && e.target.closest ? e.target.closest('button') : null;
       if (!t) return;
+      if (t.id === 'wxs-home') { e.preventDefault(); setHome(); return; }
       if (t.id === 'wxs-auto') { e.preventDefault(); clearOverride(); return; }
       if (t.id === 'wxs-geo') { e.preventDefault(); usePhoneLocation(); return; }
       if (t.classList && t.classList.contains('wxs-hit')) {
@@ -431,7 +447,7 @@
     if (!w || w.temp == null) {
       el.setAttribute('data-state', st.loc || st.busy ? (st.busy ? 'busy' : 'off') : 'busy');
       el.innerHTML = '<span class="wxb-na">WX ' + (st.busy || !st.loc ? '--' : 'n/a') + '</span>' + (manual ? pinSvg() : '');
-      el.setAttribute('aria-label', 'Truck weather ' + (st.busy || !st.loc ? 'loading' : 'not available') + (manual && st.loc ? ' for ' + st.loc.city + ', set by you' : '') + '. Open details');
+      el.setAttribute('aria-label', 'Truck weather ' + (st.busy || !st.loc ? 'loading' : 'not available') + (manual && st.loc ? ' for ' + st.loc.city + (isHome(st.loc) ? ', home' : ', set by you') : '') + '. Open details');
       syncLocUi();
       if (st.open) renderSheet();
       return;
@@ -444,7 +460,7 @@
       (manual ? pinSvg() : '') +
       '<span class="wxb-city">' + esc(w.city.replace(/, .*/, '')) + '</span>';
     el.setAttribute('aria-label', 'Weather in ' + w.city + ', ' + rd(w.temp) + ' F, ' + condLabel(w.code, w.day) +
-      (manual ? ', location set by you' : '') + (old ? ', older reading' : '') + '. Open details');
+      (manual ? (isHome(st.loc) || isHome(w) ? ', home location' : ', location set by you') : '') + (old ? ', older reading' : '') + '. Open details');
     syncLocUi();
     if (st.open) renderSheet();
   }
@@ -454,9 +470,10 @@
   function stat(label, val, sub) {
     return '<div class="wxs-stat"><span class="wxs-k">' + label + '</span><b class="wxs-v num-yellow">' + val + '</b>' + (sub ? '<span class="wxs-sub">' + sub + '</span>' : '') + '</div>';
   }
-  function cityLine(city, manual) {
+  function cityLine(city, manual, home) {
+    var tag = home ? 'home' : (manual ? 'set by you' : '');
     return '<p class="wxs-city">' + (manual ? pinSvg('wxb-pin wxs-pin') : '') + '<span>' + esc(city) + '</span>' +
-      (manual ? '<span class="wxs-set">set by you</span>' : '') + '</p>';
+      (tag ? '<span class="wxs-set">' + tag + '</span>' : '') + '</p>';
   }
   function renderSheet() {
     var box = $('wxs-body');
@@ -464,7 +481,7 @@
     var w = st.wx, loc = st.loc;
     var manual = !!(loc && loc.manual) || !!(w && w.manual);
     if (!w || w.temp == null) {
-      box.innerHTML = '<h2 id="wxs-title">Truck weather</h2>' + (loc ? cityLine(loc.city, manual) : '') +
+      box.innerHTML = '<h2 id="wxs-title">Truck weather</h2>' + (loc ? cityLine(loc.city, manual, isHome(loc)) : '') +
         '<p class="wxs-note">' + (st.busy ? 'Loading...' : 'WX n/a. No weather reading yet (offline or Open-Meteo did not answer). It retries when the phone is back online.') + '</p>' +
         '<p class="wxs-fine">City level only. ' + (loc ? 'Location: ' + esc(loc.src) + '.' : '') + '</p>';
       syncLocUi();
@@ -483,7 +500,7 @@
       note = '<p class="wxs-ok">Overnight low ' + nl + ' F is above the ' + COLD_F + ' F cold limit.</p>';
     } else note = '';
     box.innerHTML =
-      '<h2 id="wxs-title">Truck weather</h2>' + cityLine(w.city, manual) +
+      '<h2 id="wxs-title">Truck weather</h2>' + cityLine(w.city, manual, isHome(loc) || isHome(w)) +
       '<div class="wxs-now">' + iconFor(w.code, w.day).replace('width="20" height="20"', 'width="56" height="56"').replace('wxb-ico', 'wxb-ico wxb-big') +
       '<div><b class="wxs-temp num-yellow">' + rd(w.temp) + ' F</b><span class="wxs-cond">' + esc(condLabel(w.code, w.day)) + '</span></div></div>' +
       '<div class="wxs-grid">' +
@@ -554,6 +571,8 @@
         '<div class="wxs-loc" id="wxs-loc">' +
         '<h3 class="wxs-loc-h">Change city</h3>' +
         '<p class="wxs-loc-now" id="wxs-loc-now"></p>' +
+        '<button type="button" class="btn gold btn-glow wxs-home" id="wxs-home" aria-label="Home, Jacksonville, FL" aria-pressed="false">' +
+        HOME_ICO + '<span class="wxs-home-copy"><b>Home</b><span>Jacksonville, FL</span></span></button>' +
         '<label class="wxs-k" for="wxs-q">Search a city</label>' +
         '<input type="search" id="wxs-q" placeholder="City, ST" autocomplete="off" autocapitalize="words" autocorrect="off" spellcheck="false" enterkeyhint="search">' +
         '<ul class="wxs-hits" id="wxs-hits" hidden role="listbox"></ul>' +
@@ -579,6 +598,6 @@
     /* no feed after 6 s: use the base city so the chip is never empty */
     setTimeout(function () { if (!st.loc && !st.busy) { st.useBase = true; refresh(false); } }, 6000);
   }
-  window.BlackRamWxBar = { iconFor: iconFor, refresh: refresh, kindOf: kindOf, setCity: setOverride, useTruckLocation: clearOverride };
+  window.BlackRamWxBar = { iconFor: iconFor, refresh: refresh, kindOf: kindOf, setCity: setOverride, useTruckLocation: clearOverride, setHome: setHome };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', build); else build();
 })();
