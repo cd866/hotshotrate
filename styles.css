@@ -4418,6 +4418,7 @@ article.combo-card.cc.cc-flash { animation: ccFlash 2s ease-out 1; }
    Type: --fs-xs 12 / sm 13 / md 15 / base 16 / lg 18 / xl 22 / 2xl 28 / 3xl 34
    Hierarchy: numbers are big and bold (--fs-2xl/800), labels small (--fs-xs/700, muted).
    Buttons: .btn-primary (gold), .btn-secondary (filled), .btn-ghost (outline), all >= 44px.
+   Glow: --glow-gold / .btn-glow on primary CTAs only; .btn-glow-pulse for one home CTA.
    Verdicts: --c-take (green), --c-maybe (amber), --c-pass (muted grey).
    ===================================================================== */
 :root {
@@ -4441,6 +4442,10 @@ article.combo-card.cc.cc-flash { animation: ccFlash 2s ease-out 1; }
   --c-gold: #F2C94C;
   --c-gold-ink: #17120a;
   --num-yellow: var(--c-gold); /* #F2C94C ram-logo gold; headline figures */
+  /* Soft gold halo for primary action buttons. Box-shadow only (no filters). */
+  --glow-gold: 0 0 0 1px rgba(242, 201, 76, 0.22), 0 0 14px rgba(242, 201, 76, 0.42), 0 6px 16px rgba(242, 201, 76, 0.16);
+  --glow-gold-pulse: 0 0 0 1px rgba(242, 201, 76, 0.4), 0 0 22px rgba(242, 201, 76, 0.6), 0 8px 22px rgba(242, 201, 76, 0.26);
+  --glow-gold-soft: 0 0 0 1px rgba(242, 201, 76, 0.3), 0 0 12px rgba(242, 201, 76, 0.3);
   --c-take: #34D399; --c-take-bg: rgba(52, 211, 153, 0.13); --c-take-ink: #052e20;
   --c-maybe: #FBBF24; --c-maybe-bg: rgba(251, 191, 36, 0.13); --c-maybe-ink: #2d1f02;
   --c-pass: #8a84a3; --c-pass-bg: rgba(138, 132, 163, 0.12); --c-pass-ink: #f1eff7;
@@ -5566,3 +5571,106 @@ header.top .rig-stage[data-r360] .rig-floor { transition: opacity 0.5s ease; }
 .callsheet-lock .pin-lock-ico { width: 44px; height: 44px; }
 .callsheet-lock .pin-lock-ico svg { width: 22px; height: 22px; }
 .callsheet-lock p { max-width: none; }
+
+
+/* =====================================================================
+   v104 BUTTON GLOW
+   Soft gold box-shadow halo on primary / action buttons only.
+   Do not glow tiles, chips, secondary, ghost, or destructive buttons.
+   No filters (keeps scroll cheap on phones). Pulse is one CTA only.
+   ===================================================================== */
+.btn-glow {
+  box-shadow: var(--glow-gold);
+}
+.btn-glow-pulse {
+  animation: btnGlowPulse 2.8s ease-in-out infinite;
+}
+@keyframes btnGlowPulse {
+  0%, 100% { box-shadow: var(--glow-gold); }
+  50% { box-shadow: var(--glow-gold-pulse); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-glow-pulse { animation: none; }
+}
+
+/* Primary gold buttons and named CTAs share the same halo. */
+.btn.primary:not(:disabled):not(.btn-danger):not(.btn-destructive):not(.danger),
+.btn.gold:not(:disabled):not(.btn-danger):not(.btn-destructive):not(.danger),
+.btn-primary:not(:disabled):not(.btn-danger):not(.btn-destructive):not(.danger),
+button.btn.primary:not(:disabled):not(.btn-danger):not(.btn-destructive):not(.danger),
+button.btn.gold:not(:disabled):not(.btn-danger):not(.btn-destructive):not(.danger),
+#rc-save:not(:disabled),
+#refresh-btn,
+#search-refresh-btn,
+#dailyreports-root .dr-btn.pri,
+#drep-view .dr-btn.pri,
+#drep-pin-form .dr-btn.pri,
+.td-q,
+.td-btn.gold {
+  box-shadow: var(--glow-gold);
+}
+
+/* Rate Check's real CTA is Save check (the form scores as you type). */
+#rc-save:not(:disabled) {
+  background: var(--c-gold);
+  border-color: var(--c-gold);
+  color: var(--c-gold-ink);
+}
+
+/* Single pulsing CTA: Today's gold action (Find a load / Mark delivered). */
+.td-btn.gold {
+  animation: btnGlowPulse 2.8s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .td-btn.gold { animation: none; }
+}
+
+/* Active bottom-nav tab: a softer halo so it does not compete with gold CTAs. */
+nav.tabbar.bnav {
+  overflow: visible;
+  padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+}
+nav.tabbar.bnav > button[aria-selected="true"],
+nav.tabbar.bnav > button.tb-more.is-active {
+  box-shadow: var(--glow-gold-soft);
+}
+
+/* Room for the halo; overflow-hidden parents would clip it. */
+.td-card { overflow: visible; }
+.td-qs { padding: 4px 2px 8px; margin: 0 -2px; }
+.td-btns { padding: 4px 0 6px; }
+.rc-verdict, .rc-save-row { overflow: visible; }
+.fin-pin-row, .ac-pin, .dr-pin, form[data-tx-pin],
+.relay-connect-form, .relay-settings-box, .relay-connect-panel {
+  overflow: visible;
+}
+#panel-check details.settings {
+  overflow: visible;
+}
+#dailyreports-root .dr-card,
+#dailyreports-root .dr-btns { overflow: visible; }
+
+/* Disabled / secondary / destructive stay flat. */
+.btn-glow:disabled,
+.btn.primary:disabled,
+.btn.gold:disabled,
+.btn-primary:disabled,
+#rc-save:disabled,
+.btn.btn-ghost,
+.btn.btn-danger,
+.btn.btn-destructive,
+.btn.danger,
+.rc-hist-del,
+#settings-relay-clear,
+#deliver-sheet-cancel,
+#compare-clear-btn {
+  box-shadow: none;
+  animation: none;
+}
+
+/* Load-board action chips stay plain even when a call button is gold. */
+body .search-actions > a,
+body .search-actions > button,
+body .search-actions .trip-plan-btn {
+  box-shadow: none;
+}
