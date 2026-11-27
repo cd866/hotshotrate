@@ -882,10 +882,10 @@
     var s = st.feed ? stats() : null;
     el.setAttribute('role', 'button'); el.setAttribute('tabindex', '0'); el.setAttribute('data-tl', 'd3open');
     el.setAttribute('aria-label', 'Driver 360: ' + NAME + '. Open');
-    el.innerHTML = '<span class="d3-face" style="background-image:url(' + ART + ')" aria-hidden="true"></span>' +
+    el.innerHTML = '<span class="d3-face" style="background-image:url(brand/face-meshach.png?v=138)" aria-hidden="true"></span>' +
       '<span class="d3-tm"><small>Driver 360</small><b>' + NAME + '</b><span>Driver + partner</span></span>' +
       '<span class="d3-ts">' + (s ? '<span><b>' + s.loads + '</b>loads</span><span><b>' + n0(s.loaded) + '</b>loaded mi</span><span><b>' + (s.loads ? Math.round(s.onTime / s.loads * 100) : 0) + '%</b>on time</span>' : '<span><b>--</b>loads</span>') + '</span>' +
-      '<span class="d3-tchev" aria-hidden="true">&rsaquo;</span>';
+      '<span class="d3-tchev" aria-hidden="true"></span>';
   }
 
   function css() {
@@ -893,10 +893,10 @@
     var s = document.createElement('style'); s.id = 'd3-css';
     s.textContent =
       '.d3-teaser{display:flex;align-items:center;gap:10px;margin:8px 0 0;padding:8px 10px;border:1px solid var(--c-line);border-radius:10px;background:var(--c-surface-1);color:var(--c-text-1);text-align:left}' +
-      '.d3-face{flex:0 0 52px;width:52px;height:52px;border-radius:50%;overflow:hidden;background-color:#2a1a33;background-size:330%;background-position:31% 13%;background-repeat:no-repeat;background-clip:padding-box;border:2px solid var(--c-gold);box-shadow:0 0 0 2px var(--c-surface-1);padding:0;outline:0}' +
+      '.d3-face{flex:0 0 52px;width:52px;height:52px;border-radius:50%;overflow:hidden;background-color:#2a1a33;background-size:cover;background-position:50% 50%;background-repeat:no-repeat;background-clip:padding-box;border:2px solid var(--c-gold);box-shadow:0 0 0 2px var(--c-surface-1);padding:0;outline:0}' +
       '.d3-tm{display:flex;flex-direction:column;min-width:0;line-height:1.15}.d3-tm small{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--c-gold)}.d3-tm b{font-size:17px;font-weight:900}.d3-tm span{font-size:11px;color:var(--c-text-3);font-weight:700}' +
       '.d3-ts{display:flex;gap:8px;margin-left:auto}.d3-ts span{display:flex;flex-direction:column;align-items:center;font-size:9.5px;color:var(--c-text-3);font-weight:700;line-height:1.1}.d3-ts b{font-size:14px;color:var(--num-yellow,var(--c-gold,#F2C94C));font-weight:900}' +
-      '.d3-tchev{font-size:24px;color:var(--c-text-3);line-height:1;margin-left:2px}' +
+      '.d3-tchev{flex:0 0 auto;display:inline-block;width:8px;height:8px;margin:0 4px 0 2px;border-right:2px solid var(--c-text-3);border-bottom:2px solid var(--c-text-3);transform:rotate(-45deg)}' +
       'html.d3-noscroll,html.d3-noscroll body{overflow:hidden}' +
       '.d3-view{position:fixed;inset:0;z-index:2650;background:var(--c-bg);display:flex;flex-direction:column;color:var(--c-text-1)}' +
       '.d3-bar{display:flex;align-items:center;gap:10px;min-height:52px;padding:calc(env(safe-area-inset-top,0px) + 6px) 12px 6px;background:var(--c-surface-1);border-bottom:1px solid var(--c-line)}.d3-bar b{font-size:16px;font-weight:900}.d3-bar span{margin-left:auto;color:var(--c-text-3);font-size:12px;font-weight:800}' +

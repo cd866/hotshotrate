@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v137';
+  var APP_VERSION = 'v138';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -455,7 +455,7 @@
     }
     var bits = [];
     if (result.pickup || result.delivery) {
-      bits.push((result.pickup || 'Pickup') + ' -> ' + (result.delivery || 'Delivery'));
+      bits.push((result.pickup || 'Pickup') + ' to ' + (result.delivery || 'Delivery'));
     }
     if (result.flags && result.flags.length) bits.push(result.flags.join('. ') + '.');
     if (state.tarp) bits.push('Tarp required. We have tarps and straps.');
@@ -1847,7 +1847,7 @@
     return '<article class="load has-route ' + esc(statusCls) + esc(payCls) + '" data-load-id="' + esc(id) + '">' +
       '<div class="card-top-bar"><div class="card-badges">' + badges + '</div></div>' +
       '<h3>' + esc(load.desc || 'Load') + '</h3>' +
-      '<p class="lane">' + esc(load.lane || ((load.pickup_place || '') + ' to ' + (load.drop_place || ''))) + '</p>' +
+      '<p class="lane">' + esc(laneAscii(load.lane) || ((load.pickup_place || '') + ' to ' + (load.drop_place || ''))) + '</p>' +
       keyMetricsGrid(ledgerRow, gridOpts) +
       milesStrip(miles, emp.mi, { loadedEst: !!load.miles_estimate, emptyEst: true, emptyFrom: emp.from }) +
       fitRow +
@@ -2001,9 +2001,14 @@
     refreshDeliverUndoToast();
   }
 
+  // v138: ledger lanes written with an arrow show as plain ASCII 'to'.
+  function laneAscii(v) {
+    return String(v == null ? '' : v).replace(/\s*\u2192\s*/g, ' to ').replace(/[\u2013\u2014]/g, '-').replace(/[\u2018\u2019]/g, "'");
+  }
+
   function deliverLaneLabel(load) {
     if (!load) return '';
-    if (load.lane) return load.lane;
+    if (load.lane) return laneAscii(load.lane);
     var a = load.pickup_place || '';
     var b = load.drop_place || '';
     if (a && b) return a + ' to ' + b;
@@ -2767,9 +2772,9 @@
 
   function searchMoney(n) {
     if (n == null || !isFinite(n)) return 'n/a';
-    var neg = n < -0.004;
     var abs = Math.abs(n);
     var body = abs.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    var neg = n < 0 && body !== '0';
     return (neg ? '-$' : '$') + body;
   }
 
@@ -5690,7 +5695,8 @@
 
   function whyMoney(n) {
     if (n == null || !isFinite(Number(n))) return '';
-    return '$' + Math.round(Number(n)).toLocaleString('en-US');
+    var r = Math.round(Number(n));
+    return (r < 0 ? '-$' : '$') + Math.abs(r).toLocaleString('en-US');
   }
 
   function whyLb(n) {
@@ -6290,10 +6296,11 @@
     var top = rows.filter(function (row) { return row.net_est != null; }).slice(0, 12);
     if (!top.length) return '';
     var width = 440;
-    var rowH = 26;
-    var left = 150;
+    // v138: lane label sits on its own line above the bar so the full lane reads (no overlap).
+    var rowH = 34;
+    var left = 0;
     var right = 54;
-    var height = top.length * rowH + 8;
+    var height = top.length * rowH + 4;
     var maxAbs = 1;
     top.forEach(function (row) {
       var a = Math.abs(row.net_est);
@@ -6305,24 +6312,24 @@
       var w = Math.max(2, Math.round(Math.abs(row.net_est) / maxAbs * barW));
       var color = row.verdict === 'TAKE' ? '#F2C94C' : (row.verdict === 'MAYBE' ? '#C4B5FD' : '#F87171');
       if (row.net_est < 0) color = '#F87171';
-      var lane = (row.origin || '') + ' -> ' + (row.destination || '');
-      if (lane.length > 28) lane = lane.slice(0, 26) + '...';
-      var tip = (row.origin || '') + ' -> ' + (row.destination || '') +
+      var lane = (row.origin || '') + ' to ' + (row.destination || '');
+      if (lane.length > 52) lane = lane.slice(0, 50) + '...';
+      var tip = (row.origin || '') + ' to ' + (row.destination || '') +
         ' | ' + searchMoney(row.net_est) + ' net EST | ' + perHourLabel(row) +
         ' | Gross ' + (grossPerMileValue(row) != null ? rateMoney(grossPerMileValue(row), 2) : 'n/a') +
         '/mi | Net ' + netPerMileLabel(row);
       return '<g>' +
         '<title>' + esc(tip) + '</title>' +
-        '<text class="chart-label" x="0" y="' + (y + 14) + '">' + esc(lane) + '</text>' +
-        '<rect x="' + left + '" y="' + (y + 4) + '" width="' + w + '" height="14" rx="3" fill="' + color + '"></rect>' +
-        '<text class="chart-val" x="' + (left + w + 6) + '" y="' + (y + 15) + '">' + esc(searchMoney(row.net_est)) + '</text>' +
+        '<text class="chart-label" x="0" y="' + (y + 11) + '">' + esc(lane) + '</text>' +
+        '<rect x="' + left + '" y="' + (y + 16) + '" width="' + w + '" height="12" rx="3" fill="' + color + '"></rect>' +
+        '<text class="chart-val" x="' + (left + w + 6) + '" y="' + (y + 27) + '">' + esc(searchMoney(row.net_est)) + '</text>' +
         '</g>';
     }).join('');
     var cssRows = top.map(function (row) {
       var pct = Math.max(2, Math.round(Math.abs(row.net_est) / maxAbs * 100));
       var kind = row.net_est < 0 ? 'neg' : (row.verdict === 'TAKE' ? 'take' : (row.verdict === 'MAYBE' ? 'maybe' : 'pass'));
-      var lane = (row.origin || '') + ' \u2192 ' + (row.destination || '');
-      var tip = (row.origin || '') + ' -> ' + (row.destination || '') +
+      var lane = (row.origin || '') + ' to ' + (row.destination || '');
+      var tip = (row.origin || '') + ' to ' + (row.destination || '') +
         ' | ' + searchMoney(row.net_est) + ' net EST | ' + perHourLabel(row) +
         ' | Gross ' + (grossPerMileValue(row) != null ? rateMoney(grossPerMileValue(row), 2) : 'n/a') +
         '/mi | Net ' + netPerMileLabel(row);
@@ -7321,7 +7328,7 @@
     if (sub && data) {
       var names = keys.map(function (k) {
         var r = findRowByKey(k, data);
-        return r ? ((r.origin || '').split(',')[0] + '->' + (r.destination || '').split(',')[0]) : '';
+        return r ? ((r.origin || '').split(',')[0] + ' to ' + (r.destination || '').split(',')[0]) : '';
       }).filter(Boolean);
       sub.textContent = names.join(' | ');
     }
@@ -7370,7 +7377,7 @@
     }
 
     var heads = '<tr><th>Load</th>' + rows.map(function (r) {
-      return '<td class="compare-col-head">' + esc((r.origin || '').split(',')[0] + ' -> ' + (r.destination || '').split(',')[0]) +
+      return '<td class="compare-col-head">' + esc((r.origin || '').split(',')[0] + ' to ' + (r.destination || '').split(',')[0]) +
         '<br><span class="verdict-pill ' + esc(String(r.verdict || 'PASS').toLowerCase()) + '">' + esc(displayVerdict(r.verdict || 'PASS')) + '</span></td>';
     }).join('') + '</tr>';
 
@@ -8011,7 +8018,7 @@
       return '<li class="fin-tx fin-tx-' + (pos ? 'in' : 'out') + (posting ? ' fin-tx-posting' : '') + '"><span class="fin-tx-date">' + finDay(t.date) + '</span>' +
         '<span class="fin-tx-desc">' + esc(t.desc) + (posting ? ' <span class="fin-chip fin-chip-posting">Posting</span>' : '') + '</span>' +
         '<span class="fin-tx-amt ' + (pos ? 'pos' : 'neg') + '">' + (pos ? '+' : '') + finMoney(t.amount, true) + '</span>' +
-        '<span class="fin-tx-bal' + (posting ? ' fin-tx-bal-pending' : '') + '">' + (posting ? '—' : finMoney(t.balance, true)) + '</span></li>';
+        '<span class="fin-tx-bal' + (posting ? ' fin-tx-bal-pending' : '') + '">' + (posting ? '--' : finMoney(t.balance, true)) + '</span></li>';
     }).join('');
     var txCard = '<section class="fin-card"><div class="fin-kicker">Transactions</div>' + finAsOfLine(d) +
       '<div class="fin-tx fin-tx-head"><span>Date</span><span>What</span><span>Amount</span><span>Balance</span></div>' +
@@ -8944,7 +8951,7 @@
       var since = i.delivered ? finDaysFrom(today, i.delivered) : null;
       var received = i.status === 'received' || i.status === 'paid';
       T.open({ title: i.payer, sub: 'Net via ' + esc(i.via), body: T.hero('+' + finMoney(i.amount, true), esc(String(i.status || '').toUpperCase()), 'good') +
-        T.kv([['Delivered', finDay(i.delivered) + (since != null ? ' (' + since + 'd ago)' : '')], received ? ['Received', i.received ? finDay(i.received) : (i.expected ? finDay(i.expected) : '—')] : ['Expected', i.expected ? finDay(i.expected) : 'date?']]) +
+        T.kv([['Delivered', finDay(i.delivered) + (since != null ? ' (' + since + 'd ago)' : '')], received ? ['Received', i.received ? finDay(i.received) : (i.expected ? finDay(i.expected) : '--')] : ['Expected', i.expected ? finDay(i.expected) : 'date?']]) +
         T.fine(received ? ('Received ' + (i.received ? finDay(i.received) : '') + ' via ' + esc(i.via) + '.') : ('Owed by Totni after the 13% fee. Lands in Bluevine through ' + esc(i.via) + '.')) });
     }
   }

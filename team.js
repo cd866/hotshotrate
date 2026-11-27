@@ -11,6 +11,9 @@
   var PIN_KEY = 'blackram_relay_pin_v1';
   var FIN_KEY = 'blackram_fin_session_v1';
   var ART_V = '133';
+  // v138: small lossless face crops (same pixels the old CSS crop showed) so the Team list
+  // does not pull four full 1-1.8 MB portraits.
+  var FACE_V = '138';
   var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var PEOPLE = [
     {
@@ -19,7 +22,7 @@
       group: 'partner',
       kick: 'Partner 360',
       role: 'Partner / owner | Dispatch, loads, finances, and back office',
-      short: 'Owner · dispatch and back office',
+      short: 'Owner | dispatch and back office',
       chips: ['1/3 partner', 'Does not drive'],
       art: 'brand/claudio-360.png?v=' + ART_V, w: 849, h: 1136,
       alt: 'Illustration of Claudio, gray hair and sunglasses, arms crossed in front of a white Audi RS Q8 at sunset.',
@@ -38,7 +41,7 @@
       group: 'partner',
       kick: 'Partner 360',
       role: 'Partner | Trailer capital and company paydowns',
-      short: 'Partner · trailer capital',
+      short: 'Partner | trailer capital',
       chips: ['1/3 partner', 'Trailer capital'],
       art: 'brand/ben-360.png?v=' + ART_V, w: 851, h: 1131,
       alt: 'Illustration of Ben in a tan coat, in front of the black Ram 3500 dually and Big Tex gooseneck at sunset.',
@@ -69,7 +72,7 @@
       group: 'carrier',
       kick: 'Carrier 360',
       role: 'Carrier owner | Totni, our lease-on carrier',
-      short: 'Totni owner · lease-on carrier',
+      short: 'Totni owner | lease-on carrier',
       chips: ['MC 1122113', '13% cut', 'COI 12/10/26'],
       art: 'brand/felix-360.png?v=' + ART_V, w: 846, h: 1131,
       alt: 'Illustration of Felix in a dark suit, in front of a Ram and freight trucks at sunset.',
@@ -227,7 +230,7 @@
       return tile(d.t, esc(d.s || 'TBD'), d.d ? esc(d.d) : '');
     }).join('') + '</div>';
     var calls = (p.calls || []).map(function (c) { return call(c.tone, c.html); }).join('');
-    var tbd = (p.tbd || []).length ? '<p class="d3-fine">' + p.tbd.map(function (x) { return esc(x); }).join(' · ') + '</p>' : '';
+    var tbd = (p.tbd || []).length ? '<p class="d3-fine">' + p.tbd.map(function (x) { return esc(x); }).join(' | ') + '</p>' : '';
     return card('tm-role', title, p.group === 'carrier' ? 'lease-on' : '1/3 owner', body + calls + tbd);
   }
   function secCoi(p) {
@@ -247,9 +250,9 @@
       var rows = lim.map(function (row) {
         var label = row && row[0], val = row && row[1], ded = row && row[2];
         if (!label) return '';
-        return '<div class="d3-ev"><span class="d3-evm"><b>' + esc(pubLabel(label)) + '</b><small>' + esc(pubLabel(val || 'TBD')) + (ded ? ' · ' + esc(pubLabel(ded)) : '') + '</small></span></div>';
+        return '<div class="d3-ev"><span class="d3-evm"><b>' + esc(pubLabel(label)) + '</b><small>' + esc(pubLabel(val || 'TBD')) + (ded ? ' | ' + esc(pubLabel(ded)) : '') + '</small></span></div>';
       }).join('');
-      priv = '<p class="d3-fine">' + esc(totni.insurer || 'Insurer on file') + (totni.start && totni.end ? ' · ' + dayY(totni.start) + ' to ' + dayY(totni.end) : '') + '</p>' +
+      priv = '<p class="d3-fine">' + esc(totni.insurer || 'Insurer on file') + (totni.start && totni.end ? ' | ' + dayY(totni.start) + ' to ' + dayY(totni.end) : '') + '</p>' +
         (rows ? '<div class="d3-tl">' + rows + '</div>' : '<p class="d3-fine">Coverage details not on the financials payload.</p>');
     }
     return card('tm-coi', 'Carrier facts', 'Totni', pub + priv);
@@ -271,14 +274,14 @@
       extra = '<span class="tm-cs"><span><b>' + s.loads + '</b>loads</span><span><b>' + n0(s.loaded) + '</b>loaded mi</span></span>';
     } else if (p.id === 'felix') {
       var left = daysBetween(todayIso(), '2026-12-10');
-      extra = '<span class="tm-cs"><span><b>13%</b>cut</span><span><b>' + (left >= 0 ? left + 'd' : '—') + '</b>COI left</span></span>';
+      extra = '<span class="tm-cs"><span><b>13%</b>cut</span><span><b>' + (left >= 0 ? left + 'd' : '--') + '</b>COI left</span></span>';
     } else if (p.group === 'partner') {
       extra = '<span class="tm-cs"><span><b>1/3</b>owner</span></span>';
     }
     return '<button type="button" class="tm-card" data-tm-open="' + p.id + '" aria-label="' + esc(p.name) + ', ' + esc(p.short) + '. Open 360">' +
-      '<span class="tm-face is-' + p.id + '" style="background-image:url(' + esc(p.art) + ')" aria-hidden="true"></span>' +
+      '<span class="tm-face is-' + p.id + '" style="background-image:url(' + esc('brand/face-' + p.id + '.png?v=' + FACE_V) + ')" aria-hidden="true"></span>' +
       '<span class="tm-meta"><small>' + esc(p.group === 'carrier' ? 'Carrier' : 'Partner') + '</small><b>' + esc(p.name) + '</b><span>' + esc(p.short) + '</span></span>' +
-      extra + '<span class="d3-tchev" aria-hidden="true">&rsaquo;</span></button>';
+      extra + '<span class="d3-tchev" aria-hidden="true"></span></button>';
   }
   function renderTeam() {
     if (!st.teamOpen) return;
@@ -293,7 +296,7 @@
       '<span class="d3-chip">Ram 3500 DRW + 25GN</span>' +
       (s ? '<span class="d3-chip">' + s.loads + ' loads</span>' : '') +
       '</div>';
-    var body = '<div class="tm-intro"><span class="d3-kick">Sand Lily Pad LLC</span><b>Black Ram Logistics</b><span class="d3-role">Hotshot · leased onto Totni</span>' + coChips + '</div>' +
+    var body = '<div class="tm-intro"><span class="d3-kick">Sand Lily Pad LLC</span><b>Black Ram Logistics</b><span class="d3-role">Hotshot | leased onto Totni</span>' + coChips + '</div>' +
       '<h3 class="tm-h">Partners</h3><div class="tm-list">' + partners + '</div>' +
       '<h3 class="tm-h">Carrier</h3><div class="tm-list">' + carrier + '</div>' +
       '<p class="d3-fine d3-foot">First names only. No phone, email or address. Capital, pay and coverage dollars need the PIN.</p>';
@@ -457,7 +460,7 @@
       '.d3-lock{display:flex;flex-direction:column;gap:8px}.d3-lock p{margin:0;font-size:13px;color:var(--c-text-2)}.d3-err{color:#FCA5A5!important;font-weight:800}.d3-pin{display:flex;gap:8px}.d3-pin input{flex:1;min-width:0;min-height:var(--tap);padding:0 12px;border-radius:var(--radius-sm);border:1px solid var(--c-line-strong);background:var(--c-surface-2);color:var(--c-text-1);font-size:16px}.d3-pin .btn{flex:0 0 96px;min-height:var(--tap)}' +
       '.d3-tl{display:flex;flex-direction:column;gap:6px}.d3-ev{position:relative;display:flex;align-items:flex-start;gap:10px;padding:9px 26px 9px 10px;border-radius:10px;background:var(--c-surface-2);border:1px solid var(--c-line)}' +
       '.d3-evd{flex:0 0 38px;font-weight:900;font-size:13px}.d3-evi{flex:0 0 10px;height:10px;border-radius:50%;margin-top:4px}.d3-evi.d3-warn{background:var(--c-maybe)}.d3-evi.d3-unk{background:#6d6787}.d3-evm{display:flex;flex-direction:column;gap:2px;min-width:0}.d3-evm b{font-size:14px}.d3-evm small{font-size:12px;color:var(--c-text-3);line-height:1.3}' +
-      '.d3-tchev{font-size:24px;color:var(--c-text-3);line-height:1;margin-left:2px}';
+      '.d3-tchev{flex:0 0 auto;display:inline-block;width:8px;height:8px;margin:0 4px 0 2px;border-right:2px solid var(--c-text-3);border-bottom:2px solid var(--c-text-3);transform:rotate(-45deg)}';
     document.head.appendChild(s);
   }
   function css() {
@@ -475,10 +478,7 @@
       '.tm-list{display:flex;flex-direction:column;gap:8px}' +
       '.tm-card{display:flex;align-items:center;gap:12px;margin:0;padding:10px 10px;border:1px solid var(--c-line);border-radius:14px;background:var(--c-surface-1);color:var(--c-text-1);text-align:left;width:100%;min-height:88px;box-sizing:border-box}' +
       '.tm-face{flex:0 0 72px;width:72px;height:72px;border-radius:50%;overflow:hidden;background-color:#2a1a33;background-repeat:no-repeat;background-clip:padding-box;border:2px solid var(--c-gold);box-shadow:0 0 0 2px var(--c-surface-1);padding:0;outline:0}' +
-      '.tm-face.is-claudio{background-size:150%;background-position:62% 6%}' +
-      '.tm-face.is-ben{background-size:200%;background-position:54% 4%}' +
-      '.tm-face.is-meshach{background-size:330%;background-position:31% 13%}' +
-      '.tm-face.is-felix{background-size:145%;background-position:50% 6%}' +
+      '.tm-face{background-size:cover;background-position:50% 50%}' +
       '.tm-meta{display:flex;flex-direction:column;min-width:0;line-height:1.15;flex:1}' +
       '.tm-meta small{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--c-gold)}' +
       '.tm-meta b{font-size:20px;font-weight:900}' +

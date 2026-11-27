@@ -10,75 +10,75 @@
    the network request fails, so live search progress shows without a version bump.
    Open-Meteo (appbar weather chip, wxbar.js) is cross-origin: this worker never touches or
    caches it, the page keeps its own 30 min copy in localStorage. */
-var CACHE = 'blackram-v137';
+var CACHE = 'blackram-v138';
 var ASSETS = [
   './',
   './index.html',
   './styles.css',
-  './styles.css?v=137',
+  './styles.css?v=138',
   './desktop.css',
-  './desktop.css?v=137',
+  './desktop.css?v=138',
   './app.js',
-  './app.js?v=137',
+  './app.js?v=138',
   './pullbar.js',
-  './pullbar.js?v=137',
+  './pullbar.js?v=138',
   './maps.js',
-  './maps.js?v=137',
+  './maps.js?v=138',
   './wxicons.js',
-  './wxicons.js?v=137',
+  './wxicons.js?v=138',
   './stops.js',
-  './stops.js?v=137',
+  './stops.js?v=138',
   './targets.js',
   './loadcosts.js',
-  './loadcosts.js?v=137',
+  './loadcosts.js?v=138',
   './tripplan.js',
-  './tripplan.js?v=137',
+  './tripplan.js?v=138',
   './data/pilot_fj.json',
-  './targets.js?v=137',
+  './targets.js?v=138',
   './reports.js',
-  './reports.js?v=137',
+  './reports.js?v=138',
   './scoreboard.js',
   './accounting.js',
-  './accounting.js?v=137',
+  './accounting.js?v=138',
   './insurance.js',
-  './insurance.js?v=137',
+  './insurance.js?v=138',
   './maintenance.js',
-  './maintenance.js?v=137',
+  './maintenance.js?v=138',
   './dotready.js',
-  './dotready.js?v=137',
+  './dotready.js?v=138',
   './tax.js',
-  './tax.js?v=137',
+  './tax.js?v=138',
   './actions.js',
-  './actions.js?v=137',
+  './actions.js?v=138',
   './loans.js',
-  './loans.js?v=137',
+  './loans.js?v=138',
   './data/actions.json',
   './rig360.js',
   './tiles.js',
-  './tiles.js?v=137',
-  './rig360.js?v=137',
+  './tiles.js?v=138',
+  './rig360.js?v=138',
   './driver360.js',
-  './driver360.js?v=137',
+  './driver360.js?v=138',
   './team.js',
-  './team.js?v=137',
+  './team.js?v=138',
   './today.js',
-  './today.js?v=137',
+  './today.js?v=138',
   './search.js',
-  './search.js?v=137',
+  './search.js?v=138',
   './truckloc.js',
-  './truckloc.js?v=137',
+  './truckloc.js?v=138',
   './wxbar.js',
-  './wxbar.js?v=137',
+  './wxbar.js?v=138',
   './brand/meshach-360.png',
-  './brand/meshach-360.png?v=137',
+  './brand/face-meshach.png',
   './brand/claudio-360.png',
-  './brand/claudio-360.png?v=137',
+  './brand/face-claudio.png',
   './brand/ben-360.png',
-  './brand/ben-360.png?v=137',
+  './brand/face-ben.png',
   './brand/felix-360.png',
-  './brand/felix-360.png?v=137',
+  './brand/face-felix.png',
   './vendor/three/three.module.min.js',
-  './scoreboard.js?v=137',
+  './scoreboard.js?v=138',
   './manifest.json',
   './manifest.json?v=3',
   './manifest.webmanifest',
@@ -130,6 +130,10 @@ function isLoadSearches(url) {
 
 function isFreshData(url) {
   return url.pathname.endsWith('/data/feed.json') || url.pathname.endsWith('/data/diesel_prices.json') || url.pathname.endsWith('/data/stops.json') || url.pathname.endsWith('/data/maintenance.json') || url.pathname.endsWith('/data/dot_ready.json') || url.pathname.endsWith('/data/tax.json') || url.pathname.endsWith('/data/actions.json');
+}
+
+function isStaticAsset(url) {
+  return /\/(brand|icons|fonts|vendor)\//.test(url.pathname) || /\/favicon\.ico$/.test(url.pathname);
 }
 
 function isShell(url, req) {
@@ -282,6 +286,19 @@ self.addEventListener('fetch', function (event) {
           clearTimeout(timer);
           resolve(feedFromCache(key));
         });
+      })
+    );
+    return;
+  }
+
+  if (isStaticAsset(url)) {
+    // v138: images, fonts and vendor files are versioned or rarely change, so serve the saved
+    // copy at once (fast on a weak signal) and refresh it in the background.
+    event.respondWith(
+      caches.match(req).then(function (cached) {
+        var net = fetch(req).then(function (res) { return store(req, res); });
+        if (cached) { event.waitUntil(net.catch(function () {})); return cached; }
+        return net.catch(function () { return fromCache(req, url, false); });
       })
     );
     return;

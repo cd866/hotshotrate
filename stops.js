@@ -82,7 +82,7 @@
   function addressLine(stop) {
     var city = [stop.city, stop.state].filter(Boolean).join(', ');
     if (stop.zip) city = city ? (city + ' ' + stop.zip) : stop.zip;
-    return [stop.address, city].filter(Boolean).join(', ');
+    return [String(stop.address || '').replace(/[\u2018\u2019]/g, "'"), city].filter(Boolean).join(', ');
   }
 
   function roadLine(stop) {
