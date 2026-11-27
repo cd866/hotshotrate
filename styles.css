@@ -101,7 +101,7 @@ button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
   min-height: 36px;
 }
 .logo-wrap { display: flex; justify-content: center; }
-.logo-wrap svg { width: min(100%, 340px); height: auto; display: block; }
+.logo-wrap svg { width: min(100%, 340px); height: auto; aspect-ratio: 720 / 190; object-fit: contain; flex-shrink: 0; display: block; }
 .tag {
   display: inline-block;
   margin: 6px 0 0;
@@ -508,7 +508,7 @@ details.expenses summary {
 html.splash-seen #about:not(.open) { display: none; }
 .sheet-inner { width: min(440px, 100%); }
 .sheet-top { display: flex; justify-content: flex-end; }
-.sheet svg { width: min(100%, 300px); height: auto; display: block; margin: 0 auto 8px; }
+.sheet svg { width: min(100%, 300px); height: auto; aspect-ratio: auto 500 / 390; object-fit: contain; flex-shrink: 0; display: block; margin: 0 auto 8px; }
 .sheet h2 {
   font-family: var(--display);
   font-weight: 600;
@@ -4481,12 +4481,20 @@ main { padding: 0 var(--s-2) calc(var(--bnav-h) + var(--s-3) + env(safe-area-ins
 .appbar button { font: inherit; color: inherit; cursor: pointer; }
 .appbar-brand {
   display: flex; align-items: center; gap: var(--s-1);
+  flex: 0 0 auto;
   min-width: var(--tap); min-height: var(--tap);
   padding: 0 4px; border: 0; background: transparent;
 }
-.appbar-brand svg { width: 32px; height: 32px; display: block; }
-.appbar-brand span { display: none; font-weight: var(--fw-black); font-size: var(--fs-md); letter-spacing: 0.02em; }
-@media (min-width: 430px) { .appbar-brand span { display: inline; } }
+.appbar-brand svg {
+  width: 32px; height: 32px; flex-shrink: 0;
+  aspect-ratio: 1 / 1; object-fit: contain; overflow: visible;
+  display: block;
+}
+.appbar-brand span {
+  display: none; white-space: nowrap; flex-shrink: 0;
+  font-weight: var(--fw-black); font-size: var(--fs-md); letter-spacing: 0.02em;
+}
+@media (min-width: 560px) { .appbar-brand span { display: inline; } }
 .appbar-status {
   flex: 1 1 auto; min-width: 0;
   display: flex; align-items: center; gap: var(--s-1);
@@ -4517,6 +4525,7 @@ main { padding: 0 var(--s-2) calc(var(--bnav-h) + var(--s-3) + env(safe-area-ins
 .hdr-wx-label { font-size: var(--fs-xs); font-weight: var(--fw-black); letter-spacing: 0.04em; color: var(--c-text-2); white-space: nowrap; }
 .appbar-icon {
   flex: 0 0 var(--tap);
+  flex-shrink: 0;
   width: var(--tap); height: var(--tap);
   display: flex; align-items: center; justify-content: center;
   border-radius: var(--radius-md);
@@ -5537,14 +5546,19 @@ header.top .rig-stage[data-r360] .rig-floor { transition: opacity 0.5s ease; }
 .rc-verdict.pass .rcv-net-n { color: var(--c-text-2); }
 .dr-t-cdl b { color: var(--num-yellow); }
 
-/* v96: appbar fits the new search button on a 390 px phone without cutting the last-pull time */
-@media (max-width: 420px) {
+/* v96/v100: pack the appbar on phones so search + last-pull fit. The ram mark
+   never shrinks or changes aspect (v96's 430 px wordmark + search squeezed it). */
+@media (max-width: 559px) {
   .appbar { gap: 6px; padding-left: 8px; padding-right: 8px; }
-  .appbar-brand { min-width: 36px; padding: 0; }
-  .appbar-brand svg { width: 30px; height: 30px; }
+  .appbar-brand { min-width: var(--tap); padding: 0; }
+  .appbar-brand svg { width: 32px; height: 32px; }
   .appbar-status { padding: 6px 10px; gap: 6px; }
   .hdr-wx { padding: 0 2px; gap: 5px; }
-  .appbar-icon { flex-basis: 40px; width: 40px; height: 40px; }
+  .appbar-icon { flex: 0 0 40px; width: 40px; height: 40px; }
+}
+@media (max-width: 379px) {
+  /* iPhone SE width: drop the WX ON letters so last-pull time is not ellipsized */
+  .hdr-wx-label { display: none; }
 }
 
 /* v97: dispatch contact lock inside the broker call sheet */
