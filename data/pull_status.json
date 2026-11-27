@@ -1,21 +1,14 @@
 {
-  "state": "scoring",
-  "pct": 85,
+  "state": "live",
+  "pct": 100,
   "origin": "Jacksonville, FL",
-  "started_at": "2026-11-27 03:42 CT",
+  "started_at": "2026-11-27 03:43 CT",
   "updated_at": "2026-11-27 03:52 CT",
   "counts": {
-<<<<<<< Updated upstream
-    "truckstop": 0,
-    "df": 14,
-    "uship": 0,
-    "fits": 0
-=======
     "truckstop": 41,
     "df": 14,
     "uship": 0,
     "fits": 5
->>>>>>> Stashed changes
   },
-  "message": "Scoring loads"
+  "message": "Loads are live"
 }
