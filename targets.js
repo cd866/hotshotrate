@@ -515,10 +515,12 @@
     if (arg === 'coc') { T.jump('ac-coc', 'acct'); return; }
     if (arg === 'be' || arg === 'bed') {
       var withD = arg === 'bed', fixed = withD ? m.fixedDriver : m.fixed, beMi = withD ? m.beMiDriver : m.beMi;
-      var B = billsList(); if (withD) B.push({ label: 'Meshach (from profit only)', amount: m.driverMo });
+      var B = billsList(), BD = window.BlackRamBills;
+      if (BD) { B = BD.decorate(B); if (!BD.has()) BD.ensure(function (d) { if (d && document.querySelector('.tl-p[aria-label="' + (withD ? 'Break-even incl. Meshach' : 'Break-even') + '"]')) drill(arg); }); }
+      if (withD) B.push({ label: 'Meshach (from profit only)', amount: m.driverMo });
       T.open({ title: withD ? 'Break-even incl. Meshach' : 'Break-even', sub: 'At your Targets inputs', body:
         T.hero(beMi != null ? money(beMi * Number(tgt.rpm)) + '/mo' : 'Not reachable', beMi != null ? num(beMi / WEEKS / Number(tgt.miLoad), 1) + ' loads/wk | ' + num(beMi / WEEKS, 0) + ' loaded mi/wk' : 'Contribution per mile is negative') +
-        T.sec('Monthly bills to cover') + T.rows(B.map(function (b) { return { t: esc(b.label), v: money(b.amount), vc: 'neg' }; }).concat([{ t: 'Total', v: money(fixed), cls: 'tl-tot' }])) +
+        T.sec('Monthly bills to cover') + T.rows(B.map(function (b) { return { t: esc(b.label), s: b.dueHtml || '', v: money(b.amount), vc: 'neg' }; }).concat([{ t: 'Total', v: money(fixed), cls: 'tl-tot' }])) +
         T.sec('What each loaded mile keeps') + T.rows([
           { t: 'Rate', v: rpm(Number(tgt.rpm)) },
           { t: 'Less Totni ' + m.feePct + '%', v: '-' + rpm(Number(tgt.rpm) * (1 - keep)), vc: 'neg' },

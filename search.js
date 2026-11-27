@@ -22,7 +22,8 @@
     maint: ['Maintenance', 'service oil tires brakes bearings torque lube schedule mark done log checklists manuals'],
     dot: ['DOT Ready', 'roadside inspection cfr cdl medical card fire extinguisher triangles registration temp tag'],
     tax: ['Tax', 'tax filing irs 1065 k-1 1099 estimated quarterly franchise ifta 2290 deductions depreciation cpa due dates'],
-    actions: ['Action items', 'to do todo tasks sign documents release waiting on partners checklist open items']
+    actions: ['Action items', 'to do todo tasks sign documents release waiting on partners checklist open items'],
+    loans: ['Loans and Schedules', 'loans amortization schedule truck note trailer note chase synchrony payoff interest principal balance apr due dates insurance progressive payments bills']
   };
   var KIND = { tab: 'Section', load: 'Load', board: 'On the boards', mt: 'Maintenance', dot: 'DOT', tax: 'Tax', ai: 'Action item', chk: 'Checklist', man: 'Manual', rig: 'Our rig', act: 'Action' };
 

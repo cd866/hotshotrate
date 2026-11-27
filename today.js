@@ -252,7 +252,7 @@
     return '<section class="td-card td-money" aria-label="This month"><div class="td-h-row"><h2 class="td-h">' + MON[+p[1] - 1] + ' net kept vs bills</h2><span class="td-h-sub">' + head + '</span></div>' +
       '<div class="tl-tap td-chart-wrap"' + tap('go', 'tab:kpis', 'Open Scoreboard break-even') + '>' + chart(cur, pv, bills, Math.max(1, Math.min(dayNow, cur.dim))) + '</div>' +
       '<div class="td-legend"><span><i class="lg-cur"></i>' + MON[+p[1] - 1] + '</span>' + (prev ? '<span><i class="lg-prev"></i>' + MON[+prev.month.slice(5, 7) - 1] + '</span>' : '') + (bills ? '<span><i class="lg-bills"></i>Monthly bills</span>' : '') + '</div>' +
-      tiles + '</section>';
+      tiles + (window.BlackRamBills && window.BlackRamTargets && window.BlackRamTargets.bills ? window.BlackRamBills.todayStrip(window.BlackRamTargets.bills()) : '') + '</section>';
   }
   function kpi(label, big, sub, key) {
     return '<div class="td-kpi tl-tap tl-corner"' + tap('kpi', key, label + ' ' + big + '. Open the list') + '><span>' + esc(label) + '</span><b class="num-yellow">' + esc(big) + '</b><small>' + esc(sub) + '</small></div>';
