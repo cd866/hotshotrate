@@ -492,7 +492,7 @@
       var d = document.createElement('div');
       d.id = 'wxs'; d.className = 'wxs'; d.hidden = true;
       d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-labelledby', 'wxs-title');
-      d.innerHTML = '<div class="wxs-card"><div class="wxs-top"><button type="button" class="about-btn" id="wxs-close">Close</button></div><div id="wxs-body"></div>' +
+      d.innerHTML = '<div class="wxs-card"><div class="wxs-top"><button type="button" class="about-btn" id="wxs-close">Close</button></div><div class="wxs-scroll"><div id="wxs-body"></div>' +
         '<div class="wxs-loc" id="wxs-loc">' +
         '<h3 class="wxs-loc-h">Change city</h3>' +
         '<p class="wxs-loc-now" id="wxs-loc-now"></p>' +
@@ -506,7 +506,7 @@
         '<button type="button" class="about-btn" id="wxs-geo">Use my phone location</button>' +
         '</div>' +
         '<p class="wxs-loc-msg" id="wxs-loc-msg" hidden></p>' +
-        '</div></div>';
+        '</div></div></div>';
       document.body.appendChild(d);
       d.addEventListener('click', function (e) { if (e.target === d) closeSheet(); });
       $('wxs-close').addEventListener('click', closeSheet);

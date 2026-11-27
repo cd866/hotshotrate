@@ -5890,28 +5890,29 @@ body .search-actions .trip-plan-btn::after {
   position: fixed; inset: 0; z-index: 3100;
   display: flex; align-items: flex-end; justify-content: center;
   background: rgba(8, 6, 14, 0.72);
-  /* Keep the sheet and Close below the notch / status bar. On iOS, 88vh can
-     exceed the visible viewport, which used to clip Close at the top. */
-  padding-top: env(safe-area-inset-top);
+  /* Bottom sheet sits below the notch. 12px gap so the rounded top is fully on-screen. */
+  padding-top: calc(env(safe-area-inset-top) + 12px);
   overflow: hidden;
 }
 .wxs[hidden] { display: none; }
 .wxs-card {
   width: min(440px, 100%);
-  max-height: 88vh;
-  max-height: min(88vh, 100%);
-  overflow: auto;
-  padding: 12px 16px calc(18px + env(safe-area-inset-bottom));
+  max-height: calc(100vh - env(safe-area-inset-top) - 12px);
+  max-height: calc(100dvh - env(safe-area-inset-top) - 12px);
+  max-height: 100%;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  padding: 0;
   background: var(--c-surface-1, #17142a); color: var(--c-text-1, #f5f1e6);
   border: 1px solid var(--c-line); border-bottom: 0;
   border-radius: 18px 18px 0 0;
-  -webkit-overflow-scrolling: touch;
 }
 .wxs-top {
+  flex: 0 0 auto;
   display: flex; justify-content: flex-end; align-items: center;
-  position: sticky; top: 0; z-index: 2;
-  margin: -12px -16px 0;
-  padding: 20px 16px 12px;
+  position: relative; z-index: 2;
+  margin: 0;
+  padding: 12px 16px 8px;
   background: var(--c-surface-1, #17142a);
 }
 .wxs-top .about-btn,
@@ -5919,6 +5920,14 @@ body .search-actions .trip-plan-btn::after {
   min-height: var(--tap);
   min-width: var(--tap);
   padding: 8px var(--s-2, 16px);
+}
+.wxs-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 16px calc(18px + env(safe-area-inset-bottom));
 }
 .wxs-card h2 { margin: 0; font-size: var(--fs-lg, 20px); font-weight: var(--fw-black); }
 .wxs-city { margin: 2px 0 10px; color: var(--c-text-2); font-weight: var(--fw-bold); }
