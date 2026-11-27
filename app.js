@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v135';
+  var APP_VERSION = 'v136';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -48,6 +48,7 @@
     truckAt: null,
     truckAtBusy: false,
     truckAtError: '',
+    truckAtNote: '',
     dieselPrices: null,
     truckFuel: null,
     maxDeadhead: 0,
@@ -3218,6 +3219,7 @@
   var US_BBOX = '-124.9,24.3,-66.8,49.6';
   var suggestTimer = null;
   var suggestGen = 0;
+  var truckHomeNoteTimer = null;
   var lastNominatimAt = 0;
   var truckMap = null;
 
@@ -4739,6 +4741,7 @@
     var text = '<strong>' + esc(label) + '</strong>' + (deadheadFromTruck() ? ' | deadhead and next load start here' : ' | this scan was made from ' + esc(scanOriginName()) + ' (pull fresh loads to start from the truck)');
     if (state.truckAtBusy) text += ' | updating miles...';
     if (state.truckAtError) text += ' | ' + esc(state.truckAtError);
+    if (state.truckAtNote) text += ' | <span class="truck-at-note">' + esc(state.truckAtNote) + '</span>';
     return text;
   }
 
@@ -4874,8 +4877,11 @@
     var value = (state.truckAt && (state.truckAt.label || state.truckAt.city)) || '';
     var maxv = String(state.maxDeadhead || 0);
     var showMap = !!(state.truckAt && state.truckAt.lat != null);
+    var homeOn = isTruckHome();
     return '<div class="truck-at" id="truck-at">' +
       '<h3>Truck is at</h3>' +
+      '<button type="button" class="btn gold btn-glow truck-at-home' + (homeOn ? ' on' : '') + '" id="truck-at-home" aria-label="Home - Jacksonville, FL" aria-pressed="' + (homeOn ? 'true' : 'false') + '">' +
+        TRUCK_HOME_ICO + '<span class="truck-at-home-copy">Home - Jacksonville, FL</span></button>' +
       '<form id="truck-at-form" action="#" class="truck-at-row">' +
         '<div class="truck-at-lookup">' +
           '<input type="text" id="truck-at-input" placeholder="City, address, or ZIP" value="' + esc(value) + '" autocomplete="off" autocapitalize="words" autocorrect="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="truck-at-suggests" enterkeyhint="search">' +
@@ -4950,6 +4956,8 @@
       hideTruckSuggests();
       setTruckFromRecord(rec, 'typed');
     });
+    var home = $('truck-at-home');
+    if (home) home.addEventListener('click', setTruckHome);
     var geo = $('truck-at-geo');
     if (geo) geo.addEventListener('click', setTruckFromGeo);
     var reset = $('truck-at-reset');
@@ -4962,10 +4970,60 @@
     renderTruckMap();
   }
 
+  var TRUCK_HOME_ICO = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4.2l8.5 7.3"/><path d="M6 10.5V20h12v-9.5"/><path d="M10 20v-6h4v6"/></g></svg>';
+
+  // Jacksonville home is city-level only (same centroid truckloc.js already uses: 30.33, -81.66).
+  function truckHomeBase() {
+    var T = truckApi();
+    var b = T && T.BASE;
+    return {
+      city: (b && b.city) || 'Jacksonville, FL',
+      lat: (b && b.lat != null) ? Number(b.lat) : 30.33,
+      lon: (b && b.lon != null) ? Number(b.lon) : -81.66
+    };
+  }
+  function isTruckHome() {
+    var info = state.truckInfo;
+    if (!info || !info.manual) return false;
+    if (info.source === 'home') return true;
+    var home = truckHomeBase();
+    return String(info.city || '') === home.city &&
+      Math.abs(Number(info.lat) - home.lat) < 0.02 &&
+      Math.abs(Number(info.lon) - home.lon) < 0.02 &&
+      !info.pt;
+  }
+  function showTruckHomeNote(msg) {
+    state.truckAtNote = msg || 'Set to Home';
+    if (window.BlackRamPullBar && typeof BlackRamPullBar.toast === 'function') {
+      BlackRamPullBar.toast(state.truckAtNote, 'ok', null, 2500);
+    }
+    if (truckHomeNoteTimer) clearTimeout(truckHomeNoteTimer);
+    truckHomeNoteTimer = setTimeout(function () {
+      state.truckAtNote = '';
+      var el = $('truck-at-status');
+      if (el) el.innerHTML = truckAtStatusText();
+    }, 2500);
+  }
+  function setTruckHome() {
+    var T = truckApi();
+    var home = truckHomeBase();
+    state.truckAtError = '';
+    showTruckHomeNote('Set to Home');
+    if (T) {
+      // Same save path as weather Home: city centroid, source 'home', localStorage + PIN-gated /truck-loc. No street pt.
+      T.set({ city: home.city, lat: home.lat, lon: home.lon }, 'home');
+      return;
+    }
+    state.truckAt = { lat: home.lat, lon: home.lon, label: home.city, city: home.city, source: 'home', src: 'manual' };
+    refreshTruckFuel();
+    return refreshDeadheads();
+  }
+
   function setTruckFromRecord(rec, source) {
     if (!rec || rec.lat == null || rec.lon == null) return Promise.reject(new Error('Could not find that place.'));
     return rememberTruckAt({ lat: rec.lat, lon: rec.lon, label: rec.label || '', source: source || 'typed' }).then(function () {
       state.truckAtError = '';
+      state.truckAtNote = '';
       state.truckAtBusy = false;
       return refreshDeadheads();
     });
@@ -4973,6 +5031,7 @@
 
   function setTruckFromQuery(q) {
     state.truckAtError = '';
+    state.truckAtNote = '';
     state.truckAtBusy = true;
     if (state.tab === 'searches') {
       var st = $('truck-at-status');
@@ -4990,6 +5049,7 @@
 
   function setTruckFromGeo() {
     state.truckAtError = '';
+    state.truckAtNote = '';
     if (!navigator.geolocation) {
       state.truckAtError = 'This browser cannot share a location.';
       if (state.tab === 'searches') renderSearches();
@@ -5017,6 +5077,7 @@
   function resetTruckAt() {
     rememberTruckAt(null);
     state.truckAtError = '';
+    state.truckAtNote = '';
     refreshDeadheads();
   }
 

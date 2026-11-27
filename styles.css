@@ -2236,6 +2236,23 @@ input::placeholder { color: var(--muted); }
   padding: 6px 8px;
   font-size: 14px;
 }
+.truck-at-home {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  margin: 0 0 8px;
+  padding: 8px 14px;
+  text-align: left;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.truck-at-home svg { width: 20px; height: 20px; flex: 0 0 20px; display: block; }
+.truck-at-home-copy { font-weight: var(--fw-black, 800); font-size: 15px; line-height: 1.2; }
+.truck-at-home.on { box-shadow: inset 0 0 0 2px var(--bg, #0f0d17); }
+.truck-at-note { color: var(--c-take, #4ade80); font-weight: 700; }
 
 .search-net { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 4px 8px; }
 .search-net .trip-days { flex: 1 1 100%; }

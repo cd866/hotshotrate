@@ -108,6 +108,10 @@
   }
   function setHome() {
     setOverride(asLoc(BASE.city, BASE.lat, BASE.lon, 'home (Jacksonville, FL)', true), 'home');
+    setLocMsg('Set to Home');
+    if (window.BlackRamPullBar && typeof BlackRamPullBar.toast === 'function') {
+      BlackRamPullBar.toast('Set to Home', 'ok', null, 2500);
+    }
   }
   var HOME_ICO = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4.2l8.5 7.3"/><path d="M6 10.5V20h12v-9.5"/><path d="M10 20v-6h4v6"/></g></svg>';
   function hitFromGeo(r, wantSt) {
