@@ -145,6 +145,13 @@
       var due = Number(l.net_due);
       out.push({ tone: age != null && age > 30 ? 'bad' : (age != null && age > 14 ? 'warn' : 'info'), r: 4, t: 'Waiting on pay: ' + city(l.pickup_place) + ' to ' + city(l.drop_place), s: (isFinite(due) && due > 0 ? money(due) + ' due' + (l.net_due_est ? ' EST' : '') : 'amount not on file') + (age != null ? ' | delivered ' + age + ' d ago' : ''), go: 'unpaid' });
     });
+    var X = window.BlackRamTax;
+    if (X && X.ready && X.ready()) {
+      X.next(2).forEach(function (x) {
+        var tone = x.days <= 14 ? 'bad' : (x.days <= 45 ? 'warn' : 'info');
+        out.push({ tone: tone, r: tone === 'bad' ? 1.5 : (tone === 'warn' ? 3.5 : 6.5), t: 'Tax: ' + x.t, s: x.form + ' | due ' + md(x.due) + ' | ' + (x.days < 0 ? -x.days + ' d late' : x.days + ' d left'), go: 'tax:' + x.id });
+      });
+    }
     var S = A().getScored ? A().getScored() : null;
     var stamp = S && (S.scanned_at || S.as_of);
     if (stamp) {
@@ -170,6 +177,8 @@
     var loading = !(window.BlackRamDot && window.BlackRamDot.ready && window.BlackRamDot.ready()) || !(window.BlackRamMaintenance && window.BlackRamMaintenance.ready && window.BlackRamMaintenance.ready());
     var bad = list.filter(function (x) { return x.tone === 'bad'; }).length;
     var shown = st.showAll ? list : list.slice(0, 5);
+    /* v98: the next 2 tax deadlines always show, even when service and DOT items fill the top 5 */
+    if (!st.showAll) list.forEach(function (x) { if (String(x.go).indexOf('tax:') === 0 && shown.indexOf(x) < 0) shown.push(x); });
     var rows = shown.map(function (x) {
       return '<div class="td-al td-al-' + x.tone + ' tl-tap tl-chev"' + tap('go', x.go, x.t + '. Open') + '><span class="td-dot" aria-hidden="true"></span><span class="td-al-m"><b>' + esc(ascii(x.t)) + '</b><small>' + esc(ascii(x.s)) + '</small></span></div>';
     }).join('');
@@ -331,6 +340,7 @@
     if (k === 'tab') return goTab(v);
     if (k === 'pretrip') return openPretrip();
     if (k === 'dot') { var D = window.BlackRamDot; if (D && D.openItem) D.openItem(v); return; }
+    if (k === 'tax') { var X = window.BlackRamTax; goTab('tax'); if (X && X.openItem) setTimeout(function () { X.openItem(v); }, 120); return; }
     if (k === 'mt') { var M = window.BlackRamMaintenance; if (M && M.openItem) M.openItem(v); return; }
     if (k === 'mtneed') { var t = T(); goTab('maint'); if (t) setTimeout(function () { var b = document.querySelector('[data-tl="mt"][data-tl-arg="need"]'); if (b) b.click(); }, 400); return; }
     if (k === 'unpaid') return openLoads('unpaid');
@@ -430,13 +440,15 @@
     }
     /* DOT and maintenance load their public JSON on demand; Today needs both for the alerts. */
     function warm() {
-      var D = window.BlackRamDot, M = window.BlackRamMaintenance;
+      var D = window.BlackRamDot, M = window.BlackRamMaintenance, X = window.BlackRamTax;
       if (D && D.load && !D.ready()) D.load();
+      if (X && X.load && !X.ready()) X.load();
       if (M && M.load && !M.ready()) M.load();
     }
     document.addEventListener('blackram:tab', function (e) { if (e.detail && e.detail.tab === 'today') { warm(); render(); } });
     document.addEventListener('blackram:data', soon);
     document.addEventListener('blackram:dot', soon);
+    document.addEventListener('blackram:tax', soon);
     /* the DOT and maintenance modules re-render their own roots when their JSON lands */
     ['dr-root', 'mt-root'].forEach(function (id) {
       var r = document.getElementById(id);

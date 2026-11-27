@@ -90,7 +90,7 @@
   function queue() { var q = jget(QUEUE_KEY, []); return Array.isArray(q) ? q : []; }
   function setQueue(q) { jset(QUEUE_KEY, q); }
   function opKey(o) { return o.op + ':' + (o.entry ? o.entry.id : o.id); }
-  function srvEntries() { return (st.applog && Array.isArray(st.applog.entries)) ? st.applog.entries.filter(function (e) { return String(e.item_id || '').indexOf('dot-') !== 0; }) : []; }  /* dot- entries belong to the DOT Ready tab (dotready.js) */
+  function srvEntries() { return (st.applog && Array.isArray(st.applog.entries)) ? st.applog.entries.filter(function (e) { var i = String(e.item_id || ''); return i.indexOf('dot-') !== 0 && i.indexOf('tax-') !== 0; }) : []; }  /* dot- entries belong to DOT Ready (dotready.js), tax- entries to the Tax tab (tax.js) */
   function onServer(id) { return srvEntries().some(function (e) { return e.id === id; }); }
   function effEntries() {
     var map = {}, order = [];

@@ -1,0 +1,586 @@
+{
+ "schema": 1,
+ "as_of": "2026-11-26",
+ "year": 2026,
+ "entity": {
+  "name": "Sand Lily Pad LLC (dba Black Ram Logistics)",
+  "state": "Texas LLC, SOS file 806779991, formed Sep 3, 2026",
+  "tax": "Partnership: Form 1065 + K-1s (no S-corp election on file)",
+  "ein": "On file, ends 0564 (IRS letter not on file)",
+  "members": "Claudio, Ben, Meshach - 1/3 each (Meshach from Oct 15, 2026)",
+  "contact": "Claudio is the tax contact (draft company agreement)",
+  "base": "Truck based in Jacksonville, FL; leased on Totni (MC 1122113), 13% fee",
+  "in_service": "Truck bought Sep 24, 2026; in service about Sep 30; first load Oct 12",
+  "first_year": "Short tax year Sep 3 - Dec 31, 2026"
+ },
+ "items": [
+  {
+   "id": "yearend-2026",
+   "kind": "task",
+   "cat": "Books",
+   "title": "Year-end close for 2026",
+   "form": "Books",
+   "due": "2026-12-31",
+   "applies": "yes",
+   "status": "ip",
+   "who": "Claudio (tax contact) with Grok Bot",
+   "what": "Close the 2026 books before the CPA starts: every receipt matched, partner capital confirmed, Totni settlements tied to the bank, W-9s collected.",
+   "why": "First short tax year: Sep 3 to Dec 31, 2026. Clean books make the 1065 cheaper and faster.",
+   "docs": [
+    "Receipts for every expense (WhatsApp, email, card statements)",
+    "All Totni settlement statements",
+    "Bluevine and AmEx ...8008 statements through Dec 31",
+    "Chase and Synchrony year-end loan statements (interest)",
+    "Partner capital list (Exhibit B)"
+   ],
+   "src": [
+    "p535"
+   ]
+  },
+  {
+   "id": "es-2026-q4",
+   "kind": "file",
+   "cat": "Federal",
+   "title": "Partners: 2026 Q4 estimated tax",
+   "form": "1040-ES",
+   "due": "2027-01-15",
+   "applies": "check",
+   "status": "ns",
+   "who": "Each partner on his own return (Claudio, Ben, Meshach)",
+   "what": "Fourth 2026 estimated payment. The LLC pays no income tax itself; profit or loss passes to each partner.",
+   "why": "The LLC shows a loss so far in 2026, so this depends on each partner's other income and withholding. Skip-able if you file the 2026 return by Feb 1, 2027 and pay in full.",
+   "docs": [
+    "Each partner's 2025 tax (safe harbor)",
+    "Year-to-date share of LLC profit or loss"
+   ],
+   "src": [
+    "es",
+    "p505"
+   ]
+  },
+  {
+   "id": "nec-2026",
+   "kind": "file",
+   "cat": "Federal",
+   "title": "1099-NEC / 1099-MISC for 2026",
+   "form": "1099-NEC",
+   "due": "2027-02-01",
+   "applies": "check",
+   "status": "ns",
+   "who": "Sand Lily Pad LLC (payer)",
+   "what": "File a 1099-NEC for any non-employee paid $2,000+ in 2026 for services (new threshold for 2026 payments). Due Jan 31; that is a Sunday, so Feb 1, 2027.",
+   "why": "Likely none for 2026: no contractor in the ledger reached $2,000. Meshach is a partner, so his pay goes on his K-1, not a 1099 or W-2. Payments by credit card are reported by the card company, not by us.",
+   "docs": [
+    "W-9 from any contractor or attorney we pay",
+    "Payment list by payee for 2026"
+   ],
+   "src": [
+    "i1099",
+    "p1099",
+    "p541"
+   ]
+  },
+  {
+   "id": "totni-1099",
+   "kind": "get",
+   "cat": "Federal",
+   "title": "Get Totni's 2026 1099 for our loads",
+   "form": "1099 (incoming)",
+   "due": "2027-02-01",
+   "applies": "yes",
+   "status": "ns",
+   "who": "Totni sends it; Claudio checks it",
+   "what": "Totni should report the 2026 load pay to Sand Lily Pad LLC under the LLC EIN (ends 0564).",
+   "why": "Several settlements were paid to Meshach. If Totni has Meshach's W-9 instead of the LLC's, the 1099 lands on his SSN and must be fixed (or nominee-reported).",
+   "docs": [
+    "W-9 we gave Totni (name and EIN on it)",
+    "All 2026 settlement statements"
+   ],
+   "src": [
+    "i1099"
+   ]
+  },
+  {
+   "id": "ifta-2026-q4",
+   "kind": "file",
+   "cat": "Fuel tax",
+   "title": "IFTA Q4 2026 fuel tax return",
+   "form": "IFTA",
+   "due": "2027-02-01",
+   "applies": "check",
+   "status": "ns",
+   "who": "Totni (carrier) unless the lease names us - check with Totni",
+   "what": "Quarterly fuel tax by state miles. Due the last day of the month after the quarter (Jan 31 is a Sunday).",
+   "why": "Our combination is over 26,000 lb (14,000 + 25,900 = 39,900), so it is an IFTA qualified vehicle. On a 30+ day lease the carrier reports unless the written lease makes the owner-operator the licensee. Our Totni lease is silent on IFTA, so Totni should be filing.",
+   "docs": [
+    "Totni ELD state-mile report",
+    "Fuel receipts with gallons and state"
+   ],
+   "src": [
+    "ifta",
+    "ksifta"
+   ]
+  },
+  {
+   "id": "f1065-2026",
+   "kind": "file",
+   "cat": "Federal",
+   "title": "Partnership return + K-1s (2026)",
+   "form": "1065 + K-1",
+   "due": "2027-03-15",
+   "applies": "yes",
+   "status": "ns",
+   "who": "Sand Lily Pad LLC (CPA prepares; Claudio signs as tax contact)",
+   "what": "First return: short year Sep 3 to Dec 31, 2026. K-1 to Claudio, Ben and Meshach by the same date. Form 7004 extends to Sep 15, 2027 (no extension for tax the partners owe).",
+   "why": "Multi-member LLC taxed as a partnership (company agreement: Form 1065 and K-1s). No S-corp election (Form 2553) on file. Late penalty: $260 per partner per month (2026 returns), up to 12 months.",
+   "docs": [
+    "Full 2026 books (P&L, balance sheet)",
+    "Truck and trailer purchase papers (basis)",
+    "Partner capital and distributions",
+    "Meshach admission date (consent notarized Oct 15, 2026)",
+    "EIN letter (CP-575 or 147C)"
+   ],
+   "src": [
+    "i1065",
+    "rp2532",
+    "p541"
+   ]
+  },
+  {
+   "id": "f1040-2026",
+   "kind": "file",
+   "cat": "Federal",
+   "title": "Partners' 2026 personal returns",
+   "form": "1040 (Sch E, SE)",
+   "due": "2027-04-15",
+   "applies": "yes",
+   "status": "ns",
+   "who": "Each partner",
+   "what": "Each partner reports his K-1 share on Schedule E, and self-employment tax on Schedule SE where it applies.",
+   "why": "Pass-through: the LLC itself owes no federal income tax.",
+   "docs": [
+    "K-1 from the LLC",
+    "Each partner's other tax docs"
+   ],
+   "src": [
+    "i1065"
+   ]
+  },
+  {
+   "id": "es-2027-q1",
+   "kind": "file",
+   "cat": "Federal",
+   "title": "Partners: 2027 Q1 estimated tax",
+   "form": "1040-ES",
+   "due": "2027-04-15",
+   "applies": "check",
+   "status": "ns",
+   "who": "Each partner",
+   "what": "First 2027 estimated payment (Apr 15, Jun 15, Sep 15, then Jan 18, 2028). Confirm on the 2027 Form 1040-ES when the IRS posts it.",
+   "why": "Owed once the LLC is profitable. The draft company agreement sets aside 30% of each owner's profit share for tax.",
+   "docs": [
+    "K-1 estimate for 2027"
+   ],
+   "src": [
+    "es",
+    "p505"
+   ]
+  },
+  {
+   "id": "fl-ar-2027",
+   "kind": "file",
+   "cat": "State",
+   "title": "Florida annual report (only if registered)",
+   "form": "Sunbiz AR",
+   "due": "2027-05-01",
+   "applies": "check",
+   "status": "ns",
+   "who": "LLC, only if it registers in Florida as a foreign LLC",
+   "what": "Foreign LLCs registered in Florida file between Jan 1 and May 1; $138.75, plus $400 if late.",
+   "why": "We are a Texas LLC. No Florida registration is on file. The truck is based in Jacksonville; ask the CPA or attorney whether that is transacting business in Florida (interstate commerce alone is not). Florida has no personal income tax, and its corporate income tax does not reach a partnership with individual partners.",
+   "docs": [
+    "Sunbiz record, if any"
+   ],
+   "src": [
+    "flar",
+    "flfee"
+   ]
+  },
+  {
+   "id": "tx-pir-2027",
+   "kind": "file",
+   "cat": "State",
+   "title": "Texas franchise: Public Information Report",
+   "form": "TX 05-102 PIR",
+   "due": "2027-05-17",
+   "applies": "yes",
+   "status": "ns",
+   "who": "Sand Lily Pad LLC (Texas LLC)",
+   "what": "First Texas report. Due May 15; 2027 falls on a Saturday, so Monday May 17. File the PIR on Webfile.",
+   "why": "Revenue is far under the $2.65M no-tax-due threshold, so no franchise tax and no No Tax Due Report, but the PIR is still required or the LLC can lose its right to do business. $50 late-report penalty.",
+   "docs": [
+    "Texas taxpayer number (Comptroller)",
+    "SOS file number 806779991",
+    "Members/managers and registered agent"
+   ],
+   "src": [
+    "txft",
+    "txpir"
+   ]
+  },
+  {
+   "id": "es-2027-q2",
+   "kind": "file",
+   "cat": "Federal",
+   "title": "Partners: 2027 Q2 estimated tax",
+   "form": "1040-ES",
+   "due": "2027-06-15",
+   "applies": "check",
+   "status": "ns",
+   "who": "Each partner",
+   "what": "Second 2027 estimated payment.",
+   "why": "Only if a partner expects to owe $1,000+ for 2027.",
+   "docs": [],
+   "src": [
+    "es"
+   ]
+  },
+  {
+   "id": "es-2027-q3",
+   "kind": "file",
+   "cat": "Federal",
+   "title": "Partners: 2027 Q3 estimated tax",
+   "form": "1040-ES",
+   "due": "2027-09-15",
+   "applies": "check",
+   "status": "ns",
+   "who": "Each partner",
+   "what": "Third 2027 estimated payment. Also the extended 1065 deadline if Form 7004 was filed.",
+   "why": "Only if a partner expects to owe $1,000+ for 2027.",
+   "docs": [],
+   "src": [
+    "es",
+    "i1065"
+   ]
+  }
+ ],
+ "rules": [
+  {
+   "id": "r-1065",
+   "t": "Partnership return (1065 + K-1s)",
+   "a": "yes",
+   "why": "Texas multi-member LLC, 3 members at 1/3. Company agreement says taxed as a partnership. No S-corp election found.",
+   "src": [
+    "i1065"
+   ]
+  },
+  {
+   "id": "r-2290",
+   "t": "Form 2290 heavy vehicle use tax",
+   "a": "no",
+   "why": "Starts at 55,000 lb taxable gross weight. Our max is 39,900 lb (Ram 14,000 GVWR + Big Tex 25,900 GVWR); even the Ram GCWR of 41,950 is under. Re-check if we ever add a heavier truck or trailer.",
+   "src": [
+    "i2290",
+    "truck"
+   ]
+  },
+  {
+   "id": "r-ifta",
+   "t": "IFTA fuel tax (quarterly)",
+   "a": "check",
+   "why": "Qualified vehicle (combination over 26,000 lb). Under the 30+ day Totni lease, Totni reports unless the lease names us. Confirm with Totni, and whether fuel tax is charged back on settlements.",
+   "src": [
+    "ifta",
+    "ksifta"
+   ]
+  },
+  {
+   "id": "r-irp",
+   "t": "IRP apportioned plates",
+   "a": "check",
+   "why": "Needed for interstate travel over 26,000 lb. Truck is on a temp tag (expires Jan 17, 2027); plates are planned under Totni's account. Tracked in DOT Ready.",
+   "src": [
+    "ksifta"
+   ]
+  },
+  {
+   "id": "r-ucr",
+   "t": "UCR registration",
+   "a": "no",
+   "why": "Paid by the motor carrier (Totni, MC 1122113), not by a leased owner-operator. Becomes ours only if we get our own MC.",
+   "src": [
+    "ucr"
+   ]
+  },
+  {
+   "id": "r-1099",
+   "t": "1099-NEC we send",
+   "a": "check",
+   "why": "$2,000+ to a non-employee for services in 2026. None found in the ledger. Meshach is a partner (K-1, not 1099).",
+   "src": [
+    "i1099"
+   ]
+  },
+  {
+   "id": "r-tx",
+   "t": "Texas franchise tax / PIR",
+   "a": "yes",
+   "why": "Formed in Texas (SOS 806779991, Sep 3, 2026). Under $2.65M: no tax, PIR only. Texas has no personal income tax.",
+   "src": [
+    "txft",
+    "txpir"
+   ]
+  },
+  {
+   "id": "r-fl",
+   "t": "Florida annual report",
+   "a": "check",
+   "why": "Only if we register as a foreign LLC in Florida. Not on file.",
+   "src": [
+    "flar"
+   ]
+  },
+  {
+   "id": "r-boi",
+   "t": "FinCEN BOI report",
+   "a": "no",
+   "why": "U.S. companies are exempt under FinCEN's final rule, effective Aug 14, 2026. Nothing to file.",
+   "src": [
+    "boi",
+    "boifr"
+   ]
+  },
+  {
+   "id": "r-sales",
+   "t": "Sales tax on truck and trailer",
+   "a": "paid",
+   "why": "Truck: 6.25% state tax collected on the dealer buyers order (Sep 24, 2026). Trailer: Texas sales tax paid at the county with title (Nov 2, EST). Not a separate expense: it adds to each asset's cost basis.",
+   "src": [
+    "p551"
+   ]
+  },
+  {
+   "id": "r-payroll",
+   "t": "Payroll / W-2 / 941",
+   "a": "no",
+   "why": "No employees. Partners cannot be W-2 employees of their own partnership.",
+   "src": [
+    "p541"
+   ]
+  }
+ ],
+ "docs": [
+  {
+   "id": "d-receipts",
+   "t": "Receipts for every 2026 expense",
+   "s": "partial",
+   "n": "Most are in WhatsApp and card statements. Missing: trailer title receipt (EST), itemized LLC formation receipt, one Love's Houston charge category."
+  },
+  {
+   "id": "d-settle",
+   "t": "Totni settlement statements",
+   "s": "partial",
+   "n": "Flex settlement 10/9-10/16 on file. Some pay dates not on file."
+  },
+  {
+   "id": "d-1099in",
+   "t": "Totni 2026 1099 (and any broker 1099s)",
+   "s": "missing",
+   "n": "Expected by Feb 1, 2027. Check payee name and EIN."
+  },
+  {
+   "id": "d-w9",
+   "t": "W-9 the LLC gave Totni",
+   "s": "unknown",
+   "n": "Confirm it shows Sand Lily Pad LLC and the LLC EIN, not a partner SSN."
+  },
+  {
+   "id": "d-miles",
+   "t": "Mileage / state miles (ELD)",
+   "s": "unknown",
+   "n": "Totni ELD has the logs. Need loaded and deadhead miles by state for IFTA and per diem days."
+  },
+  {
+   "id": "d-loanint",
+   "t": "Loan interest statements (Chase truck, Synchrony trailer)",
+   "s": "missing",
+   "n": "Only the interest part of a note payment is deductible. Ask for year-end statements."
+  },
+  {
+   "id": "d-truck",
+   "t": "Truck buyers order and retail installment contract",
+   "s": "have",
+   "n": "Mark Dodge, Sep 24, 2026. Shows sales tax, doc fee and other charges for basis."
+  },
+  {
+   "id": "d-trailer",
+   "t": "Trailer invoice and Texas title receipt",
+   "s": "partial",
+   "n": "Purchase split on file; county title/tax receipt not on file (amount is EST)."
+  },
+  {
+   "id": "d-bank",
+   "t": "Bluevine and AmEx statements",
+   "s": "have",
+   "n": "Bluevine CSV and AmEx ...8008 activity through 11/26. Need Dec."
+  },
+  {
+   "id": "d-ein",
+   "t": "EIN letter (CP-575 or 147C)",
+   "s": "missing",
+   "n": "EIN on file ends 0564; the IRS letter itself is not on file."
+  },
+  {
+   "id": "d-oa",
+   "t": "Signed company agreement and Meshach consent",
+   "s": "partial",
+   "n": "Consent admitting Meshach notarized Oct 15, 2026. Signed amended agreement not on file."
+  },
+  {
+   "id": "d-meals",
+   "t": "Meal log (who, where, business purpose)",
+   "s": "missing",
+   "n": "Needed for the 11/3 In-N-Out meal and any future meals."
+  },
+  {
+   "id": "d-perdiem",
+   "t": "Days away from home (per diem log)",
+   "s": "missing",
+   "n": "Dates Meshach was away overnight on loads, if the CPA uses per diem."
+  }
+ ],
+ "questions": [
+  "Meshach's monthly driver pay: the draft agreement calls driver pay a guaranteed payment, but it is now paid only from profit with no accrual (Claudio 11/26). Guaranteed payment or a priority profit allocation? It changes the 1065 and self-employment tax.",
+  "Totni paid several settlements to Meshach. Which name and TIN are on Totni's W-9 and 1099? Does it need a correction or nominee 1099?",
+  "Members changed mid-year (Claudio/Ben 50/50 from Sep 3; Meshach in at 1/3 from Oct 15). Which allocation method for 2026?",
+  "Who owns the trailer for tax? The Synchrony note is in Ben's name alone and title papers show a Ben-to-Claudio transfer. Can the LLC depreciate it and deduct the interest?",
+  "Depreciation: 100% bonus, Section 179 or regular MACRS for the truck and trailer, given a 2026 loss? Pickup bed length matters for the $32,000 SUV cap (8 ft bed is exempt).",
+  "Truck basis: what in the \"other charges\" on the retail contract is depreciable vs a service contract or add-on to amortize?",
+  "Formation and legal costs: take the $5,000 organizational-cost deduction (Sec. 709) and amortize the rest?",
+  "Is garaging the truck in Jacksonville enough to need a Florida foreign LLC registration?",
+  "Per diem for Meshach as a partner: $80/day transportation rate at 80%, or actual meals only?",
+  "Equipment bought in October: use the de minimis safe harbor (items up to $2,500) or capitalize?",
+  "Each partner's 2026 Q4 and 2027 estimates, and a 30% tax set-aside once profitable."
+ ],
+ "sources": {
+  "i1065": [
+   "IRS Instructions for Form 1065",
+   "https://www.irs.gov/instructions/i1065"
+  ],
+  "rp2532": [
+   "IRS Rev. Proc. 2025-32 (2026 limits, $260 per-partner late penalty, $32,000 SUV cap)",
+   "https://www.irs.gov/pub/irs-drop/rp-25-32.pdf"
+  ],
+  "es": [
+   "IRS 2026 Form 1040-ES",
+   "https://www.irs.gov/pub/irs-pdf/f1040es.pdf"
+  ],
+  "p505": [
+   "IRS: Pay as you go - estimated taxes",
+   "https://www.irs.gov/payments/pay-as-you-go-so-you-wont-owe-a-guide-to-withholding-estimated-taxes-and-ways-to-avoid-the-estimated-tax-penalty"
+  ],
+  "i1099": [
+   "IRS Instructions for Forms 1099-MISC and 1099-NEC (12/2026)",
+   "https://www.irs.gov/instructions/i1099mec"
+  ],
+  "p1099": [
+   "IRS: Am I required to file a Form 1099?",
+   "https://www.irs.gov/businesses/small-businesses-self-employed/am-i-required-to-file-a-form-1099-or-other-information-return"
+  ],
+  "i2290": [
+   "IRS Instructions for Form 2290 (07/2026)",
+   "https://www.irs.gov/instructions/i2290"
+  ],
+  "truck": [
+   "IRS Trucking tax center",
+   "https://www.irs.gov/businesses/small-businesses-self-employed/trucking-tax-center"
+  ],
+  "ifta": [
+   "IFTA Articles of Agreement (2026)",
+   "https://www.iftach.org/manuals/2026/AA/Articles%20of%20Agreement%20-%2008-26-26.pdf"
+  ],
+  "ksifta": [
+   "Kansas: Are you subject to IFTA?",
+   "https://www.kcc.ks.gov/trans/are_you_subject_to_the_international_fuel_tax_agreement.pdf"
+  ],
+  "ucr": [
+   "UCR Plan (registration)",
+   "https://plan.ucr.gov/"
+  ],
+  "txft": [
+   "Texas Comptroller: Franchise Tax (due May 15, next business day; $2.65M no-tax-due 2026-2027)",
+   "https://comptroller.texas.gov/taxes/franchise/"
+  ],
+  "txpir": [
+   "Texas Comptroller: Public Information Report filing requirements",
+   "https://comptroller.texas.gov/taxes/franchise/pir-oir-filing-req.php"
+  ],
+  "flar": [
+   "Florida Sunbiz: File Annual Report",
+   "https://dos.fl.gov/sunbiz/manage-business/efile/annual-report/"
+  ],
+  "flfee": [
+   "Florida Sunbiz: LLC fees",
+   "https://dos.fl.gov/sunbiz/forms/fees/llc-fees/"
+  ],
+  "boi": [
+   "FinCEN: Beneficial Ownership Information (alert updated Aug 11, 2026)",
+   "https://www.fincen.gov/boi"
+  ],
+  "boifr": [
+   "Federal Register: BOI final rule, effective Aug 14, 2026",
+   "https://www.federalregister.gov/documents/2026/08/14/2026-16576/beneficial-ownership-information-reporting-requirement-revision"
+  ],
+  "p551": [
+   "IRS Publication 551, Basis of Assets",
+   "https://www.irs.gov/publications/p551"
+  ],
+  "p463": [
+   "IRS Publication 463 (meals 50%; 80% for DOT hours-of-service drivers)",
+   "https://www.irs.gov/publications/p463"
+  ],
+  "n2660": [
+   "IRS Notice 2026-60: per diem from Oct 1, 2026 (transportation M&IE $80 CONUS)",
+   "https://www.irs.gov/pub/irs-drop/n-26-60.pdf"
+  ],
+  "tc704": [
+   "IRS Topic 704, Depreciation (100% bonus for property acquired after Jan 19, 2025)",
+   "https://www.irs.gov/taxtopics/tc704"
+  ],
+  "n2611": [
+   "IRS Notice 2026-11: 100% bonus depreciation guidance",
+   "https://www.irs.gov/newsroom/treasury-irs-issue-guidance-on-the-additional-first-year-depreciation-deduction-amended-as-part-of-the-one-big-beautiful-bill"
+  ],
+  "p946": [
+   "IRS Publication 946, How to Depreciate Property",
+   "https://www.irs.gov/publications/p946"
+  ],
+  "p535": [
+   "IRS Publication 583, Starting a Business and Keeping Records",
+   "https://www.irs.gov/publications/p583"
+  ],
+  "p541": [
+   "IRS Publication 541, Partnerships (guaranteed payments)",
+   "https://www.irs.gov/publications/p541"
+  ]
+ },
+ "deduction_notes": {
+  "fee": "Totni 13% fee: fully deductible (commission).",
+  "eld": "ELD fees charged by Totni: deductible.",
+  "fuel": "Fuel: deductible. Keep gallons and state for IFTA.",
+  "def": "DEF: deductible.",
+  "tolls": "Tolls, scales and parking: deductible.",
+  "repairs": "Repairs and maintenance: deductible. Big upgrades may need to be capitalized.",
+  "insurance": "Insurance: deductible. A 12-month prepaid policy can usually be deducted when paid (12-month rule).",
+  "meals": "Business meals: 50%. Meals on the road for a driver under DOT hours-of-service rules: 80%.",
+  "software": "Software (incl. Grok Bot AI): deductible.",
+  "overhead": "Other overhead: deductible, except the items flagged below.",
+  "notes": "Truck and trailer note payments are NOT deductible. Only the interest part is; principal is not. Interest split: not on file.",
+  "legal": "Formation/legal: organizational costs, up to $5,000 deductible in year 1, rest over 180 months (Sec. 709).",
+  "title": "Trailer title and sales tax: the sales tax adds to the trailer basis (depreciated), registration fees are deductible.",
+  "equipment": "Equipment: items over $2,500 each are capitalized unless the CPA says otherwise.",
+  "perdiem": "Per diem: transportation M&IE $80/day CONUS from Oct 1, 2026, 80% deductible for HOS drivers. Days away: not on file.",
+  "dep": "Depreciation: truck and trailer acquired after Jan 19, 2025 qualify for 100% bonus. Section 179 limit $2.56M (2026) but capped at business income. The Ram is over 6,000 lb GVWR, so no luxury-auto cap; the $32,000 SUV cap does not apply to a pickup with a 6 ft+ bed."
+ },
+ "disclaimer": "Estimates from our books, not tax advice. Confirm every date and number with the CPA."
+}

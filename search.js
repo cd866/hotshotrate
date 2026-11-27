@@ -20,9 +20,10 @@
     acct: ['Accounting', 'p&l profit loss waterfall partners capital loans amex ar'],
     ins: ['Insurance', 'coi policy liability cargo progressive tire warranty trailergard claim anti-theft'],
     maint: ['Maintenance', 'service oil tires brakes bearings torque lube schedule mark done log checklists manuals'],
-    dot: ['DOT Ready', 'roadside inspection cfr cdl medical card fire extinguisher triangles registration temp tag']
+    dot: ['DOT Ready', 'roadside inspection cfr cdl medical card fire extinguisher triangles registration temp tag'],
+    tax: ['Tax', 'tax filing irs 1065 k-1 1099 estimated quarterly franchise ifta 2290 deductions depreciation cpa due dates']
   };
-  var KIND = { tab: 'Section', load: 'Load', board: 'On the boards', mt: 'Maintenance', dot: 'DOT', chk: 'Checklist', man: 'Manual', rig: 'Our rig', act: 'Action' };
+  var KIND = { tab: 'Section', load: 'Load', board: 'On the boards', mt: 'Maintenance', dot: 'DOT', tax: 'Tax', chk: 'Checklist', man: 'Manual', rig: 'Our rig', act: 'Action' };
 
   function A() { return window.BlackRamApp || {}; }
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -60,6 +61,11 @@
     var D = window.BlackRamDot;
     if (D && D.ready && D.ready() && D.list) {
       D.list().forEach(function (x) { add('dot', x.t, x.label + (x.cfr ? ' | ' + x.cfr.split(';')[0] : ''), x.cfr, { dot: x.id }); });
+    }
+    var X = window.BlackRamTax;
+    if (X && X.ready && X.ready()) {
+      X.list().forEach(function (x) { add('tax', x.t, x.form + ' | due ' + md(x.due), x.cat + ' ' + x.form, { tax: x.id }); });
+      X.rules().forEach(function (x) { add('tax', x.t, 'Does it apply: ' + String(x.a).toUpperCase(), 'tax', { taxrule: x.id }); });
     }
     document.querySelectorAll('.rig-spec-grid .rig-spec').forEach(function (el) {
       var dt = el.querySelector('dt'), dd = el.querySelector('dd');
@@ -156,6 +162,7 @@
     if (g.load) { loadSheet(g.load.load, g.load.pct); return; }
     if (g.mt) { var M = window.BlackRamMaintenance; if (M) M.openItem(g.mt); return; }
     if (g.dot) { var D = window.BlackRamDot; if (D) D.openItem(g.dot); return; }
+    if (g.tax || g.taxrule) { var X = window.BlackRamTax; if (!X) return; a.showTab && a.showTab('tax'); setTimeout(function () { if (g.tax) X.openItem(g.tax); else X.openRule(g.taxrule); }, 120); return; }
     if (g.rig) {
       a.showTab && a.showTab('check');
       var d = document.querySelector('.rig-specs-panel'); if (d) d.open = true;

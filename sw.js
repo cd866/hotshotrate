@@ -8,49 +8,51 @@
    data/load_searches.json and data/pull_status.json are always fetched with
    cache: 'no-store' and are not precached. A cached copy is used only when
    the network request fails, so live search progress shows without a version bump. */
-var CACHE = 'blackram-v97';
+var CACHE = 'blackram-v98';
 var ASSETS = [
   './',
   './index.html',
   './styles.css',
-  './styles.css?v=97',
+  './styles.css?v=98',
   './app.js',
-  './app.js?v=97',
+  './app.js?v=98',
   './maps.js',
-  './maps.js?v=97',
+  './maps.js?v=98',
   './stops.js',
-  './stops.js?v=97',
+  './stops.js?v=98',
   './targets.js',
   './loadcosts.js',
-  './loadcosts.js?v=97',
+  './loadcosts.js?v=98',
   './tripplan.js',
-  './tripplan.js?v=97',
+  './tripplan.js?v=98',
   './data/pilot_fj.json',
-  './targets.js?v=97',
+  './targets.js?v=98',
   './reports.js',
-  './reports.js?v=97',
+  './reports.js?v=98',
   './scoreboard.js',
   './accounting.js',
-  './accounting.js?v=97',
+  './accounting.js?v=98',
   './insurance.js',
-  './insurance.js?v=97',
+  './insurance.js?v=98',
   './maintenance.js',
-  './maintenance.js?v=97',
+  './maintenance.js?v=98',
   './dotready.js',
-  './dotready.js?v=97',
+  './dotready.js?v=98',
+  './tax.js',
+  './tax.js?v=98',
   './rig360.js',
   './tiles.js',
-  './tiles.js?v=97',
-  './rig360.js?v=97',
+  './tiles.js?v=98',
+  './rig360.js?v=98',
   './driver360.js',
-  './driver360.js?v=97',
+  './driver360.js?v=98',
   './today.js',
-  './today.js?v=97',
+  './today.js?v=98',
   './search.js',
-  './search.js?v=97',
+  './search.js?v=98',
   './brand/meshach-360.jpg',
   './vendor/three/three.module.min.js',
-  './scoreboard.js?v=97',
+  './scoreboard.js?v=98',
   './manifest.json',
   './manifest.json?v=3',
   './manifest.webmanifest',
@@ -100,7 +102,7 @@ function isLoadSearches(url) {
 }
 
 function isFreshData(url) {
-  return url.pathname.endsWith('/data/feed.json') || url.pathname.endsWith('/data/diesel_prices.json') || url.pathname.endsWith('/data/stops.json') || url.pathname.endsWith('/data/maintenance.json') || url.pathname.endsWith('/data/dot_ready.json');
+  return url.pathname.endsWith('/data/feed.json') || url.pathname.endsWith('/data/diesel_prices.json') || url.pathname.endsWith('/data/stops.json') || url.pathname.endsWith('/data/maintenance.json') || url.pathname.endsWith('/data/dot_ready.json') || url.pathname.endsWith('/data/tax.json');
 }
 
 function isShell(url, req) {
