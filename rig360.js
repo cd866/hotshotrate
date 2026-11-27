@@ -72,6 +72,12 @@
      pads. Toolbox / part buttons move the camera to the part and keep
      it there (no auto-return, no auto-spin); Reset view animates back
      to the default framing.
+   - v149: on-screen and keyboard arrows move the CAMERA, not the rig.
+     Left/right orbit around the current target (azimuth); up/down tilt
+     (polar, clamped so the camera stays above the ground). Each step
+     eases smoothly. The model stays fixed, so shadows and part-focus
+     targets stay lined up. Around a focused part the arrows orbit that
+     part. Reset view still returns to the default framing.
    Units in the model are feet. x = length (truck front +x), y = up, z = width. */
 (function () {
   'use strict';
@@ -304,28 +310,44 @@
     var ELEV0 = THREE.MathUtils.degToRad(11);
     var ELEV_MIN = THREE.MathUtils.degToRad(-85), ELEV_MAX = THREE.MathUtils.degToRad(85);
     var ELEV = ELEV0;
+    var camAz = 0; // camera azimuth around the look-at; the rig itself stays put
     var upAxis = new THREE.Vector3(0, Math.cos(ELEV), -Math.sin(ELEV));
+    var arrowAnim = null;
     var held = null; // arrow button being held: { da, de }
     // After a tailgate / toolbox opens, the camera orbits the part in world space.
     var iYaw = 0, iElev = 0, iDist = 18, iPanX = 0, iPanY = 0, iVelY = 0, iVelE = 0;
     var iLook = new THREE.Vector3();
     var I_ELEV_MIN = THREE.MathUtils.degToRad(-85), I_ELEV_MAX = THREE.MathUtils.degToRad(85);
 
+    function cameraRigPose(elev, az, z, px, py) {
+      elev = Math.max(ELEV_MIN, Math.min(ELEV_MAX, elev));
+      var d = baseDist / z * (1 + 0.3 * Math.sin(elev) * Math.sin(elev));
+      var se = Math.sin(elev), ce = Math.cos(elev);
+      var sa = Math.sin(az), ca = Math.cos(az);
+      var ux = -sa * se, uy = ce, uz = -ca * se;
+      var tx = px * ca + ux * py, ty = 4.6 + uy * py, tz = px * (-sa) + uz * py;
+      var oy = -2.2 + se * d, oz = ce * d;
+      return {
+        look: new THREE.Vector3(tx, ty, tz),
+        cam: new THREE.Vector3(tx + sa * oz, ty + oy, tz + ca * oz),
+        up: new THREE.Vector3(ux, uy, uz),
+        d: d
+      };
+    }
     function applyCamera() {
       ELEV = Math.max(ELEV_MIN, Math.min(ELEV_MAX, ELEV));
-      upAxis.set(0, Math.cos(ELEV), -Math.sin(ELEV));
       var maxX = halfLen + 2, maxY = 14;
       panX = Math.max(-maxX, Math.min(maxX, panX));
       panY = Math.max(-maxY, Math.min(maxY, panY));
-      var d = baseDist / zoom * (1 + 0.3 * Math.sin(ELEV) * Math.sin(ELEV));
+      var pose = cameraRigPose(ELEV, camAz, zoom, panX, panY);
+      upAxis.copy(pose.up);
       var below = Math.max(0, Math.min(1, (0.09 - Math.sin(ELEV)) / 0.6));
       underLight.intensity = 5 * below * below;
-      var tx = panX + upAxis.x * panY, ty = 4.6 + upAxis.y * panY, tz = upAxis.z * panY;
-      camera.position.set(tx, ty - 2.2 + Math.sin(ELEV) * d, tz + Math.cos(ELEV) * d);
-      camera.lookAt(tx, ty, tz);
+      camera.position.copy(pose.cam);
+      camera.lookAt(pose.look);
       camera.updateProjectionMatrix();
       stage.toggleAttribute('data-r360-zoomed', zoom > 1.02);
-      stage.toggleAttribute('data-r360-adjusted', zoom > 1.02 || Math.abs(ELEV - ELEV0) > 0.01 || Math.abs(panX) > 0.05 || Math.abs(panY) > 0.05 || !!inspectKind);
+      stage.toggleAttribute('data-r360-adjusted', zoom > 1.02 || Math.abs(ELEV - ELEV0) > 0.01 || Math.abs(camAz) > 0.01 || Math.abs(panX) > 0.05 || Math.abs(panY) > 0.05 || !!inspectKind);
     }
 
     function feetPerPx() {
@@ -362,7 +384,9 @@
         inspectOpen = 0;
         applyPartPose(0);
         angle = toAng;
+        camAz = 0;
         zoom = 1; panX = 0; panY = 0; ELEV = ELEV0;
+        arrowAnim = null;
         lastInput = performance.now();
         setInspectAttr();
         if (typeof updatePartButtons === 'function') updatePartButtons();
@@ -382,7 +406,7 @@
         from: inspectOpen, to: 0,
         fromCam: camera.position.clone(),
         fromLook: fromLook,
-        fromAng: angle, toAng: toAng,
+        fromAng: angle, toAng: toAng, fromAz: camAz,
         fromZoom: zoom, fromPanX: panX, fromPanY: panY, fromElev: ELEV,
         fromOpen: inspectOpen,
         opening: false
@@ -420,15 +444,10 @@
       return new THREE.Vector3(px * c + pz * s, ly, -px * s + pz * c);
     }
     function currentLookAt() {
-      return new THREE.Vector3(panX + upAxis.x * panY, 4.6 + upAxis.y * panY, upAxis.z * panY);
+      return cameraRigPose(ELEV, camAz, zoom, panX, panY).look;
     }
     function currentCamPos() {
-      var d = baseDist / zoom * (1 + 0.3 * Math.sin(ELEV) * Math.sin(ELEV));
-      return new THREE.Vector3(
-        panX + upAxis.x * panY,
-        4.6 + upAxis.y * panY - 2.2 + Math.sin(ELEV) * d,
-        upAxis.z * panY + Math.cos(ELEV) * d
-      );
+      return cameraRigPose(ELEV, camAz, zoom, panX, panY).cam;
     }
     function inspectOrbiting() { return !!(inspectKind && !anim); }
     function defaultInspectOrbit(kind) {
@@ -589,6 +608,7 @@
         panX = anim.fromPanX * (1 - e);
         panY = anim.fromPanY * (1 - e);
         ELEV = anim.fromElev + (ELEV0 - anim.fromElev) * e;
+        camAz = (anim.fromAz || 0) * (1 - e);
         var destCamR = currentCamPos(), destLookR = currentLookAt();
         camera.position.copy(anim.fromCam).lerp(destCamR, e);
         _look.copy(anim.fromLook).lerp(destLookR, e);
@@ -606,7 +626,9 @@
           inspectOpen = 0;
           applyPartPose(0);
           angle = anim.toAng;
+          camAz = 0;
           zoom = 1; panX = 0; panY = 0; ELEV = ELEV0;
+          arrowAnim = null;
           lastInput = performance.now();
           applyCamera();
           if (typeof updatePartButtons === 'function') updatePartButtons();
@@ -702,7 +724,7 @@
 
     function wantsLoop() {
       if (mode !== '360' || !onScreen || document.hidden) return false;
-      if (anim || dragging || held) return true;
+      if (anim || arrowAnim || dragging || held) return true;
       if (!reduceMotion && (Math.abs(velocity) > 0.002 || Math.abs(elevVel) > 0.002 || Math.abs(iVelY) > 0.002 || Math.abs(iVelE) > 0.002)) return true;
       // Auto-spin only in the default orbit, never while a part is in focus.
       if (!reduceMotion && !inspectKind) return true;
@@ -740,14 +762,17 @@
       }
       lastFrame = t;
       if (anim) stepAnim(t);
+      if (arrowAnim) stepArrowAnim(t);
       if (held) {
+        arrowAnim = null;
         if (inspectOrbiting()) {
           iYaw += held.da * dt;
           if (held.de) iElev += held.de * dt;
           applyInspectOrbit();
         } else {
-          angle += held.da * dt;
-          if (held.de && !inspectKind) { ELEV += held.de * dt; applyCamera(); }
+          camAz += held.da * dt;
+          if (held.de && !inspectKind) ELEV = clampArrowElev(ELEV + held.de * dt);
+          applyCamera();
         }
         lastInput = performance.now();
       } else if (!dragging && !reduceMotion && !anim) {
@@ -1198,8 +1223,9 @@
     }
     updatePartButtons();
     stage.appendChild(zbar);
-    // Arrow pad: left/right rotate, up/down tilt. Press and hold keeps
-    // moving; a tap (or Enter/Space) moves one step. Auto-spin pauses while held, then resumes after idle.
+    // v149: arrows move the CAMERA around a fixed rig (azimuth / polar tilt),
+    // never the turntable. A tap eases one step; press and hold keeps moving.
+    // Auto-spin pauses while used. Polar tilt stays above the ground.
     var ICON = {
       left: 'M15 5l-7 7 7 7', right: 'M9 5l7 7-7 7', up: 'M5 15l7-7 7 7', down: 'M5 9l7 7 7-7'
     };
@@ -1210,27 +1236,69 @@
     pad.setAttribute('role', 'group');
     pad.setAttribute('aria-label', 'Move view');
     pad.innerHTML = ['left', 'up', 'down', 'right'].map(function (d) {
-      var lbl = { left: 'Rotate left', right: 'Rotate right', up: 'Tilt up (look from higher)', down: 'Tilt down (look from lower)' }[d];
+      var lbl = { left: 'Orbit left', right: 'Orbit right', up: 'Tilt camera up', down: 'Tilt camera down' }[d];
       return '<button type="button" data-dir="' + d + '" aria-label="' + lbl + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + ICON[d] + '" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>';
     }).join('');
     stage.appendChild(pad);
     function rate(d) {
       return { da: d === 'left' ? -ROT : d === 'right' ? ROT : 0, de: d === 'up' ? TILT : d === 'down' ? -TILT : 0 };
     }
+    function clampArrowElev(el) {
+      var d = baseDist / Math.max(1, zoom) * (1 + 0.3 * Math.sin(el) * Math.sin(el));
+      var minSin = (0.8 - 2.4) / Math.max(8, d);
+      var minE = Math.asin(Math.max(-0.99, Math.min(0.99, minSin)));
+      minE = Math.max(minE, THREE.MathUtils.degToRad(2));
+      return Math.max(minE, Math.min(THREE.MathUtils.degToRad(80), el));
+    }
+    function clampInspectArrowElev(el) {
+      var d = (iDist || 18) / Math.max(1, zoom);
+      var minSin = (0.8 - (iLook.y || 4)) / Math.max(4, d);
+      var minE = Math.asin(Math.max(-0.99, Math.min(0.99, minSin)));
+      return Math.max(minE, Math.min(I_ELEV_MAX, el));
+    }
+    function stepArrowAnim(now) {
+      if (!arrowAnim) return;
+      var u = Math.min(1, (now - arrowAnim.start) / arrowAnim.dur);
+      var e = easeInOut(u);
+      if (arrowAnim.inspect) {
+        iYaw = arrowAnim.fromY + wrapDelta(arrowAnim.fromY, arrowAnim.toY) * e;
+        iElev = arrowAnim.fromE + (arrowAnim.toE - arrowAnim.fromE) * e;
+        applyInspectOrbit();
+      } else {
+        camAz = arrowAnim.fromY + wrapDelta(arrowAnim.fromY, arrowAnim.toY) * e;
+        ELEV = arrowAnim.fromE + (arrowAnim.toE - arrowAnim.fromE) * e;
+        applyCamera();
+      }
+      if (u >= 1) arrowAnim = null;
+    }
     function step(d) {
+      var da = STEP[d][0], de = STEP[d][1];
+      var dur = reduceMotion ? 0 : 240;
+      velocity = 0; elevVel = 0; iVelY = 0; iVelE = 0;
+      lastInput = performance.now();
       if (inspectOrbiting()) {
-        iYaw += STEP[d][0];
-        iElev += STEP[d][1];
-        iVelY = 0; iVelE = 0;
-        lastInput = performance.now();
-        applyInspectOrbit(); render(); update();
+        var toY = (arrowAnim && arrowAnim.inspect ? arrowAnim.toY : iYaw) + da;
+        var toE = clampInspectArrowElev((arrowAnim && arrowAnim.inspect ? arrowAnim.toE : iElev) + de);
+        if (!dur) {
+          arrowAnim = null;
+          iYaw = toY; iElev = toE;
+          applyInspectOrbit(); render(); update();
+          return;
+        }
+        arrowAnim = { start: performance.now(), dur: dur, inspect: true, fromY: iYaw, toY: toY, fromE: iElev, toE: toE };
+        update();
         return;
       }
-      angle += STEP[d][0];
-      ELEV += STEP[d][1];
-      velocity = 0; elevVel = 0;
-      lastInput = performance.now();
-      applyCamera(); render(); update();
+      var toA = (arrowAnim && !arrowAnim.inspect ? arrowAnim.toY : camAz) + da;
+      var toEl = clampArrowElev((arrowAnim && !arrowAnim.inspect ? arrowAnim.toE : ELEV) + de);
+      if (!dur) {
+        arrowAnim = null;
+        camAz = toA; ELEV = toEl;
+        applyCamera(); render(); update();
+        return;
+      }
+      arrowAnim = { start: performance.now(), dur: dur, inspect: false, fromY: camAz, toY: toA, fromE: ELEV, toE: toEl };
+      update();
     }
     var holdBtn = null, holdTimer = 0;
     function endHold() {
@@ -1267,15 +1335,20 @@
       if (z === 'reset') resetZoom();
       else zoomAt(zoom * (z === 'in' ? 1.5 : 1 / 1.5));
     });
+    var ARROW_KEY = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' };
     stage.addEventListener('keydown', function (ev) {
       if (mode !== '360') return;
-      if (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') {
-        angle += (ev.key === 'ArrowLeft' ? -1 : 1) * 0.2;
-        lastInput = performance.now();
-        ev.preventDefault();
-        render();
-        update();
-      }
+      var d = ARROW_KEY[ev.key];
+      if (!d) return;
+      ev.preventDefault();
+      if (ev.repeat) return;
+      step(d);
+      if (holdTimer) { clearTimeout(holdTimer); holdTimer = 0; }
+      var dir = d;
+      holdTimer = setTimeout(function () { holdTimer = 0; held = rate(dir); update(); }, 260);
+    });
+    stage.addEventListener('keyup', function (ev) {
+      if (ARROW_KEY[ev.key]) endHold();
     });
     window.addEventListener('resize', function () { w = 0; update(); });
     if (typeof ResizeObserver === 'function') {
@@ -1422,7 +1495,8 @@
         if (typeof closeCard === 'function') closeCard();
         fitShadowCam();
         renderer.shadowMap.needsUpdate = true;
-        zoom = 1; panX = 0; panY = 0; ELEV = ELEV0;
+        zoom = 1; panX = 0; panY = 0; ELEV = ELEV0; camAz = 0;
+        arrowAnim = null;
         closeInspect(true);
         updatePartButtons();
         w = 0;
