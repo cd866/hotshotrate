@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v124';
+  var APP_VERSION = 'v125';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -7862,6 +7862,7 @@
           var card = document.querySelector('.rig-card');
           if (card) window.scrollTo({ top: card.getBoundingClientRect().top + window.pageYOffset - stickyTopOffset(), behavior: 'smooth' });
         }
+        if (ev.target.closest('#more-team')) { closeMoreSheet(); if (window.BlackRamTeam) window.BlackRamTeam.open(); return; }
         if (ev.target.closest('#more-driver')) { closeMoreSheet(); if (window.BlackRamDriver) window.BlackRamDriver.open(); return; }
         if (ev.target.closest('#about-open')) closeMoreSheet();
       });
