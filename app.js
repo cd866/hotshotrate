@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v106';
+  var APP_VERSION = 'v107';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -5149,99 +5149,22 @@
     return '';
   }
 
+  function wxLib() { return window.BlackRamWx || null; }
   function wxKindFromCode(code, gust) {
-    var c = code == null || code === '' ? null : Number(code);
-    if (c === 45 || c === 48) return 'fog';
-    if (c === 56 || c === 57 || c === 66 || c === 67) return 'ice';
-    if (c === 71 || c === 73 || c === 75 || c === 77 || c === 85 || c === 86) return 'snow';
-    if (c === 95 || c === 96 || c === 97 || c === 99) return 'thunder';
-    if (c === 51 || c === 53 || c === 55 || c === 61 || c === 63 || c === 65 || c === 80 || c === 81 || c === 82) return 'rain';
-    var windy = gust != null && isFinite(Number(gust)) && Number(gust) >= 40;
-    if (c === 3) return windy ? 'wind' : 'cloud';
-    if (c === 2) return windy ? 'wind' : 'partly';
-    if (c === 0 || c === 1) return windy ? 'wind' : 'sun';
-    if (windy) return 'wind';
-    return c == null || !isFinite(c) ? '' : 'cloud';
+    var W = wxLib();
+    return W && W.kindFromCode ? W.kindFromCode(code, gust) : '';
   }
-
   function wxKindFromPoint(pt) {
-    if (!pt) return '';
-    var kind = wxKindFromCode(pt.weather_code, pt.gust_mph);
-    if (kind) return kind;
-    var precip = String(pt.precip || '');
-    if (precip === 'ice') return 'ice';
-    if (precip === 'snow') return 'snow';
-    if (precip === 'rain') return 'rain';
-    if (pt.gust_mph != null && Number(pt.gust_mph) >= 40) return 'wind';
-    return '';
+    var W = wxLib();
+    return W && W.kindFromPoint ? W.kindFromPoint(pt) : '';
   }
-
   function wxKindForDrop(row) {
-    if (!row) return '';
-    var kind = wxKindFromCode(row.drop_wx_code, row.drop_gust_mph);
-    if (kind) return kind;
-    var pts = (row.route_wx && row.route_wx.points) || [];
-    var want = String(row.drop_low_date || '');
-    var i, pt;
-    for (i = 0; i < pts.length; i++) {
-      pt = pts[i];
-      if (want && String(pt.date || '').slice(0, 10) === want.slice(0, 10)) return wxKindFromPoint(pt);
-    }
-    if (pts.length) return wxKindFromPoint(pts[pts.length - 1]);
-    return '';
+    var W = wxLib();
+    return W && W.kindForDrop ? W.kindForDrop(row) : '';
   }
-
-  var WX_KIND_LABEL = {
-    sun: 'Sunny',
-    partly: 'Partly cloudy',
-    cloud: 'Cloudy',
-    rain: 'Rain',
-    thunder: 'Thunderstorm',
-    snow: 'Snow',
-    ice: 'Ice or freezing rain',
-    fog: 'Fog',
-    wind: 'Windy'
-  };
-
-  function wxIconSvg(kind) {
-    var k = String(kind || '');
-    if (k === 'sun') {
-      return '<svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><circle cx="9" cy="9" r="3.15" fill="#F2C94C"/><g stroke="#F2C94C" stroke-width="1.45" stroke-linecap="round"><path d="M9 1.6v2M9 14.4v2M1.6 9h2M14.4 9h2M3.5 3.5l1.4 1.4M13.1 13.1l1.4 1.4M3.5 14.5l1.4-1.4M13.1 4.9l1.4-1.4"/></g></svg>';
-    }
-    if (k === 'partly') {
-      return '<svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><circle cx="6.6" cy="6.2" r="2.3" fill="#F2C94C"/><g stroke="#F2C94C" stroke-width="1.2" stroke-linecap="round"><path d="M6.6 1.5v1.5M1.5 6.2h1.5M3.1 3.1l1.1 1.1M11 3.8l-1.1 1.1"/></g><path fill="#C4B5FD" d="M7.1 9.2a3.1 3.1 0 0 1 5.8.6 2.5 2.5 0 0 1 1.9 2.4 2.5 2.5 0 0 1-2.5 2.5H7.4A2.6 2.6 0 0 1 6.2 9.6a2.7 2.7 0 0 1 .9-.4z"/></svg>';
-    }
-    if (k === 'cloud') {
-      return '<svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path fill="#C4B5FD" d="M5.6 7.4A3.4 3.4 0 0 1 12 8a2.7 2.7 0 0 1 2.1 2.6A2.7 2.7 0 0 1 11.4 13.3H5.7A2.8 2.8 0 0 1 4.4 7.8a3 3 0 0 1 1.2-.4z"/></svg>';
-    }
-    if (k === 'rain') {
-      return '<svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path fill="#C4B5FD" d="M5.8 4.8A3.2 3.2 0 0 1 11.8 5.4 2.5 2.5 0 0 1 13.8 7.8 2.5 2.5 0 0 1 11.3 10.3H5.9A2.6 2.6 0 0 1 4.6 5.2a2.8 2.8 0 0 1 1.2-.4z"/><g fill="#60A5FA"><path d="M6.2 11.2l-.8 3.1c-.12.5.5.8.8.4l.9-1.6c.2-.35 0-.8-.4-.9-.2-.06-.4 0-.5.2z"/><path d="M9.1 11.2l-.8 3.1c-.12.5.5.8.8.4l.9-1.6c.2-.35 0-.8-.4-.9-.2-.06-.4 0-.5.2z"/><path d="M12 11.2l-.8 3.1c-.12.5.5.8.8.4l.9-1.6c.2-.35 0-.8-.4-.9-.2-.06-.4 0-.5.2z"/></g></svg>';
-    }
-    if (k === 'thunder') {
-      return '<svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path fill="#A78BFA" d="M5.7 4.6A3.2 3.2 0 0 1 11.7 5.2 2.5 2.5 0 0 1 13.7 7.6 2.5 2.5 0 0 1 11.2 10.1H5.8A2.6 2.6 0 0 1 4.5 5a2.8 2.8 0 0 1 1.2-.4z"/><path fill="#F2C94C" d="M10.3 9.2H8.2l1.15 3.05H7.4L11.1 8.1H9.15z"/></svg>';
-    }
-    if (k === 'snow') {
-      return '<svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path fill="#C4B5FD" d="M5.8 4.4A3.2 3.2 0 0 1 11.8 5 2.5 2.5 0 0 1 13.8 7.4 2.5 2.5 0 0 1 11.3 9.9H5.9A2.6 2.6 0 0 1 4.6 4.8a2.8 2.8 0 0 1 1.2-.4z"/><g stroke="#BFDBFE" stroke-width="1.15" stroke-linecap="round"><path d="M6.1 11.5v3.1M4.6 13.05h3"/><path d="M9 11.5v3.1M7.5 13.05h3"/><path d="M11.9 11.5v3.1M10.4 13.05h3"/></g></svg>';
-    }
-    if (k === 'ice') {
-      return '<svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path fill="#C4B5FD" d="M5.8 4.4A3.2 3.2 0 0 1 11.8 5 2.5 2.5 0 0 1 13.8 7.4 2.5 2.5 0 0 1 11.3 9.9H5.9A2.6 2.6 0 0 1 4.6 4.8a2.8 2.8 0 0 1 1.2-.4z"/><g fill="#93C5FD"><path d="M6.2 10.6l-.7 3.6c0 .4.5.5.7.2l.8-1.8c.15-.35-.1-.7-.45-.75-.15 0-.3.05-.35.15z"/><path d="M9 10.6l-.7 4.2c0 .4.55.55.75.2l.9-2.1c.15-.35-.1-.75-.45-.8-.15 0-.3.05-.35.15z"/><path d="M11.9 10.6l-.7 3.6c0 .4.5.5.7.2l.8-1.8c.15-.35-.1-.7-.45-.75-.15 0-.3.05-.35.15z"/></g></svg>';
-    }
-    if (k === 'fog') {
-      return '<svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><g fill="none" stroke="#C4B5FD" stroke-width="1.5" stroke-linecap="round"><path d="M3.2 6.2h9.2"/><path d="M5 9h9.8"/><path d="M3.6 11.8h8.6"/><path d="M6.2 14.4h7.2"/></g></svg>';
-    }
-    if (k === 'wind') {
-      return '<svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><g fill="none" stroke="#E9D5FF" stroke-width="1.5" stroke-linecap="round"><path d="M3 6.2h8.2a2 2 0 1 0-2-2"/><path d="M3 9.4h10.2a2 2 0 1 1-2 2"/><path d="M3 12.6h6.5"/></g></svg>';
-    }
-    return '';
-  }
-
-  function wxIconHtml(kind) {
-    var svg = wxIconSvg(kind);
-    if (!svg) return '';
-    var label = WX_KIND_LABEL[kind] || '';
-    return '<span class="wx-ico wx-ico-' + esc(kind) + '"' +
-      (label ? ' title="' + esc(label) + '" aria-label="' + esc(label) + '"' : '') +
-      '>' + svg + '</span>';
+  function wxIconHtml(kind, opts) {
+    var W = wxLib();
+    return W && W.iconHtml ? W.iconHtml(kind, opts) : '';
   }
 
   function wxChipHtml(row) {
@@ -5251,7 +5174,7 @@
     if (String(row.drop_low_source || '') === 'normal') label += ' (normal low)';
     var cls = n <= 45 ? (weatherOn() ? 'wx-chip cold' : 'wx-chip warn') : 'wx-chip';
     if (n <= 45 && !weatherOn()) label += ' (note only)';
-    return '<span class="' + cls + '">' + wxIconHtml(wxKindForDrop(row)) + '<span class="wx-chip-temp">' + esc(label) + '</span></span>';
+    return '<span class="' + cls + '">' + wxIconHtml(wxKindForDrop(row), { night: true, cold: n <= 45 }) + '<span class="wx-chip-temp">' + esc(label) + '</span></span>';
   }
 
   function formatWxDate(iso) {
@@ -5849,8 +5772,10 @@
     var notes = (row.weather_flags || []).filter(function (f) { return !/too cold at drop/i.test(String(f)); });
     if (!notes.length) return '';
     return '<div class="wx-notes">' + notes.map(function (f) {
-      var label = /ice or snow/i.test(String(f)) ? 'Ice or snow on route' : (/gusts 50/i.test(String(f)) ? 'Gusts 50+ mph on route' : String(f));
-      return '<span class="wx-chip warn">' + esc(label + ' (note only)') + '</span>';
+      var raw = String(f);
+      var label = /ice or snow/i.test(raw) ? 'Ice or snow on route' : (/gusts 50/i.test(raw) ? 'Gusts 50+ mph on route' : raw);
+      var nk = /ice or snow/i.test(raw) ? 'ice' : (/gusts 50/i.test(raw) ? 'wind' : (/rain/i.test(raw) ? 'rain' : (/fog/i.test(raw) ? 'fog' : '')));
+      return '<span class="wx-chip warn">' + wxIconHtml(nk) + '<span class="wx-chip-temp">' + esc(label + ' (note only)') + '</span></span>';
     }).join('') + '</div>';
   }
 
@@ -7075,6 +7000,7 @@
     var on = weatherOn();
     return '<div class="wx-switch-row">' +
       '<button type="button" id="wx-switch" class="wx-switch' + (on ? ' on' : '') + '" role="switch" aria-checked="' + (on ? 'true' : 'false') + '" aria-label="Weather rules">' +
+        '<span class="wx-switch-ico" aria-hidden="true">' + wxIconHtml('partly') + '</span>' +
         '<span class="wx-switch-track"><span class="wx-switch-knob"></span></span>' +
         '<span class="wx-switch-label">Weather ' + (on ? 'ON' : 'OFF') + '</span>' +
       '</button>' +

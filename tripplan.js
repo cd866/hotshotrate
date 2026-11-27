@@ -433,34 +433,14 @@
   // ---------- weather ----------
   var WX_LABEL = { sun: 'Sunny', partly: 'Partly cloudy', cloud: 'Cloudy', rain: 'Rain', thunder: 'Storms', snow: 'Snow', ice: 'Ice', fog: 'Fog', wind: 'Windy' };
   function wxKind(code, gust) {
-    var c = code == null || code === '' ? null : Number(code);
-    if (c === 45 || c === 48) return 'fog';
-    if (c === 56 || c === 57 || c === 66 || c === 67) return 'ice';
-    if (c === 71 || c === 73 || c === 75 || c === 77 || c === 85 || c === 86) return 'snow';
-    if (c === 95 || c === 96 || c === 99) return 'thunder';
-    if ([51, 53, 55, 61, 63, 65, 80, 81, 82].indexOf(c) >= 0) return 'rain';
-    var windy = gust != null && Number(gust) >= 40;
-    if (windy) return 'wind';
-    if (c === 3) return 'cloud';
-    if (c === 2) return 'partly';
-    if (c === 0 || c === 1) return 'sun';
-    return c == null || !isFinite(c) ? '' : 'cloud';
+    var W = window.BlackRamWx;
+    if (W && W.kindFromCode) return W.kindFromCode(code, gust);
+    return '';
   }
-  function wxIcon(kind) {
-    var k = String(kind || '');
-    var cloud = '<path fill="#C4B5FD" d="M5.8 4.6A3.2 3.2 0 0 1 11.8 5.2 2.5 2.5 0 0 1 13.8 7.6 2.5 2.5 0 0 1 11.3 10.1H5.9A2.6 2.6 0 0 1 4.6 5a2.8 2.8 0 0 1 1.2-.4z"/>';
-    var body = '';
-    if (k === 'sun') body = '<circle cx="9" cy="9" r="3.15" fill="#F2C94C"/><g stroke="#F2C94C" stroke-width="1.45" stroke-linecap="round"><path d="M9 1.6v2M9 14.4v2M1.6 9h2M14.4 9h2M3.5 3.5l1.4 1.4M13.1 13.1l1.4 1.4M3.5 14.5l1.4-1.4M13.1 4.9l1.4-1.4"/></g>';
-    else if (k === 'partly') body = '<circle cx="6.6" cy="6.2" r="2.3" fill="#F2C94C"/><path fill="#C4B5FD" d="M7.1 9.2a3.1 3.1 0 0 1 5.8.6 2.5 2.5 0 0 1 1.9 2.4 2.5 2.5 0 0 1-2.5 2.5H7.4A2.6 2.6 0 0 1 6.2 9.6a2.7 2.7 0 0 1 .9-.4z"/>';
-    else if (k === 'cloud') body = '<path fill="#C4B5FD" d="M5.6 7.4A3.4 3.4 0 0 1 12 8a2.7 2.7 0 0 1 2.1 2.6A2.7 2.7 0 0 1 11.4 13.3H5.7A2.8 2.8 0 0 1 4.4 7.8a3 3 0 0 1 1.2-.4z"/>';
-    else if (k === 'rain') body = cloud + '<g stroke="#60A5FA" stroke-width="1.4" stroke-linecap="round"><path d="M6.3 11.6l-.8 2.6M9.2 11.6l-.8 2.6M12.1 11.6l-.8 2.6"/></g>';
-    else if (k === 'thunder') body = cloud + '<path fill="#F2C94C" d="M10.3 9.2H8.2l1.15 3.05H7.4L11.1 8.1H9.15z"/>';
-    else if (k === 'snow') body = cloud + '<g stroke="#BFDBFE" stroke-width="1.15" stroke-linecap="round"><path d="M6.1 11.5v3.1M4.6 13.05h3M9 11.5v3.1M7.5 13.05h3M11.9 11.5v3.1M10.4 13.05h3"/></g>';
-    else if (k === 'ice') body = cloud + '<g stroke="#93C5FD" stroke-width="1.4" stroke-linecap="round"><path d="M6.2 11.2l-.6 3M9 11.2l-.6 3.4M11.9 11.2l-.6 3"/></g>';
-    else if (k === 'fog') body = '<g fill="none" stroke="#C4B5FD" stroke-width="1.5" stroke-linecap="round"><path d="M3.2 6.2h9.2M5 9h9.8M3.6 11.8h8.6M6.2 14.4h7.2"/></g>';
-    else if (k === 'wind') body = '<g fill="none" stroke="#E9D5FF" stroke-width="1.5" stroke-linecap="round"><path d="M3 6.2h8.2a2 2 0 1 0-2-2M3 9.4h10.2a2 2 0 1 1-2 2M3 12.6h6.5"/></g>';
-    if (!body) return '';
-    return '<span class="tp-ico" title="' + esc(WX_LABEL[k] || '') + '"><svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true">' + body + '</svg></span>';
+  function wxIcon(kind, opts) {
+    var W = window.BlackRamWx;
+    if (W && W.iconHtml) return W.iconHtml(kind, opts);
+    return '';
   }
   // Open-Meteo daily for several points in one call.
   function fetchWeather(points) {
@@ -806,7 +786,7 @@
       (w.pop != null && w.pop >= 40 ? ', ' + w.pop + '% precip' : '');
     var srcTxt = w.src === 'forecast' ? '' : ' (' + w.src + ')';
     return {
-      html: wxIcon(kind) + '<span>' + esc(t + srcTxt) + '</span>' + (cold ? '<span class="tp-cold">' + (d.night ? 'Cold night - 45 F or below, plan for idling or a heated stop' : 'Low of 45 F or below - cold idling weather') + '</span>' : ''),
+      html: wxIcon(kind, { night: !!d.night, cold: cold }) + '<span>' + esc(t + srcTxt) + '</span>' + (cold ? '<span class="tp-cold">' + (d.night ? 'Cold night - 45 F or below, plan for idling or a heated stop' : 'Low of 45 F or below - cold idling weather') + '</span>' : ''),
       text: t + srcTxt + (cold ? (d.night ? ' - COLD NIGHT (45 F or below), plan for idling' : ' - COLD (low 45 F or below)') : ''),
       cold: cold
     };

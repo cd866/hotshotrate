@@ -294,8 +294,13 @@
     var when = dt ? ((dt.getHours() % 12) || 12) + ':' + pad(dt.getMinutes()) + (dt.getHours() >= 12 ? ' PM' : ' AM') + ' ' + md(dt.getFullYear() + '-' + pad(dt.getMonth() + 1) + '-' + pad(dt.getDate())) : 'time not on file';
     var rows = good.slice(0, 3).map(function (l) {
       var tone = l.verdict === 'TAKE' ? 'good' : 'warn';
+      var W = window.BlackRamWx;
+      var low = l.drop_low_f;
+      var cold = low != null && isFinite(Number(low)) && Number(low) <= 45;
+      var wx = (W && W.iconHtml) ? W.iconHtml(W.kindForDrop ? W.kindForDrop(l) : '', { night: true, cold: cold }) : '';
+      var wxBit = wx ? '<span class="td-bd-wx">' + wx + (low != null && isFinite(Number(low)) ? '<span>' + Math.round(Number(low)) + ' F</span>' : '') + '</span>' : '';
       return '<div class="td-bd tl-tap tl-chev"' + tap('go', 'tab:searches', l.verdict + ' ' + ascii(l.origin) + ' to ' + ascii(l.destination) + '. Open Load Boards') + '>' + pill(tone, l.verdict) +
-        '<span class="td-bd-m"><b>' + esc(ascii(l.origin)) + ' to ' + esc(ascii(l.destination)) + '</b><small>' + (l.posted_rate ? money(Number(l.posted_rate)) + ' posted | ' : '') + (l.total_mi ? n0(l.total_mi) + ' mi total' : 'miles not on file') + '</small></span>' +
+        '<span class="td-bd-m"><b>' + esc(ascii(l.origin)) + ' to ' + esc(ascii(l.destination)) + '</b><small>' + wxBit + (l.posted_rate ? money(Number(l.posted_rate)) + ' posted | ' : '') + (l.total_mi ? n0(l.total_mi) + ' mi total' : 'miles not on file') + '</small></span>' +
         '<span class="td-bd-v"><b class="num-yellow">' + (l.net_est != null ? money(Number(l.net_est)) : '-') + '</b><small>net EST</small></span></div>';
     }).join('');
     var sub = S.loads.length + ' checked' + (combos ? ' | ' + combos + ' TAKE combos' : '') + ' | ' + when;
@@ -410,6 +415,7 @@
       '.td-al,.td-bd{display:flex;align-items:center;gap:var(--s-1);padding:10px var(--s-1h);border-bottom:1px solid var(--c-line);background:var(--c-surface-2);min-height:var(--tap)}.td-al:last-child,.td-bd:last-child{border-bottom:0}' +
       '.td-dot{flex:none;width:10px;height:10px;border-radius:50%;background:var(--c-accent)}.td-al-bad .td-dot{background:#F87171;box-shadow:0 0 0 3px rgba(248,113,113,.2)}.td-al-warn .td-dot{background:var(--c-maybe)}.td-al-info .td-dot{background:var(--c-accent)}' +
       '.td-al-m,.td-bd-m{flex:1;min-width:0}.td-al-m b,.td-bd-m b{display:block;font-size:var(--fs-sm);font-weight:800;color:var(--c-text-1);overflow-wrap:anywhere}.td-al-m small,.td-bd-m small{display:block;font-size:11px;font-weight:700;color:var(--c-text-3);margin-top:1px}' +
+      '.td-bd-wx{display:inline-flex;align-items:center;gap:4px;margin-right:8px;vertical-align:middle}' +
       '.td-bd-v{flex:none;text-align:right}.td-bd-v b{display:block;font-size:var(--fs-md);font-weight:900}.td-bd-v small{font-size:10px;font-weight:800;color:var(--c-text-3)}' +
       '.td-more{align-self:flex-start;min-height:38px;padding:0 14px;border-radius:var(--radius-pill);border:1px solid var(--c-accent);background:transparent;color:var(--c-accent-hi);font:inherit;font-size:var(--fs-sm);font-weight:800;cursor:pointer}' +
       '.td-ok{margin:0;font-size:var(--fs-sm);font-weight:800;color:var(--c-take)}' +
