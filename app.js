@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v112';
+  var APP_VERSION = 'v113';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -7226,7 +7226,7 @@
 
   // ---- Finance tab (v41): PIN-gated via relay /financials. Nothing is stored in the repo. ----
   var FIN_SESSION_KEY = 'blackram_fin_session_v1';
-  var finState = { data: null, loading: false, error: '', range: 30, fetchedAt: 0 };
+  var finState = { data: null, loading: false, error: '', range: 30, fetchedAt: 0, refresh: null, refreshBusy: false, refreshMsg: '' };
 
   function finMoney(n, cents) {
     if (n == null || !isFinite(n)) return '--';
@@ -7251,6 +7251,66 @@
     return d.toLocaleString('en-US', { timeZone: 'America/Chicago', weekday: 'short', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + ' CT';
   }
 
+  // v113: when the Bluevine numbers were pulled, how old they are, and the "Refresh requested" flag.
+  function finBankAsOf(d) { return (d && (d.bank_as_of || d.as_of)) || ''; }
+  function finAgeText(iso) {
+    var t = new Date(iso).getTime();
+    if (isNaN(t)) return '';
+    var h = Math.max(0, Math.round((Date.now() - t) / 3600000));
+    if (h < 1) return 'under 1h old';
+    if (h < 48) return h + 'h old';
+    return Math.round(h / 24) + 'd old';
+  }
+  function finIsStale(iso) {
+    var t = new Date(iso).getTime();
+    return !isNaN(t) && Date.now() - t > 24 * 3600000;
+  }
+  function finRefreshPending(d) {
+    var r = finState.refresh;
+    if (!r || r.status !== 'requested' || !r.requested_at) return false;
+    var req = new Date(r.requested_at).getTime();
+    var got = new Date(finBankAsOf(d)).getTime();
+    return !isNaN(req) && (isNaN(got) || req > got);
+  }
+  function finAsOfLine(d) {
+    var iso = finBankAsOf(d);
+    var tx = (d.transactions || [])[0];
+    return '<div class="fin-asof' + (finIsStale(iso) ? ' stale' : '') + '">Bluevine as of ' + esc(finAsOfText(iso)) + ' (' + esc(finAgeText(iso)) + ')' +
+      (tx ? ' | newest transaction ' + esc(finDay(tx.date)) : '') + '</div>';
+  }
+  function finRefreshBlock(d) {
+    var pending = finRefreshPending(d);
+    var msg = finState.refreshMsg;
+    if (!msg && pending) msg = 'Refresh requested ' + finAsOfText(finState.refresh.requested_at);
+    return '<div class="fin-refresh-row"><button type="button" class="btn btn-secondary btn-sm fin-bv-btn" id="fin-bv-refresh"' + ((finState.refreshBusy || pending) ? ' disabled' : '') + '>' +
+      (finState.refreshBusy ? 'Requesting...' : (pending ? 'Refresh requested' : 'Refresh Bluevine')) + '</button>' +
+      (msg ? '<span class="fin-refresh-msg" role="status">' + esc(msg) + '</span>' : '') + '</div>';
+  }
+  function requestBluevineRefresh() {
+    var pin = getRelayPin();
+    if (!pin || finState.refreshBusy) return;
+    finState.refreshBusy = true; finState.refreshMsg = '';
+    renderFinance();
+    fetch(RELAY_URL + '/bluevine-refresh', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: pin }), cache: 'no-store'
+    }).then(function (resp) {
+      return resp.json().catch(function () { return null; }).then(function (j) {
+        if (resp.ok && j && j.ok && j.refresh) {
+          finState.refresh = j.refresh;
+          finState.refreshMsg = 'Refresh requested ' + finAsOfText(j.refresh.requested_at) + '. Waiting for the pull.';
+        } else {
+          finState.refreshMsg = (j && j.error) || ('Could not request (' + resp.status + ')');
+        }
+      });
+    }).catch(function () {
+      finState.refreshMsg = 'Offline. Could not request a refresh.';
+    }).then(function () {
+      finState.refreshBusy = false;
+      if (state.tab === 'fin') renderFinance();
+    });
+  }
+
   function fetchFinance(force) {
     var pin = getRelayPin();
     if (!pin) { finState.error = 'nopin'; renderFinance(); return Promise.resolve(); }
@@ -7266,7 +7326,7 @@
     }).then(function (resp) {
       return resp.json().catch(function () { return null; }).then(function (j) {
         if (resp.ok && j && j.ok && j.data) {
-          finState.data = j.data; finState.error = ''; finState.fetchedAt = Date.now();
+          finState.data = j.data; finState.error = ''; finState.fetchedAt = Date.now(); finState.refresh = j.refresh || null;
           try { sessionStorage.setItem(FIN_SESSION_KEY, JSON.stringify(j.data)); } catch (e) { /* ignore */ }
         } else if (resp.status === 401) {
           finState.error = 'wrongpin'; finState.data = null;
@@ -7376,11 +7436,11 @@
     var bal = '<section class="fin-card fin-balance tl-tap tl-chev tl-chev-top"' + tlAttrs('fin', 'bal', 'Bank balance ' + finMoney(acct.available, true) + '. Show transactions') + '>' +
       '<div class="fin-kicker">' + esc(acct.bank + ' ' + acct.name) + ' ...' + esc(acct.last4) + '</div>' +
       '<div class="fin-big">' + finMoney(acct.available, true) + '</div>' +
-      '<div class="fin-sub">Available | as of ' + esc(finAsOfText(d.as_of)) + '</div>' +
+      '<div class="fin-sub">Available</div>' + finAsOfLine(d) +
       '<div class="fin-mini-row">' +
       '<span class="fin-owed-link" data-tl="fin" data-tl-arg="owed" role="button" tabindex="0" aria-label="Owed to us. Show money coming in">Owed to us <b class="pos">' + finMoney(d.income_pending_total, true) + '</b></span>' +
       ((d.off_bank || []).map(function (o) { return '<span>' + esc(o.label) + ' <b>' + finMoney(o.amount) + '</b></span>'; }).join('')) +
-      '</div></section>';
+      '</div></section>' + finRefreshBlock(d);
 
     var calls = '<div class="fin-callouts">' + (d.callouts || []).map(function (c, ci) {
       var ck = /owed to us/i.test(c.text) ? 'owed' : (/^bills /i.test(c.text) ? 'bills' : 'proj:' + ci);
@@ -7422,7 +7482,7 @@
         '<span class="fin-tx-amt ' + (pos ? 'pos' : 'neg') + '">' + (pos ? '+' : '') + finMoney(t.amount, true) + '</span>' +
         '<span class="fin-tx-bal">' + finMoney(t.balance, true) + '</span></li>';
     }).join('');
-    var txCard = '<section class="fin-card"><div class="fin-kicker">Transactions</div>' +
+    var txCard = '<section class="fin-card"><div class="fin-kicker">Transactions</div>' + finAsOfLine(d) +
       '<div class="fin-tx fin-tx-head"><span>Date</span><span>What</span><span>Amount</span><span>Balance</span></div>' +
       '<ul class="fin-list">' + tx + '</ul></section>';
 
@@ -7449,6 +7509,8 @@
     });
     var rf = $('fin-refresh');
     if (rf) rf.addEventListener('click', function () { fetchFinance(true); });
+    var bv = $('fin-bv-refresh');
+    if (bv) bv.addEventListener('click', requestBluevineRefresh);
   }
 
 
@@ -8227,7 +8289,7 @@
     var today = String(d.as_of).slice(0, 10);
     if (k === 'bal') {
       var tx = (d.transactions || []).map(function (t) { return { d: dayShort(t.date), t: esc(t.desc), s: 'balance ' + finMoney(t.balance, true), v: (t.amount >= 0 ? '+' : '') + finMoney(t.amount, true), vc: t.amount >= 0 ? 'pos' : 'neg' }; });
-      T.open({ title: 'Bluevine ...' + esc((d.account || {}).last4), sub: 'Available ' + finMoney((d.account || {}).available, true) + ' | as of ' + esc(finAsOfText(d.as_of)),
+      T.open({ title: 'Bluevine ...' + esc((d.account || {}).last4), sub: 'Available ' + finMoney((d.account || {}).available, true) + ' | Bluevine as of ' + esc(finAsOfText(finBankAsOf(d))) + ' (' + esc(finAgeText(finBankAsOf(d))) + ')',
         body: T.sec('Latest transactions') + T.rows(tx, 'No transactions.') + T.sec('Next scheduled bills') + finEventsRows(d, null) });
     } else if (k === 'owed') {
       T.jump('fin-income');

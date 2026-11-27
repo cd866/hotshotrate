@@ -6014,3 +6014,11 @@ body .search-actions .trip-plan-btn::after {
    the freshness dot stay. */
 @media (max-width: 559px) { .hdr-wx-label { display: none; } }
 @media (max-width: 419px) { .appbar-status .as-age { display: none; } }
+
+/* v113: Bluevine as-of stamp and Refresh request */
+.fin-asof { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.fin-asof.stale { color: var(--warn, #e0a030); }
+.fin-refresh-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 8px 0 12px; }
+.fin-bv-btn { min-height: 40px; padding: 8px 14px; font-size: 13px; }
+.fin-bv-btn[disabled] { opacity: .65; }
+.fin-refresh-msg { font-size: 12px; color: var(--muted); }
