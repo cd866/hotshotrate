@@ -5,10 +5,17 @@
   "started_at": "2026-11-27 03:42 CT",
   "updated_at": "2026-11-27 03:52 CT",
   "counts": {
+<<<<<<< Updated upstream
     "truckstop": 0,
     "df": 14,
     "uship": 0,
     "fits": 0
+=======
+    "truckstop": 41,
+    "df": 14,
+    "uship": 0,
+    "fits": 5
+>>>>>>> Stashed changes
   },
   "message": "Scoring loads"
 }
