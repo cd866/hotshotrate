@@ -3935,6 +3935,12 @@ article.load {
 .fin-chip-withheld { background: #2e2940; color: var(--muted); }
 .fin-chip-dateq { background: #3b2f63; color: var(--purple-hi); text-transform: none; }
 .fin-chip-unpaid { background: var(--ok-bg); color: var(--ok-ink); }
+.fin-chip-posting, .fin-chip-pending { background: #3b2f14; color: #f2c94c; }
+.fin-chip-received { background: var(--good-bg); color: var(--good-ink); }
+.fin-posted-line { margin-top: 4px; font-size: 13px; color: var(--muted); }
+.fin-tx-posting .fin-tx-desc, .fin-tx-pending .fin-tx-desc { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.fin-tx-bal-pending { font-style: italic; }
+
 .fin-tx { display: grid; grid-template-columns: 40px 1fr auto 78px; gap: 8px; align-items: center; padding: 9px 0 9px 8px; border-top: 1px solid var(--line); font-size: 13.5px; border-left: 3px solid transparent; }
 .fin-list .fin-tx:first-child { border-top: 0; }
 .fin-tx-in { border-left-color: var(--stripe-take); }

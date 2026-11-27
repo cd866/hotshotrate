@@ -298,10 +298,11 @@
     if (kind === 'ok') showToast(text, 'ok', null, 3200);
     else showToast(text, 'err', s.id, 9000);
   }
+  var LONG_PULL = { 'fin-bv-refresh': 1, 'in-prog-refresh': 1 };
   function startSess(id) {
     if (sess) { clearInterval(sess.iv); var ob = $(sess.id); if (ob) ob.classList.remove('br-busy'); }
     sess = { id: id, t0: Date.now(), last: Date.now(), pending: 0, reqs: 0, fail: '' };
-    showToast('Refreshing...', 'busy');
+    showToast(LONG_PULL[id] ? 'Request sent' : 'Refreshing...', 'busy');
     busyMark();
     sess.iv = setInterval(function () {
       if (!sess) return;
@@ -310,7 +311,12 @@
       if (now - sess.t0 > 25000) { endSess('err', 'Timed out. Check your connection and tap Retry.'); return; }
       if (now - sess.t0 >= 900 && sess.pending === 0 && now - sess.last >= 350) {
         if (sess.fail) endSess('err', sess.fail + '. Tap Retry.');
-        else { var fn = DONE_TEXT[sess.id]; var txt; try { txt = fn ? fn() : 'Updated'; } catch (e) { txt = 'Updated'; } endSess('ok', txt); }
+        else if (LONG_PULL[sess.id]) {
+          showToast('Pulling...', 'busy');
+          clearInterval(sess.iv);
+          var b = $(sess.id); if (b) b.classList.remove('br-busy');
+          sess = null;
+        } else { var fn = DONE_TEXT[sess.id]; var txt; try { txt = fn ? fn() : 'Updated'; } catch (e) { txt = 'Updated'; } endSess('ok', txt); }
       }
     }, 120);
   }
