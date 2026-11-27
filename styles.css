@@ -5504,6 +5504,22 @@ header.top .rig-stage[data-r360] {
   -webkit-tap-highlight-color: transparent;
 }
 header.top .rig-stage[data-r360][data-view="360"] { touch-action: none; }
+/* v130: the viewer owns every touch. Photos under it can never be dragged,
+   long-pressed or hit; no scroll, page-pinch or text selection starts here. */
+header.top .rig-stage[data-r360] {
+  -webkit-touch-callout: none;
+  overscroll-behavior: contain;
+}
+header.top .rig-stage[data-r360] img,
+header.top .rig-stage[data-r360] picture,
+header.top .rig-stage[data-r360] canvas {
+  -webkit-user-drag: none; user-drag: none;
+  -webkit-user-select: none; user-select: none;
+  -webkit-touch-callout: none;
+}
+header.top .rig-stage[data-r360][data-view="360"] img,
+header.top .rig-stage[data-r360][data-view="360"] picture { pointer-events: none; }
+header.top .rig-stage[data-r360][data-view="360"] .r360-canvas { touch-action: none; }
 header.top .rig-stage[data-r360] picture,
 header.top .rig-stage[data-r360] .rig-reflect,
 header.top .rig-stage[data-r360] .rig-floor { transition: opacity 0.5s ease; }

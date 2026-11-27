@@ -10,9 +10,13 @@
      on the Rig, Truck and Trailer views. After any touch, drag, arrow, zoom
      or pan, auto-spin always resumes about 3 s later, even if the view is
      still zoomed, panned or tilted (zoom and tilt stay as they are).
-   - One-finger drag orbits freely (yaw plus vertical tilt, 2-62 deg) with
-     inertia. Pinch zooms; two-finger drag pans. Double-tap or double-click
-     resets the view. Mouse wheel / trackpad pinch or the +/- buttons zoom
+   - One-finger drag orbits freely (v130: unlimited 360 yaw, tilt from just
+     under the truck to straight overhead, polar 5-175 deg) with inertia.
+     Pinch zooms; two-finger drag (or right / middle / shift mouse drag) pans.
+     Double-tap or double-click resets the view. v130: nothing under the
+     stage (photo, reflection) can take the touch: touch-action none, no
+     native image drag, pointer capture, touchmove and gesture events
+     cancelled. Mouse wheel / trackpad pinch or the +/- buttons zoom
      1x to 5x. Auto-spin pauses while touching.
    - Arrow pad (v79): left/right rotate, up/down tilt the camera 2-62 deg;
      press and hold keeps moving. Reset puts zoom, pan and tilt back and
@@ -74,6 +78,8 @@
     stage = $('header.top .rig-stage');
     if (!stage || stage.getAttribute('data-r360')) return false;
     stage.setAttribute('data-r360', '1');
+    Array.prototype.forEach.call(stage.querySelectorAll('img'), function (im) { im.setAttribute('draggable', 'false'); });
+    stage.setAttribute('draggable', 'false');
     try { reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { reduceMotion = false; }
 
     canvasWrap = document.createElement('div');
@@ -177,6 +183,10 @@
     var rim = new THREE.DirectionalLight(0xb9a6ff, 0.9);
     rim.position.set(-40, 25, -50);
     scene.add(rim);
+    // v130: light from below, faded in as the camera drops under the truck
+    var underLight = new THREE.DirectionalLight(0xdcd6ff, 0);
+    underLight.position.set(6, -40, 14);
+    scene.add(underLight);
 
     var turntable = new THREE.Group();
     scene.add(turntable);
@@ -201,29 +211,30 @@
     var ZOOM_MAX = 5;
     var zoom = 1, panX = 0, panY = 0, baseDist = 80, halfLen = 33.5;
     var ELEV0 = THREE.MathUtils.degToRad(11);
-    var ELEV_MIN = THREE.MathUtils.degToRad(2), ELEV_MAX = THREE.MathUtils.degToRad(62);
+    var ELEV_MIN = THREE.MathUtils.degToRad(-85), ELEV_MAX = THREE.MathUtils.degToRad(85);
     var ELEV = ELEV0;
     var upAxis = new THREE.Vector3(0, Math.cos(ELEV), -Math.sin(ELEV));
     var held = null; // arrow button being held: { da, de }
     // After a tailgate / toolbox opens, the camera orbits the part in world space.
     var iYaw = 0, iElev = 0, iDist = 18, iPanX = 0, iPanY = 0, iVelY = 0, iVelE = 0;
     var iLook = new THREE.Vector3();
-    var I_ELEV_MIN = THREE.MathUtils.degToRad(12), I_ELEV_MAX = THREE.MathUtils.degToRad(80);
+    var I_ELEV_MIN = THREE.MathUtils.degToRad(-85), I_ELEV_MAX = THREE.MathUtils.degToRad(85);
 
     function applyCamera() {
       ELEV = Math.max(ELEV_MIN, Math.min(ELEV_MAX, ELEV));
       upAxis.set(0, Math.cos(ELEV), -Math.sin(ELEV));
-      var maxX = (halfLen + 2) * Math.min(1, (zoom - 1) * 2), maxY = 5 * Math.min(1, (zoom - 1) * 2);
+      var maxX = halfLen + 2, maxY = 14;
       panX = Math.max(-maxX, Math.min(maxX, panX));
       panY = Math.max(-maxY, Math.min(maxY, panY));
-      if (zoom <= 1.001) { panX = 0; panY = 0; }
-      var d = baseDist / zoom;
+      var d = baseDist / zoom * (1 + 0.3 * Math.sin(ELEV) * Math.sin(ELEV));
+      var below = Math.max(0, Math.min(1, (0.09 - Math.sin(ELEV)) / 0.6));
+      underLight.intensity = 5 * below * below;
       var tx = panX + upAxis.x * panY, ty = 4.6 + upAxis.y * panY, tz = upAxis.z * panY;
       camera.position.set(tx, ty - 2.2 + Math.sin(ELEV) * d, tz + Math.cos(ELEV) * d);
       camera.lookAt(tx, ty, tz);
       camera.updateProjectionMatrix();
       stage.toggleAttribute('data-r360-zoomed', zoom > 1.02);
-      stage.toggleAttribute('data-r360-adjusted', zoom > 1.02 || Math.abs(ELEV - ELEV0) > 0.01 || !!inspectKind);
+      stage.toggleAttribute('data-r360-adjusted', zoom > 1.02 || Math.abs(ELEV - ELEV0) > 0.01 || Math.abs(panX) > 0.05 || Math.abs(panY) > 0.05 || !!inspectKind);
     }
 
     function feetPerPx() {
@@ -292,7 +303,7 @@
       return new THREE.Vector3(panX + upAxis.x * panY, 4.6 + upAxis.y * panY, upAxis.z * panY);
     }
     function currentCamPos() {
-      var d = baseDist / zoom;
+      var d = baseDist / zoom * (1 + 0.3 * Math.sin(ELEV) * Math.sin(ELEV));
       return new THREE.Vector3(
         panX + upAxis.x * panY,
         4.6 + upAxis.y * panY - 2.2 + Math.sin(ELEV) * d,
@@ -367,7 +378,7 @@
     }
     function setInspectAttr() {
       stage.toggleAttribute('data-r360-inspect', !!inspectKind);
-      stage.toggleAttribute('data-r360-adjusted', zoom > 1.02 || Math.abs(ELEV - ELEV0) > 0.01 || !!inspectKind);
+      stage.toggleAttribute('data-r360-adjusted', zoom > 1.02 || Math.abs(ELEV - ELEV0) > 0.01 || Math.abs(panX) > 0.05 || Math.abs(panY) > 0.05 || !!inspectKind);
       updatePartButtons();
     }
     function startAnim(kind, opening) {
@@ -604,9 +615,22 @@
       var k = Object.keys(pts), a = pts[k[0]], b = pts[k[1]];
       return { d: Math.max(10, Math.hypot(a.x - b.x, a.y - b.y)), x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
     }
+    var panDrag = false; // mouse right / middle / shift drag pans instead of orbiting
+    // v130: the toggle and part buttons cover a big part of the small stage,
+    // so a drag that starts on them still orbits (a tap still clicks them).
+    var ctlPending = {};
     function down(ev) {
-      if (mode !== '360' || (ev.button != null && ev.button > 0)) return;
-      if (ev.target.closest && ev.target.closest('.r360-toggle, .r360-zoom, .r360-pad, .r360-zreset, .r360-parts')) return;
+      if (mode !== '360') return;
+      if (ev.target.closest && ev.target.closest('.r360-zoom, .r360-pad, .r360-zreset')) return;
+      if (ev.target.closest && ev.target.closest('.r360-toggle, .r360-parts')) {
+        ctlPending[ev.pointerId] = { x: ev.clientX, y: ev.clientY };
+        return;
+      }
+      begin(ev);
+    }
+    function begin(ev) {
+      if (ev.cancelable) ev.preventDefault();
+      panDrag = ev.pointerType === 'mouse' && (ev.button === 1 || ev.button === 2 || ev.shiftKey || ev.ctrlKey);
       pts[ev.pointerId] = { x: ev.clientX, y: ev.clientY };
       try { stage.setPointerCapture(ev.pointerId); } catch (e) { /* ignore */ }
       stage.setAttribute('data-r360-touched', '1');
@@ -617,14 +641,13 @@
         dragging = false;
         var ps = pinchState();
         pinch = { d: ps.d, zoom: zoom, x: ps.x, y: ps.y };
+        stage._r360dn = 0; lastTap = 0;
         stage.classList.remove('r360-grab');
       } else {
-        if (ev.pointerType !== 'mouse' && now - lastTap < 320 && Math.hypot(ev.clientX - lastTapX, ev.clientY - lastTapY) < 30) {
-          lastTap = 0;
-          resetZoom();
-        } else {
-          lastTap = now; lastTapX = ev.clientX; lastTapY = ev.clientY;
-        }
+        // v130: a double-tap needs two real taps. A quick second drag near the
+        // first must never reset the camera.
+        stage._r360dt = ev.pointerType !== 'mouse' && now - lastTap < 320 && Math.hypot(ev.clientX - lastTapX, ev.clientY - lastTapY) < 30;
+        stage._r360dn = now;
         dragging = true;
         lastX = ev.clientX; lastY = ev.clientY; lastT = now;
         stage._r360sx = ev.clientX; stage._r360sy = ev.clientY;
@@ -633,6 +656,14 @@
       update();
     }
     function move(ev) {
+      var cp = ctlPending[ev.pointerId];
+      if (cp && !pts[ev.pointerId]) {
+        if (Math.hypot(ev.clientX - cp.x, ev.clientY - cp.y) < 8) return;
+        delete ctlPending[ev.pointerId];
+        stage._r360noClick = performance.now() + 600;
+        ev.cancelable && ev.preventDefault();
+        begin({ pointerId: ev.pointerId, pointerType: ev.pointerType, button: ev.button, shiftKey: ev.shiftKey, ctrlKey: ev.ctrlKey, clientX: cp.x, clientY: cp.y, target: stage, cancelable: false });
+      }
       if (!pts[ev.pointerId]) return;
       pts[ev.pointerId] = { x: ev.clientX, y: ev.clientY };
       var now = performance.now();
@@ -652,11 +683,20 @@
         return;
       }
       if (!dragging) return;
+      if (ev.cancelable) ev.preventDefault();
       var dx = ev.clientX - lastX;
       var dy = ev.clientY - lastY;
       var dtm = Math.max(1, now - lastT);
+      if (panDrag) {
+        var fp = feetPerPx();
+        if (inspectOrbiting()) { iPanX -= dx * fp; iPanY += dy * fp; applyInspectOrbit(); }
+        else { panX -= dx * fp; panY += dy * fp; applyCamera(); }
+        lastX = ev.clientX; lastY = ev.clientY; lastT = now; lastInput = now; velocity = 0; elevVel = 0;
+        render();
+        return;
+      }
       var da = dx * (Math.PI * 2) / Math.max(320, w * 1.6) / Math.sqrt(zoom);
-      var de = -dy * (Math.PI / 2) / Math.max(220, h * 1.4) / Math.sqrt(zoom);
+      var de = dy * Math.PI / Math.max(300, h * 1.6) / Math.sqrt(zoom); // drag down: camera rises (standard orbit feel)
       if (inspectOrbiting()) {
         iYaw += da;
         iElev += de;
@@ -675,9 +715,9 @@
         if (reduceMotion || zoom > 1.02 || Math.abs(de) > 0.0005) render();
       }
       lastX = ev.clientX; lastY = ev.clientY; lastT = now; lastInput = now;
-      if (Math.hypot(dx, dy) > 2) lastTap = 0;
     }
     function up(ev) {
+      delete ctlPending[ev.pointerId];
       if (!pts[ev.pointerId]) return;
       delete pts[ev.pointerId];
       try { stage.releasePointerCapture(ev.pointerId); } catch (e) { /* ignore */ }
@@ -694,6 +734,15 @@
       dragging = false;
       var moved = Math.hypot(ev.clientX - (stage._r360sx || ev.clientX), ev.clientY - (stage._r360sy || ev.clientY));
       var tapped = moved < 10;
+      if (tapped && ev.pointerType !== 'mouse' && performance.now() - (stage._r360dn || 0) < 300) {
+        if (stage._r360dt) {
+          lastTap = 0; velocity = 0; elevVel = 0;
+          stage.classList.remove('r360-grab');
+          resetZoom();
+          return;
+        }
+        lastTap = performance.now(); lastTapX = ev.clientX; lastTapY = ev.clientY;
+      } else lastTap = 0;
       if (tapped && tryPartTap(ev)) {
         velocity = 0;
         stage.classList.remove('r360-grab');
@@ -713,6 +762,23 @@
     stage.addEventListener('pointermove', move);
     stage.addEventListener('pointerup', up);
     stage.addEventListener('pointercancel', up);
+    stage.addEventListener('lostpointercapture', function (ev) { if (ev.target === stage && pts[ev.pointerId]) up(ev); });
+    // v130: keep every drag inside the 3D view. No native image drag / ghost
+    // image, no long-press callout or context menu, no page scroll or iOS
+    // page-pinch from a touch that started on the viewer.
+    function stopDefault(ev) {
+      if (mode !== '360') return;
+      if (ev.target.closest && ev.target.closest('.r360-toggle, .r360-zoom, .r360-pad, .r360-zreset, .r360-parts')) return;
+      if (ev.cancelable) ev.preventDefault();
+    }
+    ['dragstart', 'selectstart', 'contextmenu', 'gesturestart', 'gesturechange', 'gestureend'].forEach(function (t) {
+      stage.addEventListener(t, stopDefault, { capture: true });
+    });
+    stage.addEventListener('touchmove', function (ev) { if (mode === '360' && ev.cancelable) ev.preventDefault(); }, { passive: false, capture: true });
+    stage.addEventListener('click', function (ev) {
+      if (stage._r360noClick && performance.now() < stage._r360noClick) { ev.preventDefault(); ev.stopPropagation(); stage._r360noClick = 0; }
+    }, true);
+    stage.addEventListener('touchstart', function (ev) { if (ev.touches && ev.touches.length > 1) stopDefault(ev); }, { passive: false, capture: true });
     stage.addEventListener('dblclick', function (ev) {
       if (mode !== '360' || (ev.target.closest && ev.target.closest('.r360-toggle, .r360-zoom, .r360-pad, .r360-zreset, .r360-parts'))) return;
       resetZoom();

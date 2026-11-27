@@ -375,6 +375,7 @@
   }
   function orbitReset(fig) {
     var c = fig && fig._orb; if (!c) return;
+    if (c.three) { c.reset(); return; }
     c.yaw = 0; c.pitch = 0; c.zoom = 1; c.panX = 0; c.panY = 0; c.vy = 0; c.vp = 0;
     c.last = performance.now(); c.swaying = false;
     orbitApply(fig); orbitKick(fig);
@@ -408,7 +409,305 @@
     var busy = c.drag || c.pinch || (!reduce && (Math.abs(c.vy) > 0.05 || Math.abs(c.vp) > 0.05 || (t - c.last > IDLE - 50 && c.zoom <= 1.02) || t - c.last < IDLE));
     if (busy) c.raf = requestAnimationFrame(function (tt) { orbitTick(fig, tt); });
   }
+
+  /* ---------- v130: nothing may drag, scroll or select from a hero viewer ---------- */
+  function hardenFig(fig, img) {
+    if (img) { img.setAttribute('draggable', 'false'); img.style.pointerEvents = 'none'; }
+    fig.setAttribute('draggable', 'false');
+    var stop = function (ev) {
+      if (ev.target.closest && ev.target.closest('.d3-hero-reset')) return;
+      if (ev.cancelable) ev.preventDefault();
+    };
+    ['dragstart', 'selectstart', 'contextmenu', 'gesturestart', 'gesturechange', 'gestureend'].forEach(function (t) { fig.addEventListener(t, stop, { capture: true }); });
+    fig.addEventListener('touchmove', stop, { passive: false, capture: true });
+    fig.addEventListener('touchstart', function (ev) { if (ev.touches && ev.touches.length > 1) stop(ev); }, { passive: false, capture: true });
+  }
+  function webglOk() {
+    try {
+      var cv = document.createElement('canvas');
+      return !!(window.WebGLRenderingContext && (cv.getContext('webgl2') || cv.getContext('webgl')));
+    } catch (e) { return false; }
+  }
+  var threeP = null, live3d = [];
+  function loadThree() { return threeP || (threeP = import('./vendor/three/three.module.min.js')); }
+  function drawBack(THREE, name) {
+    var cv = document.createElement('canvas'); cv.width = 768; cv.height = 1024;
+    var g = cv.getContext('2d');
+    var bg = g.createLinearGradient(0, 0, 0, 1024); bg.addColorStop(0, '#1b1424'); bg.addColorStop(1, '#0f0d17');
+    g.fillStyle = bg; g.fillRect(0, 0, 768, 1024);
+    g.strokeStyle = '#D4A62A'; g.lineWidth = 8; g.strokeRect(36, 36, 696, 952);
+    g.lineWidth = 2; g.strokeRect(54, 54, 660, 916);
+    g.textAlign = 'center'; g.fillStyle = '#F5F1E6';
+    g.font = '700 118px Oswald, Impact, "Arial Narrow", sans-serif'; g.fillText('BLACK RAM', 384, 450);
+    g.fillStyle = '#D4A62A'; g.font = '500 54px Oswald, Impact, "Arial Narrow", sans-serif';
+    g.fillText('L O G I S T I C S', 384, 530);
+    g.fillRect(224, 580, 320, 4);
+    g.fillStyle = '#F2C94C'; g.font = '700 64px Oswald, Impact, "Arial Narrow", sans-serif'; g.fillText(String(name || '').toUpperCase(), 384, 690);
+    g.fillStyle = '#9a96ad'; g.font = '500 34px sans-serif'; g.fillText('SAND LILY PAD LLC', 384, 930);
+    var t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+  }
+  function glowTex(THREE) {
+    var cv = document.createElement('canvas'); cv.width = cv.height = 256;
+    var g = cv.getContext('2d'), r = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+    r.addColorStop(0, 'rgba(242,201,76,.38)'); r.addColorStop(0.55, 'rgba(212,166,42,.12)'); r.addColorStop(1, 'rgba(212,166,42,0)');
+    g.fillStyle = r; g.fillRect(0, 0, 256, 256);
+    var t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
+  }
   function bindOrbit(fig, opts) {
+    if (!fig || fig._orb || fig._orbPending) return fig;
+    var img = fig.querySelector('img'); if (!img) return fig;
+    opts = opts || {};
+    hardenFig(fig, img);
+    if (!webglOk() || heroForceCss()) return bindOrbitCss(fig, opts);
+    fig._orbPending = true;
+    fig.classList.add('d3-orbit');
+    loadThree().then(function (THREE) {
+      if (!fig.isConnected) { fig._orbPending = false; return; }
+      var go = function () { try { bindOrbit3d(THREE, fig, img, opts); fig._orbPending = false; } catch (e) { fig._orbPending = false; try { console.warn('d3 3d', String(e && e.stack || e)); } catch (x) { /* ignore */ } bindOrbitCss(fig, opts); } };
+      if (img.complete && img.naturalWidth) go();
+      else { img.addEventListener('load', go, { once: true }); img.addEventListener('error', function () { fig._orbPending = false; bindOrbitCss(fig, opts); }, { once: true }); }
+    }).catch(function () { fig._orbPending = false; bindOrbitCss(fig, opts); });
+    return fig;
+  }
+  function heroForceCss() { try { return /[?&]d3css=1/.test(location.search); } catch (e) { return false; } }
+
+  /* The hero is a real 3D object: the portrait is the face of a gold-edged
+     display plaque on a base, in a Three.js scene. The camera orbits it:
+     unlimited horizontal 360, vertical polar 5-175 deg (from under the base
+     to straight overhead), pinch / wheel zoom, two-finger or right-drag pan,
+     double-tap resets, inertia. The portrait <img> is only a texture source,
+     hidden and unhittable, so no photo can ever be dragged. */
+  function bindOrbit3d(THREE, fig, img, opts) {
+    var RAD = Math.PI / 180, POL_MIN = 5 * RAD, POL_MAX = 175 * RAD;
+    var D0 = { az: 0, pol: 82 * RAD, zoom: 1, px: 0, py: 0 };
+    var Z_MIN = 0.55, Z_MAX = 4, BASE_DIST = 7.7, CARD_W = 3, CARD_H = 4, CARD_Y = 2.45;
+    live3d = live3d.filter(function (o) { if (o.fig.isConnected) return true; o.dispose(); return false; });
+    fig.classList.add('d3-orbit', 'd3-orbit3d');
+    var canvas = document.createElement('canvas'); canvas.className = 'd3-canvas';
+    fig.insertBefore(canvas, fig.firstChild);
+    var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true, powerPreference: 'low-power' });
+    renderer.setClearColor(0x000000, 0);
+    var scene = new THREE.Scene();
+    var camera = new THREE.PerspectiveCamera(36, 0.75, 0.1, 100);
+    scene.add(new THREE.AmbientLight(0xffffff, 1.5));
+    var key = new THREE.DirectionalLight(0xfff1d0, 2.6); key.position.set(4, 7, 6); scene.add(key);
+    var rim = new THREE.DirectionalLight(0xb9a8ff, 1.4); rim.position.set(-5, 3, -6); scene.add(rim);
+    var under = new THREE.DirectionalLight(0xffffff, 0.9); under.position.set(0, -6, 2); scene.add(under);
+    var gold = new THREE.MeshStandardMaterial({ color: 0xD4A62A, metalness: 0.55, roughness: 0.38 });
+    var darkGold = new THREE.MeshStandardMaterial({ color: 0x8a6a1c, metalness: 0.5, roughness: 0.5 });
+    var ia = (img.naturalWidth || 3) / (img.naturalHeight || 4), ca = CARD_W / CARD_H;
+    var tex = new THREE.Texture(img); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8; tex.needsUpdate = true;
+    if (ia > ca) { tex.repeat.set(ca / ia, 1); tex.offset.set((1 - ca / ia) / 2, 0); } else { tex.repeat.set(1, ia / ca); tex.offset.set(0, (1 - ia / ca) / 2); }
+    var front = new THREE.MeshBasicMaterial({ map: tex });
+    var back = new THREE.MeshBasicMaterial({ map: drawBack(THREE, opts.name || ((fig.querySelector('figcaption>b') || {}).textContent) || NAME) });
+    var card = new THREE.Mesh(new THREE.BoxGeometry(CARD_W, CARD_H, 0.16), [gold, gold, gold, gold, front, back]);
+    card.position.y = CARD_Y; scene.add(card);
+    var plinth = new THREE.Mesh(new THREE.BoxGeometry(CARD_W + 0.5, 0.3, 0.9), darkGold); plinth.position.y = 0.15 + 0.12; scene.add(plinth);
+    var plinthTop = new THREE.Mesh(new THREE.BoxGeometry(CARD_W + 0.3, 0.06, 0.7), gold); plinthTop.position.y = 0.42; scene.add(plinthTop);
+    var floor = new THREE.Mesh(new THREE.CircleGeometry(5.2, 64), new THREE.MeshBasicMaterial({ map: glowTex(THREE), transparent: true, depthWrite: false, side: THREE.DoubleSide }));
+    floor.rotation.x = -Math.PI / 2; floor.position.y = 0.01; scene.add(floor);
+    [3.1, 4.2].forEach(function (r, i) {
+      var ring = new THREE.Mesh(new THREE.RingGeometry(r, r + 0.045, 96), new THREE.MeshBasicMaterial({ color: 0xD4A62A, transparent: true, opacity: i ? 0.35 : 0.7, side: THREE.DoubleSide }));
+      ring.rotation.x = -Math.PI / 2; ring.position.y = 0.02; scene.add(ring);
+    });
+    var tgt = new THREE.Vector3(0, CARD_Y - 0.15, 0), look = new THREE.Vector3(), right = new THREE.Vector3(), upv = new THREE.Vector3();
+    var S = { az: D0.az, pol: D0.pol, zoom: D0.zoom, px: 0, py: 0, vaz: 0, vpol: 0, drag: false, panDrag: false, last: performance.now(), lt: 0, raf: 0, anim: null, swayT0: 0, sway: 0 };
+    var W = 0, H = 0, destroyed = false;
+
+    function clampState() {
+      S.pol = Math.max(POL_MIN, Math.min(POL_MAX, S.pol));
+      S.zoom = Math.max(Z_MIN, Math.min(Z_MAX, S.zoom));
+      S.px = Math.max(-4.5, Math.min(4.5, S.px)); S.py = Math.max(-4.5, Math.min(4.5, S.py));
+    }
+    function place(azOff, polOff) {
+      var az = S.az + (azOff || 0), pol = Math.max(POL_MIN, Math.min(POL_MAX, S.pol + (polOff || 0)));
+      var d = BASE_DIST / S.zoom, sp = Math.sin(pol);
+      camera.position.set(tgt.x + d * sp * Math.sin(az), tgt.y + d * Math.cos(pol), tgt.z + d * sp * Math.cos(az));
+      camera.up.set(0, 1, 0);
+      camera.lookAt(tgt);
+      camera.updateMatrixWorld();
+      right.setFromMatrixColumn(camera.matrixWorld, 0); upv.setFromMatrixColumn(camera.matrixWorld, 1);
+      look.copy(tgt).addScaledVector(right, S.px).addScaledVector(upv, S.py);
+      camera.position.addScaledVector(right, S.px).addScaledVector(upv, S.py);
+      camera.lookAt(look);
+    }
+    function isDefault() { return Math.abs(S.az - D0.az) < 0.02 && Math.abs(S.pol - D0.pol) < 0.02 && Math.abs(S.zoom - 1) < 0.02 && Math.abs(S.px) < 0.05 && Math.abs(S.py) < 0.05; }
+    function render(azOff, polOff) {
+      clampState(); place(azOff, polOff); renderer.render(scene, camera);
+      fig.toggleAttribute('data-d3-adjusted', !isDefault() && !(azOff || polOff) );
+      if (!fig.hasAttribute('data-d3-ready')) fig.setAttribute('data-d3-ready', '1');
+      c.az = S.az; c.pol = S.pol; c.zoom = S.zoom;
+    }
+    function size() {
+      var r = fig.getBoundingClientRect(), w = Math.max(1, Math.round(r.width)), h = Math.max(1, Math.round(r.height));
+      if (w === W && h === H) return;
+      W = w; H = h;
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      // keep the whole plaque in frame on wide views (desktop) too
+      camera.fov = camera.aspect < 0.75 ? 36 : 36 * Math.min(1.4, 0.75 / camera.aspect);
+      camera.updateProjectionMatrix();
+    }
+    function kick() { if (!destroyed && !c.raf) c.raf = requestAnimationFrame(tick); }
+    function reset() {
+      var dAz = ((D0.az - S.az + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
+      S.anim = { t0: performance.now(), from: { az: S.az, pol: S.pol, zoom: S.zoom, px: S.px, py: S.py }, dAz: dAz };
+      S.vaz = 0; S.vpol = 0; S.last = performance.now(); S.sway = 0; kick();
+    }
+    function tick(t) {
+      c.raf = 0;
+      if (destroyed) return;
+      if (!fig.isConnected) { dispose(); return; }
+      if (document.hidden || !fig.offsetParent) return;
+      size();
+      var dt = S.lt ? Math.min(0.05, (t - S.lt) / 1000) : 0.016; S.lt = t;
+      var busy = S.drag || !!pinch;
+      var azOff = 0, polOff = 0;
+      if (S.anim) {
+        var u = Math.min(1, (t - S.anim.t0) / 450), e = u * u * (3 - 2 * u), f = S.anim.from;
+        S.az = f.az + S.anim.dAz * e; S.pol = f.pol + (D0.pol - f.pol) * e; S.zoom = f.zoom + (1 - f.zoom) * e;
+        S.px = f.px * (1 - e); S.py = f.py * (1 - e);
+        if (u >= 1) { S.anim = null; S.az = D0.az; S.last = performance.now(); }
+        busy = true;
+      } else if (!busy) {
+        if (Math.abs(S.vaz) > 0.01 || Math.abs(S.vpol) > 0.01) {
+          S.az += S.vaz * dt; S.pol += S.vpol * dt;
+          var k = Math.pow(0.04, dt); S.vaz *= k; S.vpol *= k;
+          if (S.pol <= POL_MIN || S.pol >= POL_MAX) S.vpol = 0;
+          busy = true;
+        } else {
+          S.vaz = 0; S.vpol = 0;
+          var wrapAz = ((S.az + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
+          if (!heroReduce() && t - S.last > IDLE && S.zoom < 1.02 && Math.abs(wrapAz) < 0.7 && Math.abs(S.pol - D0.pol) < 0.5) {
+            if (!S.sway) { S.sway = 1; S.swayT0 = t; }
+            var r = Math.min(1, (t - S.swayT0) / 1500), er = r * r * (3 - 2 * r);
+            azOff = Math.sin((t - S.swayT0) / 2600) * 10 * RAD * er;
+            polOff = Math.sin((t - S.swayT0) / 3400) * 3 * RAD * er;
+            busy = true;
+          } else { S.sway = 0; busy = t - S.last < IDLE; }
+        }
+      }
+      render(azOff, polOff);
+      if (busy) kick();
+    }
+    function dispose() {
+      if (destroyed) return; destroyed = true;
+      if (c.raf) { cancelAnimationFrame(c.raf); c.raf = 0; }
+      try { ro && ro.disconnect(); } catch (e) { /* ignore */ }
+      try { renderer.dispose(); renderer.forceContextLoss(); } catch (e) { /* ignore */ }
+    }
+
+    var hint = document.createElement('div');
+    hint.className = 'd3-hero-hint'; hint.setAttribute('aria-hidden', 'true');
+    hint.textContent = opts.hint || 'Drag to orbit | pinch to zoom';
+    fig.appendChild(hint);
+    var rbtn = document.createElement('button');
+    rbtn.type = 'button'; rbtn.className = 'd3-hero-reset'; rbtn.textContent = 'Reset';
+    rbtn.setAttribute('aria-label', 'Reset view');
+    fig.appendChild(rbtn);
+    rbtn.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); reset(); });
+
+    var c = fig._orb = { raf: 0, az: S.az, pol: S.pol, zoom: S.zoom, reset: reset, state: S, dispose: dispose, three: true };
+    live3d.push({ fig: fig, dispose: dispose });
+    var pts = {}, pinch = null, lastX = 0, lastY = 0, lastT = 0, lastTap = 0, tapX = 0, tapY = 0;
+    function count() { return Object.keys(pts).length; }
+    function pinchState() {
+      var k = Object.keys(pts), a = pts[k[0]], b = pts[k[1]];
+      return { d: Math.max(10, Math.hypot(a.x - b.x, a.y - b.y)), x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    }
+    function fpp() { return 2 * (BASE_DIST / S.zoom) * Math.tan(camera.fov * RAD / 2) / Math.max(1, H); }
+    function down(ev) {
+      if (ev.target.closest && ev.target.closest('.d3-hero-reset')) return;
+      if (ev.cancelable) ev.preventDefault();
+      S.panDrag = ev.pointerType === 'mouse' && (ev.button === 1 || ev.button === 2 || ev.shiftKey || ev.ctrlKey);
+      pts[ev.pointerId] = { x: ev.clientX, y: ev.clientY };
+      try { fig.setPointerCapture(ev.pointerId); } catch (e) { /* ignore */ }
+      var now = performance.now();
+      S.last = now; S.vaz = 0; S.vpol = 0; S.anim = null; S.sway = 0;
+      fig.setAttribute('data-d3-touched', '1');
+      if (count() >= 2) {
+        S.drag = false;
+        var ps = pinchState();
+        pinch = { d: ps.d, zoom: S.zoom, x: ps.x, y: ps.y };
+        fig.classList.remove('d3-grab');
+      } else {
+        S.dt = ev.pointerType !== 'mouse' && now - lastTap < 320 && Math.hypot(ev.clientX - tapX, ev.clientY - tapY) < 30;
+        S.dn = now; S.sx = ev.clientX; S.sy = ev.clientY;
+        S.drag = true; lastX = ev.clientX; lastY = ev.clientY; lastT = now;
+        fig.classList.add('d3-grab');
+      }
+      size(); kick();
+    }
+    function move(ev) {
+      if (!pts[ev.pointerId]) return;
+      if (ev.cancelable) ev.preventDefault();
+      pts[ev.pointerId] = { x: ev.clientX, y: ev.clientY };
+      var now = performance.now();
+      if (pinch && count() >= 2) {
+        var ps = pinchState(), f = fpp();
+        S.px -= (ps.x - pinch.x) * f; S.py += (ps.y - pinch.y) * f;
+        pinch.x = ps.x; pinch.y = ps.y;
+        S.zoom = pinch.zoom * ps.d / pinch.d;
+        S.last = now; render(); return;
+      }
+      if (!S.drag) return;
+      var dx = ev.clientX - lastX, dy = ev.clientY - lastY;
+      if (S.panDrag) {
+        var g = fpp(); S.px -= dx * g; S.py += dy * g;
+        lastX = ev.clientX; lastY = ev.clientY; lastT = now; S.last = now; render(); return;
+      }
+      var dts = Math.max(1, now - lastT) / 1000, sc = 1 / Math.sqrt(Math.max(1, S.zoom));
+      var da = -dx * (2 * Math.PI) / Math.max(320, W * 1.5) * sc;
+      var dp = -dy * Math.PI / Math.max(300, H * 0.9) * sc;
+      S.az += da; S.pol += dp;
+      S.vaz = S.vaz * 0.6 + (da / dts) * 0.4; S.vpol = S.vpol * 0.6 + (dp / dts) * 0.4;
+      lastX = ev.clientX; lastY = ev.clientY; lastT = now; S.last = now;
+      render();
+    }
+    function up(ev) {
+      if (!pts[ev.pointerId]) return;
+      delete pts[ev.pointerId];
+      try { fig.releasePointerCapture(ev.pointerId); } catch (e) { /* ignore */ }
+      S.last = performance.now();
+      if (pinch) {
+        if (count() < 2) pinch = null;
+        var k = Object.keys(pts)[0];
+        if (k) { S.drag = true; lastX = pts[k].x; lastY = pts[k].y; lastT = S.last; }
+        kick(); return;
+      }
+      S.drag = false; fig.classList.remove('d3-grab');
+      if (ev.pointerType !== 'mouse' && Math.hypot(ev.clientX - S.sx, ev.clientY - S.sy) < 10 && S.last - S.dn < 300) {
+        if (S.dt) { lastTap = 0; reset(); return; }
+        lastTap = S.last; tapX = ev.clientX; tapY = ev.clientY;
+      } else lastTap = 0;
+      if (heroReduce() || S.last - lastT > 90) { S.vaz = 0; S.vpol = 0; }
+      S.vaz = Math.max(-9, Math.min(9, S.vaz)); S.vpol = Math.max(-5, Math.min(5, S.vpol));
+      kick();
+    }
+    fig.addEventListener('pointerdown', down);
+    fig.addEventListener('pointermove', move);
+    fig.addEventListener('pointerup', up);
+    fig.addEventListener('pointercancel', up);
+    fig.addEventListener('lostpointercapture', function (ev) { if (ev.target === fig && pts[ev.pointerId]) up(ev); });
+    fig.addEventListener('dblclick', function (ev) {
+      if (ev.target.closest && ev.target.closest('.d3-hero-reset')) return;
+      ev.preventDefault(); reset();
+    });
+    fig.addEventListener('wheel', function (ev) {
+      if (!ev.ctrlKey && S.zoom <= 1.001 && ev.deltaY > 0) return; // let the page scroll when fully zoomed out
+      ev.preventDefault();
+      var dy = ev.deltaMode === 1 ? ev.deltaY * 16 : ev.deltaY;
+      S.zoom = S.zoom * Math.exp(-dy * (ev.ctrlKey ? 0.01 : 0.0022));
+      S.last = performance.now(); S.sway = 0; S.anim = null; render(); kick();
+    }, { passive: false });
+    var ro = null;
+    if (typeof ResizeObserver === 'function') { ro = new ResizeObserver(function () { size(); render(); }); ro.observe(fig); }
+    size(); render(); kick();
+    return fig;
+  }
+
+  function bindOrbitCss(fig, opts) {
     if (!fig || fig._orb) return fig;
     var img = fig.querySelector('img'); if (!img) return fig;
     opts = opts || {};
@@ -416,7 +715,7 @@
     var stage = document.createElement('div');
     stage.className = 'd3-hero-stage';
     img.parentNode.insertBefore(stage, img); stage.appendChild(img);
-    img.setAttribute('draggable', 'false');
+    hardenFig(fig, img);
     var hint = document.createElement('div');
     hint.className = 'd3-hero-hint'; hint.setAttribute('aria-hidden', 'true');
     hint.textContent = opts.hint || 'Drag to orbit | pinch to zoom';
@@ -447,9 +746,8 @@
         c.pinch = { d: ps.d, zoom: c.zoom, x: ps.x, y: ps.y };
         fig.classList.remove('d3-grab');
       } else {
-        if (ev.pointerType !== 'mouse' && now - lastTap < 320 && Math.hypot(ev.clientX - tapX, ev.clientY - tapY) < 30) {
-          lastTap = 0; orbitReset(fig);
-        } else { lastTap = now; tapX = ev.clientX; tapY = ev.clientY; }
+        c.dt = ev.pointerType !== 'mouse' && now - lastTap < 320 && Math.hypot(ev.clientX - tapX, ev.clientY - tapY) < 30;
+        c.dn = now; c.sx = ev.clientX; c.sy = ev.clientY;
         c.drag = true; lastX = ev.clientX; lastY = ev.clientY; lastT = now;
         fig.classList.add('d3-grab');
       }
@@ -477,7 +775,6 @@
       c.vy = c.vy * 0.6 + (da / dts) * 0.4;
       c.vp = c.vp * 0.6 + (de / dts) * 0.4;
       lastX = ev.clientX; lastY = ev.clientY; lastT = now; c.last = now;
-      if (Math.hypot(dx, dy) > 2) lastTap = 0;
       orbitApply(fig);
     }
     function up(ev) {
@@ -492,6 +789,10 @@
         orbitKick(fig); return;
       }
       c.drag = false; fig.classList.remove('d3-grab');
+      if (ev.pointerType !== 'mouse' && Math.hypot(ev.clientX - c.sx, ev.clientY - c.sy) < 10 && c.last - c.dn < 300) {
+        if (c.dt) { lastTap = 0; orbitReset(fig); return; }
+        lastTap = c.last; tapX = ev.clientX; tapY = ev.clientY;
+      } else lastTap = 0;
       if (heroReduce() || c.last - lastT > 90) { c.vy = 0; c.vp = 0; }
       c.vy = Math.max(-240, Math.min(240, c.vy)); c.vp = Math.max(-160, Math.min(160, c.vp));
       orbitKick(fig);
@@ -603,8 +904,9 @@
       '.d3-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 12px calc(env(safe-area-inset-bottom,0px) + var(--bnav-h,64px) + 28px);max-width:560px;width:100%;margin:0 auto;box-sizing:border-box;display:flex;flex-direction:column;gap:12px}' +
       '.d3-scroll>*{flex-shrink:0}' +
       '.d3-hero{position:relative;margin:0;border-radius:14px;overflow:hidden;border:1px solid var(--c-line);aspect-ratio:3/4;background:#2a1a33}.d3-hero img{display:block;width:100%;height:100%;object-fit:cover;object-position:center;border:0;outline:0;box-shadow:none;padding:0;margin:0;background:transparent}.d3-orbit{position:relative;overflow:hidden;perspective:900px;touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}.d3-orbit.d3-grab{cursor:grabbing}.d3-hero-stage{width:100%;height:100%;transform-style:preserve-3d;transform-origin:50% 46%;will-change:transform}.d3-orbit .d3-hero-stage img{display:block;width:100%;height:100%;object-fit:cover;object-position:center;pointer-events:none;-webkit-user-drag:none;border:0;outline:0;box-shadow:none;padding:0;margin:0;background:transparent}' +
+      '.d3-hero img{-webkit-user-drag:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}.d3-orbit{-webkit-touch-callout:none;overscroll-behavior:contain}.d3-orbit3d{background:radial-gradient(120% 90% at 50% 32%,#4a2b57 0,#2a1a33 45%,#120c19 100%)}.d3-orbit3d>img{position:absolute;left:0;top:0;width:1px;height:1px;opacity:0;pointer-events:none}.d3-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;pointer-events:none}' +
       '.d3-hero figcaption{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:48px 14px 14px;background:linear-gradient(180deg,rgba(15,13,23,0),rgba(15,13,23,.78) 45%,rgba(15,13,23,.95));display:flex;flex-direction:column;gap:2px;pointer-events:none}' +
-      '.d3-hero-hint{position:absolute;left:50%;top:14px;transform:translateX(-50%);z-index:3;padding:5px 10px;border-radius:999px;background:rgba(15,13,23,.72);color:#F2C94C;font-size:11px;font-weight:800;letter-spacing:.04em;pointer-events:none;opacity:0}.d3-orbit:not([data-d3-touched]) .d3-hero-hint{opacity:1}' +
+      '.d3-hero-hint{white-space:nowrap;position:absolute;left:50%;top:14px;transform:translateX(-50%);z-index:3;padding:5px 10px;border-radius:999px;background:rgba(15,13,23,.72);color:#F2C94C;font-size:11px;font-weight:800;letter-spacing:.04em;pointer-events:none;opacity:0}.d3-orbit:not([data-d3-touched]) .d3-hero-hint{opacity:1}' +
       '.d3-hero-reset{position:absolute;top:10px;left:10px;z-index:3;display:none;min-height:32px;padding:0 10px;border-radius:999px;border:1px solid rgba(242,201,76,.35);background:rgba(15,13,23,.72);color:#F2C94C;font-size:12px;font-weight:800}.d3-orbit[data-d3-adjusted] .d3-hero-reset{display:block}' +
       '.d3-kick{font-size:11px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:var(--c-gold)}.d3-hero figcaption>b{font-size:34px;font-weight:900;line-height:1;letter-spacing:.01em}.d3-role{font-size:13px;font-weight:700;color:var(--c-text-2)}' +
       '.d3-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.d3-chip{font-size:12px;font-weight:800;padding:4px 10px;border-radius:999px;background:rgba(242,201,76,.16);color:var(--c-gold);border:1px solid rgba(242,201,76,.35)}' +
