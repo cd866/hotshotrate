@@ -50,6 +50,11 @@
      (envMapIntensity now actually applied); 17 in black DRW wheels with machined
      eyelets like Claudio's photo (WHEEL_IN / NIGHT_BADGE switches); black RAM door
      badge; toolbox lid stops under the neck rails (no clipping); MEGA hold-downs.
+   - v142: S5 Coupler Lock rebuilt to Claudio's photos: 6 x 5 x 8 in gloss-black
+     box with rounded welds, open top and slotted latch plate, C-shaped 3.5 in
+     boss with stacked hasp tabs, chrome TRIMAX THP XL puck (hidden when the box
+     is off), brushed 'S5 Coupler Locks' label, two drain holes. Zinc safety
+     chains and hairpin; gloss-yellow Demco coupler. No serials.
    Units in the model are feet. x = length (truck front +x), y = up, z = width. */
 (function () {
   'use strict';
@@ -395,8 +400,14 @@
         return { look: worldAt(6.3, 4.2, 0, ang), cam: worldAt(19.5, 15.5, 12.5, ang), angle: -0.35 };
       }
       if (kind === 'lock') {
-        // Close on the coupler and the S5 box, front-passenger side, a little above.
-        return { look: worldAt(rig.ballX + 0.1, 3.0, 0.5, ang), cam: worldAt(rig.ballX + 4.6, 6.0, 6.6, ang), angle: 0.25 };
+        // Tight front-passenger 3/4 of the coupler and the S5 box. As it unlocks,
+        // the camera eases down so the empty C-boss, hasp tabs and yellow socket stay in frame.
+        var t = inspectKind === 'lock' ? inspectOpen : 0;
+        // Locked: tight 3/4 on the box, collar, puck and label. Unlocked: pull back
+        // and up so the empty C-boss, hasp, lowered box and yellow socket all fit.
+        var L0 = worldAt(rig.ballX + 0.12, 3.72, 0.16, ang), C0 = worldAt(rig.ballX + 2.15, 4.15, 2.15, ang);
+        var L1 = worldAt(rig.ballX + 0.28, 2.75, 0.2, ang), C1 = worldAt(rig.ballX + 2.55, 3.4, 1.7, ang);
+        return { look: L0.clone().lerp(L1, t), cam: C0.clone().lerp(C1, t), angle: 0.55 };
       }
       var tb = rig.tb;
       // High front-passenger 3/4, well out to the side so the neck is behind
@@ -434,12 +445,17 @@
       });
     }
     function setLock(open) {
-      // 0 = locked (S5 box over the coupler); 1 = box slid down and set on the ground beside it.
+      // 0 = locked (S5 box over the coupler, puck in the boss); 1 = box on the ground
+      // beside it, puck off, so the empty C-boss and hasp tabs are visible.
       var u = open, dy, dz = 0;
-      if (u < 0.4) dy = -0.95 * (u / 0.4);
-      else { var t = (u - 0.4) / 0.6; dy = -0.95 - 2.55 * t; dz = 1.15 * t; }
+      // Drop just off the coupler (not all the way to the ground) so the empty
+      // C-boss, hasp tabs and yellow socket stay in one tight frame.
+      var dy1 = -0.55, dy2 = -1.35;
+      if (u < 0.4) dy = dy1 * (u / 0.4);
+      else { var t = (u - 0.4) / 0.6; dy = dy1 + (dy2 - dy1) * t; dz = 0.62 * t; }
       rig.lock.position.y = rig.lockY0 + dy;
       rig.lock.position.z = dz;
+      if (rig.puck) rig.puck.visible = u < 0.12;
     }
     function applyInspectCamera(open, fromAng, toAng, fromCam, fromLook) {
       var ang = fromAng + wrapDelta(fromAng, toAng) * open;
@@ -1604,6 +1620,9 @@
       batt: new THREE.MeshStandardMaterial({ color: 0x141416, roughness: 0.55, metalness: 0.1 }),
       plus: new THREE.MeshStandardMaterial({ color: 0xc8141a, roughness: 0.5 }),
       yellow: new THREE.MeshStandardMaterial({ color: 0xf2c400, roughness: 0.5 }),
+      demco: new THREE.MeshPhysicalMaterial({ color: 0xf5c400, metalness: 0.08, roughness: 0.22, clearcoat: 0.85, clearcoatRoughness: 0.12 }),
+      zinc: new THREE.MeshStandardMaterial({ color: 0xc5c8ce, metalness: 0.92, roughness: 0.38 }),
+      steel: new THREE.MeshStandardMaterial({ color: 0x9aa0a8, metalness: 0.85, roughness: 0.32 }),
       gold: new THREE.MeshPhysicalMaterial({ color: 0xf0c53a, metalness: 1, roughness: 0.12, clearcoat: 0.7, clearcoatRoughness: 0.1, emissive: 0x5a3a00, emissiveIntensity: 0.45 }),
       brass: new THREE.MeshPhysicalMaterial({ color: 0xdcbc5a, metalness: 0.7, roughness: 0.32, clearcoat: 0.5, clearcoatRoughness: 0.2, emissive: 0x7a5a14, emissiveIntensity: 0.55 }),
       puck: new THREE.MeshStandardMaterial({ color: 0x161618, metalness: 0.15, roughness: 0.72 }),
@@ -2056,66 +2075,149 @@
     extrude(shape([[-4.9, 5.05], [-4.9, 5.72], [-12.75, 5.72], [D0 - 0.4, DECK_Y], [D0 + 1.3, DECK_Y], [-12.1, 5.05]]), 0.7, M.frame, 0, 0.04);
     box(0.3, 1.3, 3.2, M.frame, -5.05, 5.7, 0);                    // front cross plate
     [-6.5, -8.6, -12.4].forEach(function (x) { box(0.25, 0.3, 2.6, M.frame, x, 5.6, 0); }); // cross members
-    // v135: yellow Demco 2-5/16 in gooseneck coupler on the black Big Tex post
-    // (black collar with a hitch pin and bent R-clip), plus the S5 Coupler Locks
-    // anti-theft box with a Trimax THP XL puck lock (Trailer view = parked, locked).
+    // v142: yellow Demco 2-5/16 in gooseneck coupler and the S5 Coupler Locks
+    // anti-theft box, sized from Claudio's photos (no serial, QR or phone/URL).
+    // Box is about 6 x 5 in by 8 in tall, gloss black, open top, rounded welds.
     var CPL_X = BALL_X;
-    box(0.62, 0.9, 0.62, M.frame, CPL_X, 4.6, 0);                  // black gooseneck post
-    box(0.74, 0.18, 0.74, M.frame, CPL_X, 4.2, 0);                 // black collar
-    cyl(0.045, 0.045, 0.98, 10, M.chrome, 'z', CPL_X, 4.2, 0);     // hitch pin
-    var rclip = new THREE.Mesh(new THREE.TorusGeometry(0.09, 0.014, 6, 16, Math.PI * 1.3), M.chrome);
-    rclip.rotation.y = Math.PI / 2; add(rclip, CPL_X, 4.12, 0.5);  // bent R-clip
-    box(0.46, 0.55, 0.46, M.yellow, CPL_X, 3.95, 0);               // yellow square coupler tube
-    cyl(0.27, 0.27, 0.36, 24, M.yellow, 'y', CPL_X, 3.52, 0);      // round yellow socket
-    cyl(0.19, 0.19, 0.02, 18, M.hole, 'y', CPL_X, 3.335, 0);       // socket mouth
+    var IN = 1 / 12;
+    box(0.36, 0.85, 0.36, M.frame, CPL_X, 4.68, 0);                     // black gooseneck post
+    // Black cast collar of the outer coupler tube, steel pin, zinc hairpin clip
+    box(0.50, 0.20, 0.50, M.iron, CPL_X, 4.20, 0);
+    cyl(0.038, 0.038, 0.82, 10, M.steel, 'z', CPL_X, 4.20, 0);          // steel hitch pin
+    var rclip = new THREE.Mesh(new THREE.TorusGeometry(0.08, 0.013, 6, 16, Math.PI * 1.35), M.zinc);
+    rclip.rotation.y = Math.PI / 2; add(rclip, CPL_X, 4.12, 0.44);       // zinc hairpin / R-clip
+    // Gloss-yellow Demco: square upper tube, round 2-5/16 in socket below
+    box(0.30, 0.48, 0.30, M.demco, CPL_X, 3.86, 0);
+    cyl(0.155, 0.155, 0.28, 24, M.demco, 'y', CPL_X, 3.50, 0);
+    cyl(0.11, 0.11, 0.02, 18, M.hole, 'y', CPL_X, 3.355, 0);            // socket mouth
     var CH_EYES = [-1, 1].map(function (s) {
       var eye = new THREE.Mesh(new THREE.TorusGeometry(0.07, 0.022, 8, 14), M.frame);
       eye.rotation.y = Math.PI / 2;
       add(eye, CPL_X - 0.42, 4.1, s * 0.22);
       return new THREE.Vector3(CPL_X - 0.42, 4.04, s * 0.22);
     });
-    // S5 box: gloss black steel, open top, notched inner plate, 2 drilled holes
-    // in the bottom, brushed silver label on one side, round puck shroud on another.
+    // S5 box: 5 in (x, boss face) x 6 in (z, label face) x 8 in tall, open top
     var lock = new THREE.Group();
     lock.userData.part = 'lock';
-    lock.position.set(CPL_X, 3.6, 0); // box spans y 3.15..4.05 when locked
+    var LB = { x: 5 * IN, y: 8 * IN, z: 6 * IN, t: 0.22 * IN };
+    var LOCK_Y0 = 3.70; // top of the box sits just under the collar, over the yellow tube
+    lock.position.set(CPL_X, LOCK_Y0, 0);
     group.add(lock);
-    var LB = { x: 0.8, y: 0.9, z: 0.8, t: 0.05 };
-    box(LB.x, LB.t, LB.z, M.gloss, 0, -LB.y / 2 + LB.t / 2, 0, lock);
-    [-1, 1].forEach(function (s) {
-      box(LB.x, LB.y, LB.t, M.gloss, 0, 0, s * (LB.z / 2 - LB.t / 2), lock);
-      box(LB.t, LB.y, LB.z - 2 * LB.t, M.gloss, s * (LB.x / 2 - LB.t / 2), 0, 0, lock);
-      cyl(0.035, 0.035, 0.012, 10, M.hole, 'y', s * 0.18, -LB.y / 2 - 0.001, 0, lock); // drilled holes
-      box(0.15, 0.04, LB.z - 2 * LB.t, M.gloss, s * 0.3, 0.22, 0, lock);             // notched plate (slot for the tube)
+    var cr = 0.42 * IN;
+    [-1, 1].forEach(function (sx) {
+      [-1, 1].forEach(function (sz) {
+        cyl(cr, cr, LB.y, 12, M.gloss, 'y', sx * (LB.x / 2 - cr), 0, sz * (LB.z / 2 - cr), lock);
+      });
+      box(LB.x - 2 * cr, LB.y, LB.t, M.gloss, 0, 0, sx * (LB.z / 2 - LB.t / 2), lock);
+      box(LB.t, LB.y, LB.z - 2 * cr, M.gloss, sx * (LB.x / 2 - LB.t / 2), 0, 0, lock);
     });
-    var lbl = new THREE.Mesh(new THREE.PlaneGeometry(0.56, 0.17), new THREE.MeshStandardMaterial({ map: canvasTex(THREE, 512, 160, function (g, w, h) {
-      var gr = g.createLinearGradient(0, 0, w, 0);
-      gr.addColorStop(0, '#9da1a8'); gr.addColorStop(0.5, '#e3e5e9'); gr.addColorStop(1, '#a3a7ae');
-      g.fillStyle = gr; g.fillRect(0, 0, w, h);
-      g.globalAlpha = 0.12; for (var y = 0; y < h; y += 3) { g.fillStyle = y % 6 ? '#fff' : '#000'; g.fillRect(0, y, w, 1); }
-      g.globalAlpha = 1; g.fillStyle = '#16161a'; g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.font = '900 64px "Arial Black", Arial, sans-serif'; g.fillText('S5', w / 2, h * 0.36);
-      g.font = '700 34px Arial, sans-serif'; g.fillText('COUPLER LOCKS', w / 2, h * 0.76);
-    }), metalness: 0.85, roughness: 0.32 }));
-    add(lbl, 0, 0.05, LB.z / 2 + 0.002, lock);
-    // Puck shroud (round, black, U-notch at the bottom) with the chrome Trimax face
-    cyl(0.19, 0.19, 0.17, 24, M.gloss, 'x', LB.x / 2 + 0.085, -0.05, 0, lock);
-    box(0.18, 0.09, 0.1, M.hole, LB.x / 2 + 0.09, -0.21, 0, lock);                  // U-notch
-    var puckFace = new THREE.Mesh(new THREE.CircleGeometry(0.145, 28), new THREE.MeshStandardMaterial({ map: canvasTex(THREE, 256, 256, function (g, w, h) {
-      var r = g.createRadialGradient(w * 0.4, h * 0.35, 4, w / 2, h / 2, w / 2);
-      r.addColorStop(0, '#f4f5f7'); r.addColorStop(0.6, '#b8bcc3'); r.addColorStop(1, '#7d828a');
-      g.fillStyle = r; g.beginPath(); g.arc(w / 2, h / 2, w / 2, 0, Math.PI * 2); g.fill();
-      g.strokeStyle = '#6c7078'; g.lineWidth = 6; g.beginPath(); g.arc(w / 2, h / 2, w / 2 - 6, 0, Math.PI * 2); g.stroke();
-      g.fillStyle = '#4a4e55'; g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.font = '900 44px "Arial Black", Arial, sans-serif'; g.fillText('TRIMAX', w / 2, h * 0.36);
-      g.font = '900 40px Arial, sans-serif'; g.fillText('THP XL', w / 2, h * 0.62);
-      g.fillStyle = '#2a2d32'; g.fillRect(w / 2 - 22, h * 0.78, 44, 9); // key slot
-    }), metalness: 1, roughness: 0.2 }));
+    box(LB.x - 2 * cr, LB.t, LB.z - 2 * cr, M.gloss, 0, -LB.y / 2 + LB.t / 2, 0, lock);
+    // two drain holes in the bottom face
+    [-1, 1].forEach(function (s) {
+      cyl(0.04 * IN, 0.04 * IN, 0.02, 10, M.hole, 'y', s * 0.9 * IN, -LB.y / 2 - 0.001, 0, lock);
+    });
+    // Black slotted latch plate just inside the open top (flat tab with a cutout for the tube)
+    (function () {
+      var pw = LB.x - 2 * LB.t - 0.01, pz = LB.z - 2 * LB.t - 0.01, hw = 0.17, hz = 0.17;
+      var sh = new THREE.Shape();
+      sh.moveTo(-pw / 2, -pz / 2); sh.lineTo(pw / 2, -pz / 2); sh.lineTo(pw / 2, pz / 2); sh.lineTo(-pw / 2, pz / 2); sh.closePath();
+      var hole = new THREE.Path();
+      hole.moveTo(-hw, -hz); hole.lineTo(-hw, hz); hole.lineTo(hw, hz); hole.lineTo(hw, -hz); hole.closePath();
+      sh.holes.push(hole);
+      var g = new THREE.ExtrudeGeometry(sh, { depth: 0.06 * IN, bevelEnabled: false, curveSegments: 1 });
+      g.rotateX(-Math.PI / 2);
+      g.translate(0, 0, -0.03 * IN);
+      add(new THREE.Mesh(g, M.gloss), 0, LB.y / 2 - 0.12 * IN, 0, lock);
+    })();
+    // Brushed-silver label on the broad (+z) face: "S5 Coupler Locks" only
+    var lbl = new THREE.Mesh(new THREE.PlaneGeometry(3.6 * IN, 1.15 * IN), new THREE.MeshStandardMaterial({
+      map: canvasTex(THREE, 768, 240, function (g, w, h) {
+        var gr = g.createLinearGradient(0, 0, w, 0);
+        gr.addColorStop(0, '#8e939b'); gr.addColorStop(0.45, '#e7eaee'); gr.addColorStop(1, '#9aa0a8');
+        g.fillStyle = gr; g.fillRect(0, 0, w, h);
+        g.globalAlpha = 0.14; for (var y = 0; y < h; y += 2) { g.fillStyle = y % 4 ? '#fff' : '#000'; g.fillRect(0, y, w, 1); }
+        g.globalAlpha = 1; g.fillStyle = '#1a1a1e'; g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.font = '700 86px Arial, sans-serif'; g.fillText('S5', w / 2, h * 0.36);
+        g.font = '600 58px Arial, sans-serif'; g.fillText('Coupler Locks', w / 2, h * 0.70);
+      }),
+      metalness: 0.8, roughness: 0.35
+    }));
+    add(lbl, 0, 0.06, LB.z / 2 + 0.002, lock);
+    // Short round tubular boss on the +x face, ~3.5 in dia, sticking out ~1.5 in,
+    // bottom cut in a C so it is open at the bottom.
+    var BOSS_R = 1.75 * IN, BOSS_L = 1.5 * IN, BOSS_T = 0.16 * IN, BOSS_Y = -0.12 * IN, GAP = 1.7;
+    var boss = new THREE.Group();
+    boss.position.set(LB.x / 2, BOSS_Y, 0);
+    lock.add(boss);
+    var bossMat = M.gloss.clone(); bossMat.side = THREE.DoubleSide;
+    var haspMat = new THREE.MeshStandardMaterial({ color: 0x2a2a30, metalness: 0.35, roughness: 0.5 });
+    (function () {
+      var th0 = Math.PI - GAP / 2, thL = Math.PI * 2 - GAP;
+      function cCyl(r, len) {
+        var m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 32, 1, true, th0, thL), bossMat);
+        m.rotation.z = Math.PI / 2;
+        m.position.x = len / 2;
+        boss.add(m);
+        return m;
+      }
+      cCyl(BOSS_R, BOSS_L);
+      cCyl(BOSS_R - BOSS_T, BOSS_L);
+      // C-shaped rim at the mouth
+      var sh = new THREE.Shape(), n = 28, startA = -Math.PI / 2 + GAP / 2, endA = -Math.PI / 2 - GAP / 2 + Math.PI * 2, i, a;
+      for (i = 0; i <= n; i++) { a = startA + (endA - startA) * i / n; (i ? sh.lineTo : sh.moveTo).call(sh, Math.cos(a) * BOSS_R, Math.sin(a) * BOSS_R); }
+      for (i = n; i >= 0; i--) { a = startA + (endA - startA) * i / n; sh.lineTo(Math.cos(a) * (BOSS_R - BOSS_T), Math.sin(a) * (BOSS_R - BOSS_T)); }
+      sh.closePath();
+      var cap = new THREE.Mesh(new THREE.ShapeGeometry(sh), bossMat);
+      cap.rotation.y = Math.PI / 2;
+      cap.position.x = BOSS_L;
+      boss.add(cap);
+    })();
+    // Two stacked flat black slotted hasp tabs + a small round stud, visible when the puck is out
+    (function () {
+      var tab = function (y) {
+        var sh = new THREE.Shape();
+        var w = 1.35 * IN, h = 1.0 * IN;
+        sh.moveTo(-w / 2, -h / 2); sh.lineTo(w / 2, -h / 2); sh.lineTo(w / 2, h / 2); sh.lineTo(-w / 2, h / 2); sh.closePath();
+        var hole = new THREE.Path();
+        var sw = 0.5 * IN, shh = 0.36 * IN;
+        hole.moveTo(-sw / 2, -shh / 2); hole.lineTo(-sw / 2, shh / 2); hole.lineTo(sw / 2, shh / 2); hole.lineTo(sw / 2, -shh / 2); hole.closePath();
+        sh.holes.push(hole);
+        var g = new THREE.ExtrudeGeometry(sh, { depth: 0.1 * IN, bevelEnabled: false });
+        g.rotateY(Math.PI / 2);
+        var m = new THREE.Mesh(g, haspMat);
+        m.position.set(BOSS_L * 0.55, y, 0);
+        boss.add(m);
+      };
+      tab(0.22 * IN); tab(-0.04 * IN);
+      cyl(0.08 * IN, 0.08 * IN, 0.28 * IN, 10, M.steel, 'x', BOSS_L * 0.55, -0.62 * IN, 0, boss);
+    })();
+
+    // Chrome Trimax THP XL puck: polished face nearly flush with the boss, hidden when unlocked
+    var puck = new THREE.Group();
+    puck.userData.dyn = true;
+    boss.add(puck);
+    // Short puck in the mouth of the boss (not a long cylinder that fills the C-cut)
+    cyl(1.38 * IN, 1.38 * IN, 0.7 * IN, 28, M.chrome, 'x', BOSS_L - 0.38 * IN, 0, 0, puck);
+    var puckFace = new THREE.Mesh(new THREE.CircleGeometry(1.36 * IN, 32), new THREE.MeshStandardMaterial({
+      map: canvasTex(THREE, 512, 512, function (g, w, h) {
+        var c = w / 2, r = g.createRadialGradient(c * 0.72, c * 0.62, 8, c, c, c);
+        r.addColorStop(0, '#ffffff'); r.addColorStop(0.45, '#d8dce2'); r.addColorStop(1, '#8b9098');
+        g.fillStyle = r; g.beginPath(); g.arc(c, c, c - 1, 0, Math.PI * 2); g.fill();
+        g.strokeStyle = '#6a6e76'; g.lineWidth = 10; g.beginPath(); g.arc(c, c, c - 8, 0, Math.PI * 2); g.stroke();
+        // Embossed lettering (darker recessed stroke, lighter face)
+        g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.font = '700 64px Arial, sans-serif';
+        g.fillStyle = '#5c6066'; g.fillText('TRIMAX THP XL', c + 2, c + 2);
+        g.fillStyle = '#2e3136'; g.fillText('TRIMAX THP XL', c, c);
+        g.fillStyle = '#3a3d42'; g.fillRect(c - 36, c + c * 0.42, 72, 12); // key slot
+      }),
+      metalness: 1, roughness: 0.18
+    }));
     puckFace.rotation.y = Math.PI / 2;
-    add(puckFace, LB.x / 2 + 0.172, -0.05, 0, lock);
-    var lockHit = box(1.1, 1.1, 1.1, new THREE.MeshBasicMaterial({ visible: false }), 0.1, 0, 0, lock);
+    add(puckFace, BOSS_L - 0.01 * IN, 0, 0, puck);
+    var lockHit = box(LB.x + BOSS_L + 0.2, LB.y + 0.2, LB.z + 0.2, new THREE.MeshBasicMaterial({ visible: false }), BOSS_L / 2, 0, 0, lock);
     lockHit.userData.part = 'lock';
-    var LOCK_Y0 = 3.6;
+
     // Safety chains: instanced links along a sagging curve
     var linkGeo = new THREE.TorusGeometry(0.042, 0.012, 6, 10);
     function chainSet(curves) {
@@ -2130,7 +2232,7 @@
           mats.push(new THREE.Matrix4().compose(p, q2.multiply(q), sc));
         }
       });
-      var im = new THREE.InstancedMesh(linkGeo, M.chain, mats.length);
+      var im = new THREE.InstancedMesh(linkGeo, M.zinc, mats.length);
       mats.forEach(function (m, i) { im.setMatrixAt(i, m); });
       im.userData.dyn = true;
       group.add(im);
@@ -2450,7 +2552,7 @@
     var trailerFront = -4.9;
     var res = {
       group: group, truck: truck, trailer: trailer, tailgate: tailgate, toolbox: toolbox, toolboxLid: toolboxLid,
-      hood: hood, struts: struts, hoodPivot: HOOD_PIVOT, lock: lock, lockY0: LOCK_Y0,
+      hood: hood, struts: struts, hoodPivot: HOOD_PIVOT, lock: lock, lockY0: LOCK_Y0, lockH: LB.y, puck: puck,
       hitchedOnly: [chainsHitched, cableHitched], parkedOnly: [chainsParked, cableParked, lock],
       glows: glows, hotspots: hotspots, ballLight: ballLight, ballX: BALL_X, tb: TB,
       rigOffset: -mid, trailerOffset: -(trailerFront + back) / 2, truckOffset: -(front + BX0 - 0.4) / 2
