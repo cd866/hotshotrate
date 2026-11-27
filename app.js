@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v127';
+  var APP_VERSION = 'v128';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -7981,7 +7981,7 @@
         var full = btn.getAttribute('data-label') || btn.textContent.trim();
         btn.setAttribute('data-label', full);
         if (!btn.getAttribute('aria-label')) btn.setAttribute('aria-label', full);
-        btn.innerHTML = '<span class="tb-ico">' + navIcon(tab) + '</span><span class="tb-lbl">' + esc(NAV_SHORT[tab] || full) + '</span>';
+        btn.innerHTML = '<span class="tb-ico">' + navIcon(tab) + '</span><span class="tb-lbl">' + esc(NAV_SHORT[tab] || full) + '</span><span class="tb-lbl-full">' + esc(full) + '</span>';
       }
       btn.classList.toggle('tb-overflow', NAV_PRIMARY.indexOf(tab) < 0);
     });
@@ -7994,7 +7994,7 @@
       more.setAttribute('aria-haspopup', 'dialog');
       more.setAttribute('aria-controls', 'more-sheet');
       more.setAttribute('aria-label', 'More sections');
-      more.innerHTML = '<span class="tb-ico">' + navIcon('more') + '</span><span class="tb-lbl">More</span>';
+      more.innerHTML = '<span class="tb-ico">' + navIcon('more') + '</span><span class="tb-lbl">More</span><span class="tb-lbl-full">More</span>';
       nav.appendChild(more);
     } else if (more !== nav.lastElementChild) {
       nav.appendChild(more);
@@ -8006,13 +8006,23 @@
     var more = document.getElementById('tab-more');
     if (!more) return;
     var inMore = false;
-    document.querySelectorAll('.tabbar button.tb-overflow').forEach(function (btn) {
+    /* desktop sidebar lists every section, so More never stands in for the current one */
+    var wide = !!(window.matchMedia && window.matchMedia('(min-width: 1024px)').matches);
+    if (!wide) document.querySelectorAll('.tabbar button.tb-overflow').forEach(function (btn) {
       if (btn.getAttribute('data-tab') === state.tab) inMore = true;
     });
     more.classList.toggle('is-active', inMore);
     var cur = inMore ? document.querySelector('.tabbar button[data-tab="' + state.tab + '"]') : null;
     var lbl = more.querySelector('.tb-lbl');
     if (lbl) lbl.textContent = cur ? (NAV_SHORT[state.tab] || cur.getAttribute('data-label') || 'More') : 'More';
+  }
+
+  if (window.matchMedia) {
+    try {
+      var wideMq = window.matchMedia('(min-width: 1024px)');
+      var onWide = function () { updateNavActive(); };
+      if (wideMq.addEventListener) wideMq.addEventListener('change', onWide); else if (wideMq.addListener) wideMq.addListener(onWide);
+    } catch (err) { /* ignore */ }
   }
 
   function renderMoreSheet() {

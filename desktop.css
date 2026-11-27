@@ -1,0 +1,215 @@
+/* Black Ram Logistics: desktop + tablet layout.
+   Phones (< 768px) are untouched: nothing in this file applies below 768px.
+   768-1023px: centered wider column, two-column cards, bottom nav stays.
+   1024px+: left sidebar nav, centered content area, 2-3 column card grids,
+   centered dialogs instead of bottom sheets. */
+
+/* ---------- tablet and up: wider centered column, 2-col cards ---------- */
+/* sidebar full labels exist in the DOM on every size; only the desktop sidebar shows them */
+.tb-lbl-full { display: none; }
+
+@media (min-width: 768px) {
+  .app { width: min(920px, 100%); }
+  main { padding-left: var(--s-3); padding-right: var(--s-3); }
+
+  /* card containers flow into balanced columns (flex column roots become blocks);
+     headers, tiles and nav strips span all columns */
+  html :is(#today-root, #ai-root, #fin-root, #acct-root, #ins-root, #mt-root,
+    #tx-root, #ln-root, #reports-root, #scoreboard-root) {
+    display: block; columns: 340px 3; column-gap: var(--s-3); column-fill: balance;
+  }
+  html :is(#today-root, #ai-root, #fin-root, #acct-root, #ins-root, #mt-root,
+    #tx-root, #ln-root, #reports-root, #scoreboard-root) > * {
+    break-inside: avoid; -webkit-column-break-inside: avoid; margin-top: 0; margin-bottom: 14px;
+  }
+  /* today.js flips these to 3 columns at 720px; inside a column card keep the phone layout */
+  html .td-rds { grid-template-columns: 1fr; }
+
+  /* full-width rows */
+  #today-root > .td-hdr, #today-root > .td-foot, #today-root > .td-card:first-of-type,
+  #ai-root > .dr-top, #ai-root > .dr-fine,
+  #fin-root > .fin-balance, #fin-root > .fin-refresh-row, #fin-root > .fin-callouts, #fin-root > .fin-foot,
+  #acct-root > .ac-top, #acct-root > .ac-chips, #acct-root > .ac-jump, #acct-root > .ac-more, #acct-root > .ac-foot,
+  #ins-root > .in-top, #ins-root > .in-tiles, #ins-root > .in-jump, #ins-root > .in-sechead, #ins-root > .in-foot,
+  #mt-root > .mt-top, #mt-root > .mt-tiles, #mt-root > .mt-next, #mt-root > .mt-jump, #mt-root > .mt-foot,
+  #tx-root > .dr-top, #tx-root > .tx-disc,
+  #ln-root > .ln-top, #ln-root > .ln-jump, #ln-root > .ln-src, #ln-root > .ln-fine,
+  #reports-root > .status, #reports-root > .month-switch, #reports-root > .avg-banner, #reports-root > .stats,
+  #reports-root > .rep-charts, #reports-root > .fine, #reports-root > h2.sec, #reports-root > .lc-pend,
+  #reports-root > .expenses,
+  #scoreboard-root > .sb-h, #scoreboard-root > .sb-hero, #scoreboard-root > .sb-calls, #scoreboard-root > .sb-grid,
+  #scoreboard-root > .sb-fine,
+  #reports-root > .big, #mt-root > #mt-due {
+    column-span: all;
+  }
+}
+
+/* ---------- tablet and up: inner grids ---------- */
+@media (min-width: 768px) {
+  /* Load Boards: chart + combos side by side, load cards in a grid */
+  html #search-list { display: grid; grid-template-columns: minmax(0, 440px) minmax(0, 1fr); gap: var(--s-2); align-items: start; }
+  html #search-list > .net-chart { grid-column: 1; grid-row: 1; margin: 0; }
+  html #search-list > .combos { grid-column: 2; grid-row: 1; margin: 0; }
+  html #search-list > .search-group { grid-column: 1 / -1; margin: 0; }
+  html section.search-group { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: var(--s-2); align-items: start; }
+  html section.search-group > :not(article) { grid-column: 1 / -1; }
+  html details.search-group::details-content { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: var(--s-2); align-items: start; }
+  html .search-group article.search-card { margin: 0; }
+  html .rep-charts { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--s-2); }
+  html .rep-charts > .rep-charts-head { grid-column: 1 / -1; }
+  html .rep-charts > .chart { margin: 0; }
+  html #stops-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--s-1h); align-items: start; }
+  html #stops-list > h2, html #stops-list > :not(button) { grid-column: 1 / -1; }
+  html #stops-list > .stop { margin: 0; }
+  html .sb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--s-1h); align-items: stretch; }
+  html .sb-grid > .sb-t { margin: 0; }
+  html .sb-grid > .sb-t.wide { grid-column: 1 / -1; }
+}
+
+/* ---------- tablet and up: panels that need their own grid ---------- */
+@media (min-width: 768px) {
+  /* Maintenance: due-next list as a grid of tiles */
+  html #mt-due .mt-dues { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--s-1h); align-items: start; }
+  html #mt-due .mt-dues > .mt-due { margin: 0; }
+  html #stops-map { height: 440px; }
+
+  /* DOT Ready: checklist (Fix first) beside the stacked summary cards */
+  html #dr-root { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-flow: row dense; gap: 0 var(--s-3); align-items: start; }
+  html #dr-root > * { grid-column: 1; margin: 0 0 14px; min-width: 0; }
+  html #dr-root > .dr-top, html #dr-root > .dr-sub1 { grid-column: 1 / -1; }
+  html #dr-root > #dr-fix { grid-column: 2; grid-row: 3 / span 14; }
+
+  /* Targets: levers left, results right */
+  html #targets-root { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: var(--s-1h) var(--s-3); align-items: start; }
+  html #targets-root > p { grid-column: 1 / -1; margin: 0; }
+  html #targets-root > #tg-top { grid-column: 1; grid-row: 2; }
+  html #targets-root > #tg-in { grid-column: 1; grid-row: 3; }
+  html #targets-root > #tg-out { grid-column: 2; grid-row: 2 / span 2; display: flex; flex-direction: column; gap: var(--s-1h); }
+
+  /* Rate Check: form beside history and settings */
+  html #panel-check { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 0 var(--s-3); align-items: start; max-width: 1100px; }
+  html #panel-check > .rc-title { grid-column: 1 / -1; }
+  html #panel-check > #offer { grid-column: 1; grid-row: 2 / span 2; }
+  html #panel-check > #rc-history { grid-column: 2; grid-row: 2; }
+  html #panel-check > #settings { grid-column: 2; grid-row: 3; }
+
+  /* Daily PDFs */
+  html #dailyreports-root { max-width: 920px; }
+}
+
+@media (min-width: 1280px) {
+  html #dr-root { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  html #dr-root > .dr-gcard, html #dr-root > section.dr-card:last-child { grid-column: 3; }
+}
+
+/* ---------- desktop: sidebar nav + dialogs ---------- */
+@media (min-width: 1024px) {
+  :root { --side-w: 232px; --bnav-h: 0px; }
+  html { scroll-padding-top: calc(var(--appbar-h) + 16px); }
+  .app { width: 100%; }
+  .appbar { padding-left: var(--s-2); padding-right: var(--s-2); }
+  .appbar-brand span { display: inline; }
+  .appbar-status { flex: 0 1 340px; }
+  .appbar .hdr-wx { margin-left: auto; }
+
+  /* bottom tab bar becomes a left sidebar */
+  nav.tabbar.bnav {
+    left: 0; right: auto; top: var(--appbar-h); bottom: 0;
+    width: var(--side-w);
+    flex-direction: column; justify-content: flex-start; align-items: stretch;
+    gap: 2px; padding: var(--s-1h) var(--s-1) var(--s-2);
+    overflow-y: auto; overscroll-behavior: contain;
+    border-top: 0; border-right: 1px solid var(--c-line);
+    box-shadow: none;
+  }
+  nav.tabbar.bnav.is-stuck { padding-top: var(--s-1h); }
+  nav.tabbar.bnav > button {
+    flex: 0 0 auto;
+    flex-direction: row; justify-content: flex-start; gap: var(--s-1h);
+    min-height: 42px; padding: 6px var(--s-1h);
+    font-size: var(--fs-md); text-align: left;
+  }
+  nav.tabbar.bnav > button.tb-overflow { display: flex; }
+  nav.tabbar.bnav > button .tb-lbl { display: none; }
+  nav.tabbar.bnav > button .tb-lbl-full { display: block; overflow: hidden; text-overflow: ellipsis; }
+  nav.tabbar.bnav > button#tab-more { margin-top: auto; }
+  nav.tabbar.bnav > button:hover:not([aria-selected="true"]) { background: rgba(167, 139, 250, 0.08); color: var(--c-text-1); }
+
+  /* content area: right of the sidebar, centered, capped width */
+  main { margin-left: var(--side-w); padding: var(--s-2) var(--s-4) var(--s-5); }
+  .panel, main > .footer { width: 100%; max-width: 1360px; margin-left: auto; margin-right: auto; }
+  .pad { display: none; }
+  header.top { margin-left: var(--side-w); padding-left: var(--s-4); padding-right: var(--s-4); }
+  header.top > * { max-width: 1100px; margin-left: auto; margin-right: auto; }
+  header.top .tag { display: block; width: fit-content; margin-left: max(0px, calc((100% - 1100px) / 2)); }
+}
+
+/* short desktop windows: tighter sidebar rows so every section and More stay on screen */
+@media (min-width: 1024px) and (max-height: 860px) {
+  nav.tabbar.bnav { gap: 0; padding-top: var(--s-1); padding-bottom: var(--s-1); }
+  nav.tabbar.bnav > button { min-height: 36px; padding-top: 3px; padding-bottom: 3px; }
+}
+
+/* ---------- desktop: bottom sheets become centered dialogs ---------- */
+@media (min-width: 1024px) {
+  /* About, Call sheet, Mark delivered, Quick compare */
+  html .sheet { background: rgba(8, 6, 14, 0.74); padding: var(--s-4); align-items: center; }
+  html .sheet > .sheet-inner {
+    margin: auto; width: min(640px, 100%); max-height: calc(100dvh - 64px); overflow-y: auto;
+    background: var(--c-surface-1); border: 1px solid var(--c-line-strong); border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-2); padding: var(--s-2) var(--s-3) var(--s-3);
+  }
+  html .sheet .sheet-actions { background: var(--c-surface-1); }
+  html .sheet.compare-sheet > .sheet-inner { width: min(900px, 100%); }
+
+  /* Stop detail card */
+  html .stop-card {
+    top: 50%; bottom: auto; transform: translate(-50%, -50%);
+    width: min(520px, calc(100vw - 64px)); max-height: calc(100dvh - 64px);
+    border-radius: var(--radius-xl); border: 1px solid var(--c-line-strong); border-top: 3px solid var(--gold);
+    padding: var(--s-1) var(--s-3) var(--s-3);
+  }
+
+  /* More: everything is in the sidebar, so only the extras remain */
+  html .more-sheet { z-index: 2800; }
+  html .more-panel {
+    left: 50%; right: auto; top: 50%; bottom: auto; transform: translate(-50%, -50%); animation: none;
+    width: min(440px, calc(100vw - 64px)); border: 1px solid var(--c-line-strong); border-radius: var(--radius-xl);
+    padding: var(--s-2) var(--s-3) var(--s-3);
+  }
+  html .more-grip, html #more-tabs { display: none; }
+  html .more-panel .more-extras { margin-top: 0; padding-top: 0; border-top: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  /* Weather picker */
+  html .wxs { align-items: center; padding: var(--s-4); }
+  html .wxs-card { width: min(520px, 100%); max-height: min(760px, calc(100dvh - 64px)); border-radius: var(--radius-xl); border-bottom: 1px solid var(--c-line); }
+
+  /* Maintenance / DOT / detail sheets from tiles.js, maintenance.js, dotready.js */
+  html body .dr-sh-p, html body .mt-sh-p, html body .tl-p {
+    left: 0; right: 0; top: 0; bottom: 0; margin: auto; transform: none; animation: none;
+    width: min(640px, calc(100vw - 64px)); height: max-content; max-height: min(860px, calc(100dvh - 64px));
+    border: 1px solid var(--c-line-strong); border-radius: var(--radius-xl); padding-bottom: 0;
+  }
+  html body .tl-p { width: min(720px, calc(100vw - 64px)); }
+
+  /* floating bars follow the content area, not the whole window */
+  html #br-dock { left: var(--side-w); bottom: var(--s-2); }
+  html #br-dock > * { width: min(560px, 100%); }
+  html .compare-bar { left: calc(50% + var(--side-w) / 2); width: min(560px, calc(100% - var(--side-w) - 48px)); }
+  html .deliver-undo-toast { left: calc(var(--side-w) + var(--s-2)); right: var(--s-2); margin: 0 auto; max-width: 560px; }
+
+  /* full-screen Driver 360 and Team keep the app bar and sidebar visible and use the width */
+  html .d3-view, html .tm-view { left: var(--side-w); top: var(--appbar-h); }
+  html .d3-view .d3-scroll { max-width: 1120px; padding-left: var(--s-3); padding-right: var(--s-3); }
+  html .tm-view .d3-scroll { max-width: 1000px; padding-left: var(--s-3); padding-right: var(--s-3); }
+  html .tm-view .tm-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--s-1h); }
+  /* Driver 360: portrait on the left, details on the right */
+  html .d3-view:not(.tm-view) .d3-scroll { display: grid; grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); gap: var(--s-1h) var(--s-3); align-items: start; grid-auto-rows: min-content; }
+  html .d3-view:not(.tm-view) .d3-scroll > * { grid-column: 2; min-width: 0; }
+  html .d3-view:not(.tm-view) .d3-scroll > .d3-jump { position: static; }
+  html .d3-view:not(.tm-view) .d3-scroll > .d3-hero { grid-column: 1; grid-row: 1 / span 30; position: sticky; top: 0; }
+
+  /* dialogs and the stop card sit above the sidebar */
+  html .stop-backdrop { z-index: 2750; }
+  html .stop-card { z-index: 2751; }
+}
