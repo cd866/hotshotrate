@@ -9,7 +9,7 @@
   var PIN_KEY = 'blackram_relay_pin_v1';
   var FIN_KEY = 'blackram_fin_session_v1';
   var NAME = 'Meshach';
-  var ART = 'brand/meshach-360.png?v=127';
+  var ART = 'brand/meshach-360.png?v=129';
   var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var DOT_IDS = ['d-cdl', 'd-med', 'd-dq', 'd-da', 'd-eld', 'd-hos', 'd-eldpack', 'd-blank', 't-pre', 't-dvir'];
   var DOT_SHORT = { 'd-cdl': 'Class A CDL', 'd-med': 'Med card', 'd-dq': 'DQ file (Totni)', 'd-da': 'Drug and alcohol pool', 'd-eld': 'ELD login', 'd-hos': 'HOS logs', 'd-eldpack': 'ELD packet in cab', 'd-blank': 'Blank paper logs', 't-pre': 'Pre-trip habit', 't-dvir': 'DVIR / post-trip' };
@@ -349,6 +349,176 @@
     var t = T(); if (t) { close(); t.jump('ac-partners', 'acct'); }
   }
 
+  /* ---------- 360 hero orbit on a flat image (reusable) ----------
+     bindOrbit(fig) turns any <figure> holding one <img> into a fake-3D
+     view: one-finger drag orbits (yaw + tilt, CSS 3D) with inertia, pinch
+     zooms, two-finger drag pans, double-tap / double-click or Reset resets,
+     mouse wheel zooms. A gentle idle sway resumes 3 s after the last touch
+     and stops while touching. State lives on the figure, so several pages
+     (Driver 360, Team) can use it at once. prefers-reduced-motion: no sway,
+     no coasting. */
+  var YAW_MAX = 32, PITCH_MAX = 16, ZOOM_MAX = 2.8, IDLE = 3000;
+  function heroReduce() { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
+  function orbitApply(fig) {
+    var c = fig && fig._orb; if (!c) return;
+    c.yaw = Math.max(-YAW_MAX, Math.min(YAW_MAX, c.yaw));
+    c.pitch = Math.max(-PITCH_MAX, Math.min(PITCH_MAX, c.pitch));
+    c.zoom = Math.max(1, Math.min(ZOOM_MAX, c.zoom));
+    if (c.zoom <= 1.001) { c.panX = 0; c.panY = 0; }
+    var r = fig.getBoundingClientRect();
+    var maxX = (c.zoom - 1) * r.width / 2, maxY = (c.zoom - 1) * r.height / 2;
+    c.panX = Math.max(-maxX, Math.min(maxX, c.panX));
+    c.panY = Math.max(-maxY, Math.min(maxY, c.panY));
+    c.stage.style.transform = 'translate(' + c.panX.toFixed(1) + 'px,' + c.panY.toFixed(1) + 'px) rotateY(' + c.yaw.toFixed(2) + 'deg) rotateX(' + c.pitch.toFixed(2) + 'deg) scale(' + c.zoom.toFixed(3) + ')';
+    var adj = Math.abs(c.yaw) > 0.6 || Math.abs(c.pitch) > 0.6 || c.zoom > 1.02 || Math.abs(c.panX) > 1 || Math.abs(c.panY) > 1;
+    fig.toggleAttribute('data-d3-adjusted', adj && !c.swaying);
+  }
+  function orbitReset(fig) {
+    var c = fig && fig._orb; if (!c) return;
+    c.yaw = 0; c.pitch = 0; c.zoom = 1; c.panX = 0; c.panY = 0; c.vy = 0; c.vp = 0;
+    c.last = performance.now(); c.swaying = false;
+    orbitApply(fig); orbitKick(fig);
+  }
+  function orbitKick(fig) { var c = fig._orb; if (c && !c.raf) c.raf = requestAnimationFrame(function (t) { orbitTick(fig, t); }); }
+  function orbitTick(fig, t) {
+    var c = fig._orb; if (!c) return;
+    c.raf = 0;
+    if (!fig.isConnected || document.hidden) return;
+    var reduce = heroReduce();
+    if (!c.drag && !c.pinch && !reduce) {
+      if (Math.abs(c.vy) > 0.05 || Math.abs(c.vp) > 0.05) {
+        var dt = c.lt ? Math.min(0.05, (t - c.lt) / 1000) : 0.016;
+        c.yaw += c.vy * dt; c.pitch += c.vp * dt;
+        var k = Math.pow(0.04, dt); c.vy *= k; c.vp *= k;
+        c.base = { yaw: c.yaw, pitch: c.pitch };
+      } else {
+        c.vy = 0; c.vp = 0;
+        if (t - c.last > IDLE && c.zoom <= 1.02) {
+          // ease back toward center, then a gentle sway
+          if (!c.swaying) { c.swaying = true; c.swayT0 = t; c.base = { yaw: c.yaw, pitch: c.pitch }; }
+          var u = Math.min(1, (t - c.swayT0) / 1500);
+          var e = u * u * (3 - 2 * u);
+          c.yaw = c.base.yaw * (1 - e) + Math.sin((t - c.swayT0) / 2600) * 9 * e;
+          c.pitch = c.base.pitch * (1 - e) + Math.sin((t - c.swayT0) / 3400) * 3 * e;
+        }
+      }
+      orbitApply(fig);
+    }
+    c.lt = t;
+    var busy = c.drag || c.pinch || (!reduce && (Math.abs(c.vy) > 0.05 || Math.abs(c.vp) > 0.05 || (t - c.last > IDLE - 50 && c.zoom <= 1.02) || t - c.last < IDLE));
+    if (busy) c.raf = requestAnimationFrame(function (tt) { orbitTick(fig, tt); });
+  }
+  function bindOrbit(fig, opts) {
+    if (!fig || fig._orb) return fig;
+    var img = fig.querySelector('img'); if (!img) return fig;
+    opts = opts || {};
+    fig.classList.add('d3-orbit');
+    var stage = document.createElement('div');
+    stage.className = 'd3-hero-stage';
+    img.parentNode.insertBefore(stage, img); stage.appendChild(img);
+    img.setAttribute('draggable', 'false');
+    var hint = document.createElement('div');
+    hint.className = 'd3-hero-hint'; hint.setAttribute('aria-hidden', 'true');
+    hint.textContent = opts.hint || 'Drag to orbit | pinch to zoom';
+    fig.appendChild(hint);
+    var reset = document.createElement('button');
+    reset.type = 'button'; reset.className = 'd3-hero-reset'; reset.textContent = 'Reset';
+    reset.setAttribute('aria-label', 'Reset view');
+    fig.appendChild(reset);
+    var c = fig._orb = { stage: stage, yaw: 0, pitch: 0, zoom: 1, panX: 0, panY: 0, vy: 0, vp: 0, last: performance.now(), raf: 0, lt: 0, drag: false, pinch: null, swaying: false, base: { yaw: 0, pitch: 0 } };
+    reset.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); orbitReset(fig); });
+    var pts = {}, lastX = 0, lastY = 0, lastT = 0, lastTap = 0, tapX = 0, tapY = 0;
+    function count() { return Object.keys(pts).length; }
+    function pinchState() {
+      var k = Object.keys(pts), a = pts[k[0]], b = pts[k[1]];
+      return { d: Math.max(10, Math.hypot(a.x - b.x, a.y - b.y)), x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    }
+    function down(ev) {
+      if (ev.button != null && ev.button > 0) return;
+      if (ev.target.closest && ev.target.closest('.d3-hero-reset, a, button')) return;
+      pts[ev.pointerId] = { x: ev.clientX, y: ev.clientY };
+      try { fig.setPointerCapture(ev.pointerId); } catch (e) { /* ignore */ }
+      var now = performance.now();
+      c.last = now; c.vy = 0; c.vp = 0; c.swaying = false;
+      fig.setAttribute('data-d3-touched', '1');
+      if (count() >= 2) {
+        c.drag = false;
+        var ps = pinchState();
+        c.pinch = { d: ps.d, zoom: c.zoom, x: ps.x, y: ps.y };
+        fig.classList.remove('d3-grab');
+      } else {
+        if (ev.pointerType !== 'mouse' && now - lastTap < 320 && Math.hypot(ev.clientX - tapX, ev.clientY - tapY) < 30) {
+          lastTap = 0; orbitReset(fig);
+        } else { lastTap = now; tapX = ev.clientX; tapY = ev.clientY; }
+        c.drag = true; lastX = ev.clientX; lastY = ev.clientY; lastT = now;
+        fig.classList.add('d3-grab');
+      }
+      orbitKick(fig);
+    }
+    function move(ev) {
+      if (!pts[ev.pointerId]) return;
+      pts[ev.pointerId] = { x: ev.clientX, y: ev.clientY };
+      var now = performance.now();
+      if (c.pinch && count() >= 2) {
+        var ps = pinchState();
+        c.panX += ps.x - c.pinch.x; c.panY += ps.y - c.pinch.y;
+        c.pinch.x = ps.x; c.pinch.y = ps.y;
+        c.zoom = c.pinch.zoom * ps.d / c.pinch.d;
+        c.last = now; orbitApply(fig); return;
+      }
+      if (!c.drag) return;
+      ev.preventDefault();
+      var dx = ev.clientX - lastX, dy = ev.clientY - lastY;
+      var dts = Math.max(1, now - lastT) / 1000;
+      var s = 1 / Math.sqrt(c.zoom);
+      var da = dx * 0.2 * s, de = -dy * 0.14 * s;
+      if (c.zoom > 1.02) { c.panX += dx * 0.35; c.panY += dy * 0.35; }
+      c.yaw += da; c.pitch += de;
+      c.vy = c.vy * 0.6 + (da / dts) * 0.4;
+      c.vp = c.vp * 0.6 + (de / dts) * 0.4;
+      lastX = ev.clientX; lastY = ev.clientY; lastT = now; c.last = now;
+      if (Math.hypot(dx, dy) > 2) lastTap = 0;
+      orbitApply(fig);
+    }
+    function up(ev) {
+      if (!pts[ev.pointerId]) return;
+      delete pts[ev.pointerId];
+      try { fig.releasePointerCapture(ev.pointerId); } catch (e) { /* ignore */ }
+      c.last = performance.now();
+      if (c.pinch) {
+        if (count() < 2) c.pinch = null;
+        var k = Object.keys(pts)[0];
+        if (k) { c.drag = true; lastX = pts[k].x; lastY = pts[k].y; lastT = c.last; }
+        orbitKick(fig); return;
+      }
+      c.drag = false; fig.classList.remove('d3-grab');
+      if (heroReduce() || c.last - lastT > 90) { c.vy = 0; c.vp = 0; }
+      c.vy = Math.max(-240, Math.min(240, c.vy)); c.vp = Math.max(-160, Math.min(160, c.vp));
+      orbitKick(fig);
+    }
+    fig.addEventListener('pointerdown', down);
+    fig.addEventListener('pointermove', move);
+    fig.addEventListener('pointerup', up);
+    fig.addEventListener('pointercancel', up);
+    fig.addEventListener('dblclick', function (ev) {
+      if (ev.target.closest && ev.target.closest('.d3-hero-reset')) return;
+      ev.preventDefault(); orbitReset(fig);
+    });
+    fig.addEventListener('wheel', function (ev) {
+      if (!ev.ctrlKey && c.zoom <= 1.001 && ev.deltaY > 0) return; // let page scroll at 1x
+      ev.preventDefault();
+      var dy = ev.deltaMode === 1 ? ev.deltaY * 16 : ev.deltaY;
+      c.zoom = Math.max(1, Math.min(ZOOM_MAX, c.zoom * Math.exp(-dy * (ev.ctrlKey ? 0.01 : 0.0022))));
+      c.last = performance.now(); c.swaying = false; orbitApply(fig); orbitKick(fig);
+    }, { passive: false });
+    orbitApply(fig); orbitKick(fig);
+    return fig;
+  }
+  function bindHeroCam() {
+    var fig = document.querySelector('#d3-view .d3-hero');
+    if (fig) bindOrbit(fig);
+  }
+
   /* ---------- overlay ---------- */
   function host() {
     var h = $('d3-view');
@@ -383,6 +553,7 @@
     h.querySelectorAll('[data-d3-jump]').forEach(function (a) {
       a.addEventListener('click', function (e) { e.preventDefault(); var t = $(a.getAttribute('data-d3-jump')); if (t && ns) ns.scrollTo({ top: t.offsetTop - 56, behavior: 'smooth' }); });
     });
+    bindHeroCam();
   }
   var lastFocus = null;
   function open() {
@@ -396,6 +567,7 @@
   function close() {
     if (!st.open) return;
     st.open = false;
+    var hf = document.querySelector('#d3-view .d3-hero'); if (hf && hf._orb && hf._orb.raf) { cancelAnimationFrame(hf._orb.raf); hf._orb.raf = 0; }
     var h = $('d3-view'); if (h) { h.hidden = true; h.innerHTML = ''; }
     document.documentElement.classList.remove('d3-noscroll');
     if (lastFocus && lastFocus.focus && document.contains(lastFocus)) { try { lastFocus.focus({ preventScroll: true }); } catch (e) { /* ignore */ } }
@@ -430,8 +602,10 @@
       '.d3-back{min-height:40px;min-width:64px;border-radius:var(--radius-pill,999px);border:1px solid var(--c-line-strong);background:var(--c-surface-2);color:var(--c-text-1);font-weight:800;font-size:14px}' +
       '.d3-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 12px calc(env(safe-area-inset-bottom,0px) + var(--bnav-h,64px) + 28px);max-width:560px;width:100%;margin:0 auto;box-sizing:border-box;display:flex;flex-direction:column;gap:12px}' +
       '.d3-scroll>*{flex-shrink:0}' +
-      '.d3-hero{position:relative;margin:0;border-radius:14px;overflow:hidden;border:1px solid var(--c-line);aspect-ratio:3/4;background:#2a1a33}.d3-hero img{display:block;width:100%;height:100%;object-fit:cover}' +
-      '.d3-hero figcaption{position:absolute;left:0;right:0;bottom:0;padding:48px 14px 14px;background:linear-gradient(180deg,rgba(15,13,23,0),rgba(15,13,23,.78) 45%,rgba(15,13,23,.95));display:flex;flex-direction:column;gap:2px}' +
+      '.d3-hero{position:relative;margin:0;border-radius:14px;overflow:hidden;border:1px solid var(--c-line);aspect-ratio:3/4;background:#2a1a33}.d3-hero img{display:block;width:100%;height:100%;object-fit:cover}.d3-orbit{position:relative;overflow:hidden;perspective:900px;touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}.d3-orbit.d3-grab{cursor:grabbing}.d3-hero-stage{width:100%;height:100%;transform-style:preserve-3d;transform-origin:50% 46%;will-change:transform}.d3-orbit .d3-hero-stage img{display:block;width:100%;height:100%;object-fit:cover;pointer-events:none;-webkit-user-drag:none}' +
+      '.d3-hero figcaption{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:48px 14px 14px;background:linear-gradient(180deg,rgba(15,13,23,0),rgba(15,13,23,.78) 45%,rgba(15,13,23,.95));display:flex;flex-direction:column;gap:2px;pointer-events:none}' +
+      '.d3-hero-hint{position:absolute;left:50%;top:14px;transform:translateX(-50%);z-index:3;padding:5px 10px;border-radius:999px;background:rgba(15,13,23,.72);color:#F2C94C;font-size:11px;font-weight:800;letter-spacing:.04em;pointer-events:none;opacity:0}.d3-orbit:not([data-d3-touched]) .d3-hero-hint{opacity:1}' +
+      '.d3-hero-reset{position:absolute;top:10px;left:10px;z-index:3;display:none;min-height:32px;padding:0 10px;border-radius:999px;border:1px solid rgba(242,201,76,.35);background:rgba(15,13,23,.72);color:#F2C94C;font-size:12px;font-weight:800}.d3-orbit[data-d3-adjusted] .d3-hero-reset{display:block}' +
       '.d3-kick{font-size:11px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:var(--c-gold)}.d3-hero figcaption>b{font-size:34px;font-weight:900;line-height:1;letter-spacing:.01em}.d3-role{font-size:13px;font-weight:700;color:var(--c-text-2)}' +
       '.d3-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.d3-chip{font-size:12px;font-weight:800;padding:4px 10px;border-radius:999px;background:rgba(242,201,76,.16);color:var(--c-gold);border:1px solid rgba(242,201,76,.35)}' +
       '.d3-now{padding:10px 30px 10px 12px;border-radius:10px;background:var(--c-surface-1);border:1px solid var(--c-line);font-size:13px;color:var(--c-text-2);position:relative}.d3-now b{color:var(--c-text-1)}' +
@@ -487,7 +661,7 @@
     var feedPoll = 0;
     (function wait() { var A = window.BlackRamApp; if (A && A.getFeed && A.getFeed()) { st.feed = A.getFeed(); renderTeaser(); render(); } else if (feedPoll++ < 30) setTimeout(wait, 500); })();
   }
-  window.BlackRamDriver = { open: open, close: close, refresh: function () { st.feed = null; loadFeed(); loadFin(true); render(); } };
+  window.BlackRamDriver = { open: open, close: close, refresh: function () { st.feed = null; loadFeed(); loadFin(true); render(); }, bindOrbit: bindOrbit, resetOrbit: orbitReset };
   window.BlackRamApp = Object.assign(window.BlackRamApp || {}, { driver360: window.BlackRamDriver });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

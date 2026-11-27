@@ -10,13 +10,20 @@
      on the Rig, Truck and Trailer views. After any touch, drag, arrow, zoom
      or pan, auto-spin always resumes about 3 s later, even if the view is
      still zoomed, panned or tilted (zoom and tilt stay as they are).
-   - Zoom: pinch (two fingers also pan), mouse wheel or trackpad pinch, or
-     the +/- buttons, 1x to 5x; double-tap, double-click or Reset resets.
+   - One-finger drag orbits freely (yaw plus vertical tilt, 2-62 deg) with
+     inertia. Pinch zooms; two-finger drag pans. Double-tap or double-click
+     resets the view. Mouse wheel / trackpad pinch or the +/- buttons zoom
+     1x to 5x. Auto-spin pauses while touching.
    - Arrow pad (v79): left/right rotate, up/down tilt the camera 2-62 deg;
-     press and hold keeps moving. Reset puts zoom, pan and tilt back.
+     press and hold keeps moving. Reset puts zoom, pan and tilt back and
+     closes an open tailgate or toolbox.
    - Tailgate (Truck and Rig): tap or the 'Tap tailgate' button swings it down
-     in 0.6 s and eases the camera to a rear 3/4 of the bed, showing the gold
-     CURT gooseneck ball on a dark puck plate. Tap again or Reset closes it.
+     in 0.6 s and eases the camera to a rear 3/4 of the bed. Once open, the
+     same finger controls orbit, tilt, pinch-zoom and pan around the bed
+     (auto-spin resumes after idle). The bed has a gray spray-in liner, a
+     center gold/brass gooseneck ball with a blue latch grip, two gold
+     safety-chain U-loops, and four black 5th-wheel puck holes in a rectangle.
+     Tap again or Reset closes it. Double-tap while open resets the bed view.
    - Toolbox (Trailer and Rig): the Big Tex storage box sits under the gooseneck,
      in the gap ahead of the deck, between the uprights. The top is a black
      diamond-plate lid with a latch near the rear edge; it hinges up like a
@@ -26,7 +33,6 @@
    - prefers-reduced-motion: no auto-spin and no coasting; openings snap;
      drag still works.
    - Pauses when the stage is off screen, the tab is hidden, or Photo is on.
-     Auto-spin also pauses while a tailgate or toolbox is open.
    Units in the model are feet. x = length (truck front +x), y = up, z = width. */
 (function () {
   'use strict';
@@ -94,7 +100,7 @@
 
     hint = document.createElement('div');
     hint.className = 'r360-hint';
-    hint.textContent = 'Drag to spin';
+    hint.textContent = 'Drag to orbit';
     stage.appendChild(hint);
 
     var saved = null;
@@ -184,7 +190,8 @@
     var autoSpeed = (Math.PI * 2) / TURN_SECONDS;
     var lastInput = -1e9;
     var dragging = false;
-    var lastX = 0, lastT = 0;
+    var lastX = 0, lastY = 0, lastT = 0;
+    var elevVel = 0;
     var raf = 0, lastFrame = 0;
     var shown = false;
     var w = 0, h = 0;
@@ -198,6 +205,10 @@
     var ELEV = ELEV0;
     var upAxis = new THREE.Vector3(0, Math.cos(ELEV), -Math.sin(ELEV));
     var held = null; // arrow button being held: { da, de }
+    // After a tailgate / toolbox opens, the camera orbits the part in world space.
+    var iYaw = 0, iElev = 0, iDist = 18, iPanX = 0, iPanY = 0, iVelY = 0, iVelE = 0;
+    var iLook = new THREE.Vector3();
+    var I_ELEV_MIN = THREE.MathUtils.degToRad(12), I_ELEV_MAX = THREE.MathUtils.degToRad(80);
 
     function applyCamera() {
       ELEV = Math.max(ELEV_MIN, Math.min(ELEV_MAX, ELEV));
@@ -232,14 +243,21 @@
       }
       zoom = z;
       lastInput = performance.now();
-      applyCamera();
+      if (inspectOrbiting()) applyInspectOrbit(); else applyCamera();
       render();
       update();
     }
 
     function resetZoom() {
+      if (inspectOrbiting()) {
+        zoom = 1; iPanX = 0; iPanY = 0; iVelY = 0; iVelE = 0;
+        syncInspectOrbitFromPose();
+        lastInput = performance.now();
+        applyInspectOrbit(); render(); update();
+        return;
+      }
       if (inspectKind) closeInspect(true);
-      zoom = 1; panX = 0; panY = 0; ELEV = ELEV0;
+      zoom = 1; panX = 0; panY = 0; ELEV = ELEV0; elevVel = 0;
       lastInput = performance.now();
       applyCamera(); render(); update();
     }
@@ -280,6 +298,34 @@
         4.6 + upAxis.y * panY - 2.2 + Math.sin(ELEV) * d,
         upAxis.z * panY + Math.cos(ELEV) * d
       );
+    }
+    function inspectOrbiting() { return !!(inspectKind && inspectOpen > 0.99 && !anim); }
+    function defaultInspectOrbit(kind) {
+      var pose = inspectPose(kind, inspectPose(kind, 0).angle);
+      var dx = pose.cam.x - pose.look.x, dy = pose.cam.y - pose.look.y, dz = pose.cam.z - pose.look.z;
+      var d = Math.max(4, Math.hypot(dx, dy, dz));
+      return { yaw: Math.atan2(dx, dz), elev: Math.asin(Math.max(-1, Math.min(1, dy / d))), dist: d, look: pose.look.clone() };
+    }
+    function syncInspectOrbitFromPose() {
+      var o = defaultInspectOrbit(inspectKind);
+      iYaw = o.yaw; iElev = o.elev; iDist = o.dist; iPanX = 0; iPanY = 0; iVelY = 0; iVelE = 0;
+      iLook.copy(o.look);
+    }
+    function applyInspectOrbit() {
+      iElev = Math.max(I_ELEV_MIN, Math.min(I_ELEV_MAX, iElev));
+      var z = Math.max(1, Math.min(ZOOM_MAX, zoom));
+      var d = iDist / z;
+      var ce = Math.cos(iElev), se = Math.sin(iElev);
+      var sy = Math.sin(iYaw), cy = Math.cos(iYaw);
+      var lookX = iLook.x + cy * iPanX, lookY = iLook.y + iPanY, lookZ = iLook.z + (-sy) * iPanX;
+      camera.position.set(lookX + sy * ce * d, lookY + se * d, lookZ + cy * ce * d);
+      camera.lookAt(lookX, lookY, lookZ);
+      camera.updateProjectionMatrix();
+      stage.toggleAttribute('data-r360-zoomed', zoom > 1.02);
+      stage.toggleAttribute('data-r360-adjusted', true);
+    }
+    function currentInspectLook() {
+      return new THREE.Vector3(iLook.x + Math.cos(iYaw) * iPanX, iLook.y + iPanY, iLook.z + (-Math.sin(iYaw)) * iPanX);
     }
     function inspectPose(kind, ang) {
       // Camera and look-at in world space for a rear / lid-side 3/4 of the part.
@@ -341,7 +387,7 @@
       inspectKind = kind || inspectKind;
       var fromCam = camera.position.clone();
       var fromLook = (inspectKind && inspectOpen > 0.2)
-        ? inspectPose(inspectKind, angle).look
+        ? (inspectOrbiting() ? currentInspectLook() : inspectPose(inspectKind, angle).look)
         : currentLookAt();
       anim = {
         start: performance.now(), dur: dur, from: from, to: to, kind: inspectKind,
@@ -390,7 +436,9 @@
           applyCamera();
         } else {
           inspectOpen = 1;
-          lastInput = 1e15;
+          syncInspectOrbitFromPose();
+          applyInspectOrbit();
+          lastInput = performance.now();
         }
         anim = null;
         setInspectAttr();
@@ -460,7 +508,8 @@
       var hfov = 2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect);
       halfLen = subject === 'trailer' ? 26.5 : subject === 'truck' ? 13 : 33.5;
       baseDist = halfLen / Math.tan(hfov / 2) + (subject === 'trailer' ? 11 : subject === 'truck' ? 9 : 13);
-      if (inspectKind && inspectOpen > 0.5 && !anim) applyInspectCamera(1, angle, angle, camera.position, currentLookAt());
+      if (inspectOrbiting()) applyInspectOrbit();
+      else if (inspectKind && inspectOpen > 0.5 && !anim) applyInspectCamera(1, angle, angle, camera.position, currentLookAt());
       else if (camHold) applyHeldCam();
       else applyCamera();
     }
@@ -469,7 +518,7 @@
       if (mode !== '360' || !onScreen || document.hidden) return false;
       if (anim || inspectKind) return true;
       if (dragging || held) return true;
-      if (!reduceMotion && Math.abs(velocity) > 0.002) return true;
+      if (!reduceMotion && (Math.abs(velocity) > 0.002 || Math.abs(elevVel) > 0.002 || Math.abs(iVelY) > 0.002 || Math.abs(iVelE) > 0.002)) return true;
       if (!reduceMotion) return true; // auto-spin, including while zoomed, panned or tilted
       return false;
     }
@@ -489,24 +538,43 @@
       lastFrame = t;
       if (anim) stepAnim(t);
       if (held) {
-        angle += held.da * dt;
-        if (held.de && !inspectKind) { ELEV += held.de * dt; applyCamera(); }
-        lastInput = performance.now();
-      } else if (!dragging && !reduceMotion && !inspectKind && !anim) {
-        if (Math.abs(velocity) > 0.002) {
-          angle += velocity * dt;
-          velocity *= Math.pow(0.04, dt); // coast out a flick
+        if (inspectOrbiting()) {
+          iYaw += held.da * dt;
+          if (held.de) iElev += held.de * dt;
+          applyInspectOrbit();
         } else {
-          velocity = 0;
-          if (performance.now() - lastInput > IDLE_RESUME_MS) {
+          angle += held.da * dt;
+          if (held.de && !inspectKind) { ELEV += held.de * dt; applyCamera(); }
+        }
+        lastInput = performance.now();
+      } else if (!dragging && !reduceMotion && !anim) {
+        if (inspectOrbiting()) {
+          if (Math.abs(iVelY) > 0.002) { iYaw += iVelY * dt; iVelY *= Math.pow(0.04, dt); }
+          else iVelY = 0;
+          if (Math.abs(iVelE) > 0.002) { iElev += iVelE * dt; iVelE *= Math.pow(0.04, dt); }
+          else iVelE = 0;
+          if (iVelY === 0 && iVelE === 0 && performance.now() - lastInput > IDLE_RESUME_MS) {
+            var ramp = Math.min(1, (performance.now() - lastInput - IDLE_RESUME_MS) / 1200);
+            iYaw += autoSpeed * ramp * dt;
+          }
+          applyInspectOrbit();
+        } else if (!inspectKind) {
+          if (Math.abs(velocity) > 0.002) {
+            angle += velocity * dt;
+            velocity *= Math.pow(0.04, dt); // coast out a flick
+          } else velocity = 0;
+          if (Math.abs(elevVel) > 0.002) {
+            ELEV += elevVel * dt;
+            applyCamera();
+            elevVel *= Math.pow(0.04, dt);
+          } else elevVel = 0;
+          if (velocity === 0 && elevVel === 0 && performance.now() - lastInput > IDLE_RESUME_MS) {
             var ramp = Math.min(1, (performance.now() - lastInput - IDLE_RESUME_MS) / 1200);
             angle += autoSpeed * ramp * dt;
           }
         }
       }
-      if (!anim && inspectKind && inspectOpen > 0.99) {
-        applyInspectCamera(1, angle, angle, camera.position, currentLookAt());
-      } else if (camHold) {
+      if (camHold && !inspectKind) {
         applyHeldCam();
       }
       render();
@@ -524,9 +592,10 @@
       }
     }
 
-    // One finger / mouse drag spins. Two fingers pinch to zoom and pan.
-    // Double-tap (or double-click) resets the zoom. touch-action: pan-y
-    // keeps vertical page scroll and hands pinches to us.
+    // One finger / mouse drag orbits (yaw + tilt) with inertia. Two fingers
+    // pinch to zoom and pan. Double-tap (or double-click) resets the view.
+    // touch-action: none so a vertical drag can tilt. Same controls apply
+    // while the tailgate or toolbox is open (camera orbits the part).
     var pts = {};
     var pinch = null;
     var lastTap = 0, lastTapX = 0, lastTapY = 0;
@@ -557,7 +626,7 @@
           lastTap = now; lastTapX = ev.clientX; lastTapY = ev.clientY;
         }
         dragging = true;
-        lastX = ev.clientX; lastT = now;
+        lastX = ev.clientX; lastY = ev.clientY; lastT = now;
         stage._r360sx = ev.clientX; stage._r360sy = ev.clientY;
         stage.classList.add('r360-grab');
       }
@@ -571,21 +640,42 @@
         var ps = pinchState();
         // pan with the pinch midpoint, then zoom about it
         var fpp = feetPerPx();
-        panX -= (ps.x - pinch.x) * fpp;
-        panY += (ps.y - pinch.y) * fpp;
+        if (inspectOrbiting()) {
+          iPanX -= (ps.x - pinch.x) * fpp;
+          iPanY += (ps.y - pinch.y) * fpp;
+        } else {
+          panX -= (ps.x - pinch.x) * fpp;
+          panY += (ps.y - pinch.y) * fpp;
+        }
         pinch.x = ps.x; pinch.y = ps.y;
         zoomAt(pinch.zoom * ps.d / pinch.d, ps.x, ps.y);
         return;
       }
       if (!dragging) return;
       var dx = ev.clientX - lastX;
-      var da = dx * (Math.PI * 2) / Math.max(320, w * 1.6) / Math.sqrt(zoom);
-      angle += da;
+      var dy = ev.clientY - lastY;
       var dtm = Math.max(1, now - lastT);
-      velocity = velocity * 0.6 + (da / (dtm / 1000)) * 0.4;
-      lastX = ev.clientX; lastT = now; lastInput = now;
-      if (Math.abs(dx) > 2) lastTap = 0;
-      if (reduceMotion || zoom > 1.02) render();
+      var da = dx * (Math.PI * 2) / Math.max(320, w * 1.6) / Math.sqrt(zoom);
+      var de = -dy * (Math.PI / 2) / Math.max(220, h * 1.4) / Math.sqrt(zoom);
+      if (inspectOrbiting()) {
+        iYaw += da;
+        iElev += de;
+        iVelY = iVelY * 0.6 + (da / (dtm / 1000)) * 0.4;
+        iVelE = iVelE * 0.6 + (de / (dtm / 1000)) * 0.4;
+        applyInspectOrbit();
+        render();
+      } else {
+        angle += da;
+        if (!inspectKind) {
+          ELEV += de;
+          applyCamera();
+          elevVel = elevVel * 0.6 + (de / (dtm / 1000)) * 0.4;
+        }
+        velocity = velocity * 0.6 + (da / (dtm / 1000)) * 0.4;
+        if (reduceMotion || zoom > 1.02 || Math.abs(de) > 0.0005) render();
+      }
+      lastX = ev.clientX; lastY = ev.clientY; lastT = now; lastInput = now;
+      if (Math.hypot(dx, dy) > 2) lastTap = 0;
     }
     function up(ev) {
       if (!pts[ev.pointerId]) return;
@@ -596,7 +686,7 @@
         if (count() < 2) { pinch = null; velocity = 0; }
         // one finger left after a pinch: let it keep spinning from here
         var k = Object.keys(pts)[0];
-        if (k) { dragging = true; lastX = pts[k].x; lastT = lastInput; }
+        if (k) { dragging = true; lastX = pts[k].x; lastY = pts[k].y; lastT = lastInput; }
         update();
         return;
       }
@@ -610,9 +700,12 @@
         update();
         return;
       }
-      if (lastInput - lastT > 90) velocity = 0;
+      if (lastInput - lastT > 90) { velocity = 0; elevVel = 0; iVelY = 0; iVelE = 0; }
       velocity = Math.max(-4, Math.min(4, velocity));
-      if (zoom > 1.02) velocity = 0;
+      elevVel = Math.max(-2, Math.min(2, elevVel));
+      iVelY = Math.max(-4, Math.min(4, iVelY));
+      iVelE = Math.max(-2, Math.min(2, iVelE));
+      if (reduceMotion) { velocity = 0; elevVel = 0; iVelY = 0; iVelE = 0; }
       stage.classList.remove('r360-grab');
       update();
     }
@@ -699,9 +792,17 @@
       return { da: d === 'left' ? -ROT : d === 'right' ? ROT : 0, de: d === 'up' ? TILT : d === 'down' ? -TILT : 0 };
     }
     function step(d) {
+      if (inspectOrbiting()) {
+        iYaw += STEP[d][0];
+        iElev += STEP[d][1];
+        iVelY = 0; iVelE = 0;
+        lastInput = performance.now();
+        applyInspectOrbit(); render(); update();
+        return;
+      }
       angle += STEP[d][0];
       ELEV += STEP[d][1];
-      velocity = 0;
+      velocity = 0; elevVel = 0;
       lastInput = performance.now();
       applyCamera(); render(); update();
     }
@@ -778,6 +879,19 @@
       info: function () { return { calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, running: !!raf }; },
       pause: function (p) { lastInput = p ? 1e15 : -1e9; update(); },
       toggleTailgate: function () { toggleInspect('tailgate'); },
+      snapInspect: function (kind, yawDeg, elevDeg, z) {
+        kind = kind || 'tailgate';
+        camHold = null; anim = null;
+        inspectKind = kind; inspectOpen = 1;
+        applyPartPose(1);
+        angle = inspectPose(kind, 0).angle;
+        turntable.rotation.y = angle;
+        zoom = (z != null) ? Math.max(1, Math.min(ZOOM_MAX, z)) : 1;
+        syncInspectOrbitFromPose();
+        if (yawDeg != null) iYaw = THREE.MathUtils.degToRad(yawDeg);
+        if (elevDeg != null) iElev = THREE.MathUtils.degToRad(elevDeg);
+        applyInspectOrbit(); render(); updatePartButtons(); setInspectAttr();
+      },
       toggleToolbox: function () { toggleInspect('toolbox'); },
       framePart: function (kind) {
         camHold = kind;
@@ -946,6 +1060,31 @@
     return env;
   }
 
+
+  function linerTex(THREE) {
+    // Spray-in bed liner: medium gray, ribs run the length of the bed (u).
+    var t = canvasTex(THREE, 512, 512, function (g, w, h) {
+      g.fillStyle = '#5f6369';
+      g.fillRect(0, 0, w, h);
+      var rnd = seeded(77);
+      var img = g.getImageData(0, 0, w, h), d = img.data;
+      for (var i = 0; i < d.length; i += 4) {
+        var n = (rnd() - 0.5) * 18;
+        d[i] += n; d[i + 1] += n; d[i + 2] += n;
+      }
+      g.putImageData(img, 0, 0);
+      for (var x = 0; x < w; x += 30) {
+        g.fillStyle = 'rgba(0,0,0,0.18)';
+        g.fillRect(x, 0, 6, h);
+        g.fillStyle = 'rgba(255,255,255,0.07)';
+        g.fillRect(x + 6, 0, 2, h);
+      }
+    });
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.repeat.set(2, 4);
+    return t;
+  }
+
   /* ----------------------------- model ------------------------------ */
   function buildRig(THREE) {
     var group = new THREE.Group();
@@ -965,6 +1104,11 @@
       red: new THREE.MeshStandardMaterial({ color: 0x9a0f14, emissive: 0xd0141c, emissiveIntensity: 1.1 }),
       chrome: new THREE.MeshStandardMaterial({ color: 0xcfd2d8, metalness: 1, roughness: 0.12 }),
       gold: new THREE.MeshPhysicalMaterial({ color: 0xf0c53a, metalness: 1, roughness: 0.12, clearcoat: 0.7, clearcoatRoughness: 0.1, emissive: 0x5a3a00, emissiveIntensity: 0.45 }),
+      brass: new THREE.MeshPhysicalMaterial({ color: 0xdcbc5a, metalness: 0.7, roughness: 0.32, clearcoat: 0.5, clearcoatRoughness: 0.2, emissive: 0x7a5a14, emissiveIntensity: 0.55 }),
+      puck: new THREE.MeshStandardMaterial({ color: 0x161618, metalness: 0.15, roughness: 0.72 }),
+      hole: new THREE.MeshStandardMaterial({ color: 0x050506, metalness: 0.4, roughness: 0.85 }),
+      liner: new THREE.MeshStandardMaterial({ map: linerTex(THREE), color: 0xc2c6cb, roughness: 0.9, metalness: 0.03 }),
+      grip: new THREE.MeshStandardMaterial({ color: 0x1560d8, roughness: 0.55, metalness: 0.05 }),
       plate: new THREE.MeshStandardMaterial({ color: 0x16161a, metalness: 0.75, roughness: 0.38 }),
       strap: new THREE.MeshStandardMaterial({ color: 0xd4a017, roughness: 0.7, metalness: 0.05 }),
       strapOr: new THREE.MeshStandardMaterial({ color: 0xc45a12, roughness: 0.7, metalness: 0.05 }),
@@ -1073,9 +1217,17 @@
     // Cab roof marker lights (5 amber)
     for (var i = -2; i <= 2; i++) box(0.18, 0.1, 0.36, M.amber, 2.25, 6.76, i * 1.15);
 
-    // Bed: floor, sides, front wall, tailgate
+    // Bed: floor (gray spray-in liner), sides, front wall, tailgate
     var BX0 = -11.0, BX1 = -3.25, BL = BX1 - BX0, BC = (BX0 + BX1) / 2;
+    var FLOOR_Y = 3.03;
     box(BL, 0.15, 6.2, M.satin, BC, 2.95, 0);
+    var liner = new THREE.Mesh(new THREE.PlaneGeometry(BL - 0.08, 6.05, 1, 1), M.liner);
+    liner.rotation.x = -Math.PI / 2;
+    add(liner, BC, FLOOR_Y, 0);
+    // Shallow longitudinal ribs so the liner catches light like the real spray-in
+    for (var rz = -2.7; rz <= 2.7; rz += 0.28) {
+      box(BL - 0.3, 0.03, 0.16, M.liner, BC, FLOOR_Y + 0.01, rz);
+    }
     [-1, 1].forEach(function (s) {
       box(BL, 1.95, 0.22, M.paint, BC, 3.9, s * 3.2);
       box(BL, 0.12, 0.34, M.satin, BC, 4.92, s * 3.2); // rail cap
@@ -1117,12 +1269,47 @@
     wheel(RX, TR, 2.82, TR, 0.72, -1, true);
     wheel(RX, TR, -3.6, TR, 0.72, -1, false);
     wheel(RX, TR, -2.82, TR, 0.72, 1, true);
-    // CURT gooseneck ball in the bed, gold, on a dark puck plate
+    // Bed hardware, from photos of the real Ram bed: 4 black 5th-wheel
+    // puck holes in a rectangle, a center B&W-style gold/brass gooseneck
+    // ball with a blue latch grip, and two gold safety-chain U-loops.
     var BALL_X = -6.9;
-    box(1.5, 0.08, 1.5, M.plate, BALL_X, 3.04, 0);
-    add(new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.38, 0.1, 20), M.plate), BALL_X, 3.11, 0);
-    add(new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.28, 12), M.gold), BALL_X, 3.22, 0);
-    add(new THREE.Mesh(new THREE.SphereGeometry(0.28, 24, 16), M.gold), BALL_X, 3.48, 0);
+    function puckHole(x, z, rOuter, rInner) {
+      add(new THREE.Mesh(new THREE.CylinderGeometry(rOuter, rOuter + 0.02, 0.05, 28), M.puck), x, FLOOR_Y + 0.02, z);
+      add(new THREE.Mesh(new THREE.CylinderGeometry(rInner, rInner, 0.08, 24), M.hole), x, FLOOR_Y + 0.005, z);
+    }
+    function chainLoop(x, z) {
+      puckHole(x, z, 0.22, 0.14);
+      var u = new THREE.Mesh(new THREE.TorusGeometry(0.085, 0.032, 10, 18, Math.PI), M.brass);
+      u.rotation.z = Math.PI / 2;
+      u.rotation.y = Math.PI / 2;
+      add(u, x, FLOOR_Y + 0.1, z);
+    }
+    // Soft overhead fill for the bed only (short range), so the gray liner
+    // and brass hardware read like the daylight photos when the gate is open.
+    var bedFill = new THREE.PointLight(0xfff6e8, 22, 7.5, 2);
+    add(bedFill, BALL_X, FLOOR_Y + 3.4, 0);
+    // 5th-wheel pucks: rectangle around the ball (front = toward the cab)
+    var PUCK_DX = 1.45, PUCK_DZ = 1.72;
+    [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(function (s) {
+      puckHole(BALL_X + s[0] * PUCK_DX, s[1] * PUCK_DZ, 0.24, 0.15);
+    });
+    // Safety-chain U-loops, slightly toward the tailgate, left and right
+    chainLoop(BALL_X - 0.85, 1.28);
+    chainLoop(BALL_X - 0.85, -1.28);
+    // Center gooseneck ball in its puck, latch handle toward the tailgate
+    puckHole(BALL_X, 0, 0.30, 0.18);
+    add(new THREE.Mesh(new THREE.CylinderGeometry(0.115, 0.125, 0.34, 20), M.brass), BALL_X, FLOOR_Y + 0.22, 0);
+    add(new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.06, 20), M.brass), BALL_X, FLOOR_Y + 0.38, 0);
+    add(new THREE.Mesh(new THREE.SphereGeometry(0.155, 24, 16), M.brass), BALL_X, FLOOR_Y + 0.52, 0);
+    add(new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.02, 8), M.chrome), BALL_X, FLOOR_Y + 0.675, 0);
+    var handle = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.028, 10, 20, Math.PI * 0.85), M.brass);
+    handle.rotation.y = Math.PI / 2;
+    handle.rotation.z = Math.PI * 0.12;
+    add(handle, BALL_X - 0.18, FLOOR_Y + 0.22, 0.02);
+    var grip = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.038, 0.16, 12), M.grip);
+    grip.rotation.z = Math.PI / 2;
+    grip.rotation.y = -0.2;
+    add(grip, BALL_X - 0.36, FLOOR_Y + 0.18, 0.02);
     var ballLight = new THREE.PointLight(0xffe6a8, 0, 14, 2);
     ballLight.position.set(BALL_X, 4.2, 0);
     group.add(ballLight);

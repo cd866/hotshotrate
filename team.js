@@ -10,7 +10,7 @@
   var RELAY = 'https://blackram-relay.sandlilypad.workers.dev';
   var PIN_KEY = 'blackram_relay_pin_v1';
   var FIN_KEY = 'blackram_fin_session_v1';
-  var ART_V = '127';
+  var ART_V = '129';
   var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var PEOPLE = [
     {
@@ -319,6 +319,7 @@
     if (!st.who) return;
     var p = person(st.who); if (!p || p.driver360) return;
     var h = personHost(), sc = h.querySelector('.d3-scroll'), top = sc ? sc.scrollTop : 0;
+    stopOrbit(h);
     var s = st.feed ? stats() : null;
     var jump = [['tm-role', p.group === 'carrier' ? 'Provides' : 'Role']];
     if (p.id === 'claudio' || p.id === 'meshach') jump.push(['tm-co', 'Loads']);
@@ -330,10 +331,16 @@
       '<p class="d3-fine d3-foot">First name only. No contact, license or address details are kept in the app. Money figures need the PIN.</p>';
     h.innerHTML = '<div class="d3-bar"><button type="button" class="d3-back" data-p360-close="1" aria-label="Back to Team">Back</button><b>' + esc(p.kick) + '</b><span>' + esc(p.name) + '</span></div><div class="d3-scroll">' + body + '</div>';
     var ns = h.querySelector('.d3-scroll'); if (ns) ns.scrollTop = top;
+    var hf = h.querySelector('.d3-hero');
+    if (hf && window.BlackRamDriver && window.BlackRamDriver.bindOrbit) window.BlackRamDriver.bindOrbit(hf);
     h.querySelectorAll('[data-tm-jump]').forEach(function (a) {
       a.addEventListener('click', function (e) { e.preventDefault(); var t = $(a.getAttribute('data-tm-jump')); if (t && ns) ns.scrollTo({ top: t.offsetTop - 56, behavior: 'smooth' }); });
     });
     h.setAttribute('aria-label', p.kick + ': ' + p.name);
+  }
+  function stopOrbit(h) {
+    var f = h && h.querySelector('.d3-hero');
+    if (f && f._orb && f._orb.raf) { cancelAnimationFrame(f._orb.raf); f._orb.raf = 0; }
   }
   function personHost() {
     var h = $('p360-view');
@@ -395,7 +402,7 @@
   function closePerson() {
     if (!st.who) return;
     st.who = null;
-    var h = $('p360-view'); if (h) { h.hidden = true; h.innerHTML = ''; }
+    var h = $('p360-view'); if (h) { stopOrbit(h); h.hidden = true; h.innerHTML = ''; }
     if (st.teamOpen) showTeamLayer();
     if (st.personFocus && st.personFocus.focus && document.contains(st.personFocus)) { try { st.personFocus.focus({ preventScroll: true }); } catch (e) { /* ignore */ } }
   }

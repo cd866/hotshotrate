@@ -5497,6 +5497,7 @@ header.top .rig-stage[data-r360] {
   -webkit-user-select: none; user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
+header.top .rig-stage[data-r360][data-view="360"] { touch-action: none; }
 header.top .rig-stage[data-r360] picture,
 header.top .rig-stage[data-r360] .rig-reflect,
 header.top .rig-stage[data-r360] .rig-floor { transition: opacity 0.5s ease; }
