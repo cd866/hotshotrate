@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v96';
+  var APP_VERSION = 'v97';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -7354,6 +7354,8 @@
     }).then(function () {
       finState.loading = false;
       if (state.tab === 'fin') renderFinance();
+      renderCallSheetDispatch();
+      try { document.dispatchEvent(new CustomEvent('blackram:financials')); } catch (err) { /* old browser */ }
     });
   }
 
@@ -7850,6 +7852,95 @@
 
   var CALLSHEET_NOTES_KEY = 'blackram_broker_load_notes_v1';
 
+  /* v97: dispatch phone and email are not in the public source. They arrive in the
+     PIN-gated /financials payload (data.dispatch), same session as Finance. */
+  function financePayload() {
+    if (finState.data) return finState.data;
+    try {
+      var raw = sessionStorage.getItem(FIN_SESSION_KEY);
+      if (!raw || finState.error === 'wrongpin') return null;
+      var d = JSON.parse(raw);
+      if (d && (d.dispatch || d.account)) { finState.data = d; return d; }
+    } catch (err) { /* ignore */ }
+    return null;
+  }
+
+  function dispatchContact() {
+    var d = financePayload();
+    var c = d && d.dispatch;
+    if (!c) return null;
+    var phone = String(c.phone || '').trim();
+    var email = String(c.email || '').trim();
+    if (!phone && !email) return null;
+    var tel = String(c.phone_tel || c.tel || '').trim();
+    if (!tel && phone) tel = '+1' + phone.replace(/\D/g, '');
+    return { phone: phone, email: email, tel: tel };
+  }
+
+  function dispatchPacketLines() {
+    var c = dispatchContact();
+    if (c) {
+      var out = [];
+      if (c.phone) out.push('Phone: ' + c.phone);
+      if (c.email) out.push('Email: ' + c.email);
+      return out;
+    }
+    return ['Phone: unlock with the app PIN', 'Email: unlock with the app PIN'];
+  }
+
+  function callSheetLockHtml(msg) {
+    return '<h3 class="callsheet-h">Dispatch</h3>' +
+      '<div class="callsheet-lock pin-lock" id="callsheet-dispatch-body">' +
+      PIN_LOCK_ICON +
+      '<p>' + esc(msg) + '</p>' +
+      '<form id="callsheet-pin-form" class="fin-pin-row" autocomplete="off">' +
+      '<input id="callsheet-pin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="App PIN" aria-label="App PIN" />' +
+      '<button type="submit" class="btn primary">Unlock</button></form>' +
+      '<p class="pin-lock-note">One PIN unlocks Finance, Accounting, Daily PDFs, receipts and dispatch contact on this phone.</p></div>';
+  }
+
+  function renderCallSheetDispatch() {
+    var box = $('callsheet-dispatch');
+    if (!box) return;
+    var c = dispatchContact();
+    if (c) {
+      var rows = '';
+      if (c.phone) {
+        rows += '<div class="callsheet-row" data-copy="' + esc(c.phone) + '"><span class="callsheet-k">Phone</span><span class="callsheet-v"><a href="tel:' + esc(c.tel || c.phone) + '">' + esc(c.phone) + '</a></span><button type="button" class="copy-btn">Copy</button></div>';
+      }
+      if (c.email) {
+        rows += '<div class="callsheet-row callsheet-wide" data-copy="' + esc(c.email) + '"><span class="callsheet-k">Email</span><span class="callsheet-v"><a href="mailto:' + esc(c.email) + '">' + esc(c.email) + '</a></span><button type="button" class="copy-btn">Copy</button></div>';
+      }
+      box.innerHTML = '<h3 class="callsheet-h">Dispatch</h3><div class="callsheet-grid">' + rows + '</div>';
+      return;
+    }
+    var msg = 'The dispatch phone and email stay behind the app PIN, same as Finance.';
+    if (finState.error === 'wrongpin') msg = 'Wrong PIN. Try again.';
+    else if (finState.loading && getRelayPin()) msg = 'Loading dispatch contact...';
+    else if (finState.error && finState.error !== 'nopin') msg = finState.error;
+    var payload = financePayload();
+    if (payload && !payload.dispatch && !finState.loading) {
+      box.innerHTML = callSheetLockHtml('Dispatch contact is not on file.');
+      return;
+    }
+    if (getRelayPin() && !payload && !finState.loading && !finState.error) {
+      box.innerHTML = callSheetLockHtml('Loading dispatch contact...');
+      fetchFinance(true);
+      return;
+    }
+    if (finState.loading) msg = 'Loading dispatch contact...';
+    box.innerHTML = callSheetLockHtml(msg);
+    var form = $('callsheet-pin-form');
+    if (form) form.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var v = (($('callsheet-pin') && $('callsheet-pin').value) || '').trim();
+      if (!v) return;
+      setRelayPin(v);
+      finState.error = '';
+      fetchFinance(true);
+    });
+  }
+
   function callSheetPacket() {
     var notes = '';
     var ta = $('callsheet-notes');
@@ -7879,13 +7970,14 @@
       'Home base: Jacksonville, FL area',
       'Avoids drops at 45 F or colder overnight',
       '',
-      'DISPATCH',
-      'Phone: 774-287-3574',
-      'Email: claudio@royalequitypropertysolutions.com',
+      'DISPATCH'
+    ];
+    dispatchPacketLines().forEach(function (line) { lines.push(line); });
+    lines.push(
       '',
       'FACTORING: ask Claudio',
       'INVOICE / PAPERWORK EMAIL: ask Claudio'
-    ];
+    );
     if (notes) {
       lines.push('', 'LOAD NOTES', notes);
     }
@@ -7946,6 +8038,7 @@
         if (saved) ta.value = saved;
       } catch (err) { /* ignore */ }
     }
+    renderCallSheetDispatch();
   }
 
   function closeCallSheet() {
@@ -7990,6 +8083,8 @@
         if (text) copyText(text, status);
       }
     });
+    document.addEventListener('blackram:financials', renderCallSheetDispatch);
+    renderCallSheetDispatch();
   }
 
   function openAbout() {

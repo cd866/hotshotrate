@@ -18,7 +18,7 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=3" sizes="180x180" />
   <link rel="preload" href="fonts/nunito-sans-variable.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="fonts/oswald-700.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="styles.css?v=96" />
+  <link rel="stylesheet" href="styles.css?v=97" />
   <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
   <script>
     try {
@@ -582,10 +582,12 @@
         <div class="callsheet-row callsheet-wide" data-copy="We do not take drops at 45 F or colder overnight"><span class="callsheet-k">Weather</span><span class="callsheet-v">Avoids drops at 45 F or colder overnight.</span><button type="button" class="copy-btn">Copy</button></div>
       </div>
 
-      <h3 class="callsheet-h">Dispatch</h3>
-      <div class="callsheet-grid">
-        <div class="callsheet-row" data-copy="774-287-3574"><span class="callsheet-k">Phone</span><span class="callsheet-v"><a href="tel:+17742873574">774-287-3574</a></span><button type="button" class="copy-btn">Copy</button></div>
-        <div class="callsheet-row callsheet-wide" data-copy="claudio@royalequitypropertysolutions.com"><span class="callsheet-k">Email</span><span class="callsheet-v"><a href="mailto:claudio@royalequitypropertysolutions.com">claudio@royalequitypropertysolutions.com</a></span><button type="button" class="copy-btn">Copy</button></div>
+      <div id="callsheet-dispatch">
+        <h3 class="callsheet-h">Dispatch</h3>
+        <div class="callsheet-lock pin-lock" id="callsheet-dispatch-body">
+          <div class="pin-lock-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></g></svg></div>
+          <p>The dispatch phone and email stay behind the app PIN, same as Finance.</p>
+        </div>
       </div>
 
       <h3 class="callsheet-h">Ask the broker</h3>
@@ -677,23 +679,23 @@
   </div>
   <noscript><p class="noscript">Black Ram Logistics needs JavaScript for Rate Check, stops, and reports.</p></noscript>
   <script src="vendor/leaflet/leaflet.js"></script>
-  <script src="tiles.js?v=96"></script>
-  <script src="maps.js?v=96"></script>
-  <script src="tripplan.js?v=96"></script>
-  <script src="app.js?v=96"></script>
-  <script src="stops.js?v=96"></script>
-  <script src="targets.js?v=96"></script>
-  <script src="loadcosts.js?v=96"></script>
-  <script src="reports.js?v=96"></script>
-  <script src="scoreboard.js?v=96"></script>
-  <script src="accounting.js?v=96"></script>
-  <script src="insurance.js?v=96"></script>
-  <script src="maintenance.js?v=96"></script>
-  <script src="dotready.js?v=96"></script>
-  <script src="rig360.js?v=96"></script>
-  <script src="driver360.js?v=96"></script>
-  <script src="today.js?v=96"></script>
-  <script src="search.js?v=96"></script>
+  <script src="tiles.js?v=97"></script>
+  <script src="maps.js?v=97"></script>
+  <script src="tripplan.js?v=97"></script>
+  <script src="app.js?v=97"></script>
+  <script src="stops.js?v=97"></script>
+  <script src="targets.js?v=97"></script>
+  <script src="loadcosts.js?v=97"></script>
+  <script src="reports.js?v=97"></script>
+  <script src="scoreboard.js?v=97"></script>
+  <script src="accounting.js?v=97"></script>
+  <script src="insurance.js?v=97"></script>
+  <script src="maintenance.js?v=97"></script>
+  <script src="dotready.js?v=97"></script>
+  <script src="rig360.js?v=97"></script>
+  <script src="driver360.js?v=97"></script>
+  <script src="today.js?v=97"></script>
+  <script src="search.js?v=97"></script>
   <script>
     (function () {
       if (!('serviceWorker' in navigator)) return;

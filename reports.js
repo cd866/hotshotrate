@@ -121,7 +121,7 @@
         (st.error === 'wrongpin' ? 'Wrong PIN. Try again.' : 'The nightly reports include partner capital, loans and bank figures. Enter the app PIN to see them.') + '</p>' +
         '<form class="dr-pin" id="dr-pin-form" autocomplete="off"><input id="dr-pin" type="password" inputmode="numeric" placeholder="App PIN" aria-label="App PIN" />' +
         '<button type="submit" class="dr-btn pri" style="flex:0 0 96px">Unlock</button></form>' +
-        '<p class="pin-lock-note">One PIN unlocks Finance, Accounting, Daily PDFs and receipts on this phone.</p></section>';
+        '<p class="pin-lock-note">One PIN unlocks Finance, Accounting, Daily PDFs, receipts and dispatch contact on this phone.</p></section>';
       var f = $('dr-pin-form');
       if (f) f.addEventListener('submit', function (ev) {
         ev.preventDefault();

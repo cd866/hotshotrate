@@ -5546,3 +5546,9 @@ header.top .rig-stage[data-r360] .rig-floor { transition: opacity 0.5s ease; }
   .hdr-wx { padding: 0 2px; gap: 5px; }
   .appbar-icon { flex-basis: 40px; width: 40px; height: 40px; }
 }
+
+/* v97: dispatch contact lock inside the broker call sheet */
+.callsheet-lock { margin: 0 0 var(--s-2); padding: var(--s-2) !important; border: 1px solid var(--c-line); border-radius: var(--radius-lg); background: var(--c-surface-1); }
+.callsheet-lock .pin-lock-ico { width: 44px; height: 44px; }
+.callsheet-lock .pin-lock-ico svg { width: 22px; height: 22px; }
+.callsheet-lock p { max-width: none; }
