@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v125';
+  var APP_VERSION = 'v126';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -3579,6 +3579,273 @@
       money3(fuel.fuel_per_mi) + '/mi</p>';
   }
 
+
+  function comboRateSum(combo) {
+    var loads = (combo && combo.loads) || [];
+    var sum = 0;
+    var ok = loads.length > 0;
+    loads.forEach(function (leg) {
+      if (leg.posted_rate == null || !isFinite(Number(leg.posted_rate))) ok = false;
+      else sum += Number(leg.posted_rate);
+    });
+    if (ok) return sum;
+    if (combo && combo.posted_rate != null && isFinite(Number(combo.posted_rate))) return Number(combo.posted_rate);
+    return null;
+  }
+
+  function waterfallModel(row) {
+    if (!row) return null;
+    var isCombo = !!(row.loads && row.loads.length);
+    var rate = isCombo ? comboRateSum(row) : (row.posted_rate != null ? Number(row.posted_rate) : null);
+    if (rate == null || !isFinite(rate)) return null;
+    var fuelRow = isCombo && row.loads[0] ? row.loads[0] : row;
+    var fuel = currentFuel(fuelRow);
+    var loaded = isCombo ? (Number(row.loaded_mi) || 0) : rowLoadedMiles(row);
+    var dead = isCombo ? (Number(row.deadhead_mi) || 0) : rowEmptyMiles(row);
+    var total = loaded + dead;
+    var after;
+    var fee;
+    if (isCombo && row.after_fee != null && isFinite(Number(row.after_fee))) {
+      after = roundMoney(Number(row.after_fee));
+      fee = roundMoney(rate - after);
+    } else {
+      after = roundMoney(Number(rate) * 0.87);
+      fee = roundMoney(rate - after);
+    }
+    var fallback = !fuel || !!fuel.fallback;
+    var net = (row.net_est != null && isFinite(Number(row.net_est))) ? Number(row.net_est) : null;
+    var steps = [];
+    steps.push({ key: 'rate', label: 'Rate', amt: rate, kind: 'start', cls: 'ld-wf-rate' });
+    steps.push({ key: 'totni', label: 'Totni 13%', amt: -fee, kind: 'drop', cls: 'ld-wf-totni' });
+    var dieselCost = 0;
+    var defCost = 0;
+    if (!fallback) {
+      var costTotal = net != null ? roundMoney(after - net) : roundMoney((Number(fuel.fuel_per_mi) || 0) * total);
+      defCost = roundMoney((Number(fuel.def_per_mi) || 0) * total);
+      dieselCost = roundMoney(costTotal - defCost);
+      if (dieselCost < 0) { defCost = costTotal; dieselCost = 0; }
+      var miTxt = total > 0 ? (plainNum(total, 0) + ' mi loaded+empty') : 'loaded+empty';
+      steps.push({ key: 'fuel', label: 'Fuel', sub: miTxt, amt: -dieselCost, kind: 'drop', cls: 'ld-wf-fuel' });
+      steps.push({ key: 'def', label: 'DEF', amt: -defCost, kind: 'drop', cls: 'ld-wf-def' });
+    } else {
+      var loadedCost = roundMoney(FALLBACK_LOADED * loaded);
+      var emptyCost = roundMoney(FALLBACK_DEADHEAD * dead);
+      if (net != null) {
+        var residual = roundMoney(after - net);
+        if (Math.abs(residual - roundMoney(loadedCost + emptyCost)) >= 0.01) {
+          emptyCost = roundMoney(residual - loadedCost);
+        }
+      }
+      steps.push({ key: 'fuel', label: 'Fuel', sub: 'fallback loaded', amt: -loadedCost, kind: 'drop', cls: 'ld-wf-fuel' });
+      steps.push({ key: 'empty', label: 'Empty miles', sub: 'fallback', amt: -emptyCost, kind: 'drop', cls: 'ld-wf-def' });
+    }
+    if (net == null) {
+      net = after;
+      steps.slice(2).forEach(function (s) { net = roundMoney(net + s.amt); });
+    }
+    steps.push({ key: 'net', label: 'Net EST', amt: net, kind: 'end', cls: 'ld-wf-net' });
+    return {
+      rate: rate, after: after, fee: fee, net: net,
+      loaded: loaded, dead: dead, total: total,
+      fuel: fuel, fallback: fallback,
+      dieselCost: dieselCost, defCost: defCost,
+      steps: steps, isCombo: isCombo
+    };
+  }
+
+  function waterfallSvg(model) {
+    if (!model || !model.steps || !model.steps.length) return '';
+    var steps = model.steps;
+    var W = 320;
+    var plotL = 2;
+    var plotR = 318;
+    var plotW = plotR - plotL;
+    var rowH = 44;
+    var barH = 13;
+    var topPad = 2;
+    var H = topPad + steps.length * rowH + 4;
+    var lo = 0;
+    var hi = Math.max(model.rate, model.after, model.net, 1);
+    steps.forEach(function (s) {
+      if (s.kind === 'end' || s.kind === 'start') {
+        lo = Math.min(lo, s.amt);
+        hi = Math.max(hi, s.amt);
+      }
+    });
+    if (hi <= lo) hi = lo + 1;
+    function xOf(v) { return plotL + ((v - lo) / (hi - lo)) * plotW; }
+    var parts = [];
+    var run = 0;
+    var prevX = null;
+    var prevY = null;
+    var aria = steps.map(function (s) {
+      return s.label + ' ' + money2(s.amt);
+    }).join(', ');
+    steps.forEach(function (s, i) {
+      var y = topPad + i * rowH;
+      var barY = y + 24;
+      var x0, x1, midBefore, midAfter;
+      if (s.kind === 'start') {
+        midBefore = 0;
+        midAfter = s.amt;
+        x0 = xOf(Math.min(0, s.amt));
+        x1 = xOf(Math.max(0, s.amt));
+        run = s.amt;
+      } else if (s.kind === 'end') {
+        midBefore = run;
+        midAfter = s.amt;
+        x0 = xOf(Math.min(0, s.amt));
+        x1 = xOf(Math.max(0, s.amt));
+        run = s.amt;
+      } else {
+        midBefore = run;
+        midAfter = roundMoney(run + s.amt);
+        var a = Math.min(midBefore, midAfter);
+        var b = Math.max(midBefore, midAfter);
+        x0 = xOf(a);
+        x1 = xOf(b);
+        if (x1 - x0 < 2 && Math.abs(s.amt) >= 0.005) x0 = x1 - 2;
+        run = midAfter;
+      }
+      var bw = Math.max(0, x1 - x0);
+      var valCls = 'ld-wf-val';
+      if (s.kind === 'drop') valCls += ' ld-wf-val-drop';
+      if (s.kind === 'end') valCls += ' ld-wf-val-net';
+      var label = esc(s.label) + (s.sub ? '<tspan class="ld-wf-sub">  ' + esc(s.sub) + '</tspan>' : '');
+      parts.push(
+        '<text class="ld-wf-label" x="' + plotL + '" y="' + (y + 13) + '">' + label + '</text>' +
+        '<text class="' + valCls + '" x="' + plotR + '" y="' + (y + 13) + '" text-anchor="end">' + esc(money2(s.amt)) + '</text>'
+      );
+      if (prevX != null) {
+        var cx = xOf(midBefore);
+        parts.push('<line class="ld-wf-link" x1="' + cx.toFixed(2) + '" y1="' + prevY + '" x2="' + cx.toFixed(2) + '" y2="' + barY + '" />');
+      }
+      parts.push(
+        '<rect class="ld-wf-track" x="' + plotL + '" y="' + barY + '" width="' + plotW + '" height="' + barH + '" rx="3" />' +
+        '<rect class="ld-wf-bar ' + s.cls + '" x="' + x0.toFixed(2) + '" y="' + barY + '" width="' + bw.toFixed(2) + '" height="' + barH + '" rx="3" />'
+      );
+      prevX = xOf(midAfter);
+      prevY = barY + barH;
+    });
+    return '<div class="ld-waterfall">' +
+      '<div class="ld-kicker">Cost waterfall</div>' +
+      '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" role="img" aria-label="' + esc('Cost waterfall: ' + aria) + '">' +
+      parts.join('') + '</svg></div>';
+  }
+
+  function loadInfoChipsHtml(row) {
+    if (!row) return '';
+    var chips = [];
+    function add(cls, text) {
+      if (!text) return;
+      chips.push('<span class="ld-chip' + (cls ? ' ' + cls : '') + '">' + esc(String(text)) + '</span>');
+    }
+    add('ld-chip-board', row.board);
+    if (row.equipment) add('ld-chip-eq', row.equipment);
+    if (row.pickup_window) add('ld-chip-pu', 'Pickup ' + row.pickup_window);
+    if (row.drop_window) add('ld-chip-dr', 'Drop ' + row.drop_window);
+    var broker = row.broker || (row.board === 'Direct Freight' ? 'Broker not listed on the free list' :
+      (row.board === 'uShip' ? 'Shipper on uShip (quote or book on uShip)' : ''));
+    if (broker) add('ld-chip-broker', broker);
+    if (row.broker_mc) add('ld-chip-mc', 'MC ' + row.broker_mc);
+    if (row.broker_dot) add('ld-chip-dot', 'DOT ' + row.broker_dot);
+    if (row.load_number) add('', (row.board === 'uShip' ? 'Listing # ' : 'Load # ') + row.load_number);
+    if (row.board === 'uShip') {
+      var dims = [row.length_ft, row.width_ft, row.height_ft].map(function (v) { return v != null ? plainNum(v, 1) : '?'; });
+      if (row.length_ft != null || row.width_ft != null || row.height_ft != null) add('', 'L x W x H ' + dims.join(' x ') + ' ft');
+      if (row.item_count != null && Number(row.item_count) > 1) add('', plainNum(row.item_count, 0) + ' items');
+      if (row.expires) add('', 'Ends ' + row.expires);
+      if (row.deadhead_est) add('', 'Empty miles estimated (straight line x 1.2)');
+    }
+    if (row.notes) add('ld-chip-notes', row.notes);
+    return chips.length ? '<div class="ld-chips">' + chips.join('') + '</div>' : '';
+  }
+
+  function loadStatTilesHtml(row, nLoads, model) {
+    var fuel = (model && model.fuel) || currentFuel(row);
+    var loaded = model ? model.loaded : rowLoadedMiles(row);
+    var dead = model ? model.dead : rowEmptyMiles(row);
+    var days = rowDays(row, nLoads);
+    var npd = rowNetPerDay(row, nLoads);
+    var npm = netPerMileValue(row);
+    function tile(label, val, cap) {
+      return '<div class="ld-tile"><span>' + esc(label) + '</span><b>' + val + '</b>' +
+        (cap ? '<small>' + esc(cap) + '</small>' : '') + '</div>';
+    }
+    var dieselVal = 'n/a';
+    var dieselCap = '';
+    if (fuel && !fuel.fallback && fuel.diesel_usd_gal != null) {
+      dieselVal = esc(money2(fuel.diesel_usd_gal) + '/gal');
+      dieselCap = fuel.diesel_region ? 'EIA ' + fuel.diesel_region : 'EIA';
+    } else {
+      dieselCap = 'fallback';
+    }
+    return '<div class="ld-tiles" role="group" aria-label="Load stats">' +
+      tile('Loaded mi', loaded != null ? esc(plainNum(loaded, 0)) : 'n/a') +
+      tile('Deadhead mi', dead != null ? esc(plainNum(dead, 0)) : 'n/a') +
+      tile('Days', days != null ? esc(formatDays(days)) : 'n/a') +
+      tile('Net/day', npd != null ? esc(searchMoney(npd)) : 'n/a') +
+      tile('Net/mi', npm != null ? esc(moneyPerMile(npm)) : 'n/a') +
+      tile('Diesel', dieselVal, dieselCap) +
+      '</div>';
+  }
+
+  function showMathHtml(fuel, math) {
+    if (!math && !fuel) return '';
+    return '<details class="ld-math">' +
+      '<summary>Show math</summary>' +
+      '<div class="ld-math-body">' +
+        fuelLine(fuel) +
+        (math ? '<p class="search-math">' + esc(math) + '</p>' : '') +
+      '</div></details>';
+  }
+
+  function comboLegGraphicsHtml(combo) {
+    var loads = combo.loads || [];
+    if (loads.length < 2) return '';
+    var rows = loads.map(function (leg, i) {
+      var rate = leg.posted_rate != null ? money2(leg.posted_rate) : 'n/a';
+      var mi = rowLoadedMiles(leg);
+      var lane = (leg.origin || 'Origin') + ' to ' + (leg.destination || 'Destination');
+      return '<div class="ld-leg">' +
+        '<span class="ld-leg-ltr" style="--lc:' + legColor(i) + '">' + esc(legLetter(i)) + '</span>' +
+        '<span class="ld-leg-lane">' + esc(lane) + '</span>' +
+        '<b class="ld-leg-rate">' + esc(rate) + '</b>' +
+        (mi ? '<span class="ld-leg-mi">' + esc(plainNum(mi, 0)) + ' mi</span>' : '') +
+        '</div>';
+    }).join('');
+    return '<div class="ld-legs"><div class="ld-kicker">Per leg</div>' + rows + '</div>';
+  }
+
+  function comboChipsHtml(combo) {
+    var loads = combo.loads || [];
+    if (!loads.length) return '';
+    return loads.map(function (leg, i) {
+      var chips = loadInfoChipsHtml(leg);
+      if (!chips) return '';
+      var head = loads.length > 1 ? '<div class="ld-kicker">Leg ' + esc(legLetter(i)) + '</div>' : '';
+      return '<div class="ld-chip-leg">' + head + chips + '</div>';
+    }).join('');
+  }
+
+  function loadGraphicsHtml(row, opts) {
+    opts = opts || {};
+    var model = waterfallModel(row);
+    var fuel = model ? model.fuel : currentFuel((opts.combo && row.loads && row.loads[0]) ? row.loads[0] : row);
+    var html = '';
+    if (model) html += waterfallSvg(model);
+    html += loadStatTilesHtml(row, opts.nLoads, model);
+    if (opts.combo) {
+      html += comboLegGraphicsHtml(row);
+      html += comboChipsHtml(row);
+    } else {
+      html += loadInfoChipsHtml(row);
+    }
+    html += showMathHtml(fuel, row.math);
+    if (opts.timing) html += '<p class="search-meta">Timing: ' + esc(opts.timing) + '</p>';
+    return html;
+  }
+
   function loadDieselPrices() {
     return fetchTimed('data/diesel_prices.json?t=' + Date.now(), { cache: 'no-cache' }, 10000).then(function (res) {
       if (!res.ok) throw new Error('diesel');
@@ -6477,9 +6744,7 @@
       '<button type="button" class="cmp-btn" data-cmp-key="' + esc(key) + '" aria-pressed="' + (cmp ? 'true' : 'false') + '">' + (cmp ? 'Comparing' : '+ Compare') + '</button>';
 
     var detailsHtml = '<div class="search-details" hidden>' +
-      fuelLine(currentFuel(row)) +
-      (row.math ? '<p class="search-math">' + esc(row.math) + '</p>' : '') +
-      '<p class="search-meta">' + esc(bits.filter(Boolean).join(' | ')) + '</p>' +
+      loadGraphicsHtml(row) +
       routeBlock(routePayload(row), loadMapsUrl(row), (origin + ' to ' + dest + ' route map')) +
       '</div>';
 
@@ -6760,9 +7025,7 @@
     var detailsHtml = '<div class="search-details" hidden>' +
       netBlock(combo.net_est, perHourValue(combo, nLegs), netPerMileValue(combo), '', combo, nLegs) +
       milesStrip(combo.loaded_mi, combo.deadhead_mi, { emptyFrom: searchOriginLabel() + ', all legs' }) +
-      fuelLine(currentFuel(combo.loads && combo.loads[0] ? combo.loads[0] : combo)) +
-      (combo.math ? '<p class="search-math">' + esc(combo.math) + '</p>' : '') +
-      (combo.timing_note ? '<p class="search-meta">Timing: ' + esc(combo.timing_note) + '</p>' : '') +
+      loadGraphicsHtml(combo, { nLoads: nLegs, combo: true, timing: combo.timing_note }) +
       routeBlock(routePayload(combo), comboMapsUrl(combo), kind + ' route map', combo) +
       ((combo.flags && combo.flags.length) ? '<p class="search-flags">' + esc(combo.flags.join(' ')) + '</p>' : '') +
       '</div>';

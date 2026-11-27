@@ -6060,3 +6060,202 @@ body .search-actions .trip-plan-btn::after {
 /* v119: the one truck location line on Load Boards */
 .truck-loc-line{margin:0 0 var(--s-2,8px);font-size:var(--fs-sm,13px);font-weight:700;color:var(--c-text-2)}
 .truck-loc-line strong{color:var(--c-gold,#F2C94C);font-weight:900}
+
+/* v122: Load Boards expanded details — cost waterfall, stat tiles, info chips, Show math caret */
+.ld-waterfall {
+  margin: 0 0 12px;
+  max-width: 100%;
+  overflow: hidden;
+}
+.ld-waterfall svg { display: block; width: 100%; height: auto; overflow: visible; }
+.ld-kicker {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--c-text-3, var(--muted));
+}
+.ld-wf-track { fill: rgba(255, 255, 255, 0.05); }
+.ld-wf-bar.ld-wf-rate { fill: var(--c-gold, #F2C94C); }
+.ld-wf-bar.ld-wf-totni { fill: #F87171; }
+.ld-wf-bar.ld-wf-fuel { fill: #FB923C; }
+.ld-wf-bar.ld-wf-def { fill: #E879F9; }
+.ld-wf-bar.ld-wf-net { fill: #34D399; }
+.ld-wf-link { stroke: var(--c-accent-hi, #c4b5fd); stroke-width: 1; stroke-dasharray: 2 2; }
+.ld-wf-label, .ld-wf-val, .ld-wf-sub {
+  font-family: "Nunito Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 11px;
+}
+.ld-wf-label { fill: var(--c-text-3, #a9a2c2); font-weight: 700; }
+.ld-wf-sub { fill: var(--muted, #b9b3cc); font-weight: 600; font-size: 9px; }
+.ld-wf-val { fill: var(--ink, #f2f0f7); font-weight: 800; }
+.ld-wf-val-drop { fill: #FCA5A5; }
+.ld-wf-val-net { fill: #6EE7B7; font-weight: 900; font-size: 12px; }
+
+.ld-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 12px;
+  max-width: 100%;
+}
+.ld-tile {
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--c-line, var(--line));
+  border-radius: var(--radius-md, 12px);
+  padding: 8px 8px 7px;
+}
+.ld-tile span {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--c-text-3, var(--muted));
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ld-tile b {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--fs-md, 15px);
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.ld-tile small {
+  display: block;
+  margin-top: 2px;
+  font-size: 10px;
+  color: var(--c-text-3, var(--muted));
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.ld-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 12px;
+  max-width: 100%;
+}
+.ld-chip {
+  display: inline-block;
+  box-sizing: border-box;
+  max-width: 100%;
+  padding: 5px 10px;
+  border-radius: var(--radius-pill, 999px);
+  border: 1px solid var(--line);
+  background: rgba(167, 139, 250, 0.10);
+  color: var(--c-accent-hi, var(--purple-hi));
+  font-size: var(--fs-xs, 12px);
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.ld-chip-board { background: rgba(167, 139, 250, 0.20); color: #fff; }
+.ld-chip-pu, .ld-chip-dr { color: var(--c-gold, #F2C94C); border-color: rgba(242, 201, 76, 0.35); }
+.ld-chip-broker { color: var(--ink); }
+.ld-chip-leg { margin: 0 0 8px; min-width: 0; }
+.ld-chip-leg .ld-chips { margin-bottom: 0; }
+
+.ld-legs { margin: 0 0 12px; min-width: 0; }
+.ld-leg {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  column-gap: 8px;
+  row-gap: 2px;
+  align-items: baseline;
+  margin: 0 0 8px;
+  min-width: 0;
+}
+.ld-leg-ltr {
+  grid-row: 1 / span 2;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--lc, var(--c-accent, #a78bfa));
+  color: #0f0d17;
+  font-size: 11px;
+  font-weight: 900;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+}
+.ld-leg-lane {
+  grid-column: 2;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.ld-leg-rate {
+  grid-column: 3;
+  grid-row: 1;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--c-gold, #F2C94C);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.ld-leg-mi {
+  grid-column: 2 / span 2;
+  font-size: 11px;
+  color: var(--c-text-3, var(--muted));
+}
+
+.ld-math { margin: 0 0 12px; }
+.ld-math > summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  color: var(--c-text-3, var(--muted));
+  font-size: var(--fs-xs, 12px);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  min-height: 40px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.ld-math > summary::-webkit-details-marker,
+.ld-math > summary::marker { display: none; content: none; }
+.ld-math > summary::after {
+  content: "";
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  background-color: currentColor;
+  -webkit-mask: var(--caret-svg) center / contain no-repeat;
+  mask: var(--caret-svg) center / contain no-repeat;
+  transition: transform 0.25s ease;
+}
+.ld-math[open] > summary::after { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) {
+  .ld-math > summary::after { transition: none; }
+}
+.ld-math-body { min-width: 0; }
+.ld-math .search-fuel,
+.ld-math .search-math {
+  margin: 4px 0 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.search-details .ld-waterfall,
+.search-details .ld-tiles,
+.search-details .ld-chips,
+.search-details .ld-legs,
+.search-details .ld-math {
+  max-width: 100%;
+}
