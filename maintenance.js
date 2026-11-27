@@ -760,7 +760,7 @@
       '.mt-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s-1)}' +
       '.mt-tile{background:var(--c-surface-1);border:1px solid var(--c-line);border-radius:var(--radius-md);padding:var(--s-1h) var(--s-1);display:flex;flex-direction:column;gap:2px;min-width:0}' +
       '.mt-tile span{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--c-text-3)}' +
-      '.mt-tile b{font-size:var(--fs-lg);font-weight:900;color:var(--c-take);line-height:1.15;overflow-wrap:anywhere}' +
+      '.mt-tile b{font-size:var(--fs-lg);font-weight:900;color:var(--num-yellow,var(--c-gold,#F2C94C));line-height:1.15;overflow-wrap:anywhere}' +
       '.mt-tile small{font-size:11px;color:var(--c-text-3);line-height:1.25}' +
       '.mt-t-warn b{color:var(--c-maybe)}.mt-t-warn{border-color:var(--c-maybe)}.mt-t-bad b{color:#FCA5A5}.mt-t-bad{border-color:#F87171}' +
       '.mt-next{margin:0;font-size:var(--fs-sm);color:var(--c-text-2)}.mt-next b{color:var(--c-text-1)}' +
@@ -770,7 +770,7 @@
       '.mt-h{display:flex;align-items:baseline;justify-content:space-between;gap:var(--s-1);flex-wrap:wrap}' +
       '.mt-h h3{margin:0;font-size:var(--fs-lg);font-weight:var(--fw-black);color:var(--c-text-1)}.mt-h span{font-size:var(--fs-xs);font-weight:700;color:var(--c-text-3)}' +
       '.mt-fine{margin:0;font-size:var(--fs-xs);color:var(--c-text-3);line-height:1.4}' +
-      '.mt-big{font-size:var(--fs-3xl);font-weight:var(--fw-black);color:var(--c-gold);line-height:1.1}.mt-big span{display:block;font-size:var(--fs-sm);font-weight:700;color:var(--c-text-3);margin-top:4px;line-height:1.35}' +
+      '.mt-big{font-size:var(--fs-3xl);font-weight:var(--fw-black);color:var(--num-yellow,var(--c-gold));line-height:1.1}.mt-big span{display:block;font-size:var(--fs-sm);font-weight:700;color:var(--c-text-3);margin-top:4px;line-height:1.35}' +
       '.mt-pill{flex:none;font-size:11px;font-weight:800;padding:2px 9px;border-radius:var(--radius-pill);white-space:nowrap}' +
       '.mt-pill-ok{background:var(--c-take-bg);color:var(--c-take)}.mt-pill-warn{background:var(--c-maybe-bg);color:var(--c-maybe)}.mt-pill-bad{background:rgba(248,113,113,.14);color:#FCA5A5}.mt-pill-need{background:var(--c-surface-3);color:var(--c-text-2);border:1px dashed var(--c-line-strong)}' +
       '.mt-segs{display:flex;gap:6px}.mt-segs-wrap{flex-wrap:wrap}' +

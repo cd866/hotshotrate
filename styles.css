@@ -38,6 +38,7 @@
   --gold: #F2C94C;
   --gold-hi: #F5D76A;
   --gold-ink: #0f0d17;
+  --num-yellow: var(--gold);
   --cream: #f2f0f7;
   --pass: #9F1239;
   --purple: #a78bfa;
@@ -1494,7 +1495,7 @@ article.load .pay.paid {
 }
 
 .big { color: var(--ink); }
-.big .n { color: var(--header); font-weight: 700; }
+.big .n { color: var(--num-yellow); font-weight: 700; }
 .big .kicker { font-size: 13px; color: var(--muted); }
 .big .sub { font-size: 14px; color: var(--muted); line-height: 1.45; }
 
@@ -1504,7 +1505,7 @@ article.load .pay.paid {
   color: var(--ink);
 }
 .stats .n, .metric .n, .search-count .n {
-  color: var(--header);
+  color: var(--num-yellow);
   font-weight: 700;
 }
 .stats .l, .metric .l, .search-count .l, .kv span {
@@ -2885,7 +2886,7 @@ article.load {
   letter-spacing: 0.01em;
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1, "lnum" 1;
-  color: var(--cream);
+  color: var(--num-yellow);
   overflow-wrap: anywhere;
 }
 .km-tile.km-primary .km-val {
@@ -3484,7 +3485,7 @@ article.load {
   font-family: var(--display);
   font-weight: 600;
   font-size: 18px;
-  color: var(--cream);
+  color: var(--num-yellow);
   font-variant-numeric: tabular-nums;
 }
 
@@ -3885,7 +3886,7 @@ article.load {
 #fin-root { display: flex; flex-direction: column; gap: 12px; font-family: var(--body); }
 .fin-card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 14px 14px 12px; }
 .fin-kicker { font-size: 12px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--purple-hi); }
-.fin-big { font-size: 40px; font-weight: 800; line-height: 1.1; margin: 4px 0 2px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.fin-big { font-size: 40px; font-weight: 800; line-height: 1.1; margin: 4px 0 2px; color: var(--num-yellow); font-variant-numeric: tabular-nums; }
 .fin-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
 .fin-balance { background: linear-gradient(135deg, #2a1f4a 0%, #1a1726 70%); border-color: #4c3d80; }
 .fin-mini-row { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 10px; font-size: 13px; color: var(--muted); }
@@ -4439,6 +4440,7 @@ article.combo-card.cc.cc-flash { animation: ccFlash 2s ease-out 1; }
   --c-accent-hi: #c4b5fd;
   --c-gold: #F2C94C;
   --c-gold-ink: #17120a;
+  --num-yellow: var(--c-gold); /* #F2C94C ram-logo gold; headline figures */
   --c-take: #34D399; --c-take-bg: rgba(52, 211, 153, 0.13); --c-take-ink: #052e20;
   --c-maybe: #FBBF24; --c-maybe-bg: rgba(251, 191, 36, 0.13); --c-maybe-ink: #2d1f02;
   --c-pass: #8a84a3; --c-pass-bg: rgba(138, 132, 163, 0.12); --c-pass-ink: #f1eff7;
@@ -5033,7 +5035,7 @@ header.top.rc-top { padding: var(--s-1) var(--s-2) 0; margin: 0; }
 .rcv-net-l { font-size: var(--fs-xs); font-weight: var(--fw-bold); letter-spacing: 0.06em; text-transform: uppercase; color: var(--c-text-3); }
 .rcv-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-1); }
 .rcv-stat { padding: var(--s-1h) var(--s-1); border-radius: var(--radius-md); background: rgba(0, 0, 0, 0.28); border: 1px solid var(--c-line); text-align: left; min-width: 0; }
-.rcv-stat b { display: block; font-size: var(--fs-xl); line-height: 1.1; font-weight: var(--fw-black); color: var(--c-text-1); font-variant-numeric: tabular-nums; }
+.rcv-stat b { display: block; font-size: var(--fs-xl); line-height: 1.1; font-weight: var(--fw-black); color: var(--num-yellow); font-variant-numeric: tabular-nums; }
 .rcv-stat span { display: block; margin-top: 4px; font-size: 11px; font-weight: var(--fw-bold); letter-spacing: 0.03em; text-transform: uppercase; color: var(--c-text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rcv-meta { margin: var(--s-1h) 0 0; font-size: var(--fs-sm); line-height: 1.4; color: var(--c-text-2); }
 .rcv-meta:empty { display: none; }
@@ -5068,7 +5070,7 @@ header.top.rc-top { padding: var(--s-1) var(--s-2) 0; margin: 0; }
 .rc-why li.w-bad::before { background: #F87171; }
 .rc-fold .metrics { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-1); margin: 0; }
 .rc-fold .metric { padding: var(--s-1h); border-radius: var(--radius-md); background: rgba(0, 0, 0, 0.25); border: 1px solid var(--c-line); box-shadow: none; min-height: 0; }
-.rc-fold .metric .n { font-size: var(--fs-xl); font-weight: var(--fw-black); color: var(--c-text-1); }
+.rc-fold .metric .n { font-size: var(--fs-xl); font-weight: var(--fw-black); color: var(--num-yellow); }
 .rc-fold .metric .l { font-size: var(--fs-xs); }
 .rc-fold .metric .sub { font-size: 11px; line-height: 1.35; }
 
@@ -5482,3 +5484,55 @@ header.top .rig-stage[data-r360] .rig-floor { transition: opacity 0.5s ease; }
 .uship-price { display: inline-flex; align-items: center; min-height: 24px; padding: 2px 9px; border-radius: var(--radius-pill, 999px); font-size: var(--fs-xs, 12px); font-weight: var(--fw-bold, 700); letter-spacing: 0.02em; }
 .uship-price.book { background: rgba(250, 204, 21, 0.14); border: 1px solid rgba(250, 204, 21, 0.5); color: #FACC15; }
 .uship-price.bid { background: rgba(148, 163, 184, 0.12); border: 1px dashed rgba(148, 163, 184, 0.55); color: var(--muted); }
+
+/* v95: brand-gold headline figures on tiles, KPI cards, and stat cards.
+   --num-yellow is the ram-logo gold (#F2C94C). Use .num-yellow on new figures.
+   Semantic tones (good / warn / bad, pos / neg, verdict colors) stay as they are. */
+.num-yellow { color: var(--num-yellow); }
+.big .n,
+.stats .n,
+.metric .n,
+.search-count .n,
+.avg-cell b,
+.rcv-stat b,
+.rc-fold .metric .n,
+.fin-big,
+.km-val,
+.sb-v,
+.sb-hero .sb-big,
+.d3-t b,
+.d3-ts b,
+.dr-tile b,
+.mt-tile b,
+.in-tile b,
+.ac-big,
+.ac-coc-big,
+.mt-big,
+.in-big,
+.tl-hero b,
+.ac-pt-h strong {
+  color: var(--num-yellow);
+}
+.dr-dn { fill: var(--num-yellow); color: var(--num-yellow); }
+
+/* Semantic colors keep meaning and beat the gold default */
+.neg, .n.neg, .fin-big.neg, .sb-v.neg,
+.ac-coc-big.neg, .ac-coc-n.neg,
+.d3-t.d3-bad b, .dr-t-bad b,
+.tl-hero.tl-bad b, .tl-v.neg,
+.in-big-bad, .km-tile.low .km-val,
+.fin-call-bad b { color: #FCA5A5; }
+.pos, .n.pos, .fin-big.pos, .sb-v.pos,
+.ac-coc-big.pos, .ac-coc-n.pos,
+.d3-t.d3-good b, .tl-hero.tl-good b, .tl-v.pos,
+.in-big-ok, .mt-tile.ok b, .in-tile.ok b,
+.fin-call-good b { color: var(--c-take, #34D399); }
+.tl-hero.tl-warn b, .tl-v.warn, .in-big-warn { color: var(--c-maybe, #FBBF24); }
+.km-tile.good .km-val { color: #6EE7B7; }
+.km-tile.ok .km-val { color: #FCD34D; }
+.km-tile.low .km-val { color: #FCA5A5; }
+.rc-verdict.idle .rcv-stat b { color: var(--c-text-3); }
+.rc-verdict.take .rcv-net-n { color: var(--c-take); }
+.rc-verdict.maybe .rcv-net-n { color: var(--c-maybe); }
+.rc-verdict.pass .rcv-net-n { color: var(--c-text-2); }
+.dr-t-cdl b { color: var(--num-yellow); }
