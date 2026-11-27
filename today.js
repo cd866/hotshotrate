@@ -336,10 +336,10 @@
     if (ms.length && ms[ms.length - 1].as_of) asOf = 'Books thru ' + md(ms[ms.length - 1].as_of);
     var hdr = '<div class="td-hdr"><h1 class="td-h1">Today</h1><span>' + DOW[d.getDay()] + ', ' + MON[d.getMonth()] + ' ' + d.getDate() + (asOf ? ' | ' + esc(asOf) : '') + '</span></div>';
     if (!f) {
-      el.innerHTML = hdr + (A().skeleton ? A().skeleton('Loading today') : '<p class="td-fine">Loading...</p>') + secQuick();
+      el.innerHTML = hdr + secQuick() + (A().skeleton ? A().skeleton('Loading today') : '<p class="td-fine">Loading...</p>');
       return;
     }
-    el.innerHTML = hdr + secNow(f) + secActions() + secAlerts(f) + secMoney(f) + secReady() + secBoards() + secQuick() +
+    el.innerHTML = hdr + secQuick() + secNow(f) + secActions() + secAlerts(f) + secMoney(f) + secReady() + secBoards() +
       '<p class="td-fine td-foot">Net kept = gross - carrier fee - fuel - other costs (ledger), before truck, trailer and insurance bills. Bills line = Targets monthly bills. Same numbers as Scoreboard. Tap any card for the detail.</p>';
   }
   function soon() { if (st.timer) return; st.timer = setTimeout(function () { st.timer = null; if (onToday()) render(); }, 60); }
