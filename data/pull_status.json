@@ -1,14 +1,14 @@
 {
-  "state": "live",
-  "pct": 100,
+  "state": "queued",
+  "pct": 5,
   "origin": "Jacksonville, FL",
-  "started_at": "2026-11-27 01:05 CT",
-  "updated_at": "2026-11-27 01:11 CT",
+  "started_at": "2026-11-27 03:42 CT",
+  "updated_at": "2026-11-27 03:42 CT",
   "counts": {
-    "truckstop": 21,
-    "df": 20,
+    "truckstop": 0,
+    "df": 0,
     "uship": 0,
-    "fits": 1
+    "fits": 0
   },
-  "message": "Loads are live"
+  "message": "Search queued"
 }
