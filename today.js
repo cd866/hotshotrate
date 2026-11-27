@@ -161,6 +161,9 @@
         if (h > 8) out.push({ tone: 'warn', r: 5, t: 'Load boards are ' + Math.round(h) + ' h old', s: 'Last scan ' + md(dt.getFullYear() + '-' + pad(dt.getMonth() + 1) + '-' + pad(dt.getDate())) + '. Ask Grok Bot for a fresh pull.', go: 'tab:searches' });
       }
     }
+    /* v105: anything an open action item already covers (DOT gaps, unpaid loads) shows once, on the Action items card */
+    var AC = window.BlackRamActions, cov = AC && AC.covers ? AC.covers() : [];
+    if (cov.length) out = out.filter(function (x) { return cov.indexOf(x.go) < 0; });
     if (A().isOffline && A().isOffline()) out.push({ tone: 'info', r: 7, t: 'Offline copy', s: 'Showing the books saved on this phone', go: 'tab:reports' });
     out.sort(function (a, b) { return a.r - b.r; });
     return out;
@@ -170,6 +173,20 @@
     if (!m) return null;
     if (/Z$|[+-]\d{2}:?\d{2}$/.test(s)) { var d = new Date(s.replace(' ', 'T')); return isNaN(d) ? null : d; }
     return new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]);
+  }
+
+  /* v105: Action items card - open vs done donut, the top 3 open items, CTA to the full list */
+  function secActions() {
+    var AC = window.BlackRamActions;
+    if (!AC || !AC.ready || !AC.ready()) return '<section class="td-card" aria-label="Action items"><div class="td-h-row"><h2 class="td-h">Action items</h2></div><p class="td-fine">Loading...</p></section>';
+    var c = AC.counts(), top = AC.top(3);
+    var rows = top.map(function (x) {
+      return '<div class="td-al td-al-' + (x.tone === 'bad' ? 'bad' : (x.tone === 'warn' ? 'warn' : 'info')) + ' tl-tap tl-chev"' + tap('go', 'ac:' + x.id, x.t + '. Open') + '><span class="td-dot" aria-hidden="true"></span><span class="td-al-m"><b>' + esc(ascii(x.t)) + '</b><small>' + esc(x.owner + ' | ' + x.cat + (x.when ? ' | ' + x.when : '')) + '</small></span></div>';
+    }).join('');
+    return '<section class="td-card" aria-label="Action items"><div class="td-h-row"><h2 class="td-h">Action items</h2>' + (c.open ? pill(c.high ? 'bad' : 'warn', String(c.open)) : '') + '</div>' +
+      '<div class="td-ac"><div class="td-ac-d">' + AC.donut(c, 84) + '</div><div class="td-ac-k"><span><b class="num-yellow">' + c.open + '</b> open</span><span><b style="color:#F87171">' + c.high + '</b> high</span><span><b style="color:#34D399">' + c.done + '</b> done</span></div></div>' +
+      (rows ? '<div class="td-als">' + rows + '</div>' : '<p class="td-ok">Nothing waiting on anyone.</p>') +
+      '<div class="td-btns"><button type="button" class="td-btn gold btn-glow" data-td-go="actions">All action items</button></div></section>';
   }
 
   function secAlerts(f) {
@@ -315,7 +332,7 @@
       el.innerHTML = hdr + (A().skeleton ? A().skeleton('Loading today') : '<p class="td-fine">Loading...</p>') + secQuick();
       return;
     }
-    el.innerHTML = hdr + secNow(f) + secAlerts(f) + secMoney(f) + secReady() + secBoards() + secQuick() +
+    el.innerHTML = hdr + secNow(f) + secActions() + secAlerts(f) + secMoney(f) + secReady() + secBoards() + secQuick() +
       '<p class="td-fine td-foot">Net kept = gross - carrier fee - fuel - other costs (ledger), before truck, trailer and insurance bills. Bills line = Targets monthly bills. Same numbers as Scoreboard. Tap any card for the detail.</p>';
   }
   function soon() { if (st.timer) return; st.timer = setTimeout(function () { st.timer = null; if (onToday()) render(); }, 60); }
@@ -340,6 +357,7 @@
     if (k === 'tab') return goTab(v);
     if (k === 'pretrip') return openPretrip();
     if (k === 'dot') { var D = window.BlackRamDot; if (D && D.openItem) D.openItem(v); return; }
+    if (k === 'ac') { var AC = window.BlackRamActions; goTab('actions'); if (AC && AC.openItem) setTimeout(function () { AC.openItem(v); }, 120); return; }
     if (k === 'tax') { var X = window.BlackRamTax; goTab('tax'); if (X && X.openItem) setTimeout(function () { X.openItem(v); }, 120); return; }
     if (k === 'mt') { var M = window.BlackRamMaintenance; if (M && M.openItem) M.openItem(v); return; }
     if (k === 'mtneed') { var t = T(); goTab('maint'); if (t) setTimeout(function () { var b = document.querySelector('[data-tl="mt"][data-tl-arg="need"]'); if (b) b.click(); }, 400); return; }
@@ -384,6 +402,7 @@
       '.td-lane{display:flex;align-items:center;gap:var(--s-1);font-size:var(--fs-lg);color:var(--c-text-1)}.td-lane i{flex:1;height:2px;background:linear-gradient(90deg,var(--c-accent),var(--c-gold));border-radius:2px;min-width:20px}' +
       '.td-now-kv{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s-1)}.td-now-kv span{font-size:11px;font-weight:700;color:var(--c-text-3);display:flex;flex-direction:column}.td-now-kv b{font-size:var(--fs-md);color:var(--c-text-1);font-weight:900;overflow-wrap:anywhere}' +
       '.td-btns{display:flex;gap:var(--s-1);flex-wrap:wrap}' +
+      '.td-ac{display:flex;align-items:center;gap:14px;margin-bottom:8px}.td-ac-d{flex:none}.td-ac-k{display:flex;flex-direction:column;gap:4px;font-size:var(--fs-sm);color:var(--c-text-3);font-weight:700}.td-ac-k b{font-size:var(--fs-lg);font-weight:900;margin-right:4px}' +
       '.td-btn{flex:1;min-height:var(--tap);padding:0 var(--s-2);border-radius:var(--radius-pill);border:1px solid var(--c-line-strong);background:var(--c-surface-3);color:var(--c-text-1);font:inherit;font-size:var(--fs-md);font-weight:800;cursor:pointer}' +
       '.td-btn.gold{background:var(--c-gold);border-color:var(--c-gold);color:var(--c-gold-ink)}' +
       '.td-btn:active,.td-q:active,.td-more:active{transform:scale(.98)}' +
@@ -449,6 +468,7 @@
     document.addEventListener('blackram:data', soon);
     document.addEventListener('blackram:dot', soon);
     document.addEventListener('blackram:tax', soon);
+    document.addEventListener('blackram:actions', soon);
     /* the DOT and maintenance modules re-render their own roots when their JSON lands */
     ['dr-root', 'mt-root'].forEach(function (id) {
       var r = document.getElementById(id);
@@ -458,6 +478,6 @@
     warm();
     render();
   }
-  window.BlackRamToday = { render: render, city: city };
+  window.BlackRamToday = { render: render, city: city, act: act };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

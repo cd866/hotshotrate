@@ -18,7 +18,7 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=4" sizes="180x180" />
   <link rel="preload" href="fonts/nunito-sans-variable.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="fonts/oswald-700.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="styles.css?v=105" />
+  <link rel="stylesheet" href="styles.css?v=106" />
   <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
   <script>
     try {
@@ -223,6 +223,7 @@
         <button type="button" id="tab-searches" data-tab="searches" role="tab" aria-selected="false" aria-controls="panel-searches">Load Boards</button>
         <button type="button" id="tab-stops" data-tab="stops" role="tab" aria-selected="false" aria-controls="panel-stops">Stops</button>
         <button type="button" id="tab-reports" data-tab="reports" role="tab" aria-selected="false" aria-controls="panel-reports">Reports</button>
+        <button type="button" id="tab-actions" data-tab="actions" role="tab" aria-selected="false" aria-controls="panel-actions">Action items</button>
         <button type="button" id="tab-kpis" data-tab="kpis" role="tab" aria-selected="false" aria-controls="panel-kpis">Scoreboard</button>
         <button type="button" id="tab-pdfs" data-tab="pdfs" role="tab" aria-selected="false" aria-controls="panel-pdfs">Daily PDFs</button>
         <button type="button" id="tab-targets" data-tab="targets" role="tab" aria-selected="false" aria-controls="panel-targets">Targets</button>
@@ -517,10 +518,14 @@
         <div id="tx-root" aria-live="polite"></div>
       </section>
 
+      <section id="panel-actions" class="panel ai-panel" role="tabpanel" aria-labelledby="tab-actions" hidden>
+        <div id="ai-root" aria-live="polite"></div>
+      </section>
+
       <footer class="footer">
         <p><strong>Black Ram Logistics</strong> | DBA of Sand Lily Pad LLC</p>
         <p>Estimates are marked EST. Not a quote and not tax advice.</p>
-        <p class="app-version" id="app-version">v105</p>
+        <p class="app-version" id="app-version">v106</p>
       </footer>
       <div class="pad" aria-hidden="true"></div>
     </main>
@@ -685,25 +690,26 @@
   </div>
   <noscript><p class="noscript">Black Ram Logistics needs JavaScript for Rate Check, stops, and reports.</p></noscript>
   <script src="vendor/leaflet/leaflet.js"></script>
-  <script src="tiles.js?v=105"></script>
-  <script src="maps.js?v=105"></script>
-  <script src="tripplan.js?v=105"></script>
-  <script src="app.js?v=105"></script>
-  <script src="stops.js?v=105"></script>
-  <script src="targets.js?v=105"></script>
-  <script src="loadcosts.js?v=105"></script>
-  <script src="reports.js?v=105"></script>
-  <script src="scoreboard.js?v=105"></script>
-  <script src="accounting.js?v=105"></script>
-  <script src="insurance.js?v=105"></script>
-  <script src="maintenance.js?v=105"></script>
-  <script src="dotready.js?v=105"></script>
-  <script src="tax.js?v=105"></script>
-  <script src="rig360.js?v=105"></script>
-  <script src="driver360.js?v=105"></script>
-  <script src="today.js?v=105"></script>
-  <script src="search.js?v=105"></script>
-  <script src="wxbar.js?v=105"></script>
+  <script src="tiles.js?v=106"></script>
+  <script src="maps.js?v=106"></script>
+  <script src="tripplan.js?v=106"></script>
+  <script src="app.js?v=106"></script>
+  <script src="stops.js?v=106"></script>
+  <script src="targets.js?v=106"></script>
+  <script src="loadcosts.js?v=106"></script>
+  <script src="reports.js?v=106"></script>
+  <script src="scoreboard.js?v=106"></script>
+  <script src="accounting.js?v=106"></script>
+  <script src="insurance.js?v=106"></script>
+  <script src="maintenance.js?v=106"></script>
+  <script src="dotready.js?v=106"></script>
+  <script src="tax.js?v=106"></script>
+  <script src="actions.js?v=106"></script>
+  <script src="rig360.js?v=106"></script>
+  <script src="driver360.js?v=106"></script>
+  <script src="today.js?v=106"></script>
+  <script src="search.js?v=106"></script>
+  <script src="wxbar.js?v=106"></script>
   <script>
     (function () {
       if (!('serviceWorker' in navigator)) return;
