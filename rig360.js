@@ -55,6 +55,8 @@
      boss with stacked hasp tabs, chrome TRIMAX THP XL puck (hidden when the box
      is off), brushed 'S5 Coupler Locks' label, two drain holes. Zinc safety
      chains and hairpin; gloss-yellow Demco coupler. No serials.
+   - v143: trailer safety chains are cadmium-plated gold-yellow (iridescent
+     sheen). S5 boss and puck face the driver's side (left / -z).
    Units in the model are feet. x = length (truck front +x), y = up, z = width. */
 (function () {
   'use strict';
@@ -400,14 +402,14 @@
         return { look: worldAt(6.3, 4.2, 0, ang), cam: worldAt(19.5, 15.5, 12.5, ang), angle: -0.35 };
       }
       if (kind === 'lock') {
-        // Tight front-passenger 3/4 of the coupler and the S5 box. As it unlocks,
+        // Tight front-driver 3/4 of the coupler and the S5 box (boss faces -z). As it unlocks,
         // the camera eases down so the empty C-boss, hasp tabs and yellow socket stay in frame.
         var t = inspectKind === 'lock' ? inspectOpen : 0;
         // Locked: tight 3/4 on the box, collar, puck and label. Unlocked: pull back
         // and up so the empty C-boss, hasp, lowered box and yellow socket all fit.
-        var L0 = worldAt(rig.ballX + 0.12, 3.72, 0.16, ang), C0 = worldAt(rig.ballX + 2.15, 4.15, 2.15, ang);
-        var L1 = worldAt(rig.ballX + 0.28, 2.75, 0.2, ang), C1 = worldAt(rig.ballX + 2.55, 3.4, 1.7, ang);
-        return { look: L0.clone().lerp(L1, t), cam: C0.clone().lerp(C1, t), angle: 0.55 };
+        var L0 = worldAt(rig.ballX + 0.05, 3.7, -0.2, ang), C0 = worldAt(rig.ballX + 2.6, 4.6, -3.1, ang);
+        var L1 = worldAt(rig.ballX + 0.1, 2.9, -0.5, ang), C1 = worldAt(rig.ballX + 3.0, 4.0, -2.8, ang);
+        return { look: L0.clone().lerp(L1, t), cam: C0.clone().lerp(C1, t), angle: -0.15 };
       }
       var tb = rig.tb;
       // High front-passenger 3/4, well out to the side so the neck is behind
@@ -452,7 +454,7 @@
       // C-boss, hasp tabs and yellow socket stay in one tight frame.
       var dy1 = -0.55, dy2 = -1.35;
       if (u < 0.4) dy = dy1 * (u / 0.4);
-      else { var t = (u - 0.4) / 0.6; dy = dy1 + (dy2 - dy1) * t; dz = 0.62 * t; }
+      else { var t = (u - 0.4) / 0.6; dy = dy1 + (dy2 - dy1) * t; dz = -0.62 * t; }
       rig.lock.position.y = rig.lockY0 + dy;
       rig.lock.position.z = dz;
       if (rig.puck) rig.puck.visible = u < 0.12;
@@ -1622,6 +1624,8 @@
       yellow: new THREE.MeshStandardMaterial({ color: 0xf2c400, roughness: 0.5 }),
       demco: new THREE.MeshPhysicalMaterial({ color: 0xf5c400, metalness: 0.08, roughness: 0.22, clearcoat: 0.85, clearcoatRoughness: 0.12 }),
       zinc: new THREE.MeshStandardMaterial({ color: 0xc5c8ce, metalness: 0.92, roughness: 0.38 }),
+      // Safety-chain cadmium plating: warm gold-yellow metal with a slight iridescent sheen
+      cadmium: new THREE.MeshPhysicalMaterial({ color: 0xe8c243, metalness: 1, roughness: 0.22, clearcoat: 0.28, clearcoatRoughness: 0.18, iridescence: 0.4, iridescenceIOR: 1.35, iridescenceThicknessRange: [120, 380] }),
       steel: new THREE.MeshStandardMaterial({ color: 0x9aa0a8, metalness: 0.85, roughness: 0.32 }),
       gold: new THREE.MeshPhysicalMaterial({ color: 0xf0c53a, metalness: 1, roughness: 0.12, clearcoat: 0.7, clearcoatRoughness: 0.1, emissive: 0x5a3a00, emissiveIntensity: 0.45 }),
       brass: new THREE.MeshPhysicalMaterial({ color: 0xdcbc5a, metalness: 0.7, roughness: 0.32, clearcoat: 0.5, clearcoatRoughness: 0.2, emissive: 0x7a5a14, emissiveIntensity: 0.55 }),
@@ -2102,6 +2106,8 @@
     var LB = { x: 5 * IN, y: 8 * IN, z: 6 * IN, t: 0.22 * IN };
     var LOCK_Y0 = 3.70; // top of the box sits just under the collar, over the yellow tube
     lock.position.set(CPL_X, LOCK_Y0, 0);
+    // v143: boss and puck face the driver's side (left / -z in this model), not the front
+    lock.rotation.y = Math.PI / 2;
     group.add(lock);
     var cr = 0.42 * IN;
     [-1, 1].forEach(function (sx) {
@@ -2129,7 +2135,7 @@
       g.translate(0, 0, -0.03 * IN);
       add(new THREE.Mesh(g, M.gloss), 0, LB.y / 2 - 0.12 * IN, 0, lock);
     })();
-    // Brushed-silver label on the broad (+z) face: "S5 Coupler Locks" only
+    // Brushed-silver label on the broad face (faces +x / toward the truck after the box is rotated)
     var lbl = new THREE.Mesh(new THREE.PlaneGeometry(3.6 * IN, 1.15 * IN), new THREE.MeshStandardMaterial({
       map: canvasTex(THREE, 768, 240, function (g, w, h) {
         var gr = g.createLinearGradient(0, 0, w, 0);
@@ -2143,7 +2149,7 @@
       metalness: 0.8, roughness: 0.35
     }));
     add(lbl, 0, 0.06, LB.z / 2 + 0.002, lock);
-    // Short round tubular boss on the +x face, ~3.5 in dia, sticking out ~1.5 in,
+    // Short round tubular boss on the local +x face (world -z, driver's side), ~3.5 in dia, sticking out ~1.5 in,
     // bottom cut in a C so it is open at the bottom.
     var BOSS_R = 1.75 * IN, BOSS_L = 1.5 * IN, BOSS_T = 0.16 * IN, BOSS_Y = -0.12 * IN, GAP = 1.7;
     var boss = new THREE.Group();
@@ -2232,7 +2238,7 @@
           mats.push(new THREE.Matrix4().compose(p, q2.multiply(q), sc));
         }
       });
-      var im = new THREE.InstancedMesh(linkGeo, M.zinc, mats.length);
+      var im = new THREE.InstancedMesh(linkGeo, M.cadmium, mats.length);
       mats.forEach(function (m, i) { im.setMatrixAt(i, m); });
       im.userData.dyn = true;
       group.add(im);
@@ -2540,7 +2546,7 @@
       { id: 'bed', p: [-9.6, 4.95, -1.6], n: [0, 1, 0], subj: 'truck', t: 'Bed: 6 ft 4 in box', l: ['76.3 in floor length, 66.4 in wall to wall', '51.0 in between the wheel wells, 20.1 in deep', 'Gray spray-in liner, 4 puck holes, 2 chain loops'] },
       { id: 'mirrors', p: [3.4, 6.05, 4.15], subj: 'truck rig', t: 'Mirrors and lights', l: ['Black trailer-tow mirrors (Night Edition)', 'LED headlamps, black headlamp and taillamp bezels', 'LED clearance lamps: 5 on the cab roof, plus box and rear fenders (DRW group)'] },
       { id: 'coupler', p: [CPL_X, 4.75, 0.45], subj: 'rig trailer', t: 'Coupler, chains, breakaway', l: ['Demco 2-5/16 in gooseneck coupler', 'Latch closed and pinned before every trip', '2 safety chains, crossed, hooked to the truck', 'Zip breakaway cable on its own anchor'] },
-      { id: 'lock', p: [CPL_X + 0.1, 3.75, 0.5], n: [0, 0, 1], subj: 'trailer', t: 'S5 Coupler Lock + Trimax THP XL', l: ['S5 Coupler Lock + Trimax THP XL puck lock - blocks the gooseneck coupler when parked/unhooked', 'Steel box over the Demco coupler, puck lock in the side shroud', 'Lube the puck lock every 3 months; keep the key off the trailer'] },
+      { id: 'lock', p: [CPL_X, 3.72, -0.42], n: [0, 0, -1], subj: 'trailer', t: 'S5 Coupler Lock + Trimax THP XL', l: ['S5 Coupler Lock + Trimax THP XL puck lock - blocks the gooseneck coupler when parked/unhooked', 'Steel box over the Demco coupler, puck lock in the side shroud', 'Lube the puck lock every 3 months; keep the key off the trailer'] },
       { id: 'box', p: [TB.x, TB.y + TB.ly / 2 + 0.25, 0], subj: 'rig trailer', t: 'Front storage box', l: ['Lockable mega front storage box with chain holder', 'Hot Shot kit: 10 winch straps 5,400 lb WLL, 6 grade 70 chains 4,700 lb WLL, 6 binders 6,600 lb WLL', 'Tap Toolbox to open it'] },
       { id: 'spare', p: [-11.0, 6.85, 0], subj: 'rig trailer', t: 'Spare tire', l: ['Spare tire and mount (Big Tex 25GN)', 'ST235/80R16 LR-E on a black steel wheel, same as the trailer', '80 psi cold, like the road tires'] },
       { id: 'jacks', p: [-13.5, 2.0, 2.05], n: [0, 0, 1], subj: 'trailer', t: 'Landing gear', l: ['Dual 2-speed 50K landing gear'] },
