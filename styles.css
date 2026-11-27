@@ -6026,3 +6026,4 @@ body .search-actions .trip-plan-btn::after {
 :root { --caret-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5.5 9l6.5 6.5L18.5 9' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
 .bd-red { color: #FCA5A5; }
 .bd-amb { color: var(--c-maybe); }
+.fin-refresh-msg.fin-refresh-login { color: var(--warn, #e0a030); font-weight: 700; }

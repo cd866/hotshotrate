@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v114';
+  var APP_VERSION = 'v115';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -7226,7 +7226,7 @@
 
   // ---- Finance tab (v41): PIN-gated via relay /financials. Nothing is stored in the repo. ----
   var FIN_SESSION_KEY = 'blackram_fin_session_v1';
-  var finState = { data: null, loading: false, error: '', range: 30, fetchedAt: 0, refresh: null, refreshBusy: false, refreshMsg: '' };
+  var finState = { data: null, loading: false, error: '', range: 30, fetchedAt: 0, refresh: null, refreshBusy: false, refreshMsg: '', autoAsked: false, pollTimer: null, pollLeft: 0 };
 
   function finMoney(n, cents) {
     if (n == null || !isFinite(n)) return '--';
@@ -7265,6 +7265,34 @@
     var t = new Date(iso).getTime();
     return !isNaN(t) && Date.now() - t > 24 * 3600000;
   }
+  var BV_AUTO_HOURS = 6, BV_POLL_MS = 20000, BV_POLL_TRIES = 9;
+  function finNeedsLogin() { return !!(finState.refresh && finState.refresh.status === 'needs_login'); }
+  // v115: on open (PIN stored), ask for a pull when the Bluevine data is more than 6h old. Once per app open.
+  function maybeAutoBluevineRefresh() {
+    var d = finState.data;
+    if (!d || finState.autoAsked || !getRelayPin()) return;
+    finState.autoAsked = true;
+    if (finNeedsLogin()) return;
+    if (finRefreshPending(d)) { startBluevinePoll(); return; }
+    var t = new Date(finBankAsOf(d)).getTime();
+    if (!isNaN(t) && Date.now() - t > BV_AUTO_HOURS * 3600000) requestBluevineRefresh(true);
+  }
+  function startBluevinePoll() {
+    if (finState.pollTimer) return;
+    finState.pollLeft = BV_POLL_TRIES;
+    finState.pollTimer = setInterval(function () {
+      finState.pollLeft -= 1;
+      fetchFinance(true).then(function () {
+        var done = !finRefreshPending(finState.data) || finNeedsLogin() || finState.pollLeft <= 0;
+        if (!done) return;
+        clearInterval(finState.pollTimer); finState.pollTimer = null;
+        if (finNeedsLogin()) finState.refreshMsg = '';
+        else if (finRefreshPending(finState.data)) finState.refreshMsg = 'Not refreshed yet. Showing the last pull.';
+        else finState.refreshMsg = 'Updated from Bluevine.';
+        if (state.tab === 'fin') renderFinance();
+      });
+    }, BV_POLL_MS);
+  }
   function finRefreshPending(d) {
     var r = finState.refresh;
     if (!r || r.status !== 'requested' || !r.requested_at) return false;
@@ -7279,18 +7307,20 @@
       (tx ? ' | newest transaction ' + esc(finDay(tx.date)) : '') + '</div>';
   }
   function finRefreshBlock(d) {
-    var pending = finRefreshPending(d);
+    var pending = finRefreshPending(d) && !finNeedsLogin();
     var msg = finState.refreshMsg;
+    if (!msg && finNeedsLogin()) return '<div class="fin-refresh-row"><button type="button" class="btn btn-secondary btn-sm fin-bv-btn" id="fin-bv-refresh">Refresh Bluevine</button>' +
+      '<span class="fin-refresh-msg fin-refresh-login" role="status">Bluevine needs you to sign in</span></div>';
     if (!msg && pending) msg = 'Refresh requested ' + finAsOfText(finState.refresh.requested_at);
     return '<div class="fin-refresh-row"><button type="button" class="btn btn-secondary btn-sm fin-bv-btn" id="fin-bv-refresh"' + ((finState.refreshBusy || pending) ? ' disabled' : '') + '>' +
       (finState.refreshBusy ? 'Requesting...' : (pending ? 'Refresh requested' : 'Refresh Bluevine')) + '</button>' +
       (msg ? '<span class="fin-refresh-msg" role="status">' + esc(msg) + '</span>' : '') + '</div>';
   }
-  function requestBluevineRefresh() {
+  function requestBluevineRefresh(auto) {
     var pin = getRelayPin();
     if (!pin || finState.refreshBusy) return;
     finState.refreshBusy = true; finState.refreshMsg = '';
-    renderFinance();
+    if (state.tab === 'fin') renderFinance();
     fetch(RELAY_URL + '/bluevine-refresh', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pin: pin }), cache: 'no-store'
@@ -7298,7 +7328,8 @@
       return resp.json().catch(function () { return null; }).then(function (j) {
         if (resp.ok && j && j.ok && j.refresh) {
           finState.refresh = j.refresh;
-          finState.refreshMsg = 'Refresh requested ' + finAsOfText(j.refresh.requested_at) + '. Waiting for the pull.';
+          finState.refreshMsg = 'Refresh requested ' + finAsOfText(j.refresh.requested_at) + (auto ? ' (data over ' + BV_AUTO_HOURS + 'h old)' : '') + '. Waiting for the pull.';
+          startBluevinePoll();
         } else {
           finState.refreshMsg = (j && j.error) || ('Could not request (' + resp.status + ')');
         }
@@ -7342,6 +7373,7 @@
       if (state.tab === 'fin') renderFinance();
       renderCallSheetDispatch();
       try { document.dispatchEvent(new CustomEvent('blackram:financials')); } catch (err) { /* old browser */ }
+      maybeAutoBluevineRefresh();
     });
   }
 
@@ -7510,7 +7542,7 @@
     var rf = $('fin-refresh');
     if (rf) rf.addEventListener('click', function () { fetchFinance(true); });
     var bv = $('fin-bv-refresh');
-    if (bv) bv.addEventListener('click', requestBluevineRefresh);
+    if (bv) bv.addEventListener('click', function () { requestBluevineRefresh(false); });
   }
 
 
@@ -8440,6 +8472,9 @@
     getScored: function () { return state.scoredSearches; }
   };
 
+  // v115: on app open with a saved PIN, load financials once so the 6h Bluevine auto-refresh check runs.
+  function bootBluevineCheck() { setTimeout(function () { if (getRelayPin()) fetchFinance(false); }, 2500); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bootBluevineCheck); else bootBluevineCheck();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
