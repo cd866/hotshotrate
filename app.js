@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v119';
+  var APP_VERSION = 'v120';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -3958,6 +3958,11 @@
     }).catch(function () { return null; });
   }
 
+  // v120: tell the global pull bar (pullbar.js) when a pull starts, is accepted, or fails.
+  function pullEvt(phase, message) {
+    try { document.dispatchEvent(new CustomEvent('blackram:pull', { detail: { phase: phase, message: message || '', origin: (state.freshOriginText || '') } })); } catch (err) { /* old browser */ }
+  }
+
   function setFreshPullStatus(text, type) {
     state.freshPullStatus = text || '';
     state.freshPullStatusType = type || '';
@@ -4077,6 +4082,7 @@
       var goBtn = $('fresh-pull-go');
       if (goBtn) { goBtn.disabled = true; goBtn.textContent = 'Starting search...'; }
       setFreshPullStatus('Sending request to Grok Bot...', '');
+      pullEvt('start');
 
       var originEl = $('fresh-origin');
       var destEl = $('fresh-dest');
@@ -4093,6 +4099,7 @@
           state.freshPullBusy = false;
           if (goBtn) { goBtn.disabled = false; goBtn.textContent = 'Pull fresh loads'; }
           setFreshPullStatus('Pick an origin city, ZIP, or tap Use my GPS.', 'err');
+          pullEvt('error', 'Pick an origin city, ZIP, or tap Use my GPS.');
           return;
         }
         originRec = o;
@@ -4100,6 +4107,7 @@
           state.freshPullBusy = false;
           if (goBtn) { goBtn.disabled = false; goBtn.textContent = 'Pull fresh loads'; }
           setFreshPullStatus('Pick a destination city or check Anywhere.', 'err');
+          pullEvt('error', 'Pick a destination city or check Anywhere.');
           return;
         }
         if (!isAny) destRec = d;
@@ -4115,6 +4123,7 @@
           if (res.ok) {
             state.freshPullLastOkAt = Date.now();
             setFreshPullStatus('Search started - loads arrive in a few minutes', 'ok');
+            pullEvt('ok');
             startFreshPullPolling();
             return;
           }
@@ -4123,18 +4132,37 @@
             state.relayConnectMsg = 'Wrong PIN. Re-enter your PIN and tap Save PIN.';
             state.relayConnectErr = true;
             setFreshPullStatus('Wrong PIN - tap Connect to fix your PIN.', 'err');
+            pullEvt('error', 'Wrong PIN - tap Connect to fix your PIN.');
             renderSearches();
             return;
           }
           setFreshPullStatus(res.error || 'Could not start search.', 'err');
+          pullEvt('error', res.error || 'Could not start search.');
         });
       }).catch(function () {
         state.freshPullBusy = false;
         if (goBtn) { goBtn.disabled = false; goBtn.textContent = 'Pull fresh loads'; }
         setFreshPullStatus('Could not start search. Try again.', 'err');
+        pullEvt('error', 'Could not start search. Try again.');
       });
     });
   }
+
+  // v120: pullbar.js asks for a reload when a pull reaches live, or for a retry after a stall or failure.
+  document.addEventListener('blackram:pull-live', function () {
+    if (Date.now() - state.lastLiveRefreshAt > 8000) { state.lastLiveRefreshAt = Date.now(); refreshSearches(); }
+  });
+  document.addEventListener('blackram:pull-retry', function () {
+    state.freshPullLastOkAt = 0;
+    state.freshPullBusy = false;
+    showTab('searches');
+    setTimeout(function () {
+      var f = $('fresh-pull-form');
+      if (!f) return;
+      if (typeof f.requestSubmit === 'function') f.requestSubmit();
+      else f.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+    }, 120);
+  });
 
   function scoreSearchLoad(row) {
     var trip = rowLoadedMiles(row);
@@ -7374,7 +7402,8 @@
   }
   function requestBluevineRefresh() {
     var pin = getRelayPin();
-    if (!pin || finState.refreshBusy) return;
+    if (finState.refreshBusy) return;
+    if (!pin) { finState.refreshMsg = 'Enter your PIN first (Connect on Load Boards).'; if (state.tab === 'fin') renderFinance(); return; }
     finState.refreshBusy = true; finState.refreshMsg = '';
     if (state.tab === 'fin') renderFinance();
     fetch(RELAY_URL + '/bluevine-refresh', {

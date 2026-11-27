@@ -151,6 +151,8 @@
   function fetchFin() {
     var p = pin(); if (!p || st.finLoading) return;
     var c = finFromSession(); if (c) { st.fin = c; return; }
+    // v120: after a failed load wait 60 s before asking the relay again (render() used to re-fetch in a tight loop on any relay error)
+    if (st.finFailAt && Date.now() - st.finFailAt < 60000) return;
     st.finLoading = true;
     fetch(RELAY + '/financials', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pin: p }), cache: 'no-store' })
       .then(function (resp) {
@@ -161,7 +163,7 @@
         });
       })
       .catch(function () { st.finErr = 'Offline.'; })
-      .then(function () { st.finLoading = false; render(); });
+      .then(function () { st.finLoading = false; st.finFailAt = st.fin ? 0 : Date.now(); render(); });
   }
   var BUCKETS = [
     ['fee', 'Totni 13% fee', 1], ['fuel', 'Fuel', 1], ['insurance', 'Insurance', 1], ['def', 'DEF', 1], ['eld', 'ELD (Totni)', 1],
@@ -470,7 +472,7 @@
     el.addEventListener('submit', function (e) {
       var f = e.target; if (!f || !f.getAttribute || !f.getAttribute('data-tx-pin')) return;
       e.preventDefault(); var i = f.querySelector('input'), v = i ? i.value.trim() : '';
-      if (v) { setPin(v); st.finErr = ''; st.fin = null; st.srv = null; fetchFin(); fetchSrv(); render(); }
+      if (v) { setPin(v); st.finErr = ''; st.fin = null; st.srv = null; st.finFailAt = 0; fetchFin(); fetchSrv(); render(); }
     });
     document.addEventListener('click', function (e) {
       var b = e.target && e.target.closest ? e.target.closest('[data-tx-set]') : null; if (!b) return;
