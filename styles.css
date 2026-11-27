@@ -6341,3 +6341,9 @@ body .search-actions .trip-plan-btn::after {
 /* v140: from-truck hint on TAKE and MAYBE load cards */
 .search-card .truck-hint { margin: 6px 0 0; font-size: 12px; font-weight: 700; color: var(--c-gold, #F2C94C); line-height: 1.3; }
 .search-card .truck-hint:empty { display: none; }
+
+/* v141: narrow phones (360 to 389): bottom tab labels fit, so Rate Check is not cut to "Rate Che..." */
+@media (max-width: 389px) {
+  nav.tabbar.bnav > button { font-size: 10.5px; letter-spacing: 0; }
+  nav.tabbar.bnav > button .tb-lbl { overflow: visible; text-overflow: clip; }
+}

@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v140';
+  var APP_VERSION = 'v141';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -8325,6 +8325,18 @@
     if (more) more.setAttribute('aria-expanded', 'false');
   }
 
+  /* v141: phones show 'Pulled 1h ago'; when the weather chip leaves less room, shorten to 'Pulled 1h', '1h ago', '1h' */
+  function fitStatusText() {
+    var txt = document.getElementById('appbar-status-text');
+    var ph = txt && txt.querySelector('.as-ph');
+    if (!ph || ph.offsetParent === null) return;
+    var full = ph.getAttribute('data-full') || ph.textContent;
+    var opts = [full, full.replace(/ ago$/, ''), full.replace(/^Pulled /, ''), full.replace(/^Pulled /, '').replace(/ ago$/, '')];
+    for (var k = 0; k < opts.length; k++) {
+      if (ph.textContent !== opts[k]) ph.textContent = opts[k];
+      if (txt.scrollWidth <= txt.clientWidth + 1) break;
+    }
+  }
   function updateAppbar() {
     var txt = document.getElementById('appbar-status-text');
     var dot = document.getElementById('appbar-status');
@@ -8357,8 +8369,12 @@
         var ageEl = document.createElement('span'); ageEl.className = 'as-age'; ageEl.textContent = ' | ' + lp.slice(1).join(' | '); txt.appendChild(ageEl);
         /* v140: on phones the clock time hides and this reads 'Pulled 1h ago' so freshness is readable at 390 wide */
         var phEl = document.createElement('span'); phEl.className = 'as-ph'; phEl.textContent = 'Pulled ' + lp.slice(1).join(' ') + (/just now/.test(lp[1]) ? '' : ' ago'); txt.appendChild(phEl);
-        /* tight phones: drop the word 'ago' when 'Pulled 1h ago' would be cut off */
-        if (phEl.offsetParent !== null && txt.scrollWidth > txt.clientWidth + 1) phEl.textContent = phEl.textContent.replace(/ ago$/, '');
+        phEl.setAttribute('data-full', phEl.textContent);
+        fitStatusText();
+        if (!state.statusRO && typeof ResizeObserver === 'function') {
+          state.statusRO = new ResizeObserver(function () { fitStatusText(); });
+          state.statusRO.observe(txt.parentNode);
+        }
       }
       dot.setAttribute('title', label);
       dot.setAttribute('data-state', cls);

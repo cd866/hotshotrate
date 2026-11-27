@@ -46,7 +46,7 @@ LOVES_PAGE = "https://www.loves.com/en/location-and-fuel-price-search"
 TA_URL = "https://www.ta-petro.com/api/locationsdata/download/"
 TA_PAGE = "https://www.ta-petro.com/location/"
 
-# Census Bureau one-line geocoder for 6003 Murphy St, Houston, TX 77033,
+# Census Bureau one-line geocoder for a Houston pickup address,
 # retrieved 2026-11-04. Used only to prove the two named Houston stops
 # fall near that address. It is not a truck-stop coordinate.
 MURPHY = (29.683751738546, -95.328112607314)
@@ -398,7 +398,7 @@ def haversine(a_lat, a_lng, b_lat, b_lng) -> float:
 
 def sanity(stops: list[dict]) -> None:
     ranked = sorted(stops, key=lambda stop: haversine(MURPHY[0], MURPHY[1], stop["lat"], stop["lng"]))
-    print("Nearest 12 to 6003 Murphy St, Houston TX 77033:")
+    print("Nearest 12 to the Houston pickup:")
     wanted = {"loves-315": None, "ta-express-282": None}
     for index, stop in enumerate(ranked[:12], start=1):
         miles = haversine(MURPHY[0], MURPHY[1], stop["lat"], stop["lng"])
