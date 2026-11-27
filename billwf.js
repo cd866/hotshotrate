@@ -69,15 +69,32 @@
     } catch (e) { /* ignore */ }
     return out;
   }
+  /* v146: pending Bluevine debits not yet in the pulled balance (payload pending_debits, e.g. the 11/27
+     Progressive ACH). Dropped once a newer pull includes them: a bank line with the same amount within
+     5 days, a matching pending outgoing amount, or a bank as-of date later than the debit date. */
+  function pendingAdj(d) {
+    var asOf = String(d.bank_as_of || d.as_of || '').slice(0, 10), acct = d.account || {}, out = { total: 0, items: [] };
+    (d.pending_debits || []).forEach(function (x) {
+      if (x.applied === false) return;
+      var amt = Number(x.amount); if (!isFinite(amt) || !x.date) return;
+      var hit = (d.transactions || []).some(function (t) { return Math.abs(Number(t.amount) - amt) < 0.005 && Math.abs(days(String(t.date).slice(0, 10), x.date)) <= 5; });
+      if (hit || (acct.pending_outgoing && Math.abs(Number(acct.pending_outgoing) - amt) < 0.005) || asOf > x.date) return;
+      out.total = Math.round((out.total + amt) * 100) / 100; out.items.push(x);
+    });
+    return out;
+  }
+  function adjNote(A) { return A.items.map(function (x) { return 'incl. ' + x.label + ' ' + md(x.date) + ' ' + (x.amount < 0 ? '-' : '+') + Math.abs(x.amount).toLocaleString('en-US', { minimumFractionDigits: 2 }); }).join(', '); }
   function model(d, range) {
     var t = today(), end = endFor(range, t), acct = d.account || {};
     var start = acct.available != null ? Number(acct.available) : null;
+    var adj = pendingAdj(d), cash = start;
+    if (start != null && adj.total) start = Math.round((start + adj.total) * 100) / 100;
     var be = billEvents(d, t, end), all = billEvents(d, t, '9999-12-31').ev;
     var run = start != null ? start : 0;
     be.ev.forEach(function (e) { run = Math.round((run - e.amount) * 100) / 100; e.bal = run; });
     var owed = (d.income || []).filter(function (i) { return i.status === 'unpaid' && i.amount; });
     var owedTot = owed.reduce(function (a, i) { return a + i.amount; }, 0);
-    return { t: t, end: end, start: start, asOf: d.bank_as_of || d.as_of, ev: be.ev, tbd: be.tbd.concat(targetsTbd()), next: all[0] || null,
+    return { t: t, end: end, start: start, cash: cash, adj: adj, asOf: d.bank_as_of || d.as_of, ev: be.ev, tbd: be.tbd.concat(targetsTbd()), next: all[0] || null,
       left: run, owed: owed, owedTot: owedTot, leftIfPaid: Math.round((run + owedTot) * 100) / 100, pendingIn: acct.pending_incoming || 0 };
   }
 
@@ -134,10 +151,11 @@
     })() : '<section class="bw-card bw-hero bw-h-ok"><div class="bw-k">Due next</div><div class="bw-hn">Nothing dated on file</div></section>';
     var seg = '<div class="bw-seg" role="group" aria-label="Range">' + [['30', '30 days'], ['60', '60 days'], ['mo', 'This month']].map(function (r) {
       return '<button type="button" data-bw-range="' + r[0] + '" aria-pressed="' + (st.range === r[0]) + '">' + r[1] + '</button>'; }).join('') + '</div>';
-    var tiles = '<div class="bw-tiles"><div><span>Cash now</span><b class="num-yellow">' + m0(M.start) + '</b></div><div><span>Bills due</span><b class="bw-neg">' + m0(M.ev.reduce(function (a, e) { return a + e.amount; }, 0)) + '</b></div>' +
+    var tiles = '<div class="bw-tiles"><div><span>Cash now</span><b class="num-yellow">' + m0(M.start) + '</b>' + (M.adj.total ? '<small class="bw-adj">' + esc(adjNote(M.adj)) + '</small>' : '') + '</div><div><span>Bills due</span><b class="bw-neg">' + m0(M.ev.reduce(function (a, e) { return a + e.amount; }, 0)) + '</b></div>' +
       '<div><span>Left ' + md(M.end) + '</span><b class="' + (M.left < 0 ? 'bw-neg' : 'bw-pos') + '">' + m0(M.left) + '</b></div></div>';
     var rows = '<div class="bw-row bw-row-h"><span>Date</span><span>Bill</span><span>Amount</span><span>Balance</span></div>' +
-      '<div class="bw-row bw-row-start"><span>' + md(String(M.asOf).slice(0, 10)) + '</span><span>Bluevine cash</span><span></span><span>' + m2(M.start) + '</span></div>' +
+      '<div class="bw-row bw-row-start"><span>' + md(String(M.asOf).slice(0, 10)) + '</span><span>Bluevine cash' + (M.adj.total ? '<small>' + m2(M.cash) + ' as of the ' + md(String(M.asOf).slice(0, 10)) + ' pull</small>' : '') + '</span><span></span><span>' + m2(M.cash) + '</span></div>' +
+      M.adj.items.map(function (x) { return '<div class="bw-row bw-row-pend"><span>' + md(x.date) + '</span><span>' + esc(x.label) + ' <em>pending</em></span><span class="bw-neg">' + (x.amount < 0 ? '-' : '+') + m2(Math.abs(x.amount)) + '</span><span>' + m2(M.start) + '</span></div>'; }).join('') +
       (M.ev.length ? M.ev.map(function (e) {
         var u = urg(e.date, M.t);
         return '<div class="bw-row' + (e.overdue ? ' bw-late' : u.n <= 7 ? ' bw-soon' : '') + '"><span>' + md(e.date) + '</span><span>' + esc(e.name) + (e.card ? ' <em>card</em>' : '') + (e.overdue ? ' <em class="bw-em-red">overdue</em>' : '') + '</span><span class="bw-neg">-' + m2(e.amount) + '</span><span class="' + (e.bal < 0 ? 'bw-neg' : '') + '">' + m2(e.bal) + '</span></div>';
@@ -149,7 +167,7 @@
     el.innerHTML = '<div class="bw-top"><div><div class="bw-k">Sand Lily Pad LLC</div><h2>Bill Waterfall</h2></div><button type="button" class="bw-btn" id="bw-refresh">Refresh</button></div>' +
       hero + '<section class="bw-card">' + seg + tiles + chart(M) + '</section>' +
       '<section class="bw-card bw-list">' + rows + tbd + '</section>' +
-      '<p class="bw-fine">Cash = Bluevine available ' + md(asOf) + (M.pendingIn ? ' (incl. ' + m2(M.pendingIn) + ' pending in)' : '') + '. card = paid on the company AmEx, not from Bluevine. Owed load pay has no promised date. No new loads counted.</p>';
+      '<p class="bw-fine">Cash = Bluevine available ' + md(asOf) + (M.pendingIn ? ' (incl. ' + m2(M.pendingIn) + ' pending in)' : '') + (M.adj.total ? ', ' + esc(adjNote(M.adj)) + ' (not in that pull yet)' : '') + '. card = paid on the company AmEx, not from Bluevine. Owed load pay has no promised date. No new loads counted.</p>';
     bind();
   }
   function bind() {
@@ -184,6 +202,7 @@
       '.bw-seg{display:flex;gap:4px;background:var(--c-surface-2);border-radius:var(--radius-pill,999px);padding:3px;margin-bottom:10px}.bw-seg button{flex:1;min-height:36px;border:0;border-radius:var(--radius-pill,999px);background:transparent;color:var(--c-text-2);font-weight:800;font-size:13px}' +
       '.bw-seg button[aria-pressed=true]{background:var(--c-gold);color:var(--c-gold-ink)}' +
       '.bw-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:6px}.bw-tiles div{background:var(--c-surface-2);border-radius:var(--radius-md,12px);padding:8px}.bw-tiles span{display:block;font-size:11px;font-weight:700;color:var(--c-text-3)}.bw-tiles b{font-size:18px;font-weight:900}' +
+      '.bw-tiles small.bw-adj{display:block;font-size:10px;font-weight:700;color:var(--c-text-3);line-height:1.25;margin-top:2px}.bw-row-start>span small{display:block;color:var(--c-text-3);font-weight:700}.bw-row-pend>span:first-child{color:#FCA5A5;font-weight:800}' +
       '.bw-neg{color:#FCA5A5}.bw-pos{color:var(--c-take)}' +
       '.bw-scroll{overflow-x:auto;margin:0 -4px}.bw-svg{width:100%;height:auto;display:block;margin:0 auto}' +
       '.bw-zero{stroke:var(--c-line-strong);stroke-width:1}.bw-link{stroke:var(--c-text-3);stroke-width:1;stroke-dasharray:2 2}' +

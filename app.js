@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v145';
+  var APP_VERSION = 'v146';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -8036,6 +8036,7 @@
       finChart(proj, range) +
       '<div class="fin-legend"><span><i class="lg-base"></i>Bills only</span><span><i class="lg-alt"></i>' + esc(proj.if_paid_note || 'If unpaid loads pay') + '</span></div>' +
       '<div class="fin-sub">Low in ' + range + 'd: <b class="' + (low.balance < 0 ? 'neg' : 'pos') + '">' + finMoney(low.balance) + '</b> on ' + finDay(low.date) + ' | no new loads counted</div>' +
+      (proj.start_note ? '<div class="fin-sub fin-adj">Start ' + finMoney(proj.start, true) + ' ' + esc(proj.start_note) + '</div>' : '') +
       '</section>';
 
     var bills = (d.bills || []).map(function (b) {
