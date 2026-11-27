@@ -1,14 +1,14 @@
 {
-  "state": "direct_freight",
-  "pct": 55,
+  "state": "scoring",
+  "pct": 85,
   "origin": "Jacksonville, FL",
   "started_at": "2026-11-27 03:42 CT",
-  "updated_at": "2026-11-27 03:50 CT",
+  "updated_at": "2026-11-27 03:52 CT",
   "counts": {
     "truckstop": 0,
-    "df": 0,
+    "df": 14,
     "uship": 0,
     "fits": 0
   },
-  "message": "Searching Direct Freight"
+  "message": "Scoring loads"
 }
