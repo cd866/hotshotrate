@@ -1,6 +1,6 @@
 {
   "schema": 2,
-  "as_of": "2026-11-27 01:10 CT",
+  "as_of": "2026-11-27 01:11 CT",
   "scanned_at": "2026-11-27 01:05 CT",
   "origin": "Jacksonville, FL",
   "origin_coord": {
@@ -40,13 +40,13 @@
     "uship": "uShip: Book now price is scored like a posted rate. Bid listings use the shipper target price, else the current low bid, else an estimated fair price, and are never better than MAYBE. uShip bid est = loaded mi x $3.00 (<=250 mi), $2.50 (251-500), $2.20 (501-1,000), $2.00 (1,000+), min $400, rounded to $5.",
     "combo_bar": "A 2- or 3-load combo needs >= $1,000 total net EST, must beat the best single load in it by at least $200, and no leg may lose money. Combined weight uses the same 12,500 / 15,300 lb bands. Any combo stop with an overnight low of 45 F or below is an automatic PASS."
   },
-  "hidden_heavy": 0,
+  "hidden_heavy": 11,
   "counts": {
-    "total": 19,
+    "total": 22,
     "take": 1,
     "maybe": 0,
-    "pass": 18,
-    "hidden_heavy": 0
+    "pass": 21,
+    "hidden_heavy": 11
   },
   "combo_counts": {
     "total": 0
@@ -60,8 +60,8 @@
     },
     {
       "board": "Direct Freight",
-      "file": "scan_2026-11-27_0105_df_empty.csv",
-      "rows": 0
+      "file": "scan_2026-11-27_0105_df.csv",
+      "rows": 20
     }
   ],
   "loads": [
@@ -120,6 +120,293 @@
       "base_verdict": "TAKE",
       "base_reason": "Clears the net bar and fits the deck.",
       "weather_flags": []
+    },
+    {
+      "board": "Direct Freight",
+      "origin": "Cross City, FL",
+      "origin_dh_mi": 117,
+      "destination": "Denton, TX",
+      "trip_mi": 1005,
+      "pickup_window": "Ships 11/27",
+      "drop_window": "",
+      "equipment": "F, SD",
+      "mode": "FULL",
+      "weight_lb": null,
+      "length_ft": null,
+      "posted_rate": 2316.0,
+      "rate_per_mi": 2.3,
+      "net_est": 1225.03,
+      "math": "Rate $2,316.00 x 0.87 = $2,014.92 after the 13% Totni fee ($301.08). Diesel $5.360/gal (EIA Lower Atlantic (PADD 1C) $5.378 + our pump premium -$0.018) at 8.0 mpg plus $0.034/mi DEF = $0.704/mi. Fuel $0.704 x 1,122 mi (loaded+empty) = $789.89. Net EST $1,225.03.",
+      "fit_flags": [
+        "weight not listed",
+        "full truckload with no size listed - likely a semi load, cannot haul on 40 ft hotshot",
+        "full truckload with no size listed - likely a semi load, cannot haul on 40 ft hotshot",
+        "too cold at drop - low 44 F, would idle overnight"
+      ],
+      "verdict": "PASS",
+      "same_day": false,
+      "bar": 500.0,
+      "total_mi": 1122,
+      "broker": "",
+      "broker_mc": "",
+      "broker_dot": "",
+      "load_number": "",
+      "notes": "",
+      "link": "https://www.directfreight.com",
+      "broker_email": "",
+      "broker_phone": "",
+      "looked_up": false,
+      "tarp": false,
+      "hours": 24.44,
+      "per_hour": 50.12,
+      "net_per_mile": 1.09,
+      "gross_per_mile": 2.06,
+      "days_span": 3,
+      "days": 3,
+      "net_per_day": 408.34,
+      "reason": "too cold at drop - low 44 F, would idle overnight.",
+      "fuel": {
+        "diesel_usd_gal": 5.36,
+        "diesel_eia_usd_gal": 5.378,
+        "pump_premium_usd_gal": -0.018,
+        "diesel_source": "EIA Lower Atlantic (PADD 1C) $5.378 + our pump premium -$0.018",
+        "diesel_region": "PADD1C",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.704,
+        "fallback": false
+      },
+      "base_verdict": "PASS",
+      "base_reason": "full truckload with no size listed - likely a semi load, cannot haul on 40 ft hotshot.",
+      "drop_low_f": 44,
+      "drop_low_source": "forecast",
+      "drop_low_date": "2026-11-29",
+      "drop_low_place": "Denton, TX",
+      "drop_wx_code": 3,
+      "drop_gust_mph": 41,
+      "route_wx": {
+        "summary": "Route: 36-72 F, gusts 40 mph Sat near Marshall",
+        "points": [
+          {
+            "place": "Cross City, FL",
+            "date": "2026-11-27",
+            "high_f": 59,
+            "low_f": 44,
+            "precip": "",
+            "precip_chance": 1,
+            "gust_mph": 24,
+            "source": "forecast",
+            "weather_code": 3
+          },
+          {
+            "place": "Ebro, FL",
+            "date": "2026-11-27",
+            "high_f": 58,
+            "low_f": 41,
+            "precip": "",
+            "precip_chance": 0,
+            "gust_mph": 24,
+            "source": "forecast",
+            "weather_code": 3
+          },
+          {
+            "place": "Mc Lain, MS",
+            "date": "2026-11-27",
+            "high_f": 58,
+            "low_f": 36,
+            "precip": "",
+            "precip_chance": 0,
+            "gust_mph": 19,
+            "source": "forecast",
+            "weather_code": 3
+          },
+          {
+            "place": "Clayton, LA",
+            "date": "2026-11-28",
+            "high_f": 70,
+            "low_f": 38,
+            "precip": "",
+            "precip_chance": 1,
+            "gust_mph": 36,
+            "source": "forecast",
+            "weather_code": 3
+          },
+          {
+            "place": "Marshall, TX",
+            "date": "2026-11-28",
+            "high_f": 72,
+            "low_f": 42,
+            "precip": "",
+            "precip_chance": 0,
+            "gust_mph": 40,
+            "source": "forecast",
+            "weather_code": 3,
+            "hazards": [
+              "gusts"
+            ]
+          },
+          {
+            "place": "Denton, TX",
+            "date": "2026-11-28",
+            "high_f": 71,
+            "low_f": 46,
+            "precip": "",
+            "precip_chance": 0,
+            "gust_mph": 43,
+            "source": "forecast",
+            "weather_code": 3,
+            "hazards": [
+              "gusts"
+            ]
+          }
+        ],
+        "hazards": [
+          "gusts"
+        ]
+      },
+      "weather_flags": [
+        "too cold at drop - low 44 F, would idle overnight"
+      ]
+    },
+    {
+      "board": "Direct Freight",
+      "origin": "Cross City, FL",
+      "origin_dh_mi": 117,
+      "destination": "Carrollton, MO",
+      "trip_mi": 1092,
+      "pickup_window": "Ships 11/27",
+      "drop_window": "",
+      "equipment": "F, SD",
+      "mode": "FULL",
+      "weight_lb": null,
+      "length_ft": null,
+      "posted_rate": 2349.6,
+      "rate_per_mi": 2.15,
+      "net_est": 1193.01,
+      "math": "Rate $2,349.60 x 0.87 = $2,044.15 after the 13% Totni fee ($305.45). Diesel $5.360/gal (EIA Lower Atlantic (PADD 1C) $5.378 + our pump premium -$0.018) at 8.0 mpg plus $0.034/mi DEF = $0.704/mi. Fuel $0.704 x 1,209 mi (loaded+empty) = $851.14. Net EST $1,193.01.",
+      "fit_flags": [
+        "weight not listed",
+        "full truckload with no size listed - likely a semi load, cannot haul on 40 ft hotshot",
+        "full truckload with no size listed - likely a semi load, cannot haul on 40 ft hotshot",
+        "too cold at drop - low 36 F, would idle overnight"
+      ],
+      "verdict": "PASS",
+      "same_day": false,
+      "bar": 500.0,
+      "total_mi": 1209,
+      "broker": "",
+      "broker_mc": "",
+      "broker_dot": "",
+      "load_number": "",
+      "notes": "",
+      "link": "https://www.directfreight.com",
+      "broker_email": "",
+      "broker_phone": "",
+      "looked_up": false,
+      "tarp": false,
+      "hours": 26.18,
+      "per_hour": 45.57,
+      "net_per_mile": 0.99,
+      "gross_per_mile": 1.94,
+      "days_span": 3,
+      "days": 3,
+      "net_per_day": 397.67,
+      "reason": "too cold at drop - low 36 F, would idle overnight.",
+      "fuel": {
+        "diesel_usd_gal": 5.36,
+        "diesel_eia_usd_gal": 5.378,
+        "pump_premium_usd_gal": -0.018,
+        "diesel_source": "EIA Lower Atlantic (PADD 1C) $5.378 + our pump premium -$0.018",
+        "diesel_region": "PADD1C",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.704,
+        "fallback": false
+      },
+      "base_verdict": "PASS",
+      "base_reason": "full truckload with no size listed - likely a semi load, cannot haul on 40 ft hotshot.",
+      "drop_low_f": 36,
+      "drop_low_source": "forecast",
+      "drop_low_date": "2026-11-29",
+      "drop_low_place": "Carrollton, MO",
+      "drop_wx_code": 61,
+      "drop_gust_mph": 26,
+      "route_wx": {
+        "summary": "Route: 34-59 F, rain Sat near Carrollton",
+        "points": [
+          {
+            "place": "Cross City, FL",
+            "date": "2026-11-27",
+            "high_f": 59,
+            "low_f": 44,
+            "precip": "",
+            "precip_chance": 1,
+            "gust_mph": 24,
+            "source": "forecast",
+            "weather_code": 3
+          },
+          {
+            "place": "Shorterville, AL",
+            "date": "2026-11-27",
+            "high_f": 57,
+            "low_f": 35,
+            "precip": "",
+            "precip_chance": 0,
+            "gust_mph": 27,
+            "source": "forecast",
+            "weather_code": 3
+          },
+          {
+            "place": "Adger, AL",
+            "date": "2026-11-27",
+            "high_f": 51,
+            "low_f": 35,
+            "precip": "",
+            "precip_chance": 1,
+            "gust_mph": 28,
+            "source": "forecast",
+            "weather_code": 3
+          },
+          {
+            "place": "Stanton, TN",
+            "date": "2026-11-28",
+            "high_f": 58,
+            "low_f": 34,
+            "precip": "",
+            "precip_chance": 2,
+            "gust_mph": 38,
+            "source": "forecast",
+            "weather_code": 3
+          },
+          {
+            "place": "Jadwin, MO",
+            "date": "2026-11-28",
+            "high_f": 56,
+            "low_f": 34,
+            "precip": "rain",
+            "precip_chance": 5,
+            "gust_mph": 24,
+            "source": "forecast",
+            "weather_code": 51
+          },
+          {
+            "place": "Carrollton, MO",
+            "date": "2026-11-28",
+            "high_f": 52,
+            "low_f": 36,
+            "precip": "rain",
+            "precip_chance": 68,
+            "gust_mph": 17,
+            "source": "forecast",
+            "weather_code": 55
+          }
+        ]
+      },
+      "weather_flags": [
+        "too cold at drop - low 36 F, would idle overnight"
+      ]
     },
     {
       "board": "Truckstop",
@@ -2492,6 +2779,149 @@
       },
       "weather_flags": [
         "too cold at drop - low 34 F, would idle overnight"
+      ]
+    },
+    {
+      "board": "Direct Freight",
+      "origin": "Hoboken, GA",
+      "origin_dh_mi": 77,
+      "destination": "Wagener, SC",
+      "trip_mi": 262,
+      "pickup_window": "Ships 11/30",
+      "drop_window": "",
+      "equipment": "F+T",
+      "mode": "FULL",
+      "weight_lb": null,
+      "length_ft": null,
+      "posted_rate": null,
+      "rate_per_mi": null,
+      "net_est": null,
+      "math": "",
+      "fit_flags": [
+        "weight not listed",
+        "informational only (no posted rate)",
+        "full truckload with no size listed - likely a semi load, cannot haul on 40 ft hotshot",
+        "full truckload with no size listed - likely a semi load, cannot haul on 40 ft hotshot",
+        "too cold at drop - low 42 F, would idle overnight",
+        "gusts 50+ mph on route"
+      ],
+      "verdict": "PASS",
+      "same_day": false,
+      "bar": 500.0,
+      "total_mi": 339,
+      "broker": "",
+      "broker_mc": "",
+      "broker_dot": "",
+      "load_number": "",
+      "notes": "",
+      "link": "https://www.directfreight.com",
+      "broker_email": "",
+      "broker_phone": "",
+      "looked_up": false,
+      "tarp": true,
+      "hours": 8.78,
+      "per_hour": null,
+      "net_per_mile": null,
+      "gross_per_mile": null,
+      "days_span": 1,
+      "days": 1,
+      "net_per_day": null,
+      "reason": "too cold at drop - low 42 F, would idle overnight.",
+      "fuel": {
+        "diesel_usd_gal": 5.36,
+        "diesel_eia_usd_gal": 5.378,
+        "pump_premium_usd_gal": -0.018,
+        "diesel_source": "EIA Lower Atlantic (PADD 1C) $5.378 + our pump premium -$0.018",
+        "diesel_region": "PADD1C",
+        "diesel_stop": null,
+        "mpg": 8.0,
+        "def_per_mi": 0.034,
+        "fuel_per_mi": 0.704,
+        "fallback": false
+      },
+      "base_verdict": "PASS",
+      "base_reason": "full truckload with no size listed - likely a semi load, cannot haul on 40 ft hotshot.",
+      "drop_low_f": 42,
+      "drop_low_source": "forecast",
+      "drop_low_date": "2026-12-01",
+      "drop_low_place": "Wagener, SC",
+      "drop_wx_code": 3,
+      "drop_gust_mph": 20,
+      "route_wx": {
+        "summary": "Route: 47-66 F, gusts 51 mph Mon near Wagener",
+        "points": [
+          {
+            "place": "Hoboken, GA",
+            "date": "2026-11-30",
+            "high_f": 66,
+            "low_f": 52,
+            "precip": "rain",
+            "precip_chance": 27,
+            "gust_mph": 37,
+            "source": "forecast",
+            "weather_code": 61
+          },
+          {
+            "place": "Odum, GA",
+            "date": "2026-11-30",
+            "high_f": 65,
+            "low_f": 50,
+            "precip": "rain",
+            "precip_chance": 44,
+            "gust_mph": 38,
+            "source": "forecast",
+            "weather_code": 61
+          },
+          {
+            "place": "Statesboro, GA",
+            "date": "2026-11-30",
+            "high_f": 64,
+            "low_f": 49,
+            "precip": "rain",
+            "precip_chance": 65,
+            "gust_mph": 45,
+            "source": "forecast",
+            "weather_code": 61,
+            "hazards": [
+              "gusts"
+            ]
+          },
+          {
+            "place": "Girard, GA",
+            "date": "2026-11-30",
+            "high_f": 65,
+            "low_f": 49,
+            "precip": "rain",
+            "precip_chance": 82,
+            "gust_mph": 44,
+            "source": "forecast",
+            "weather_code": 61,
+            "hazards": [
+              "gusts"
+            ]
+          },
+          {
+            "place": "Wagener, SC",
+            "date": "2026-11-30",
+            "high_f": 62,
+            "low_f": 47,
+            "precip": "rain",
+            "precip_chance": 88,
+            "gust_mph": 51,
+            "source": "forecast",
+            "weather_code": 63,
+            "hazards": [
+              "gusts"
+            ]
+          }
+        ],
+        "hazards": [
+          "gusts"
+        ]
+      },
+      "weather_flags": [
+        "too cold at drop - low 42 F, would idle overnight",
+        "gusts 50+ mph on route"
       ]
     }
   ]

@@ -1,6 +1,11 @@
 {
+<<<<<<< Updated upstream
   "state": "scoring",
   "pct": 85,
+=======
+  "state": "live",
+  "pct": 100,
+>>>>>>> Stashed changes
   "origin": "Jacksonville, FL",
   "started_at": "2026-11-27 01:10 CT",
   "updated_at": "2026-11-27 01:11 CT",
@@ -8,7 +13,13 @@
     "truckstop": 21,
     "df": 20,
     "uship": 0,
+<<<<<<< Updated upstream
     "fits": 0
   },
   "message": "Scoring loads"
+=======
+    "fits": 1
+  },
+  "message": "Loads are live"
+>>>>>>> Stashed changes
 }
