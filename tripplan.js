@@ -34,7 +34,6 @@
   var STOP_NEAR_MI = 15;       // truck stop counts as "on route" within this many miles of the line
   var GEO_KEY = 'blackram_trip_geo_v1';
   var ROUTE_KEY = 'blackram_trip_route_v1';
-  var TRUCK_AT_KEY = 'blackram_truck_at_v1';
   var DAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   var HR = 3600000;
 
@@ -283,11 +282,11 @@
 
   // ---------- build the stop list ----------
   function truckAt() {
-    var rec = lsGet(TRUCK_AT_KEY);
-    if (rec && isFinite(Number(rec.lat)) && isFinite(Number(rec.lon))) {
-      return { name: cityOnly(rec.label) || 'Truck location', coord: { lat: Number(rec.lat), lon: Number(rec.lon) }, truck: true };
-    }
-    return null;
+    // The one truck location (truckloc.js). A street typed into Truck is at stays a precise point on this phone.
+    var T = window.BlackRamTruck, t = T ? T.get() : null;
+    if (!t || t.lat == null) return null;
+    var pt = t.pt && t.pt.lat != null ? t.pt : null;
+    return { name: cityOnly(t.city) || 'Truck location', coord: { lat: Number(pt ? pt.lat : t.lat), lon: Number(pt ? pt.lon : t.lon) }, truck: true };
   }
   function buildStops(item, data, ref) {
     var start = truckAt();

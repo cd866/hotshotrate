@@ -113,7 +113,9 @@
         '<p class="td-now-sub">' + esc(lastTxt) + '</p>' +
         '<div class="td-btns"><button type="button" class="td-btn gold" data-td-go="searches">Find a load</button><button type="button" class="td-btn" data-td-go="check">Rate check</button></div>';
     }
-    return '<section class="td-card td-now" aria-label="Truck now"><h2 class="td-h">Truck now</h2>' + body + '</section>';
+    var T = window.BlackRamTruck, tl = T ? T.get() : null;
+    var locLine = tl ? '<p class="td-now-loc" aria-label="Truck location">' + esc(ascii(tl.tag)) + '</p>' : '';
+    return '<section class="td-card td-now" aria-label="Truck now"><h2 class="td-h">Truck now</h2>' + locLine + body + '</section>';
   }
 
   function alerts(f) {
@@ -404,6 +406,7 @@
       '.td-pill.td-good{background:var(--c-take-bg);color:var(--c-take)}.td-pill.td-warn{background:var(--c-maybe-bg);color:var(--c-maybe)}.td-pill.td-bad{background:rgba(248,113,113,.15);color:#FCA5A5}.td-pill.td-info{background:rgba(167,139,250,.16);color:var(--c-accent-hi)}.td-pill.td-muted{background:var(--c-pass-bg);color:var(--c-text-2)}' +
       '.td-now-top{display:flex;align-items:center;gap:var(--s-1);flex-wrap:wrap}.td-now-when{font-size:var(--fs-sm);font-weight:800;color:var(--c-text-2)}' +
       '.td-now-sub{margin:0;font-size:var(--fs-md);font-weight:800;color:var(--c-text-1)}' +
+      '.td-now-loc{margin:0 0 8px;font-size:var(--fs-sm);font-weight:800;color:var(--c-gold,#F2C94C)}' +
       '.td-lane{display:flex;align-items:center;gap:var(--s-1);font-size:var(--fs-lg);color:var(--c-text-1)}.td-lane i{flex:1;height:2px;background:linear-gradient(90deg,var(--c-accent),var(--c-gold));border-radius:2px;min-width:20px}' +
       '.td-now-kv{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s-1)}.td-now-kv span{font-size:11px;font-weight:700;color:var(--c-text-3);display:flex;flex-direction:column}.td-now-kv b{font-size:var(--fs-md);color:var(--c-text-1);font-weight:900;overflow-wrap:anywhere}' +
       '.td-btns{display:flex;gap:var(--s-1);flex-wrap:wrap}' +
@@ -475,6 +478,7 @@
     document.addEventListener('blackram:dot', soon);
     document.addEventListener('blackram:tax', soon);
     document.addEventListener('blackram:actions', soon);
+    document.addEventListener('blackram:truckloc', soon);
     /* the DOT and maintenance modules re-render their own roots when their JSON lands */
     ['dr-root', 'mt-root'].forEach(function (id) {
       var r = document.getElementById(id);

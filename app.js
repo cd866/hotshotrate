@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v118';
+  var APP_VERSION = 'v119';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -2778,7 +2778,6 @@
   var MILES_PER_DAY = 550;
   var HOS_HOURS_PER_DAY = 11;
   var MIN_NET_PER_DAY = 300;
-  var TRUCK_AT_KEY = 'blackram_truck_at_v1';
   var GEO_CACHE_KEY = 'blackram_geocode_cache_v1';
   var ROUTE_CACHE_KEY = 'blackram_route_cache_v1';
   var CIRCUITY = 1.2;
@@ -2963,7 +2962,7 @@
 
   function tripDaysForRow(row, nLoads) {
     if (!row) return null;
-    if (row.days_span != null && isFinite(Number(row.days_span)) && !state.truckAt) return Number(row.days_span);
+    if (row.days_span != null && isFinite(Number(row.days_span)) && !truckOverride()) return Number(row.days_span);
     return computeDaysSpan(row, nLoads);
   }
 
@@ -3035,7 +3034,7 @@
 
   function comboComputeDaysSpan(combo) {
     if (!combo) return null;
-    if (combo.days_span != null && isFinite(Number(combo.days_span)) && !state.truckAt) return Number(combo.days_span);
+    if (combo.days_span != null && isFinite(Number(combo.days_span)) && !truckOverride()) return Number(combo.days_span);
     var loads = combo.loads || [];
     var n = loads.length || 1;
     var needed = hosDaysFromMiles(combo.loaded_mi, combo.deadhead_mi, n);
@@ -3069,7 +3068,7 @@
   function rowNetPerDay(row, nLoads) {
     if (!row) return null;
     var days = rowDays(row, nLoads);
-    if (row.net_per_day != null && isFinite(Number(row.net_per_day)) && !state.truckAt && !nLoads) {
+    if (row.net_per_day != null && isFinite(Number(row.net_per_day)) && !truckOverride() && !nLoads) {
       // Prefer live math when days were recomputed.
     }
     var net = row.net_est;
@@ -3335,23 +3334,74 @@
     });
   }
 
-  function recallTruckAt() {
-    try {
-      var raw = localStorage.getItem(TRUCK_AT_KEY);
-      var rec = raw ? JSON.parse(raw) : null;
-      if (rec && isFinite(Number(rec.lat)) && isFinite(Number(rec.lon))) {
-        state.truckAt = { lat: Number(rec.lat), lon: Number(rec.lon), label: rec.label || '', source: rec.source || 'saved' };
-      }
-    } catch (err) { state.truckAt = null; }
+  // One truck location (truckloc.js, window.BlackRamTruck): a place Claudio set (weather chip, phone,
+  // Truck is at) stamped with its time, else the last delivered drop, else Jacksonville home. This keeps
+  // state.truckAt in step with it: { lat, lon, label, city, tag, source, src }. lat/lon are the precise
+  // point typed into Truck is at when there is one, else the city centroid.
+  function truckApi() { return window.BlackRamTruck || null; }
+  function syncTruckAt() {
+    var T = truckApi();
+    var t = T ? T.get() : null;
+    if (!t || t.lat == null) { state.truckAt = null; state.truckInfo = t || null; refreshTruckFuel(); return; }
+    var pt = t.pt && t.pt.lat != null ? t.pt : null;
+    state.truckInfo = t;
+    state.truckAt = {
+      lat: pt ? Number(pt.lat) : Number(t.lat),
+      lon: pt ? Number(pt.lon) : Number(t.lon),
+      label: (pt && pt.label) ? pt.label : t.city,
+      city: t.city,
+      tag: t.tag,
+      source: t.manual ? (t.source || 'set') : t.src,
+      src: t.src
+    };
+    refreshTruckFuel();
+  }
+  function recallTruckAt() { syncTruckAt(); }
+
+  // rec: { lat, lon, label, source: 'typed' | 'geo' } from the Truck is at box, or null to go back to
+  // the automatic location (last delivered drop).
+  function rememberTruckAt(rec) {
+    var T = truckApi();
+    if (!T) { state.truckAt = rec; refreshTruckFuel(); return Promise.resolve(); }
+    if (!rec) { T.clear(); syncTruckAt(); return Promise.resolve(); }
+    var c = T.cityOf(rec.label || '');
+    var city = c ? c.name + ', ' + c.st : String(rec.label || 'Truck location');
+    var pt = { lat: rec.lat, lon: rec.lon, label: rec.label || '' };
+    var src = 'truck-at';
+    // The shared and synced record is the city centroid; the exact point stays on this phone (pt).
+    var cityPt = c ? T.geocode(c) : Promise.reject(new Error('no city'));
+    return cityPt.catch(function () { return { lat: rec.lat, lon: rec.lon }; }).then(function (g) {
+      T.set({ city: city, lat: g.lat, lon: g.lon, pt: pt }, src);
+      syncTruckAt();
+    });
   }
 
-  function rememberTruckAt(rec) {
-    state.truckAt = rec;
-    refreshTruckFuel();
-    try {
-      if (rec) localStorage.setItem(TRUCK_AT_KEY, JSON.stringify(rec));
-      else localStorage.removeItem(TRUCK_AT_KEY);
-    } catch (err) { /* ignore */ }
+  // True when the truck is at the spot the loaded scan was made from (same deadhead numbers apply).
+  function truckIsScanOrigin() {
+    var tr = state.truckAt;
+    var so = scanOriginPoint();
+    if (!tr || !so) return false;
+    if (Math.abs(so.lat - tr.lat) < 0.02 && Math.abs(so.lon - tr.lon) < 0.02) return true;
+    // A scan made from the same city (its pin may be a different spot in that city) has the same deadhead.
+    if (tr.src !== 'manual' || !tr.label || tr.label === tr.city) {
+      if (so.label && tr.city && String(so.label).toLowerCase() === String(tr.city).toLowerCase()) return true;
+    }
+    // Home scans are made from the private home pin, labeled Home base (Jacksonville).
+    return /^Home base/i.test(String((state.searches && state.searches.origin) || '')) && String(tr.city || '') === 'Jacksonville, FL';
+  }
+  // True when the loaded scan has pickup coordinates, so deadhead can be redone from the truck.
+  function canRedoFromTruck() {
+    var rows = (state.searches && state.searches.loads) || [];
+    for (var i = 0; i < rows.length; i++) if (rows[i].origin_coord && rows[i].origin_coord.lat != null) return true;
+    return false;
+  }
+  // The place deadhead miles are measured from: the truck, or the scan origin when the scan cannot be redone.
+  function deadheadFromTruck() {
+    return !!state.truckAt && (truckIsScanOrigin() || canRedoFromTruck());
+  }
+  // The truck point when it differs from the scan origin (so deadhead, days and fuel are recomputed), else null.
+  function truckOverride() {
+    return state.truckAt && !truckIsScanOrigin() ? state.truckAt : null;
   }
 
   function scanOriginName() {
@@ -3453,7 +3503,10 @@
     state.truckFuel = null;
     var p = state.truckAt;
     if (!p || !state.dieselPrices) return;
-    var st = stateFromText(p.label || '');
+    // Fuel price follows the truck only when the place was typed into Truck is at (as before v119);
+    // the weather chip, a delivery or home do not change fuel, so net EST math stays the same.
+    if (p.src !== 'manual' || p.source !== 'truck-at') return;
+    var st = stateFromText(p.city || p.label || '');
     if (!st) return;
     state.truckFuel = fuelFromPrices(state.dieselPrices, st);
   }
@@ -4379,10 +4432,16 @@
     return data;
   }
 
-  function truckAtStatusText() {
+  // 'Truck: Jacksonville, FL (set 11/27)': the one truck location and where it came from.
+  function truckTagText() {
+    if (state.truckInfo && state.truckInfo.tag && state.truckAt) return state.truckInfo.tag;
     var p = currentTruckPoint();
-    var label = p && p.label ? p.label : scanOriginName();
-    var text = 'Deadhead from <strong>' + esc(label) + '</strong>';
+    return 'Truck: ' + (p && p.label ? p.label : scanOriginName()) + ' (scan origin)';
+  }
+
+  function truckAtStatusText() {
+    var label = truckTagText();
+    var text = '<strong>' + esc(label) + '</strong>' + (deadheadFromTruck() ? ' | deadhead and next load start here' : ' | this scan was made from ' + esc(scanOriginName()) + ' (pull fresh loads to start from the truck)');
     if (state.truckAtBusy) text += ' | updating miles...';
     if (state.truckAtError) text += ' | ' + esc(state.truckAtError);
     return text;
@@ -4517,7 +4576,7 @@
   }
 
   function renderTruckAt() {
-    var value = (state.truckAt && state.truckAt.label) || '';
+    var value = (state.truckAt && (state.truckAt.label || state.truckAt.city)) || '';
     var maxv = String(state.maxDeadhead || 0);
     var showMap = !!(state.truckAt && state.truckAt.lat != null);
     return '<div class="truck-at" id="truck-at">' +
@@ -4529,7 +4588,7 @@
         '</div>' +
         '<button type="submit" class="primary" id="truck-at-set">Set</button>' +
         '<button type="button" id="truck-at-geo">Use my location</button>' +
-        '<button type="button" id="truck-at-reset">Reset to scan origin</button>' +
+        '<button type="button" id="truck-at-reset">Use last drop</button>' +
       '</form>' +
       '<p class="truck-at-status" id="truck-at-status">' + truckAtStatusText() + '</p>' +
       '<div id="truck-at-map" class="truck-at-map"' + (showMap ? '' : ' hidden') + '></div>' +
@@ -4610,10 +4669,11 @@
 
   function setTruckFromRecord(rec, source) {
     if (!rec || rec.lat == null || rec.lon == null) return Promise.reject(new Error('Could not find that place.'));
-    rememberTruckAt({ lat: rec.lat, lon: rec.lon, label: rec.label || '', source: source || 'typed' });
-    state.truckAtError = '';
-    state.truckAtBusy = false;
-    return refreshDeadheads();
+    return rememberTruckAt({ lat: rec.lat, lon: rec.lon, label: rec.label || '', source: source || 'typed' }).then(function () {
+      state.truckAtError = '';
+      state.truckAtBusy = false;
+      return refreshDeadheads();
+    });
   }
 
   function setTruckFromQuery(q) {
@@ -4647,9 +4707,10 @@
     }
     navigator.geolocation.getCurrentPosition(function (pos) {
       reverseGeocode(pos.coords.latitude, pos.coords.longitude).then(function (rec) {
-        rememberTruckAt({ lat: rec.lat, lon: rec.lon, label: rec.label, source: 'geo' });
-        state.truckAtBusy = false;
-        return refreshDeadheads();
+        return rememberTruckAt({ lat: rec.lat, lon: rec.lon, label: rec.label, source: 'geo' }).then(function () {
+          state.truckAtBusy = false;
+          return refreshDeadheads();
+        });
       });
     }, function () {
       state.truckAtBusy = false;
@@ -4676,7 +4737,7 @@
       return Promise.resolve();
     }
     var same = scanOriginPoint();
-    var close = same && Math.abs(same.lat - truck.lat) < 0.02 && Math.abs(same.lon - truck.lon) < 0.02 && !state.truckAt;
+    var close = !!same && truckIsScanOrigin();
     if (close) {
       state.scoredSearches = applyLocalScoring(data);
       if (state.tab === 'searches') renderSearches();
@@ -5559,7 +5620,7 @@
   }
 
   function searchOriginLabel() {
-    if (state.truckAt && state.truckAt.label) return String(state.truckAt.label);
+    if (deadheadFromTruck()) return String(state.truckAt.city || state.truckAt.label);
     var o = state.searches && state.searches.origin;
     o = o ? String(o).replace(/\s*\(.*\)\s*$/, '') : '';
     return o || 'truck';
@@ -6559,7 +6620,7 @@
     var scanDt = parseScanStamp(String((state.searches && (state.searches.scanned_at || state.searches.as_of)) || ''));
     var year = scanDt ? scanDt.getFullYear() : new Date().getFullYear();
     var waits = comboWaits(stops, year);
-    var startName = (state.truckAt && state.truckAt.label) ? state.truckAt.label : searchOriginLabel();
+    var startName = searchOriginLabel();
     var html = '<ol class="cc-tl" aria-label="Trip timeline">';
     html += '<li class="cc-stop cc-first"><span class="cc-dot cc-start">S</span>' +
       '<div class="cc-stop-main"><div class="cc-place">' + esc(startName) + '</div>' +
@@ -6851,8 +6912,8 @@
       renderConnectPanel() +
       toolFold('pull', 'Pull fresh loads', getRelayPin() ? 'New board scan from GPS or a city' : 'PIN needed',
         state.freshPullBusy || !!state.freshPullStatus || pullIsActive(state.pullStatus || {}), renderFreshPull()) +
-      toolFold('truck', 'Truck location', (state.truckAt && state.truckAt.label) ? state.truckAt.label : ('Deadhead from ' + searchOriginLabel()),
-        !!(state.truckAt && state.truckAt.lat != null), renderTruckAt());
+      toolFold('truck', 'Truck location', truckTagText(),
+        !!(state.truckAt && state.truckAt.lat != null && state.truckAt.src === 'manual'), renderTruckAt());
   }
 
   function bindSearchRefresh() {
@@ -7101,6 +7162,10 @@
           (data.origin ? ' / ' + esc(data.origin) : '') +
           (state.searchOffline ? ' / offline copy' : '') + '</p></div>' +
         freshnessBar +
+        '<p class="truck-loc-line" id="truck-loc-line"><strong>' + esc(truckTagText()) + '</strong>' +
+          '<span>' + (deadheadFromTruck()
+            ? ' | next load, deadhead and combos start here' + (truckIsScanOrigin() ? '' : ' (miles redone from the truck)')
+            : ' | this scan was made from ' + esc(scanOriginName()) + ', so its miles start there. Pull fresh loads to start from the truck.') + '</span></p>' +
         '<div class="search-counts chip-row" role="group" aria-label="Filter load boards by verdict">' +
           countTile('all', 'All', counts.total || 0) +
           countTile('take', 'Take', counts.take || 0) +
@@ -8396,6 +8461,13 @@
     bindDeliverSheet();
     bindCompareSheet();
     recallTruckAt();
+    // The truck location changed (set on the weather chip or Truck is at, synced from the relay, or a
+    // delivery moved it): redo deadhead, origin labels and combos from the new spot.
+    document.addEventListener('blackram:truckloc', function () {
+      syncTruckAt();
+      if (state.searches) refreshDeadheads();
+      else if (state.tab === 'searches') renderSearches();
+    });
     watchTabbar();
     bindRigPhoto();
     bindRigDiagram();

@@ -6047,3 +6047,7 @@ body .search-actions .trip-plan-btn::after {
 .bd-red { color: #FCA5A5; }
 .bd-amb { color: var(--c-maybe); }
 .fin-refresh-msg.fin-refresh-login { color: var(--warn, #e0a030); font-weight: 700; }
+
+/* v119: the one truck location line on Load Boards */
+.truck-loc-line{margin:0 0 var(--s-2,8px);font-size:var(--fs-sm,13px);font-weight:700;color:var(--c-text-2)}
+.truck-loc-line strong{color:var(--c-gold,#F2C94C);font-weight:900}

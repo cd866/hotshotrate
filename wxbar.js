@@ -1,18 +1,13 @@
-/* Black Ram Logistics - appbar weather chip (v105, location picker).
+/* Black Ram Logistics - appbar weather chip (v105 location picker, v119 one truck location).
    Shows current weather for the truck's city next to the last-pull time. Tap for a small
    sheet: today's high/low, wind, rain chance, overnight low with the 45 F cold note, and a
-   city search to set the truck city the chip uses.
-   Auto truck city (city level only, never GPS or a street address), best source first:
-     1. load in transit  -> its drop city ("en route")
-     2. load booked      -> last delivered drop (the truck is still there until pickup)
-     3. last delivered load's drop city
-     4. base: Jacksonville, FL
-   A city picked in the sheet is saved in localStorage (blackram_wxloc_v1) and wins until
-   "Use truck location" clears it. Home sets Jacksonville, FL (base centroid) in one tap.
-   "Use my phone location" is opt-in only: the point is
-   reverse-looked-up to the nearest city and stored as City, ST (centroid), never a pin.
-   This override is only for the weather chip. It does not change Rate Check "Truck is at"
-   (deadhead / fuel) or the Today "Truck now" load card.
+   city search to set the truck city.
+   The truck city is the ONE truck location from truckloc.js (window.BlackRamTruck): what you set here
+   (city search, Home, phone location) is the truck's location everywhere in the app (next-load origin,
+   deadhead, combos, trip plan) and is mirrored to the relay for the scan scripts. A later delivery
+   moves it to that drop; "Use truck location" clears the set so the last delivered drop applies.
+   City level only (never GPS or a street address). "Use my phone location" is opt-in only: the point
+   is reverse-looked-up to the nearest city and stored as City, ST (centroid), never a pin.
    Coordinates are a city centroid (rounded to 2 decimals). Weather is Open-Meteo, fetched
    from the phone (no key), cached 30 min in localStorage. The service worker ignores
    cross-origin requests, so Open-Meteo is never cached there. Offline: "WX n/a".
@@ -25,7 +20,6 @@
   var STALE_MAX = 6 * 3600000;   /* show an older copy offline, labeled, up to 6 h */
   var KEY = 'blackram_wxbar_v1';
   var GEO_KEY = 'blackram_wxgeo_v1';
-  var OVR_KEY = 'blackram_wxloc_v1';
   var COLD_F = 45;
   var BASE = { city: 'Jacksonville, FL', lat: 30.33, lon: -81.66, src: 'base' };
   var STATES = 'AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY';
@@ -35,19 +29,7 @@
     for (k in STATE_NAME) if (STATE_NAME.hasOwnProperty(k)) m[STATE_NAME[k]] = k;
     return m;
   })();
-  var NOISE = /^(UR|Equipment|EquipmentShare|Containers|Cargo|Rentals|Yard|Mfg|Supply|Elec|Taller|Technologies|STT|Tag|Near|BUILTEC|Stribling|Con|Global|United)$/;
-  /* City centroids (2 decimals) for cities on our lanes. Others use the Open-Meteo geocoder. */
-  var CITY = {
-    'jacksonville, fl': [30.33, -81.66], 'graceville, fl': [30.96, -85.52], 'tallahassee, fl': [30.44, -84.28],
-    'pensacola, fl': [30.42, -87.22], 'medley, fl': [25.84, -80.33], 'panama city beach, fl': [30.18, -85.81],
-    'fernandina beach, fl': [30.67, -81.46], 'port wentworth, ga': [32.15, -81.17], 'albany, ga': [31.58, -84.16],
-    'pooler, ga': [32.12, -81.25], 'chattanooga, tn': [35.05, -85.31], 'memphis, tn': [35.15, -90.05],
-    'southaven, ms': [34.99, -90.01], 'springfield, mo': [37.21, -93.29], 'kansas city, mo': [39.10, -94.58],
-    'trenton, tx': [33.43, -96.34], 'houston, tx': [29.76, -95.37], 'orlando, fl': [28.54, -81.38],
-    'tampa, fl': [27.95, -82.46], 'miami, fl': [25.76, -80.19], 'savannah, ga': [32.08, -81.09],
-    'atlanta, ga': [33.75, -84.39], 'dallas, tx': [32.78, -96.80], 'birmingham, al': [33.52, -86.80],
-    'mobile, al': [30.69, -88.04], 'new orleans, la': [29.95, -90.07], 'nashville, tn': [36.16, -86.78]
-  };
+  function T() { return window.BlackRamTruck || null; }
   var st = { loc: null, wx: null, busy: false, timer: null, open: false, gen: 0, searchTimer: null, hits: [], geoBusy: false };
 
   function $(id) { return document.getElementById(id); }
@@ -79,88 +61,31 @@
       manual: !!manual
     };
   }
-  function readOverride() {
-    var o = lsGet(OVR_KEY);
-    if (o && o.city && isFinite(Number(o.lat)) && isFinite(Number(o.lon))) {
-      return asLoc(o.city, o.lat, o.lon, o.src || 'set by you', true);
-    }
-    return null;
-  }
-
   /* ---------- truck city ---------- */
-  /* City and state only, never a street address. */
-  function cityOf(s) {
-    s = ascii(s);
-    var paren = s.match(/\(([^)]*)\)/);
-    var parts = [];
-    if (paren) parts.push(paren[1]);
-    parts.push(s.replace(/\([^)]*\)/g, ' '));
-    var re = new RegExp('(?:^|[ ,])([A-Za-z.\' ]+?)[ ,]+(' + STATES + ')(?:\\s+\\d{5})?\\s*$');
-    for (var i = 0; i < parts.length; i++) {
-      var segs = parts[i].split(',');
-      for (var j = segs.length - 1; j >= 0; j--) {
-        var m = segs[j].trim().match(re);
-        if (m) {
-          var w = m[1].trim().split(/\s+/).filter(function (x) { return !/\d/.test(x); });
-          while (w.length > 1 && NOISE.test(w[0])) w.shift();
-          if (w.length > 3) w = w.slice(-3);
-          if (w.length && !NOISE.test(w[w.length - 1])) return { name: w.join(' '), st: m[2] };
-        }
-      }
-    }
-    return null;
-  }
-  function resolved(l) { var a = A(); return a.withResolvedStatus ? a.withResolvedStatus(l) : l; }
-  function dropDate(l) { return String(l.delivered_date || l.delivery_date || l.date || '').slice(0, 10); }
-  function pickCity() {
-    var f = A().getFeed ? A().getFeed() : null;
-    if (!f) return null;
-    var all = [];
-    (f.months || []).forEach(function (m) { (m.loads || []).forEach(function (l) { all.push(resolved(l)); }); });
-    var live = all.filter(function (l) { return l.status === 'in_transit'; });
-    var booked = all.filter(function (l) { return l.status === 'booked'; });
-    var done = all.filter(function (l) { return l.status === 'delivered'; })
-      .sort(function (a, b) { return dropDate(a) < dropDate(b) ? 1 : -1; });
-    var c;
-    if (live.length) { c = cityOf(live[0].drop_place || live[0].lane); if (c) return { c: c, src: 'en route: drop city of the load in transit' }; }
-    if (done.length) {
-      c = cityOf(done[0].drop_place || done[0].lane);
-      if (c) return { c: c, src: (booked.length ? 'last drop (next load is booked, truck is still there)' : 'last delivered drop') + (dropDate(done[0]) ? ', ' + dropDate(done[0]) : '') };
-    }
-    if (booked.length) { c = cityOf(booked[0].pickup_place || booked[0].lane); if (c) return { c: c, src: 'pickup city of the booked load' }; }
-    return null;
-  }
-  function geocode(c) {
-    var key = (c.name + ', ' + c.st).toLowerCase();
-    if (CITY[key]) return Promise.resolve({ lat: CITY[key][0], lon: CITY[key][1] });
-    var cache = lsGet(GEO_KEY) || {};
-    if (cache[key]) return Promise.resolve(cache[key]);
-    var url = 'https://geocoding-api.open-meteo.com/v1/search?name=' + encodeURIComponent(c.name) + '&count=10&language=en&format=json&countryCode=US';
-    return fetch(url).then(function (r) { if (!r.ok) throw new Error('geo'); return r.json(); }).then(function (j) {
-      var hit = ((j && j.results) || []).filter(function (x) { return x.admin1 === STATE_NAME[c.st]; })[0];
-      if (!hit) throw new Error('nogeo');
-      var v = { lat: Math.round(hit.latitude * 100) / 100, lon: Math.round(hit.longitude * 100) / 100 };
-      cache[key] = v; lsSet(GEO_KEY, cache);
-      return v;
-    });
+  /* City and state only, never a street address. Parsing, centroids and the geocoder live in truckloc.js. */
+  function cityOf(s) { return T() ? T().cityOf(s) : null; }
+  function geocode(c) { return T() ? T().geocode(c) : Promise.reject(new Error('no truck module')); }
+  function toChipLoc(t) {
+    return { city: t.city, lat: t.lat, lon: t.lon, src: t.why, manual: t.manual };
   }
   function locate() {
-    var o = readOverride();
-    if (o) return Promise.resolve(o);
-    var p = pickCity();
-    if (!p) return Promise.resolve(st.useBase || (A().getFeed && A().getFeed()) ? BASE : null);
-    var label = p.c.name + ', ' + p.c.st;
-    return geocode(p.c).then(function (g) {
-      return { city: label, lat: g.lat, lon: g.lon, src: p.src };
-    }).catch(function () { return { city: BASE.city, lat: BASE.lat, lon: BASE.lon, src: 'base (could not place ' + label + ')' }; });
+    var tr = T();
+    if (!tr) return Promise.resolve(null);
+    var t = tr.get();
+    /* no feed yet and nothing set: wait for the feed (or the 6 s base fallback in build()) */
+    if (!t.manual && !t.feed && !st.useBase) return Promise.resolve(null);
+    return tr.ensure().then(function (g) {
+      if (g.lat == null) return { city: BASE.city, lat: BASE.lat, lon: BASE.lon, src: 'base (could not place ' + g.city + ')', manual: false };
+      return toChipLoc(g);
+    });
   }
 
   /* ---------- manual city override (chip only) ---------- */
   function clearWxCache() { lsDel(KEY); }
-  function setOverride(loc) {
-    if (!loc || !loc.city || !isFinite(Number(loc.lat)) || !isFinite(Number(loc.lon))) return;
+  function setOverride(loc, source) {
+    if (!loc || !loc.city || !isFinite(Number(loc.lat)) || !isFinite(Number(loc.lon)) || !T()) return;
     var rec = asLoc(loc.city, loc.lat, loc.lon, loc.src || 'set by you', true);
-    lsSet(OVR_KEY, { city: rec.city, lat: rec.lat, lon: rec.lon, src: rec.src });
+    T().set({ city: rec.city, lat: rec.lat, lon: rec.lon }, source || 'weather');
     clearWxCache();
     st.loc = rec;
     st.wx = null;
@@ -170,7 +95,7 @@
     refresh(true);
   }
   function clearOverride() {
-    lsDel(OVR_KEY);
+    if (T()) T().clear();
     clearWxCache();
     st.wx = null;
     setHits([]);
@@ -182,7 +107,7 @@
     return !!(loc && loc.city === BASE.city && Math.abs(loc.lat - BASE.lat) < 0.02 && Math.abs(loc.lon - BASE.lon) < 0.02);
   }
   function setHome() {
-    setOverride(asLoc(BASE.city, BASE.lat, BASE.lon, 'home (Jacksonville, FL)', true));
+    setOverride(asLoc(BASE.city, BASE.lat, BASE.lon, 'home (Jacksonville, FL)', true), 'home');
   }
   var HOME_ICO = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4.2l8.5 7.3"/><path d="M6 10.5V20h12v-9.5"/><path d="M10 20v-6h4v6"/></g></svg>';
   function hitFromGeo(r, wantSt) {
@@ -306,7 +231,7 @@
     navigator.geolocation.getCurrentPosition(function (pos) {
       reverseToCity(pos.coords.latitude, pos.coords.longitude).then(function (loc) {
         st.geoBusy = false;
-        setOverride(loc);
+        setOverride(loc, 'phone');
         setLocMsg('');
       }).catch(function () {
         st.geoBusy = false;
@@ -590,6 +515,8 @@
     }
     chip.addEventListener('click', openSheet);
     document.addEventListener('blackram:data', function (e) { if (!e.detail || e.detail.kind === 'feed') refresh(false); });
+    /* the truck location changed somewhere else (relay sync, a delivery, Truck is at): follow it */
+    document.addEventListener('blackram:truckloc', function () { refresh(true); });
     document.addEventListener('visibilitychange', function () { if (!document.hidden) refresh(false); });
     window.addEventListener('online', function () { refresh(true); });
     st.timer = setInterval(function () { if (!document.hidden) refresh(false); }, TTL);
