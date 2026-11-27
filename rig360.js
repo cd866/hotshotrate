@@ -63,6 +63,15 @@
      button exits). Default framing still fits the truck + 40 ft trailer.
      Landing gear is raised (feet off the ground) when the trailer is
      hitched in Rig 360, and down (pads on the ground) in Trailer view.
+   - v145: tighter stage so a phone can scroll (phone ~48vh max 420px,
+     desktop ~60vh max 620px). Single-finger drags scroll the page;
+     orbit is two-finger, a tap to arm, or fullscreen. Wheel zooms only
+     when the canvas is focused or Ctrl is held. Floor shadows refit
+     the light's camera to each view, with a sensible mapSize, bias and
+     PCF soft shadows, plus contact blobs under the tires and down jack
+     pads. Toolbox / part buttons move the camera to the part and keep
+     it there (no auto-return, no auto-spin); Reset view animates back
+     to the default framing.
    Units in the model are feet. x = length (truck front +x), y = up, z = width. */
 (function () {
   'use strict';
@@ -132,7 +141,7 @@
 
     hint = document.createElement('div');
     hint.className = 'r360-hint';
-    hint.textContent = 'Drag to orbit';
+    hint.textContent = 'Tap to orbit · two fingers to pinch';
     stage.appendChild(hint);
 
     var saved = null;
@@ -233,23 +242,47 @@
       if (!o.isMesh) return;
       [].concat(o.material).forEach(function (m) { if (m && m.envMapIntensity !== undefined && m.envMapIntensity !== 1 && !m.envMap) { m.envMap = scene.environment; m.needsUpdate = true; } });
     });
-    var shadowLight = new THREE.DirectionalLight(0xffffff, 0.35);
-    shadowLight.position.set(2, 40, 3);
+    var shadowLight = new THREE.DirectionalLight(0xffffff, 0.32);
+    shadowLight.position.set(8, 42, 10);
     shadowLight.target.position.set(0, 0, 0);
     shadowLight.castShadow = true;
-    shadowLight.shadow.mapSize.set(2048, 512);
-    shadowLight.shadow.camera.left = -36; shadowLight.shadow.camera.right = 36;
-    shadowLight.shadow.camera.top = 9; shadowLight.shadow.camera.bottom = -9;
-    shadowLight.shadow.camera.near = 20; shadowLight.shadow.camera.far = 60;
-    shadowLight.shadow.radius = 6;
-    shadowLight.shadow.bias = -0.0008;
+    shadowLight.shadow.mapSize.set(2048, 2048);
+    shadowLight.shadow.camera.left = -40; shadowLight.shadow.camera.right = 40;
+    shadowLight.shadow.camera.top = 12; shadowLight.shadow.camera.bottom = -12;
+    shadowLight.shadow.camera.near = 10; shadowLight.shadow.camera.far = 90;
+    shadowLight.shadow.radius = 4.5;
+    shadowLight.shadow.bias = -0.0003;
+    shadowLight.shadow.normalBias = 0.04;
     turntable.add(shadowLight, shadowLight.target);
-    var catcher = new THREE.Mesh(new THREE.PlaneGeometry(80, 24), new THREE.ShadowMaterial({ opacity: 0.42, depthWrite: false }));
+    var catcher = new THREE.Mesh(new THREE.PlaneGeometry(110, 36), new THREE.ShadowMaterial({ opacity: 0.38, depthWrite: false }));
     catcher.rotation.x = -Math.PI / 2;
-    catcher.position.y = 0.012;
+    catcher.position.y = 0.008;
     catcher.receiveShadow = true;
     catcher.renderOrder = 0;
     turntable.add(catcher);
+    function isSmallShadowMap() {
+      return window.innerWidth < 768 || (Math.min(window.innerWidth, window.innerHeight) <= 500);
+    }
+    function fitShadowCam() {
+      var t = subject === 'trailer', k = subject === 'truck';
+      var halfL = t ? 30 : k ? 16 : 40;
+      var halfW = 11;
+      var cam = shadowLight.shadow.camera;
+      cam.left = -halfL; cam.right = halfL;
+      cam.top = halfW; cam.bottom = -halfW;
+      cam.near = 10; cam.far = 90;
+      cam.updateProjectionMatrix();
+      var map = isSmallShadowMap() ? 1024 : 2048;
+      var sh = shadowLight.shadow;
+      if (sh.mapSize.x !== map || sh.mapSize.y !== map) {
+        sh.mapSize.set(map, map);
+        if (sh.map) { sh.map.dispose(); sh.map = null; }
+      }
+      sh.bias = -0.0003;
+      sh.normalBias = 0.04;
+      sh.radius = isSmallShadowMap() ? 3 : 4.5;
+      renderer.shadowMap.needsUpdate = true;
+    }
     var floor = buildFloor(THREE);
     scene.add(floor);
 
@@ -317,18 +350,46 @@
       update();
     }
 
-    function resetZoom() {
-      if (inspectOrbiting()) {
-        zoom = 1; iPanX = 0; iPanY = 0; iVelY = 0; iVelE = 0;
-        syncInspectOrbitFromPose();
+    function resetZoom() { resetView(false); }
+    function resetView(animate) {
+      if (typeof setOrbitArmed === 'function') setOrbitArmed(false);
+      camHold = null;
+      velocity = 0; elevVel = 0; iVelY = 0; iVelE = 0;
+      var toAng = -0.62;
+      if (!animate || reduceMotion) {
+        anim = null;
+        inspectKind = null;
+        inspectOpen = 0;
+        applyPartPose(0);
+        angle = toAng;
+        zoom = 1; panX = 0; panY = 0; ELEV = ELEV0;
         lastInput = performance.now();
-        applyInspectOrbit(); render(); update();
+        setInspectAttr();
+        if (typeof updatePartButtons === 'function') updatePartButtons();
+        applyCamera(); render(); update();
+        renderer.shadowMap.needsUpdate = true;
         return;
       }
-      if (inspectKind) closeInspect(true);
-      zoom = 1; panX = 0; panY = 0; ELEV = ELEV0; elevVel = 0;
-      lastInput = performance.now();
-      applyCamera(); render(); update();
+      var fromLook;
+      if (inspectKind) {
+        fromLook = inspectOrbiting() ? currentInspectLook() : inspectPose(inspectKind, angle).look;
+      } else {
+        fromLook = currentLookAt();
+      }
+      anim = {
+        kind: 'resetView',
+        start: performance.now(), dur: 600,
+        from: inspectOpen, to: 0,
+        fromCam: camera.position.clone(),
+        fromLook: fromLook,
+        fromAng: angle, toAng: toAng,
+        fromZoom: zoom, fromPanX: panX, fromPanY: panY, fromElev: ELEV,
+        fromOpen: inspectOpen,
+        opening: false
+      };
+      lastInput = 1e15;
+      setInspectAttr();
+      update();
     }
 
     // Tailgate / toolbox inspect: open the part, ease the camera, pause auto-spin.
@@ -369,7 +430,7 @@
         upAxis.z * panY + Math.cos(ELEV) * d
       );
     }
-    function inspectOrbiting() { return !!(inspectKind && inspectOpen > 0.99 && !anim); }
+    function inspectOrbiting() { return !!(inspectKind && !anim); }
     function defaultInspectOrbit(kind) {
       var pose = inspectPose(kind, inspectPose(kind, 0).angle);
       var dx = pose.cam.x - pose.look.x, dy = pose.cam.y - pose.look.y, dz = pose.cam.z - pose.look.z;
@@ -489,14 +550,12 @@
       var from = inspectOpen;
       var to = opening ? 1 : 0;
       var fromAng = angle;
-      var toAng = opening ? inspectPose(kind, 0).angle : (anim && anim.restAngle != null ? anim.restAngle : angle);
-      // When opening, remember the view to restore; when closing, restore it.
-      var rest;
-      if (opening) {
+      var toAng = opening ? inspectPose(kind, 0).angle : angle;
+      // Remember the default orbit only so Reset view can return to it.
+      // Closing a part now keeps the camera on the part (v145).
+      var rest = (anim && anim.rest) || { angle: angle, zoom: zoom, panX: panX, panY: panY, elev: ELEV };
+      if (opening && !(inspectKind && inspectOpen > 0.2)) {
         rest = { angle: angle, zoom: zoom, panX: panX, panY: panY, elev: ELEV };
-      } else {
-        rest = (anim && anim.rest) || { angle: angle, zoom: 1, panX: 0, panY: 0, elev: ELEV0 };
-        toAng = rest.angle;
       }
       inspectKind = kind || inspectKind;
       var fromCam = camera.position.clone();
@@ -522,40 +581,49 @@
       applyPartPose(inspectOpen);
       var ang = anim.fromAng + wrapDelta(anim.fromAng, anim.toAng) * e;
       angle = ang;
-      if (anim.opening) {
-        applyInspectCamera(e, anim.fromAng, anim.toAng, anim.fromCam, anim.fromLook);
-      } else {
-        // lerp inspect camera back to the saved orbit view
-        zoom = anim.rest.zoom;
-        panX = anim.rest.panX;
-        panY = anim.rest.panY;
-        ELEV = anim.rest.elev;
-        var destCam = currentCamPos(), destLook = currentLookAt();
-        camera.position.copy(anim.fromCam).lerp(destCam, e);
-        _look.copy(anim.fromLook).lerp(destLook, e);
+      if (anim.kind === 'resetView') {
+        inspectOpen = anim.fromOpen * (1 - e);
+        applyPartPose(inspectOpen);
+        angle = anim.fromAng + wrapDelta(anim.fromAng, anim.toAng) * e;
+        zoom = anim.fromZoom + (1 - anim.fromZoom) * e;
+        panX = anim.fromPanX * (1 - e);
+        panY = anim.fromPanY * (1 - e);
+        ELEV = anim.fromElev + (ELEV0 - anim.fromElev) * e;
+        var destCamR = currentCamPos(), destLookR = currentLookAt();
+        camera.position.copy(anim.fromCam).lerp(destCamR, e);
+        _look.copy(anim.fromLook).lerp(destLookR, e);
         camera.lookAt(_look);
         camera.updateProjectionMatrix();
+      } else if (anim.opening) {
+        applyInspectCamera(e, anim.fromAng, anim.toAng, anim.fromCam, anim.fromLook);
+      } else {
+        // v145: lid / part animates closed, camera stays on the part.
+        if (inspectKind) applyInspectOrbit();
       }
       if (u >= 1) {
-        if (!anim.opening) {
+        if (anim.kind === 'resetView') {
           inspectKind = null;
           inspectOpen = 0;
           applyPartPose(0);
-          angle = anim.rest.angle;
-          zoom = anim.rest.zoom;
-          panX = anim.rest.panX;
-          panY = anim.rest.panY;
-          ELEV = anim.rest.elev;
-          lastInput = performance.now(); // auto-spin resumes after idle
+          angle = anim.toAng;
+          zoom = 1; panX = 0; panY = 0; ELEV = ELEV0;
+          lastInput = performance.now();
           applyCamera();
+          if (typeof updatePartButtons === 'function') updatePartButtons();
+        } else if (!anim.opening) {
+          inspectOpen = 0;
+          applyPartPose(0);
+          lastInput = 1e15; // stay put; no auto-spin
+          if (inspectKind) applyInspectOrbit();
         } else {
           inspectOpen = 1;
           syncInspectOrbitFromPose();
           applyInspectOrbit();
-          lastInput = performance.now();
+          lastInput = 1e15; // stay on the part; no auto-rotate
         }
         anim = null;
         setInspectAttr();
+        renderer.shadowMap.needsUpdate = true;
       }
     }
     function toggleInspect(kind) {
@@ -629,14 +697,15 @@
       else if (inspectKind && inspectOpen > 0.5 && !anim) applyInspectCamera(1, angle, angle, camera.position, currentLookAt());
       else if (camHold) applyHeldCam();
       else applyCamera();
+      fitShadowCam();
     }
 
     function wantsLoop() {
       if (mode !== '360' || !onScreen || document.hidden) return false;
-      if (anim || inspectKind) return true;
-      if (dragging || held) return true;
+      if (anim || dragging || held) return true;
       if (!reduceMotion && (Math.abs(velocity) > 0.002 || Math.abs(elevVel) > 0.002 || Math.abs(iVelY) > 0.002 || Math.abs(iVelE) > 0.002)) return true;
-      if (!reduceMotion) return true; // auto-spin, including while zoomed, panned or tilted
+      // Auto-spin only in the default orbit, never while a part is in focus.
+      if (!reduceMotion && !inspectKind) return true;
       return false;
     }
 
@@ -687,10 +756,7 @@
           else iVelY = 0;
           if (Math.abs(iVelE) > 0.002) { iElev += iVelE * dt; iVelE *= Math.pow(0.04, dt); }
           else iVelE = 0;
-          if (iVelY === 0 && iVelE === 0 && performance.now() - lastInput > IDLE_RESUME_MS) {
-            var ramp = Math.min(1, (performance.now() - lastInput - IDLE_RESUME_MS) / 1200);
-            iYaw += autoSpeed * ramp * dt;
-          }
+          // v145: no auto-rotate while focused on a part
           applyInspectOrbit();
         } else if (!inspectKind) {
           if (Math.abs(velocity) > 0.002) {
@@ -726,22 +792,38 @@
       }
     }
 
-    // One finger / mouse drag orbits (yaw + tilt) with inertia. Two fingers
-    // pinch to zoom and pan. Double-tap (or double-click) resets the view.
-    // touch-action: none so a vertical drag can tilt. Same controls apply
-    // while the tailgate or toolbox is open (camera orbits the part).
+    // v145: a single finger on the canvas scrolls the page. Orbit needs two
+    // fingers, a tap to arm the canvas first, or fullscreen (where one-finger
+    // orbit and pinch zoom always work). Mouse drag still orbits. Double-tap
+    // or Reset view returns to the default framing.
     var pts = {};
     var pinch = null;
     var lastTap = 0, lastTapX = 0, lastTapY = 0;
+    var orbitArmed = false;
     function count() { return Object.keys(pts).length; }
     function pinchState() {
       var k = Object.keys(pts), a = pts[k[0]], b = pts[k[1]];
       return { d: Math.max(10, Math.hypot(a.x - b.x, a.y - b.y)), x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
     }
+    function touchOrbitOn() {
+      return orbitArmed || stage.classList.contains('is-fs') ||
+        !!(document.fullscreenElement || document.webkitFullscreenElement);
+    }
+    function setOrbitArmed(on) {
+      orbitArmed = !!on;
+      stage.classList.toggle('is-orbit', orbitArmed);
+      if (hint) hint.textContent = orbitArmed ? 'Drag to orbit' : 'Tap to orbit · two fingers to pinch';
+      if (orbitArmed) {
+        stage.setAttribute('data-r360-touched', '1');
+        try { stage.focus({ preventScroll: true }); } catch (e) { try { stage.focus(); } catch (e2) { /* ignore */ } }
+      }
+    }
     var panDrag = false; // mouse right / middle / shift drag pans instead of orbiting
     // v130: the toggle and part buttons cover a big part of the small stage,
-    // so a drag that starts on them still orbits (a tap still clicks them).
+    // so a drag that starts on them still orbits (a tap still clicks them)
+    // once the canvas is armed or in fullscreen.
     var ctlPending = {};
+    try { stage.tabIndex = 0; } catch (e) { /* ignore */ }
     function down(ev) {
       if (mode !== '360') return;
       if (ev.target.closest && ev.target.closest('.r360-zoom, .r360-pad, .r360-zreset, .r360-fs, .r360-card')) return;
@@ -749,8 +831,34 @@
         ctlPending[ev.pointerId] = { x: ev.clientX, y: ev.clientY };
         return;
       }
+      var isTouch = ev.pointerType === 'touch' || ev.pointerType === 'pen';
+      if (isTouch && !touchOrbitOn()) {
+        pts[ev.pointerId] = { x: ev.clientX, y: ev.clientY, pending: true };
+        if (count() >= 2) {
+          Object.keys(pts).forEach(function (id) { if (pts[id]) pts[id].pending = false; });
+          dragging = false;
+          var ps = pinchState();
+          pinch = { d: ps.d, zoom: zoom, x: ps.x, y: ps.y };
+          stage._r360dn = 0; lastTap = 0;
+          stage.classList.remove('r360-grab');
+          lastInput = performance.now();
+          update();
+        }
+        return;
+      }
+      if (ev.pointerType === 'mouse') {
+        try { stage.focus({ preventScroll: true }); } catch (e) { try { stage.focus(); } catch (e2) { /* ignore */ } }
+      }
       begin(ev);
     }
+    document.addEventListener('pointerdown', function (ev) {
+      if (!orbitArmed || touchOrbitOn() && stage.classList.contains('is-fs')) {
+        if (stage.classList.contains('is-fs')) return;
+      }
+      if (!orbitArmed) return;
+      if (stage.contains(ev.target)) return;
+      setOrbitArmed(false);
+    });
     function begin(ev) {
       if (ev.cancelable) ev.preventDefault();
       panDrag = ev.pointerType === 'mouse' && (ev.button === 1 || ev.button === 2 || ev.shiftKey || ev.ctrlKey);
@@ -782,10 +890,17 @@
       var cp = ctlPending[ev.pointerId];
       if (cp && !pts[ev.pointerId]) {
         if (Math.hypot(ev.clientX - cp.x, ev.clientY - cp.y) < 8) return;
+        // Unarmed touch: don't steal a page-scroll that started on a button.
+        if ((ev.pointerType === 'touch' || ev.pointerType === 'pen') && !touchOrbitOn()) return;
         delete ctlPending[ev.pointerId];
         stage._r360noClick = performance.now() + 600;
         ev.cancelable && ev.preventDefault();
         begin({ pointerId: ev.pointerId, pointerType: ev.pointerType, button: ev.button, shiftKey: ev.shiftKey, ctrlKey: ev.ctrlKey, clientX: cp.x, clientY: cp.y, target: stage, cancelable: false });
+      }
+      if (pts[ev.pointerId] && pts[ev.pointerId].pending && count() < 2) {
+        pts[ev.pointerId].x = ev.clientX;
+        pts[ev.pointerId].y = ev.clientY;
+        return;
       }
       if (!pts[ev.pointerId]) return;
       pts[ev.pointerId] = { x: ev.clientX, y: ev.clientY };
@@ -842,7 +957,14 @@
     function up(ev) {
       delete ctlPending[ev.pointerId];
       if (!pts[ev.pointerId]) return;
+      var wasPending = !!pts[ev.pointerId].pending;
+      var sx = pts[ev.pointerId].x, sy = pts[ev.pointerId].y;
       delete pts[ev.pointerId];
+      if (wasPending) {
+        if (count() < 1 && pinch) pinch = null;
+        if (Math.hypot(ev.clientX - sx, ev.clientY - sy) < 10) setOrbitArmed(true);
+        return;
+      }
       try { stage.releasePointerCapture(ev.pointerId); } catch (e) { /* ignore */ }
       lastInput = performance.now();
       if (pinch) {
@@ -903,7 +1025,10 @@
     ['dragstart', 'selectstart', 'contextmenu', 'gesturestart', 'gesturechange', 'gestureend'].forEach(function (t) {
       stage.addEventListener(t, stopDefault, { capture: true });
     });
-    stage.addEventListener('touchmove', function (ev) { if (mode === '360' && ev.cancelable) ev.preventDefault(); }, { passive: false, capture: true });
+    stage.addEventListener('touchmove', function (ev) {
+      if (mode !== '360' || !ev.cancelable) return;
+      if (touchOrbitOn() || (ev.touches && ev.touches.length >= 2)) ev.preventDefault();
+    }, { passive: false, capture: true });
     stage.addEventListener('click', function (ev) {
       if (stage._r360noClick && performance.now() < stage._r360noClick) { ev.preventDefault(); ev.stopPropagation(); stage._r360noClick = 0; }
     }, true);
@@ -912,14 +1037,18 @@
       if (mode !== '360' || (ev.target.closest && ev.target.closest('.r360-toggle, .r360-zoom, .r360-pad, .r360-zreset, .r360-fs, .r360-parts, .r360-hot, .r360-card'))) return;
       resetZoom();
     });
-    // Desktop: wheel or trackpad pinch zooms toward the cursor. At full
-    // zoom-out, scrolling down falls through to the page.
+    // Desktop: wheel zooms only when the canvas is focused / clicked, in
+    // fullscreen, or Ctrl (or a trackpad pinch, which sends ctrlKey) is held.
+    // Otherwise the wheel scrolls the page. At 1x, a scroll down still
+    // falls through even when focused.
     stage.addEventListener('wheel', function (ev) {
       if (mode !== '360') return;
-      if (!ev.ctrlKey && zoom <= 1.001 && ev.deltaY > 0) return;
+      var allow = ev.ctrlKey || ev.metaKey || touchOrbitOn() || document.activeElement === stage;
+      if (!allow) return;
+      if (!ev.ctrlKey && !ev.metaKey && zoom <= 1.001 && ev.deltaY > 0) return;
       ev.preventDefault();
       var dy = ev.deltaMode === 1 ? ev.deltaY * 16 : ev.deltaY;
-      zoomAt(zoom * Math.exp(-dy * (ev.ctrlKey ? 0.01 : 0.0022)), ev.clientX, ev.clientY);
+      zoomAt(zoom * Math.exp(-dy * (ev.ctrlKey || ev.metaKey ? 0.01 : 0.0022)), ev.clientX, ev.clientY);
     }, { passive: false });
     // +/- buttons
     var zbar = document.createElement('div');
@@ -933,10 +1062,10 @@
     zreset.type = 'button';
     zreset.className = 'r360-zreset';
     zreset.setAttribute('data-z', 'reset');
-    zreset.setAttribute('aria-label', 'Reset view (zoom, pan and tilt)');
-    zreset.textContent = 'Reset';
+    zreset.setAttribute('aria-label', 'Reset view');
+    zreset.textContent = 'Reset view';
     stage.appendChild(zreset);
-    zreset.addEventListener('click', function () { resetZoom(); });
+    zreset.addEventListener('click', function () { resetView(true); });
     var partsBar = document.createElement('div');
     partsBar.className = 'r360-parts';
     partsBar.setAttribute('role', 'group');
@@ -1186,7 +1315,9 @@
       if (enterI) enterI.hidden = on;
       if (exitI) exitI.hidden = !on;
       if (lab) lab.hidden = !on;
+      if (!on) setOrbitArmed(false);
       w = 0;
+      fitShadowCam();
       update();
     }
     function enterFsCss() {
@@ -1287,7 +1418,9 @@
           var jy = t ? rig.jackYDown : rig.jackYUp;
           rig.jackLegs.forEach(function (d) { d.position.y = jy; });
         }
+        if (rig.jackBlobs) rig.jackBlobs.forEach(function (b) { b.visible = t; });
         if (typeof closeCard === 'function') closeCard();
+        fitShadowCam();
         renderer.shadowMap.needsUpdate = true;
         zoom = 1; panX = 0; panY = 0; ELEV = ELEV0;
         closeInspect(true);
@@ -1299,6 +1432,7 @@
       resize: function () { w = 0; resize(); },
       zoomTo: function (z, cx, cy) { zoomAt(z, cx, cy); },
       resetZoom: resetZoom,
+      resetView: function () { resetView(true); },
       getZoom: function () { return zoom; },
       getTilt: function () { return THREE.MathUtils.radToDeg(ELEV); },
       idleMs: function () { return performance.now() - lastInput; },
@@ -1460,6 +1594,17 @@
       g.shadowOffsetY = -1000;
       g.fillStyle = '#000';
       g.fillRect(w * 0.08, h * 0.24 + 1000, w * 0.84, h * 0.52);
+    }, false);
+  }
+
+  function contactTex(THREE) {
+    return canvasTex(THREE, 128, 128, function (g, w, h) {
+      var r = g.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
+      r.addColorStop(0, 'rgba(0,0,0,0.62)');
+      r.addColorStop(0.4, 'rgba(0,0,0,0.28)');
+      r.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = r;
+      g.fillRect(0, 0, w, h);
     }, false);
   }
 
@@ -2666,16 +2811,43 @@
     var truck = new THREE.Group(), trailer = new THREE.Group();
     parts.forEach(function (c, i) { (i < truckCount ? truck : trailer).add(c); });
     group.add(truck, trailer);
-    // Soft contact shadows, one per vehicle so the trailer can show alone.
-    var blob = new THREE.MeshBasicMaterial({ map: blobTex(THREE), transparent: true, depthWrite: false, opacity: 0.85 });
+    // Soft under-body AO (light) plus tighter contact blobs under each tire
+    // and under the jack pads when the landing gear is down.
+    var softBody = new THREE.MeshBasicMaterial({ map: blobTex(THREE), transparent: true, depthWrite: false, opacity: 0.22 });
+    var contactMat = new THREE.MeshBasicMaterial({ map: contactTex(THREE), transparent: true, depthWrite: false, opacity: 0.72 });
     function shadowUnder(parent, x0, x1, wz) {
-      var m = new THREE.Mesh(new THREE.PlaneGeometry((x0 - x1) * 1.12, wz * 1.6), blob);
+      var m = new THREE.Mesh(new THREE.PlaneGeometry((x0 - x1) * 1.12, wz * 1.6), softBody);
       m.rotation.x = -Math.PI / 2;
-      m.position.set((x0 + x1) / 2, 0.02, 0);
+      m.position.set((x0 + x1) / 2, 0.015, 0);
       parent.add(m);
     }
     shadowUnder(truck, front, BX0 - 0.4, 8.2);
     shadowUnder(trailer, -12.5, back, HALF_W * 2);
+    function contactBlob(parent, x, z, size) {
+      var m = new THREE.Mesh(new THREE.PlaneGeometry(size, size), contactMat);
+      m.rotation.x = -Math.PI / 2;
+      m.position.set(x, 0.018, z);
+      m.renderOrder = 1;
+      parent.add(m);
+      return m;
+    }
+    [-1, 1].forEach(function (s) {
+      contactBlob(truck, FX, s * 2.82, 1.55);
+      contactBlob(truck, RX, s * 3.58, 1.55);
+      contactBlob(truck, RX, s * 2.74, 1.5);
+    });
+    [AX1, AX2].forEach(function (ax) {
+      [-1, 1].forEach(function (s) {
+        contactBlob(trailer, ax, s * 3.6, 1.5);
+        contactBlob(trailer, ax, s * 2.86, 1.45);
+      });
+    });
+    var jackBlobs = [];
+    [-1, 1].forEach(function (s) {
+      var jb = contactBlob(trailer, JACK_X, s * JACK_Z, 1.2);
+      jb.visible = false; // raised in the default hitched / Rig 360 view
+      jackBlobs.push(jb);
+    });
     // Lamp glow halos (additive sprites; faded by the view when a lamp faces away)
     var gtex = glowTex(THREE), glows = [];
     glowPts.forEach(function (p) {
@@ -2716,7 +2888,7 @@
       group: group, truck: truck, trailer: trailer, tailgate: tailgate, toolbox: toolbox, toolboxLid: toolboxLid,
       hood: hood, struts: struts, hoodPivot: HOOD_PIVOT, lock: lock, lockY0: LOCK_Y0, lockH: LB.y, puck: puck,
       hitchedOnly: [chainsHitched, cableHitched], parkedOnly: [chainsParked, cableParked, lock],
-      jackLegs: jackLegs, jackYDown: JACK_Y_DOWN, jackYUp: JACK_Y_UP,
+      jackLegs: jackLegs, jackYDown: JACK_Y_DOWN, jackYUp: JACK_Y_UP, jackBlobs: jackBlobs,
       glows: glows, hotspots: hotspots, ballLight: ballLight, ballX: BALL_X, tb: TB,
       rigOffset: -mid, trailerOffset: -(trailerFront + back) / 2, truckOffset: -(front + BX0 - 0.4) / 2
     };

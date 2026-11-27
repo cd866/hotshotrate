@@ -5510,21 +5510,20 @@ html.rig-zoom-open .appbar {
 
 /* =====================================================================
    v75 OUR RIG 360: slow-spinning 3D model over the photo stage.
-   v144: tall viewport-based stage (not a fixed 1.8:1 ratio) so the
-   viewer fills most of the screen. Height is explicit (vh/dvh) so
-   loading the 3D view still does not shift the page.
-   Phone: full content width, ~70vh. Desktop: 100% of the content
-   column, ~80vh, min 600px.
+   v145: a compact stage so the page can scroll on a phone. Phone is
+   ~48vh, max 420px; desktop ~60vh, max 620px. Gutters stay around the
+   canvas. Single-finger drags scroll the page (touch-action: pan-y)
+   unless the viewer is armed or fullscreen.
    ===================================================================== */
 header.top .rig-card { width: 100%; max-width: none; }
-header.top .rig-figure { padding-left: 0; padding-right: 0; }
+header.top .rig-figure { padding-left: 10px; padding-right: 10px; }
 header.top .rig-stage[data-r360] {
   aspect-ratio: auto;
   width: 100%;
-  height: 70vh;
-  height: 70dvh;
-  min-height: 280px;
-  max-height: none;
+  height: 48vh;
+  height: 48dvh;
+  min-height: 200px;
+  max-height: 420px;
   box-sizing: border-box;
   display: flex; flex-direction: column; justify-content: flex-start;
   padding-top: 0;
@@ -5534,21 +5533,35 @@ header.top .rig-stage[data-r360] {
 }
 @media (min-width: 768px) {
   header.top .rig-stage[data-r360] {
-    /* Fill most of the viewport under the logo/tag, stay in the 75-85vh band. */
-    height: 80vh;
-    height: 80dvh;
-    height: calc(100vh - 13.5rem);
-    height: calc(100dvh - 13.5rem);
-    min-height: 600px;
-    max-height: 85vh;
-    max-height: 85dvh;
+    height: 60vh;
+    height: 60dvh;
+    min-height: 320px;
+    max-height: 620px;
   }
 }
-header.top .rig-stage[data-r360][data-view="360"] { touch-action: none; }
-/* v130: the viewer owns every touch. Photos under it can never be dragged,
-   long-pressed or hit; no scroll, page-pinch or text selection starts here. */
+header.top .rig-stage[data-r360][data-view="360"] { touch-action: pan-y; }
+header.top .rig-stage[data-r360][data-view="360"] .r360-canvas { touch-action: pan-y; }
+/* Armed orbit or fullscreen: the viewer owns the gesture. */
+header.top .rig-stage[data-r360][data-view="360"].is-orbit,
+header.top .rig-stage[data-r360][data-view="360"].is-fs,
+header.top .rig-stage[data-r360][data-view="360"]:fullscreen,
+header.top .rig-stage[data-r360][data-view="360"]:-webkit-full-screen {
+  touch-action: none;
+}
+header.top .rig-stage[data-r360][data-view="360"].is-orbit .r360-canvas,
+header.top .rig-stage[data-r360][data-view="360"].is-fs .r360-canvas,
+header.top .rig-stage[data-r360][data-view="360"]:fullscreen .r360-canvas,
+header.top .rig-stage[data-r360][data-view="360"]:-webkit-full-screen .r360-canvas {
+  touch-action: none;
+}
 header.top .rig-stage[data-r360] {
   -webkit-touch-callout: none;
+  overscroll-behavior: auto;
+}
+header.top .rig-stage[data-r360].is-orbit,
+header.top .rig-stage[data-r360].is-fs,
+header.top .rig-stage[data-r360]:fullscreen,
+header.top .rig-stage[data-r360]:-webkit-full-screen {
   overscroll-behavior: contain;
 }
 header.top .rig-stage[data-r360] img,
@@ -5560,7 +5573,7 @@ header.top .rig-stage[data-r360] canvas {
 }
 header.top .rig-stage[data-r360][data-view="360"] img,
 header.top .rig-stage[data-r360][data-view="360"] picture { pointer-events: none; }
-header.top .rig-stage[data-r360][data-view="360"] .r360-canvas { touch-action: none; }
+header.top .rig-stage[data-r360][data-view="360"] .r360-canvas { touch-action: pan-y; }
 header.top .rig-stage[data-r360] picture,
 header.top .rig-stage[data-r360] .rig-reflect,
 header.top .rig-stage[data-r360] .rig-floor { transition: opacity 0.5s ease; }
@@ -5649,7 +5662,7 @@ header.top .rig-stage[data-r360] .rig-floor { transition: opacity 0.5s ease; }
   background: var(--gold, #D4A62A); color: #0f0d17; cursor: pointer;
   font: inherit; font-size: var(--fs-xs, 12px); font-weight: var(--fw-bold, 700); letter-spacing: 0.04em;
 }
-.rig-stage[data-view="360"][data-r360-adjusted] .r360-zreset { display: block; }
+.rig-stage[data-view="360"][data-r360-ready] .r360-zreset { display: block; }
 .r360-hint { bottom: calc(var(--s-1, 8px) + 48px); white-space: nowrap; }
 
 /* v144 fullscreen / expand: Fullscreen API plus a CSS fixed-overlay fallback */
