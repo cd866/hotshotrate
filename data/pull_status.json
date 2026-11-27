@@ -1,14 +1,14 @@
 {
-  "state": "truckstop",
-  "pct": 20,
+  "state": "direct_freight",
+  "pct": 55,
   "origin": "Jacksonville, FL",
   "started_at": "2026-11-27 03:42 CT",
-  "updated_at": "2026-11-27 03:42 CT",
+  "updated_at": "2026-11-27 03:50 CT",
   "counts": {
     "truckstop": 0,
     "df": 0,
     "uship": 0,
     "fits": 0
   },
-  "message": "Searching Truckstop"
+  "message": "Searching Direct Freight"
 }
