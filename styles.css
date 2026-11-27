@@ -5510,15 +5510,39 @@ html.rig-zoom-open .appbar {
 
 /* =====================================================================
    v75 OUR RIG 360: slow-spinning 3D model over the photo stage.
-   Fixed stage ratio so loading the 3D view never shifts the page.
+   v144: tall viewport-based stage (not a fixed 1.8:1 ratio) so the
+   viewer fills most of the screen. Height is explicit (vh/dvh) so
+   loading the 3D view still does not shift the page.
+   Phone: full content width, ~70vh. Desktop: 100% of the content
+   column, ~80vh, min 600px.
    ===================================================================== */
+header.top .rig-card { width: 100%; max-width: none; }
+header.top .rig-figure { padding-left: 0; padding-right: 0; }
 header.top .rig-stage[data-r360] {
-  aspect-ratio: 1.8 / 1;
+  aspect-ratio: auto;
+  width: 100%;
+  height: 70vh;
+  height: 70dvh;
+  min-height: 280px;
+  max-height: none;
+  box-sizing: border-box;
   display: flex; flex-direction: column; justify-content: flex-start;
-  padding-top: 44px;
+  padding-top: 0;
   touch-action: pan-y;
   -webkit-user-select: none; user-select: none;
   -webkit-tap-highlight-color: transparent;
+}
+@media (min-width: 768px) {
+  header.top .rig-stage[data-r360] {
+    /* Fill most of the viewport under the logo/tag, stay in the 75-85vh band. */
+    height: 80vh;
+    height: 80dvh;
+    height: calc(100vh - 13.5rem);
+    height: calc(100dvh - 13.5rem);
+    min-height: 600px;
+    max-height: 85vh;
+    max-height: 85dvh;
+  }
 }
 header.top .rig-stage[data-r360][data-view="360"] { touch-action: none; }
 /* v130: the viewer owns every touch. Photos under it can never be dragged,
@@ -5627,6 +5651,45 @@ header.top .rig-stage[data-r360] .rig-floor { transition: opacity 0.5s ease; }
 }
 .rig-stage[data-view="360"][data-r360-adjusted] .r360-zreset { display: block; }
 .r360-hint { bottom: calc(var(--s-1, 8px) + 48px); white-space: nowrap; }
+
+/* v144 fullscreen / expand: Fullscreen API plus a CSS fixed-overlay fallback */
+.r360-fs {
+  position: absolute; right: calc(var(--s-1, 8px) + 92px); bottom: var(--s-1, 8px); z-index: 5;
+  display: none; width: 40px; height: 40px; min-width: 40px; min-height: 40px; padding: 0;
+  align-items: center; justify-content: center; gap: 6px;
+  border-radius: 999px; border: 1px solid var(--c-line, rgba(255,255,255,0.12));
+  background: rgba(10, 9, 16, 0.72); color: var(--c-text-1, #f5f1e6);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  font: inherit; font-size: var(--fs-xs, 12px); font-weight: var(--fw-bold, 700);
+  letter-spacing: 0.04em; cursor: pointer;
+  touch-action: none; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none;
+}
+.r360-fs::before { content: ''; position: absolute; inset: -4px; }
+.r360-fs svg { width: 20px; height: 20px; flex: 0 0 auto; }
+.rig-stage[data-view="360"][data-r360-ready] .r360-fs { display: inline-flex; }
+.r360-fs:active, .r360-fs[aria-pressed="true"] { background: var(--gold, #D4A62A); color: #0f0d17; border-color: transparent; }
+.rig-stage.is-fs .r360-fs,
+.rig-stage:fullscreen .r360-fs,
+.rig-stage:-webkit-full-screen .r360-fs {
+  width: auto; min-width: 40px; padding: 0 12px;
+}
+header.top .rig-stage[data-r360].is-fs,
+header.top .rig-stage[data-r360]:fullscreen,
+header.top .rig-stage[data-r360]:-webkit-full-screen {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  height: 100dvh !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  z-index: 5000 !important;
+  aspect-ratio: auto !important;
+  padding: 0 !important;
+}
+html.r360-fs-on, html.r360-fs-on body { overflow: hidden; }
 
 /* v82 tailgate / toolbox part buttons — under the view toggle, so they don't cover the bed */
 .r360-parts {

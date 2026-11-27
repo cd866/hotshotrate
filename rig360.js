@@ -57,6 +57,12 @@
      chains and hairpin; gloss-yellow Demco coupler. No serials.
    - v143: trailer safety chains are cadmium-plated gold-yellow (iridescent
      sheen). S5 boss and puck face the driver's side (left / -z).
+   - v144: larger Rig 360 stage (phone ~70vh, desktop ~80vh min 600px).
+     ResizeObserver resizes the renderer and camera. Fullscreen / expand
+     button (Fullscreen API with a CSS overlay fallback; Esc or the
+     button exits). Default framing still fits the truck + 40 ft trailer.
+     Landing gear is raised (feet off the ground) when the trailer is
+     hitched in Rig 360, and down (pads on the ground) in Trailer view.
    Units in the model are feet. x = length (truck front +x), y = up, z = width. */
 (function () {
   'use strict';
@@ -614,6 +620,7 @@
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, prCap));
       renderer.setSize(w, h, false);
       camera.aspect = w / h;
+      camera.updateProjectionMatrix();
       // Fit the whole vehicle broadside with a little air, from a low 3/4 view.
       var hfov = 2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect);
       halfLen = subject === 'trailer' ? 26.5 : subject === 'truck' ? 13 : 33.5;
@@ -737,7 +744,7 @@
     var ctlPending = {};
     function down(ev) {
       if (mode !== '360') return;
-      if (ev.target.closest && ev.target.closest('.r360-zoom, .r360-pad, .r360-zreset, .r360-card')) return;
+      if (ev.target.closest && ev.target.closest('.r360-zoom, .r360-pad, .r360-zreset, .r360-fs, .r360-card')) return;
       if (ev.target.closest && ev.target.closest('.r360-toggle, .r360-parts, .r360-hot')) {
         ctlPending[ev.pointerId] = { x: ev.clientX, y: ev.clientY };
         return;
@@ -890,7 +897,7 @@
     // page-pinch from a touch that started on the viewer.
     function stopDefault(ev) {
       if (mode !== '360') return;
-      if (ev.target.closest && ev.target.closest('.r360-toggle, .r360-zoom, .r360-pad, .r360-zreset, .r360-parts, .r360-hot, .r360-card')) return;
+      if (ev.target.closest && ev.target.closest('.r360-toggle, .r360-zoom, .r360-pad, .r360-zreset, .r360-fs, .r360-parts, .r360-hot, .r360-card')) return;
       if (ev.cancelable) ev.preventDefault();
     }
     ['dragstart', 'selectstart', 'contextmenu', 'gesturestart', 'gesturechange', 'gestureend'].forEach(function (t) {
@@ -902,7 +909,7 @@
     }, true);
     stage.addEventListener('touchstart', function (ev) { if (ev.touches && ev.touches.length > 1) stopDefault(ev); }, { passive: false, capture: true });
     stage.addEventListener('dblclick', function (ev) {
-      if (mode !== '360' || (ev.target.closest && ev.target.closest('.r360-toggle, .r360-zoom, .r360-pad, .r360-zreset, .r360-parts, .r360-hot, .r360-card'))) return;
+      if (mode !== '360' || (ev.target.closest && ev.target.closest('.r360-toggle, .r360-zoom, .r360-pad, .r360-zreset, .r360-fs, .r360-parts, .r360-hot, .r360-card'))) return;
       resetZoom();
     });
     // Desktop: wheel or trackpad pinch zooms toward the cursor. At full
@@ -1142,6 +1149,110 @@
       }
     });
     window.addEventListener('resize', function () { w = 0; update(); });
+    if (typeof ResizeObserver === 'function') {
+      new ResizeObserver(function () { w = 0; resize(); }).observe(canvasWrap);
+    }
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', function () { w = 0; resize(); });
+    }
+
+    // v144 fullscreen: Fullscreen API, CSS overlay fallback, Esc / button to exit.
+    var cssFs = false;
+    var fsBtn = document.createElement('button');
+    fsBtn.type = 'button';
+    fsBtn.className = 'r360-fs';
+    fsBtn.setAttribute('aria-pressed', 'false');
+    fsBtn.setAttribute('aria-label', 'Full screen');
+    fsBtn.innerHTML =
+      '<svg class="r360-fs-enter" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 14H5v5h5v-2H7v-3zm12 0h-2v3h-3v2h5v-5zM7 7h3V5H5v5h2V7zm7-2v2h3v3h2V5h-5z"/></svg>' +
+      '<svg class="r360-fs-exit" viewBox="0 0 24 24" aria-hidden="true" hidden><path fill="currentColor" d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>' +
+      '<span class="r360-fs-label" hidden>Exit</span>';
+    stage.appendChild(fsBtn);
+    function fsNativeEl() {
+      return document.fullscreenElement || document.webkitFullscreenElement || null;
+    }
+    function isFs() {
+      return cssFs || fsNativeEl() === stage;
+    }
+    function applyFsClass() {
+      var on = isFs();
+      stage.classList.toggle('is-fs', on);
+      document.documentElement.classList.toggle('r360-fs-on', on);
+      fsBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      fsBtn.setAttribute('aria-label', on ? 'Exit full screen' : 'Full screen');
+      var enterI = fsBtn.querySelector('.r360-fs-enter');
+      var exitI = fsBtn.querySelector('.r360-fs-exit');
+      var lab = fsBtn.querySelector('.r360-fs-label');
+      if (enterI) enterI.hidden = on;
+      if (exitI) exitI.hidden = !on;
+      if (lab) lab.hidden = !on;
+      w = 0;
+      update();
+    }
+    function enterFsCss() {
+      cssFs = true;
+      applyFsClass();
+    }
+    function exitFsCss() {
+      if (!cssFs) return;
+      cssFs = false;
+      applyFsClass();
+    }
+    function enterFs() {
+      if (isFs()) return;
+      var req = stage.requestFullscreen || stage.webkitRequestFullscreen;
+      if (typeof req === 'function') {
+        try {
+          var p = req.call(stage);
+          if (p && typeof p.then === 'function') {
+            p.catch(function () { enterFsCss(); });
+            return;
+          }
+          return;
+        } catch (e) {
+          enterFsCss();
+          return;
+        }
+      }
+      enterFsCss();
+    }
+    function exitFs() {
+      var el = fsNativeEl();
+      if (el) {
+        var ex = document.exitFullscreen || document.webkitExitFullscreen;
+        if (typeof ex === 'function') {
+          try {
+            var p = ex.call(document);
+            if (p && p.catch) p.catch(function () {});
+          } catch (e) { /* ignore */ }
+        }
+      }
+      exitFsCss();
+    }
+    function toggleFs() {
+      if (isFs()) exitFs(); else enterFs();
+    }
+    fsBtn.addEventListener('click', function (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      toggleFs();
+    });
+    function onFsChange() {
+      if (fsNativeEl() === stage) {
+        cssFs = false;
+        applyFsClass();
+      } else if (!cssFs) {
+        applyFsClass();
+      }
+    }
+    document.addEventListener('fullscreenchange', onFsChange);
+    document.addEventListener('webkitfullscreenchange', onFsChange);
+    document.addEventListener('keydown', function (ev) {
+      if ((ev.key === 'Escape' || ev.key === 'Esc') && isFs()) {
+        ev.preventDefault();
+        exitFs();
+      }
+    });
 
     applyPartPose(0);
     setSpecs(specsOn, false);
@@ -1172,6 +1283,10 @@
         // hang, cable coiled, S5 lock on the coupler.
         rig.hitchedOnly.forEach(function (o) { o.visible = !t; });
         rig.parkedOnly.forEach(function (o) { o.visible = t; });
+        if (rig.jackLegs) {
+          var jy = t ? rig.jackYDown : rig.jackYUp;
+          rig.jackLegs.forEach(function (d) { d.position.y = jy; });
+        }
         if (typeof closeCard === 'function') closeCard();
         renderer.shadowMap.needsUpdate = true;
         zoom = 1; panX = 0; panY = 0; ELEV = ELEV0;
@@ -1190,6 +1305,22 @@
       getPan: function () { return [panX, panY]; },
       setAngle: function (a) { angle = a; lastInput = performance.now(); render(); },
       getAngle: function () { return angle; },
+      jackInfo: function () {
+        var d = rig.jackLegs && rig.jackLegs[0];
+        if (!d) return null;
+        return { footY: d.position.y, yDown: rig.jackYDown, yUp: rig.jackYUp, x: d.parent.position.x, z: d.parent.position.z, groupX: rig.group.position.x };
+      },
+      setView: function (opts) {
+        opts = opts || {};
+        if (opts.angle != null) angle = opts.angle;
+        if (opts.zoom != null) zoom = Math.max(1, Math.min(ZOOM_MAX, opts.zoom));
+        if (opts.panX != null) panX = opts.panX;
+        if (opts.panY != null) panY = opts.panY;
+        if (opts.elev != null) ELEV = THREE.MathUtils.degToRad(opts.elev);
+        lastInput = performance.now();
+        if (shown) { applyCamera(); render(); }
+        update();
+      },
       info: function () { return { calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, running: !!raf }; },
       pause: function (p) { lastInput = p ? 1e15 : -1e9; update(); },
       toggleTailgate: function () { toggleInspect('tailgate'); },
@@ -2288,10 +2419,35 @@
       var tp = new THREE.Mesh(new THREE.PlaneGeometry(7.6, 0.14), M.tape);
       if (s < 0) tp.rotation.y = Math.PI;
       add(tp, -8.9, 6.22, s * 1.645);
-      // drop-leg jacks
-      add(new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 5.3, 10), M.frame), -13.5, 3.25, s * 1.85);
-      add(new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 1.0, 10), M.chrome), -13.5, 0.55, s * 1.85);
-      box(0.7, 0.08, 0.7, M.frame, -13.5, 0.06, s * 1.85);
+    });
+    // v144: telescoping drop-leg landing gear. Raised (feet off the ground)
+    // when the trailer is hitched in Rig 360; extended, pads on the ground
+    // supporting the gooseneck, in the trailer-only view. userData.dyn so
+    // mergeStatic does not bake the moving legs.
+    var JACK_X = -13.5, JACK_Z = 1.85;
+    var JACK_OUTER_H = 3.2, JACK_OUTER_TOP = 5.9, JACK_INNER_H = 2.7, JACK_FOOT_H = 0.08;
+    var JACK_Y_DOWN = JACK_FOOT_H / 2 + 0.02; // 0.06, pads just above the floor
+    var JACK_Y_UP = 1.9; // ~23 in off the ground, clearly raised for travel
+    var jackLegs = [];
+    [-1, 1].forEach(function (s) {
+      var jack = new THREE.Group();
+      jack.userData.dyn = true;
+      jack.position.set(JACK_X, 0, s * JACK_Z);
+      group.add(jack);
+      var outer = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, JACK_OUTER_H, 10), M.frame);
+      outer.position.y = JACK_OUTER_TOP - JACK_OUTER_H / 2;
+      jack.add(outer);
+      var collar = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.14, 10), M.frame);
+      collar.position.y = JACK_OUTER_TOP - JACK_OUTER_H;
+      jack.add(collar);
+      var drop = new THREE.Group();
+      jack.add(drop);
+      drop.add(new THREE.Mesh(new THREE.BoxGeometry(0.7, JACK_FOOT_H, 0.7), M.frame));
+      var inner = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, JACK_INNER_H, 10), M.chrome);
+      inner.position.y = JACK_FOOT_H / 2 + JACK_INNER_H / 2;
+      drop.add(inner);
+      drop.position.y = JACK_Y_UP; // default Rig 360 / hitched
+      jackLegs.push(drop);
     });
     // Storage toolbox under the gooseneck, in the gap ahead of the deck
     // (behind the truck when hooked up), between the drop-leg jacks and the header.
@@ -2549,7 +2705,7 @@
       { id: 'lock', p: [CPL_X, 3.72, -0.42], n: [0, 0, -1], subj: 'trailer', t: 'S5 Coupler Lock + Trimax THP XL', l: ['S5 Coupler Lock + Trimax THP XL puck lock - blocks the gooseneck coupler when parked/unhooked', 'Steel box over the Demco coupler, puck lock in the side shroud', 'Lube the puck lock every 3 months; keep the key off the trailer'] },
       { id: 'box', p: [TB.x, TB.y + TB.ly / 2 + 0.25, 0], subj: 'rig trailer', t: 'Front storage box', l: ['Lockable mega front storage box with chain holder', 'Hot Shot kit: 10 winch straps 5,400 lb WLL, 6 grade 70 chains 4,700 lb WLL, 6 binders 6,600 lb WLL', 'Tap Toolbox to open it'] },
       { id: 'spare', p: [-11.0, 6.85, 0], subj: 'rig trailer', t: 'Spare tire', l: ['Spare tire and mount (Big Tex 25GN)', 'ST235/80R16 LR-E on a black steel wheel, same as the trailer', '80 psi cold, like the road tires'] },
-      { id: 'jacks', p: [-13.5, 2.0, 2.05], n: [0, 0, 1], subj: 'trailer', t: 'Landing gear', l: ['Dual 2-speed 50K landing gear'] },
+      { id: 'jacks', p: [-13.5, 2.0, 2.05], n: [0, 0, 1], subj: 'rig trailer', t: 'Landing gear', l: ['Dual 2-speed 50K landing gear', 'Raised when hitched; down, pads on the ground, when the trailer is parked'] },
       { id: 'deck', p: [(D0 + D1) / 2 + 4, DECK_Y + 0.15, 0], n: [0, 1, 0], subj: 'rig trailer', t: 'Big Tex 25GN-40D5A-MRBK', l: ['40 ft deck incl. about 5 ft dovetail', '102 in wide, 34 in deck height, treated wood floor', 'GVWR 25,900 lb: 8,770 lb empty, 17,130 lb capacity', 'Stake pockets, rubrail, sliding winch track'] },
       { id: 'axles', p: [(AX1 + AX2) / 2, TT + 0.85, HALF_W + 0.1], n: [0, 0, 1], subj: 'rig trailer', t: 'Trailer axles', l: ['Tandem 12,000 lb dual-wheel axles', 'Electric brakes, forward self-adjusting', '30K HD adjustable suspension'] },
       { id: 'ttires', p: [AX2, TT, 4.0], n: [0, 0, 1], subj: 'rig trailer', t: 'Trailer tires', l: ['ST235/80R16 LR-E radials on black steel wheels', '80 psi cold', 'TrailerGard warranty to 10/5/2033', 'Spare tire and mount'] },
@@ -2560,6 +2716,7 @@
       group: group, truck: truck, trailer: trailer, tailgate: tailgate, toolbox: toolbox, toolboxLid: toolboxLid,
       hood: hood, struts: struts, hoodPivot: HOOD_PIVOT, lock: lock, lockY0: LOCK_Y0, lockH: LB.y, puck: puck,
       hitchedOnly: [chainsHitched, cableHitched], parkedOnly: [chainsParked, cableParked, lock],
+      jackLegs: jackLegs, jackYDown: JACK_Y_DOWN, jackYUp: JACK_Y_UP,
       glows: glows, hotspots: hotspots, ballLight: ballLight, ballX: BALL_X, tb: TB,
       rigOffset: -mid, trailerOffset: -(trailerFront + back) / 2, truckOffset: -(front + BX0 - 0.4) / 2
     };

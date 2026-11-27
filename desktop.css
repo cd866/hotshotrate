@@ -331,17 +331,19 @@ nav.tabbar.bnav > button.tb-side { display: none; }
   html .stop-card { z-index: 2751; }
 }
 
-/* v140: Rate Check on a wide desktop: rig and logo on the left, the rate form on the right, so the
-   rate field is on the first screen. CSS only. Under 1200px keeps the old stacked layout. */
+/* v144: Rate Check on a wide desktop — the Rig 360 viewer fills the content
+   area (right of the sidebar) so the long truck + trailer has room. The rate
+   form sits under the viewer. Under 1200px keeps the stacked layout. */
 @media (min-width: 1200px) {
   html[data-tab="check"] .app {
-    display: grid; grid-template-columns: var(--side-w) minmax(0, 1fr) minmax(0, 1.1fr);
+    display: grid; grid-template-columns: var(--side-w) minmax(0, 1fr);
     grid-auto-rows: min-content; align-items: start;
   }
   html[data-tab="check"] .app > .appbar { grid-column: 1 / -1; grid-row: 1; }
-  html[data-tab="check"] .app > header.top { grid-column: 2; grid-row: 2 / span 3; margin-left: 0; padding-right: var(--s-2); }
-  html[data-tab="check"] .app > main { grid-column: 3; grid-row: 2; margin-left: 0; padding-left: var(--s-2); min-width: 0; }
+  html[data-tab="check"] .app > header.top { grid-column: 2; grid-row: 2; margin-left: 0; padding-right: var(--s-4); }
+  html[data-tab="check"] .app > main { grid-column: 2; grid-row: 3; margin-left: 0; padding-left: var(--s-4); min-width: 0; }
   html[data-tab="check"] #panel-check { display: block; max-width: none; }
-  html[data-tab="check"] .rig-stage { max-height: 62vh; }
+  html[data-tab="check"] header.top > .rig-card { max-width: none; width: 100%; }
+  html[data-tab="check"] .rig-stage { max-height: none; width: 100%; }
   html[data-tab="check"] header.top .tag { margin-left: 0; }
 }
