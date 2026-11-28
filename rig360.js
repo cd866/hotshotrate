@@ -129,6 +129,13 @@
      hinged on the deck-side long edge (~70 deg, notched for the
      neck spine so it does not clip the frame), with the interior
      light on when open.
+   - v167: Opening the Mega Cab rear doors eases the camera out to a
+     side 3/4 that frames both open doors, the whole cab, and the
+     mattress on a 390 px phone. Zoom can go out to 0.5× (farther
+     than the default fit) so the whole rig can sit in frame. The
+     rear seats are folded down — seatbacks flat on the cushions —
+     and the mattress sits flush on that stack, higher, below the
+     window line.
    Units in the model are feet. x = length (truck front +x), y = up, z = width. */
 (function () {
   'use strict';
@@ -437,9 +444,10 @@
     var shown = false;
     var w = 0, h = 0;
 
-    // Zoom: 1 = whole vehicle in frame, up to ZOOM_MAX. Pan is in world feet
-    // along the camera's right/up axes, so zooming stays under the fingers.
-    var ZOOM_MAX = 5;
+    // Zoom: 1 = default fit, ZOOM_MIN = pulled back so the whole rig fits,
+    // up to ZOOM_MAX. Pan is in world feet along the camera's right/up axes,
+    // so zooming stays under the fingers.
+    var ZOOM_MIN = 0.5, ZOOM_MAX = 5;
     var zoom = 1, panX = 0, panY = 0, baseDist = 80, halfLen = 33.5;
     var ELEV0 = THREE.MathUtils.degToRad(11);
     var ELEV_MIN = THREE.MathUtils.degToRad(-85), ELEV_MAX = THREE.MathUtils.degToRad(85);
@@ -486,7 +494,7 @@
       camera.lookAt(_look);
       camera.updateProjectionMatrix();
       stage.toggleAttribute('data-r360-zoomed', zoom > 1.02);
-      stage.toggleAttribute('data-r360-adjusted', zoom > 1.02 || Math.abs(ELEV - ELEV0) > 0.01 || Math.abs(camAz) > 0.01 || Math.abs(panX) > 0.05 || Math.abs(panY) > 0.05 || Math.abs(pedY) > 0.05 || !!inspectKind);
+      stage.toggleAttribute('data-r360-adjusted', zoom > 1.02 || zoom < 0.98 || Math.abs(ELEV - ELEV0) > 0.01 || Math.abs(camAz) > 0.01 || Math.abs(panX) > 0.05 || Math.abs(panY) > 0.05 || Math.abs(pedY) > 0.05 || !!inspectKind);
     }
 
     function feetPerPx() {
@@ -494,8 +502,11 @@
     }
 
     // Zoom to z, keeping the stage point (clientX, clientY) fixed on screen.
+    function clampZoom(z) {
+      return Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, z));
+    }
     function zoomAt(z, cx, cy) {
-      z = Math.max(1, Math.min(ZOOM_MAX, z));
+      z = clampZoom(z);
       if (cx != null) {
         var r = canvasWrap.getBoundingClientRect();
         var sx = cx - (r.left + r.width / 2), sy = (r.top + r.height / 2) - cy;
@@ -616,7 +627,7 @@
     }
     function applyInspectOrbit() {
       iElev = Math.max(I_ELEV_MIN, Math.min(I_ELEV_MAX, iElev));
-      var z = Math.max(1, Math.min(ZOOM_MAX, zoom));
+      var z = clampZoom(zoom);
       var d = iDist / z;
       var ce = Math.cos(iElev), se = Math.sin(iElev);
       var sy = Math.sin(iYaw), cy = Math.cos(iYaw);
@@ -651,8 +662,9 @@
         return { look: L0.clone().lerp(L1, t), cam: C0.clone().lerp(C1, t), angle: -0.15 };
       }
       if (kind === 'doors') {
-        // Passenger 3/4 looking into the rear Mega Cab at the mattress.
-        return { look: worldAt(-1.55, 3.25, 0.2, ang), cam: worldAt(-0.4, 4.6, 9.6, ang), angle: 0.12 };
+        // Side 3/4, pulled back so a 390 px phone frames both open rear doors,
+        // the whole Mega Cab, and the mattress inside (24° fov, ~square stage).
+        return { look: worldAt(-0.8, 3.35, 0, ang), cam: worldAt(16.5, 11.2, 44.0, ang), angle: 0.22 };
       }
       var tb = rig.tb;
       // Deck-side 3/4 of the chest lid: the lid lifts toward the deck
@@ -728,7 +740,7 @@
     }
     function setInspectAttr() {
       stage.toggleAttribute('data-r360-inspect', !!inspectKind);
-      stage.toggleAttribute('data-r360-adjusted', zoom > 1.02 || Math.abs(ELEV - ELEV0) > 0.01 || Math.abs(panX) > 0.05 || Math.abs(panY) > 0.05 || Math.abs(pedY) > 0.05 || !!inspectKind);
+      stage.toggleAttribute('data-r360-adjusted', zoom > 1.02 || zoom < 0.98 || Math.abs(ELEV - ELEV0) > 0.01 || Math.abs(panX) > 0.05 || Math.abs(panY) > 0.05 || Math.abs(pedY) > 0.05 || !!inspectKind);
       updatePartButtons();
     }
     function startAnim(kind, opening, frameCam) {
@@ -960,7 +972,7 @@
       if (held) {
         arrowAnim = null;
         if (held.dp) pedY = clampPedestal(pedY + held.dp * dt);
-        if (held.dz) zoom = Math.max(1, Math.min(ZOOM_MAX, zoom * Math.exp(held.dz * dt)));
+        if (held.dz) zoom = clampZoom(zoom * Math.exp(held.dz * dt));
         if (inspectOrbiting() || inspectFramed) {
           iYaw += held.da * dt;
           if (held.de) iElev += held.de * dt;
@@ -1554,14 +1566,14 @@
       };
     }
     function clampArrowElev(el) {
-      var d = baseDist / Math.max(1, zoom) * (1 + 0.3 * Math.sin(el) * Math.sin(el));
+      var d = baseDist / Math.max(ZOOM_MIN, zoom) * (1 + 0.3 * Math.sin(el) * Math.sin(el));
       var minSin = (0.8 - 2.4) / Math.max(8, d);
       var minE = Math.asin(Math.max(-0.99, Math.min(0.99, minSin)));
       minE = Math.max(minE, THREE.MathUtils.degToRad(2));
       return Math.max(minE, Math.min(THREE.MathUtils.degToRad(80), el));
     }
     function clampInspectArrowElev(el) {
-      var d = (iDist || 18) / Math.max(1, zoom);
+      var d = (iDist || 18) / Math.max(ZOOM_MIN, zoom);
       var minSin = (0.8 - (iLook.y || 4)) / Math.max(4, d);
       var minE = Math.asin(Math.max(-0.99, Math.min(0.99, minSin)));
       return Math.max(minE, Math.min(I_ELEV_MAX, el));
@@ -1839,7 +1851,7 @@
       setView: function (opts) {
         opts = opts || {};
         if (opts.angle != null) angle = opts.angle;
-        if (opts.zoom != null) zoom = Math.max(1, Math.min(ZOOM_MAX, opts.zoom));
+        if (opts.zoom != null) zoom = clampZoom(opts.zoom);
         if (opts.panX != null) panX = opts.panX;
         if (opts.panY != null) panY = opts.panY;
         if (opts.elev != null) ELEV = THREE.MathUtils.degToRad(opts.elev);
@@ -1871,7 +1883,7 @@
         applyPartPose(1);
         angle = inspectPose(kind, 0).angle;
         turntable.rotation.y = angle;
-        zoom = (z != null) ? Math.max(1, Math.min(ZOOM_MAX, z)) : 1;
+        zoom = (z != null) ? clampZoom(z) : 1;
         syncInspectOrbitFromPose();
         if (yawDeg != null) iYaw = THREE.MathUtils.degToRad(yawDeg);
         if (elevDeg != null) iElev = THREE.MathUtils.degToRad(elevDeg);
@@ -2854,12 +2866,11 @@
     // Meshach's mattress turned up in receipts, the ledger, or transcripts).
     var carpet = new THREE.MeshStandardMaterial({ color: 0x1c1d22, roughness: 0.9, metalness: 0 });
     var headliner = new THREE.MeshStandardMaterial({ color: 0x2a2b30, roughness: 0.85, metalness: 0 });
-    var leather = new THREE.MeshStandardMaterial({ color: 0x121214, roughness: 0.55, metalness: 0.08 });
+    var leather = new THREE.MeshStandardMaterial({ color: 0x3a3836, roughness: 0.58, metalness: 0.08 });
     var mattressMat = new THREE.MeshStandardMaterial({ color: 0xd8d0c4, roughness: 0.82, metalness: 0 });
     var sheetMat = new THREE.MeshStandardMaterial({ color: 0xc9b8a0, roughness: 0.78, metalness: 0 });
     var pillowMat = new THREE.MeshStandardMaterial({ color: 0xe8e2d6, roughness: 0.75, metalness: 0 });
     var blanketMat = new THREE.MeshStandardMaterial({ color: 0x3a4a62, roughness: 0.8, metalness: 0 });
-    var woodPlat = new THREE.MeshStandardMaterial({ color: 0x4a3a2a, roughness: 0.7, metalness: 0.05 });
     box(CAB_F - CAB_R - 0.3, 0.08, 6.0, carpet, (CAB_F + CAB_R) / 2, 1.68, 0);
     box(CAB_F - CAB_R - 0.5, 0.05, 5.9, headliner, (CAB_F + CAB_R) / 2, 6.18, 0);
     box(0.08, 4.4, 6.0, doorCard, CAB_R + 0.14, 3.9, 0); // interior rear wall
@@ -2877,21 +2888,35 @@
     // Simple dash so the cabin isn't an empty box when you look forward
     box(0.7, 0.85, 5.6, M.satin, 3.35, 3.35, 0);
     box(0.08, 0.45, 2.4, M.gloss, 3.68, 3.55, 0); // screen
-    // Folded rear-seat platform, level with the seat cushion, plus a
-    // generic mattress, pillow and blanket.
-    var platY = 2.22;
-    box(2.55, 0.12, 5.15, woodPlat, -1.55, platY, 0);
-    box(0.35, 0.85, 5.15, leather, -2.95, 2.55, 0); // folded rear-seat back as a riser at the cab wall
-    box(2.40, 0.28, 4.85, mattressMat, -1.45, platY + 0.22, 0);
-    box(2.36, 0.04, 4.80, sheetMat, -1.45, platY + 0.37, 0);
+    // Rear seats folded down: cushions, then seatbacks flat on the cushions,
+    // then a generic mattress sitting flush on that stack (no gap), below
+    // the window line (~4.86). Noticeably higher than a floor-level platform.
+    var cushH = 0.38, cushTop = 2.42, cushY = cushTop - cushH / 2;
+    var backH = 0.40, backY = cushTop + backH / 2;          // backs lie flat on the cushions
+    var stackTop = cushTop + backH;                          // 2.82
+    var mattH = 0.32, mattY = stackTop + mattH / 2;          // top 3.14, well under the belt
+    var seatX = -1.35, seatL = 3.15; // behind the front buckets, short of the rear wall
+    // 60/40 cushions and matching folded backs, with a center split so they read as seats
+    [[-1.30, 2.48], [1.28, 2.40]].forEach(function (pair) {
+      var z = pair[0], w = pair[1];
+      box(seatL, cushH, w, leather, seatX, cushY, z);
+      box(seatL - 0.12, backH, w - 0.08, leather, seatX - 0.02, backY, z);
+      // thin top edge of the folded back, flush under the mattress
+      box(seatL - 0.12, 0.025, w - 0.08, M.satin, seatX - 0.02, stackTop - 0.01, z);
+    });
+    // Front lip of the cushions (seat pan) so the stack is visible under the mattress
+    box(0.10, cushH + 0.04, 5.05, M.satin, seatX + seatL / 2 - 0.04, cushY, 0);
+    // Mattress resting on the folded seatbacks — same footprint, no gap or clip
+    box(seatL - 0.06, mattH, 4.92, mattressMat, seatX, mattY, 0);
+    box(seatL - 0.10, 0.04, 4.86, sheetMat, seatX, mattY + mattH / 2 + 0.02, 0);
     // Pillow at the rear wall, slightly toward the driver side
-    var pillow = box(0.55, 0.22, 1.15, pillowMat, -2.45, platY + 0.50, -0.7);
+    var pillow = box(0.55, 0.22, 1.15, pillowMat, seatX - 1.15, mattY + mattH / 2 + 0.13, -0.7);
     pillow.rotation.z = 0.12;
     // Folded blanket at the passenger-side foot of the mattress
-    var blanket = box(1.15, 0.12, 1.6, blanketMat, -0.7, platY + 0.46, 1.15);
+    var blanket = box(1.15, 0.12, 1.6, blanketMat, seatX + 1.0, mattY + mattH / 2 + 0.10, 1.15);
     blanket.rotation.y = 0.18;
     blanket.rotation.z = -0.05;
-    box(0.7, 0.10, 1.15, blanketMat, -0.55, platY + 0.52, 1.05);
+    box(0.7, 0.10, 1.15, blanketMat, seatX + 1.15, mattY + mattH / 2 + 0.16, 1.05);
     // Dome light in the rear headliner; on when the doors are open
     cyl(0.14, 0.14, 0.04, 16, M.head, 'y', -1.5, 6.14, 0);
     var domeLight = new THREE.PointLight(0xfff2d6, 0, 9, 1.6);
