@@ -10,10 +10,10 @@
   var RELAY = 'https://blackram-relay.sandlilypad.workers.dev';
   var PIN_KEY = 'blackram_relay_pin_v1';
   var FIN_KEY = 'blackram_fin_session_v1';
-  var ART_V = '154';
+  var ART_V = '157';
   // v138: small lossless face crops (same pixels the old CSS crop showed) so the Team list
   // does not pull four full 1-1.8 MB portraits.
-  var FACE_V = '154';
+  var FACE_V = '157';
   var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var PEOPLE = [
     {
@@ -92,8 +92,8 @@
       role: 'Trailer dealer | Big Tex Trailers (Tex Trailers)',
       short: 'Trailer dealer | Big Tex',
       chips: ['25GN-40D5A-MRBK', 'Gear oil 80/90', 'Axle maker TBD'],
-      art: 'brand/mike-360.png?v=' + ART_V, w: 850, h: 1136,
-      alt: 'Monogram for Mike, trailer dealer at Big Tex, with a simple 25GN gooseneck mark. No portrait is on file.',
+      art: 'brand/mike-360.png?v=' + ART_V, w: 768, h: 1024,
+      alt: 'Illustration of Mike in a black cap and polo, looking back over his shoulder from a Big Tex trailer at sunset.',
       duties: [
         { t: 'Sold us', s: '25GN', d: '40D5A-MRBK, 10/5/26' },
         { t: 'Gear oil', s: '80/90', d: 'change at 15,000 mi' },
@@ -103,8 +103,7 @@
       dutyTitle: 'What he did for us',
       dutySub: 'vendor',
       calls: [{ tone: 'ok', html: 'Trailer dealer at Big Tex who sold us the 25GN gooseneck. Very knowledgeable. First name only; no contact details are kept in the app.' }],
-      tbd: ['Which maker builds the trailer axles (needed for brake and bearing intervals): TBD'],
-      noOrbit: true
+      tbd: ['Which maker builds the trailer axles (needed for brake and bearing intervals): TBD']
     }
   ];
 
