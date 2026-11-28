@@ -99,9 +99,14 @@
      chain eyelets, two empty forward tie-down cups, 2x5 waffle wall.
      gooseneck is lengthened and angled so the neck clears the tailgate
      with a visible gap (coupler stays on the bed ball). Trailer detail
-     is tightened to Claudio's 25GN: cutout neck, BigTex / 25GN HD
+     is tightened to Claudio's 25GN: solid neck, BigTex / 25GN HD
      decals, DOT tape, square-foot jacks, wood deck, MEGA ramps, 48 in
      spread axles and oil-bath hubs. No serials or plates.
+   - v159: Gooseneck side plates are solid black steel, with the
+     triangular web cutouts removed to match Claudio's 25GN photos.
+     The 360 arrow, height and zoom pads are DualSense-style sticks
+     (orbit; height) with shoulder zoom and a face-button cluster
+     (reset, fullscreen), no brand marks.
    Units in the model are feet. x = length (truck front +x), y = up, z = width. */
 (function () {
   'use strict';
@@ -185,7 +190,7 @@
 
     hint = document.createElement('div');
     hint.className = 'r360-hint';
-    hint.textContent = 'Tap to orbit · two fingers to pinch';
+    hint.textContent = 'Sticks to look around · two fingers to pinch';
     stage.appendChild(hint);
 
     var saved = null;
@@ -913,6 +918,7 @@
       if (held) {
         arrowAnim = null;
         if (held.dp) pedY = clampPedestal(pedY + held.dp * dt);
+        if (held.dz) zoom = Math.max(1, Math.min(ZOOM_MAX, zoom * Math.exp(held.dz * dt)));
         if (inspectOrbiting() || inspectFramed) {
           iYaw += held.da * dt;
           if (held.de) iElev += held.de * dt;
@@ -999,7 +1005,7 @@
     try { stage.tabIndex = 0; } catch (e) { /* ignore */ }
     function down(ev) {
       if (mode !== '360') return;
-      if (ev.target.closest && ev.target.closest('.r360-zoom, .r360-pad, .r360-pads, .r360-height, .r360-zreset, .r360-fs, .r360-card')) return;
+      if (ev.target.closest && ev.target.closest('.r360-ctl, .r360-zoom, .r360-pad, .r360-pads, .r360-height, .r360-zreset, .r360-fs, .r360-card')) return;
       if (ev.target.closest && ev.target.closest('.r360-toggle, .r360-parts, .r360-hot')) {
         ctlPending[ev.pointerId] = { x: ev.clientX, y: ev.clientY };
         return;
@@ -1192,7 +1198,7 @@
     // page-pinch from a touch that started on the viewer.
     function stopDefault(ev) {
       if (mode !== '360') return;
-      if (ev.target.closest && ev.target.closest('.r360-toggle, .r360-zoom, .r360-pad, .r360-pads, .r360-height, .r360-zreset, .r360-fs, .r360-parts, .r360-hot, .r360-card')) return;
+      if (ev.target.closest && ev.target.closest('.r360-ctl, .r360-toggle, .r360-zoom, .r360-pad, .r360-pads, .r360-height, .r360-zreset, .r360-fs, .r360-parts, .r360-hot, .r360-card')) return;
       if (ev.cancelable) ev.preventDefault();
     }
     ['dragstart', 'selectstart', 'contextmenu', 'gesturestart', 'gesturechange', 'gestureend'].forEach(function (t) {
@@ -1207,7 +1213,7 @@
     }, true);
     stage.addEventListener('touchstart', function (ev) { if (ev.touches && ev.touches.length > 1) stopDefault(ev); }, { passive: false, capture: true });
     stage.addEventListener('dblclick', function (ev) {
-      if (mode !== '360' || (ev.target.closest && ev.target.closest('.r360-toggle, .r360-zoom, .r360-pad, .r360-pads, .r360-height, .r360-zreset, .r360-fs, .r360-parts, .r360-hot, .r360-card'))) return;
+      if (mode !== '360' || (ev.target.closest && ev.target.closest('.r360-ctl, .r360-toggle, .r360-zoom, .r360-pad, .r360-pads, .r360-height, .r360-zreset, .r360-fs, .r360-parts, .r360-hot, .r360-card'))) return;
       resetZoom();
     });
     // Desktop: wheel zooms only when the canvas is focused / clicked, in
@@ -1224,21 +1230,7 @@
       zoomAt(zoom * Math.exp(-dy * (ev.ctrlKey || ev.metaKey ? 0.01 : 0.0022)), ev.clientX, ev.clientY);
     }, { passive: false });
     // +/- buttons
-    var zbar = document.createElement('div');
-    zbar.className = 'r360-zoom';
-    zbar.setAttribute('role', 'group');
-    zbar.setAttribute('aria-label', 'Zoom');
-    zbar.innerHTML = '<button type="button" data-z="in" aria-label="Zoom in">+</button>' +
-      '<button type="button" data-z="out" aria-label="Zoom out">-</button>' +
-      '';
-    var zreset = document.createElement('button');
-    zreset.type = 'button';
-    zreset.className = 'r360-zreset';
-    zreset.setAttribute('data-z', 'reset');
-    zreset.setAttribute('aria-label', 'Reset view');
-    zreset.textContent = 'Reset view';
-    stage.appendChild(zreset);
-    zreset.addEventListener('click', function () { resetView(true); });
+    var facePad = null; // filled when the DualSense-style cluster is built
     var partsBar = document.createElement('div');
     partsBar.className = 'r360-parts';
     partsBar.setAttribute('role', 'group');
@@ -1370,37 +1362,155 @@
       card.style.transform = 'translate(' + Math.round(x) + 'px,' + Math.round(y) + 'px)';
     }
     updatePartButtons();
-    stage.appendChild(zbar);
-    // v149: arrows move the CAMERA around a fixed rig (azimuth / polar tilt),
-    // never the turntable. A tap eases one step; press and hold keeps moving.
+    // v149: arrows / left stick move the CAMERA around a fixed rig (azimuth / polar tilt),
+    // never the turntable. Keyboard: a tap eases one step; press and hold keeps moving.
     // Auto-spin pauses while used. Polar tilt stays above the ground.
-    var ICON = {
-      left: 'M15 5l-7 7 7 7', right: 'M9 5l7 7-7 7', up: 'M5 15l7-7 7 7', down: 'M5 9l7 7 7-7',
-      rise: 'M5 15l7-7 7 7M5 20h14', drop: 'M5 9l7 7 7-7M5 20h14'
-    };
     var ROT = 1.5, TILT = THREE.MathUtils.degToRad(32); // per second while held
     var STEP = { left: [-0.26, 0], right: [0.26, 0], up: [0, THREE.MathUtils.degToRad(6)], down: [0, -THREE.MathUtils.degToRad(6)] };
-    var pads = document.createElement('div');
-    pads.className = 'r360-pads';
-    var pad = document.createElement('div');
-    pad.className = 'r360-pad';
-    pad.setAttribute('role', 'group');
-    pad.setAttribute('aria-label', 'Move view');
-    pad.innerHTML = ['left', 'up', 'down', 'right'].map(function (d) {
-      var lbl = { left: 'Orbit left', right: 'Orbit right', up: 'Tilt camera up', down: 'Tilt camera down' }[d];
-      return '<button type="button" data-dir="' + d + '" aria-label="' + lbl + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + ICON[d] + '" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>';
-    }).join('');
-    var hpad = document.createElement('div');
-    hpad.className = 'r360-height';
-    hpad.setAttribute('role', 'group');
-    hpad.setAttribute('aria-label', 'Camera height');
-    hpad.innerHTML = ['rise', 'drop'].map(function (d) {
-      var lbl = d === 'rise' ? 'Raise camera' : 'Lower camera';
-      return '<button type="button" data-dir="' + d + '" aria-label="' + lbl + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + ICON[d] + '" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>';
-    }).join('<span class="r360-height-lbl">Height</span>');
-    pads.appendChild(pad);
-    pads.appendChild(hpad);
-    stage.appendChild(pads);
+    var ZOOM_LN = 0.9; // zoom *= exp(ZOOM_LN * dt) while a shoulder is held
+    // DualSense-style cluster: left stick orbits, right stick raises/lowers,
+    // shoulder pills zoom, face buttons for reset / fullscreen / specs / close.
+    // Dark glossy with gold accents; no brand names or logos.
+    var ctlAxes = { ox: 0, oy: 0, hy: 0, z: 0, key: null };
+    function syncHeld() {
+      var da = ctlAxes.ox * ROT, de = -ctlAxes.oy * TILT, dp = -ctlAxes.hy * PED_RATE, dz = ctlAxes.z;
+      if (ctlAxes.key) {
+        da += ctlAxes.key.da; de += ctlAxes.key.de; dp += ctlAxes.key.dp;
+      }
+      held = (da || de || dp || dz) ? { da: da, de: de, dp: dp, dz: dz } : null;
+    }
+    var ctl = document.createElement('div');
+    ctl.className = 'r360-ctl';
+    ctl.setAttribute('aria-label', 'View controls');
+    function stickHtml(kind, label) {
+      var z = kind === 'orbit' ? 'out' : 'in';
+      var zLbl = kind === 'orbit' ? 'Zoom out' : 'Zoom in';
+      var zTxt = kind === 'orbit' ? '−' : '+';
+      return '<div class="r360-stick-wrap r360-stick-' + kind + '">' +
+        '<button type="button" class="r360-shoulder" data-z="' + z + '" aria-label="' + zLbl + '">' + zTxt + '</button>' +
+        '<div class="r360-well" data-stick="' + kind + '" role="slider" aria-label="' + label + '" tabindex="0">' +
+          '<div class="r360-knob" aria-hidden="true"></div>' +
+        '</div>' +
+        '<span class="r360-stick-lbl">' + (kind === 'orbit' ? 'Orbit' : 'Height') + '</span>' +
+      '</div>';
+    }
+    var faces = document.createElement('div');
+    faces.className = 'r360-faces';
+    faces.setAttribute('role', 'group');
+    faces.setAttribute('aria-label', 'View actions');
+    facePad = faces;
+    function faceBtn(name, label, svg) {
+      return '<button type="button" class="r360-face" data-face="' + name + '" aria-label="' + label + '">' +
+        '<svg viewBox="0 0 24 24" aria-hidden="true">' + svg + '</svg></button>';
+    }
+    faces.innerHTML =
+      faceBtn('tri', 'Reset view', '<path d="M12 4.5 L20.5 19.5 H3.5 Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>') +
+      faceBtn('circ', 'Show spec dots', '<circle cx="12" cy="12" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/>') +
+      faceBtn('cross', 'Close part view', '<path d="M7 7 L17 17 M17 7 L7 17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>');
+    // Square (fullscreen) is the existing fsBtn, appended to faces once it exists.
+    ctl.innerHTML = stickHtml('orbit', 'Orbit and tilt') + stickHtml('height', 'Camera height');
+    ctl.appendChild(faces);
+    stage.appendChild(ctl);
+    var zreset = faces.querySelector('[data-face="tri"]');
+    zreset.addEventListener('click', function () { resetView(true); });
+    faces.addEventListener('click', function (ev) {
+      var b = ev.target.closest('button[data-face]');
+      if (!b) return;
+      var f = b.getAttribute('data-face');
+      if (f === 'circ') setSpecs(!specsOn, true);
+      else if (f === 'cross') closeInspect();
+    });
+    function bindStick(well, axis) {
+      var knob = well.querySelector('.r360-knob');
+      var pid = null;
+      function place(nx, ny) {
+        var max = well.clientWidth * 0.30;
+        knob.style.transform = 'translate(' + (nx * max) + 'px,' + (ny * max) + 'px)';
+      }
+      function apply(nx, ny) {
+        var dead = 0.12;
+        var ax = Math.abs(nx) < dead ? 0 : nx;
+        var ay = Math.abs(ny) < dead ? 0 : ny;
+        if (axis === 'orbit') { ctlAxes.ox = ax; ctlAxes.oy = ay; }
+        else { ctlAxes.hy = ay; }
+        syncHeld();
+        lastInput = performance.now();
+        update();
+      }
+      well.addEventListener('pointerdown', function (ev) {
+        if (mode !== '360') return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        pid = ev.pointerId;
+        try { well.setPointerCapture(pid); } catch (e) { /* ignore */ }
+        well.classList.add('is-held');
+        stage.setAttribute('data-r360-touched', '1');
+        move(ev);
+      });
+      function move(ev) {
+        if (pid == null || ev.pointerId !== pid) return;
+        ev.preventDefault();
+        var r = well.getBoundingClientRect();
+        var dx = ev.clientX - (r.left + r.width / 2);
+        var dy = ev.clientY - (r.top + r.height / 2);
+        var max = Math.max(16, r.width * 0.32);
+        var len = Math.hypot(dx, dy) || 1;
+        if (len > max) { dx *= max / len; dy *= max / len; }
+        var nx = dx / max, ny = dy / max;
+        place(nx, ny);
+        apply(nx, ny);
+      }
+      well.addEventListener('pointermove', move);
+      function end(ev) {
+        if (pid == null || (ev && ev.pointerId !== pid && ev.type !== 'lostpointercapture')) return;
+        pid = null;
+        well.classList.remove('is-held');
+        knob.style.transform = '';
+        apply(0, 0);
+      }
+      ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (t) { well.addEventListener(t, end); });
+      well.addEventListener('contextmenu', function (ev) { ev.preventDefault(); });
+    }
+    ctl.querySelectorAll('.r360-well').forEach(function (well) {
+      bindStick(well, well.getAttribute('data-stick') === 'height' ? 'height' : 'orbit');
+    });
+    ctl.querySelectorAll('.r360-shoulder').forEach(function (btn) {
+      var pid = null;
+      function setZ(on) {
+        var z = btn.getAttribute('data-z');
+        ctlAxes.z = on ? (z === 'in' ? ZOOM_LN : -ZOOM_LN) : (Math.abs(ctlAxes.z) && ((ctlAxes.z > 0) === (z === 'in')) ? 0 : ctlAxes.z);
+        if (!on && ((z === 'in' && ctlAxes.z > 0) || (z === 'out' && ctlAxes.z < 0))) ctlAxes.z = 0;
+        if (!on) { /* keep other shoulder if somehow */ }
+        syncHeld();
+        lastInput = performance.now();
+        update();
+      }
+      btn.addEventListener('pointerdown', function (ev) {
+        if (mode !== '360') return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        pid = ev.pointerId;
+        try { btn.setPointerCapture(pid); } catch (e) { /* ignore */ }
+        btn.classList.add('is-held');
+        stage.setAttribute('data-r360-touched', '1');
+        var z = btn.getAttribute('data-z');
+        zoomAt(zoom * (z === 'in' ? 1.18 : 1 / 1.18)); // immediate nudge
+        ctlAxes.z = z === 'in' ? ZOOM_LN : -ZOOM_LN;
+        syncHeld();
+        update();
+      });
+      function end(ev) {
+        if (pid == null || (ev && ev.pointerId !== pid && ev.type !== 'lostpointercapture')) return;
+        pid = null;
+        btn.classList.remove('is-held');
+        var z = btn.getAttribute('data-z');
+        if ((z === 'in' && ctlAxes.z > 0) || (z === 'out' && ctlAxes.z < 0)) ctlAxes.z = 0;
+        syncHeld();
+        lastInput = performance.now();
+        update();
+      }
+      ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (t) { btn.addEventListener(t, end); });
+    });
     function rate(d) {
       return {
         da: d === 'left' ? -ROT : d === 'right' ? ROT : 0,
@@ -1475,36 +1585,17 @@
     function endHold() {
       if (holdTimer) { clearTimeout(holdTimer); holdTimer = 0; }
       if (holdBtn) holdBtn.classList.remove('is-held');
-      holdBtn = null; held = null;
+      holdBtn = null;
+      ctlAxes.key = null;
+      syncHeld();
       lastInput = performance.now();
       update();
     }
-    pads.addEventListener('pointerdown', function (ev) {
-      var b = ev.target.closest('button[data-dir]');
-      if (!b || mode !== '360') return;
-      ev.preventDefault();
-      endHold();
-      holdBtn = b; b.classList.add('is-held');
-      stage.setAttribute('data-r360-touched', '1');
-      try { b.setPointerCapture(ev.pointerId); } catch (e) { /* ignore */ }
-      var d = b.getAttribute('data-dir');
-      step(d); // immediate nudge, then keep moving while held
-      holdTimer = setTimeout(function () { holdTimer = 0; if (holdBtn === b) { held = rate(d); update(); } }, 260);
-    });
-    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (t) { pads.addEventListener(t, endHold); });
-    pads.addEventListener('click', function (ev) {
-      var b = ev.target.closest('button[data-dir]');
-      if (b && ev.detail === 0) step(b.getAttribute('data-dir')); // keyboard
-    });
-    pads.addEventListener('contextmenu', function (ev) { ev.preventDefault(); });
-    document.addEventListener('visibilitychange', function () { if (document.hidden) endHold(); });
-
-    zbar.addEventListener('click', function (ev) {
-      var b = ev.target.closest('button[data-z]');
-      if (!b) return;
-      var z = b.getAttribute('data-z');
-      if (z === 'reset') resetZoom();
-      else zoomAt(zoom * (z === 'in' ? 1.5 : 1 / 1.5));
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) {
+        ctlAxes.ox = ctlAxes.oy = ctlAxes.hy = ctlAxes.z = 0;
+        endHold();
+      }
     });
     var ARROW_KEY = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' };
     function heightKey(ev) {
@@ -1521,7 +1612,7 @@
       step(d);
       if (holdTimer) { clearTimeout(holdTimer); holdTimer = 0; }
       var dir = d;
-      holdTimer = setTimeout(function () { holdTimer = 0; held = rate(dir); update(); }, 260);
+      holdTimer = setTimeout(function () { holdTimer = 0; ctlAxes.key = rate(dir); syncHeld(); update(); }, 260);
     });
     stage.addEventListener('keyup', function (ev) {
       if (ARROW_KEY[ev.key] || ev.key === 'PageUp' || ev.key === 'PageDown') endHold();
@@ -1545,7 +1636,14 @@
       '<svg class="r360-fs-enter" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 14H5v5h5v-2H7v-3zm12 0h-2v3h-3v2h5v-5zM7 7h3V5H5v5h2V7zm7-2v2h3v3h2V5h-5z"/></svg>' +
       '<svg class="r360-fs-exit" viewBox="0 0 24 24" aria-hidden="true" hidden><path fill="currentColor" d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>' +
       '<span class="r360-fs-label" hidden>Exit</span>';
-    stage.appendChild(fsBtn);
+    if (facePad) {
+      fsBtn.setAttribute('data-face', 'sq');
+      fsBtn.classList.add('r360-face');
+      // Insert square in the DualSense diamond (left of the cluster).
+      var circ = facePad.querySelector('[data-face="circ"]');
+      if (circ) facePad.insertBefore(fsBtn, circ);
+      else facePad.appendChild(fsBtn);
+    } else stage.appendChild(fsBtn);
     function fsNativeEl() {
       return document.fullscreenElement || document.webkitFullscreenElement || null;
     }
@@ -2956,10 +3054,7 @@
       [D0 + 0.25, DECK_Y + 0.45], [D0 + 0.25, DECK_Y], [D0 + 1.45, DECK_Y],
       [BOOM_X + 1.15, 5.48], [-8.7, 5.58]
     ]);
-    [[-9.6, 6.05], [-11.2, 6.0], [-14.0, 5.15]].forEach(function (c) {
-      var hx = 0.55, hy = 0.42;
-      neck.holes.push(path([[c[0] - hx, c[1]], [c[0], c[1] + hy], [c[0] + hx, c[1]], [c[0], c[1] - hy]]));
-    });
+    // Solid side plates — Claudio's 25GN has no web cutouts or lightening holes in the neck.
     // v135: two side rails (black I-beam risers) and a lower center spine, so
     // the spare can lie flat between the rails over the spine (Claudio's photo).
     [-1, 1].forEach(function (s) { extrude(neck, 0.3, M.frame, s * 1.45, 0.04); });
