@@ -2,8 +2,9 @@
    A low-poly 3D model of our 2026 Ram 3500 dually crew cab (Diamond Black)
    and the Big Tex 25GN-40 gooseneck (40 ft deck incl. 5 ft dovetail, 102 in
    wide, 34 in deck height), built in code with Three.js r170 (vendored at
-   vendor/three/three.module.min.js, MIT). The real photo stays as the loading
-   poster only; the Photo view toggle was removed in v150. "Truck" spins the Ram alone; "Trailer" spins the
+   vendor/three/three.module.min.js, MIT). The Photo view toggle was removed
+   in v150; the loading poster was removed later so Rate Check cannot flash
+   the real photo when the tab is shown. "Truck" spins the Ram alone; "Trailer" spins the
    Big Tex 25GN-40D5A-MRBK on its own (unhitched, on its drop-leg jacks).
    - Three.js only loads after first paint (idle) and once the stage is on screen.
    - Slow auto-spin (about 26 s per turn) starts as soon as the 360 is ready
@@ -14,7 +15,7 @@
      under the truck to straight overhead, polar 5-175 deg) with inertia.
      Pinch zooms; two-finger drag (or right / middle / shift mouse drag) pans.
      Double-tap or double-click resets the view. v130: nothing under the
-     stage (photo, reflection) can take the touch: touch-action none, no
+     stage can take the touch: touch-action none, no
      native image drag, pointer capture, touchmove and gesture events
      cancelled. Mouse wheel / trackpad pinch or the +/- buttons zoom
      1x to 5x. Auto-spin pauses while touching.
@@ -187,7 +188,20 @@
       }, { rootMargin: '120px 0px' }).observe(stage);
     }
     document.addEventListener('visibilitychange', function () { if (view) view.update(); });
-    document.addEventListener('blackram:tab', function () { setTimeout(function () { maybeStart(); if (view) { view.resize(); view.update(); } }, 30); });
+    function kickView() {
+      maybeStart();
+      if (view) { view.resize(); view.update(); }
+    }
+    document.addEventListener('blackram:tab', function () {
+      // header.top is display:none off Rate Check; WebKit clears the canvas
+      // when it is hidden. Redraw as soon as the tab is shown, then once
+      // more after layout, so the 3D view is back without a photo flash.
+      kickView();
+      requestAnimationFrame(function () {
+        kickView();
+        setTimeout(kickView, 30);
+      });
+    });
     return true;
   }
 
@@ -220,7 +234,7 @@
   function fail() {
     failed = true;
     if (stage) stage.setAttribute('data-r360-failed', '1');
-    // Keep the poster visible; do not switch to a Photo "view".
+    // Keep the studio placeholder visible; do not switch to a Photo "view".
   }
 
   /* ------------------------------------------------------------------ */
@@ -779,6 +793,7 @@
     }
 
     function resize() {
+      if (!stageVisible()) return;
       var r = canvasWrap.getBoundingClientRect();
       var nw = Math.max(1, Math.round(r.width)), nh = Math.max(1, Math.round(r.height));
       if (nw === w && nh === h) return;
@@ -798,8 +813,12 @@
       fitShadowCam();
     }
 
+    function stageVisible() {
+      try { if (document.documentElement.getAttribute('data-tab') !== 'check') return false; } catch (e) { /* ignore */ }
+      return !document.hidden;
+    }
     function wantsLoop() {
-      if (mode !== '360' || !onScreen || document.hidden) return false;
+      if (mode !== '360' || !onScreen || !stageVisible()) return false;
       if (anim || arrowAnim || dragging || held) return true;
       if (!reduceMotion && (Math.abs(velocity) > 0.002 || Math.abs(elevVel) > 0.002 || Math.abs(iVelY) > 0.002 || Math.abs(iVelE) > 0.002)) return true;
       // Auto-spin only in the default orbit, never while a part is in focus.

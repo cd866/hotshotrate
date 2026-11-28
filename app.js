@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v151';
+  var APP_VERSION = 'v152';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -5315,26 +5315,6 @@
     });
   }
 
-  function bindRigPhoto() {
-    var img = $('rig-photo');
-    var reflect = $('rig-reflect');
-    function apply(el, fallbackSrc) {
-      if (!el) return;
-      var srcset = el.getAttribute('data-srcset');
-      var src = el.getAttribute('data-src') || fallbackSrc || '';
-      if (srcset && !el.getAttribute('srcset')) el.srcset = srcset;
-      if (src && !el.getAttribute('src')) el.src = src;
-    }
-    if (img) {
-      var sources = img.parentNode ? img.parentNode.querySelectorAll('source[data-srcset]') : [];
-      for (var i = 0; i < sources.length; i++) {
-        if (!sources[i].srcset) sources[i].srcset = sources[i].getAttribute('data-srcset') || '';
-      }
-      apply(img);
-      apply(reflect, img.getAttribute('src') || img.getAttribute('data-src') || '');
-    }
-  }
-
   function watchTabbar() {
     var nav = document.querySelector('.tabbar');
     if (!nav || nav._watched) return;
@@ -9101,7 +9081,6 @@
       else if (state.tab === 'searches') renderSearches();
     });
     watchTabbar();
-    bindRigPhoto();
     bindRigDiagram();
     loadDieselPrices();
     var ver = $('app-version');

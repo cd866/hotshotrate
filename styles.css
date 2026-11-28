@@ -1917,7 +1917,7 @@ input::placeholder { color: var(--muted); }
 }
 .tabbar-sentinel { height: 0; width: 100%; pointer-events: none; }
 
-/* Our rig: Tesla-style photo stage */
+/* Our rig: studio stage (gradient placeholder; no photo poster) */
 .rig-figure { margin: 8px 0 4px; }
 .rig-stage {
   position: relative;
@@ -1939,28 +1939,6 @@ input::placeholder { color: var(--muted); }
   background: radial-gradient(ellipse at 50% 40%, rgba(167, 139, 250, 0.22), rgba(0, 0, 0, 0.35) 55%, transparent 72%);
   pointer-events: none;
   z-index: 0;
-}
-.rig-photo {
-  position: relative;
-  z-index: 2;
-  display: block;
-  width: 100%;
-  height: auto;
-  filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.65));
-}
-.rig-reflect {
-  position: relative;
-  z-index: 1;
-  display: block;
-  width: 100%;
-  height: auto;
-  margin-top: -8%;
-  margin-bottom: -18%;
-  transform: scaleY(-1);
-  opacity: 0.38;
-  pointer-events: none;
-  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent 58%);
-  mask-image: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent 58%);
 }
 .rig-figure { padding: 0 8px; }
 .rig-specs-panel {
@@ -4679,8 +4657,20 @@ main { padding: 0 var(--s-2) calc(var(--bnav-h) + var(--s-3) + env(safe-area-ins
 }
 .appbar-icon svg { width: 22px; height: 22px; }
 
-/* brand hero + rig photo only on the Check tab */
-html:not([data-tab="check"]) header.top { display: none; }
+/* brand hero + 360 viewer only on the Check tab.
+   Do not use display:none — WebKit (iPhone Safari / PWA) drops the WebGL
+   drawing buffer when the canvas is un-rendered, and the old photo poster
+   used to flash while it came back. Keep the header in the tree, sized,
+   but invisible and out of flow. */
+html:not([data-tab="check"]) header.top {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100%;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: -1;
+}
 header.top { padding-top: var(--s-2); }
 
 /* ---- bottom tab bar with icons ---- */
@@ -5113,9 +5103,7 @@ header.top.rc-top { padding: var(--s-1) var(--s-2) 0; margin: 0; }
 }
 .rc-rig > .rig-figure { margin: 0; padding: 0; }
 .rc-rig .rig-stage { height: 64px; border-radius: var(--radius-md); overflow: hidden; background: #0b0a12; border: 1px solid var(--c-line); }
-.rc-rig .rig-floor, .rc-rig .rig-reflect { display: none; }
-.rc-rig .rig-stage picture { display: block; height: 100%; }
-.rc-rig .rig-photo { width: 100%; height: 64px; object-fit: cover; object-position: 80% 50%; display: block; margin: 0; }
+.rc-rig .rig-floor { display: none; }
 .rc-rig-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding-right: 76px; }
 .rc-rig-text b { font-size: var(--fs-md); font-weight: var(--fw-black); color: var(--c-text-1); line-height: 1.2; }
 .rc-rig-text span { font-size: var(--fs-xs); color: var(--c-text-3); line-height: 1.3; }
@@ -5509,14 +5497,18 @@ html.rig-zoom-open .appbar {
 }
 
 /* =====================================================================
-   v75 OUR RIG 360: slow-spinning 3D model over the photo stage.
+   v75 OUR RIG 360: slow-spinning 3D model over the studio stage.
    v145: a compact stage so the page can scroll on a phone. Phone is
    ~48vh, max 420px; desktop ~60vh, max 620px. Gutters stay around the
    canvas. Single-finger drags scroll the page (touch-action: pan-y)
    unless the viewer is armed or fullscreen.
+   v151+: the real rig photo is gone. The stage keeps its size from first
+   paint (gradient + floor placeholder) so opening Rate Check cannot flash
+   a poster, including when header.top is un-hidden from display:none.
    ===================================================================== */
 header.top .rig-card { width: 100%; max-width: none; }
 header.top .rig-figure { padding-left: 10px; padding-right: 10px; }
+header.top .rig-stage,
 header.top .rig-stage[data-r360] {
   aspect-ratio: auto;
   width: 100%;
@@ -5532,6 +5524,7 @@ header.top .rig-stage[data-r360] {
   -webkit-tap-highlight-color: transparent;
 }
 @media (min-width: 768px) {
+  header.top .rig-stage,
   header.top .rig-stage[data-r360] {
     height: 60vh;
     height: 60dvh;
@@ -5574,17 +5567,15 @@ header.top .rig-stage[data-r360] canvas {
 header.top .rig-stage[data-r360][data-view="360"] img,
 header.top .rig-stage[data-r360][data-view="360"] picture { pointer-events: none; }
 header.top .rig-stage[data-r360][data-view="360"] .r360-canvas { touch-action: pan-y; }
-header.top .rig-stage[data-r360] picture,
-header.top .rig-stage[data-r360] .rig-reflect,
-header.top .rig-stage[data-r360] .rig-floor { transition: opacity 0.5s ease; }
+/* No opacity transition on the wrap or floor. header.top is display:none
+   off the Check tab; showing it again would replay a fade and flash a
+   poster or a blank canvas. The 3D layer appears as soon as it is ready. */
 .r360-wrap {
   position: absolute; inset: 0; z-index: 3;
-  opacity: 0; pointer-events: none; transition: opacity 0.6s ease;
+  opacity: 0; pointer-events: none;
 }
 .r360-canvas { display: block; width: 100%; height: 100%; }
 .rig-stage[data-view="360"][data-r360-ready] .r360-wrap { opacity: 1; }
-.rig-stage[data-view="360"][data-r360-ready] picture,
-.rig-stage[data-view="360"][data-r360-ready] .rig-reflect,
 .rig-stage[data-view="360"][data-r360-ready] .rig-floor { opacity: 0; }
 .rig-stage[data-view="360"][data-r360-ready] { cursor: grab; }
 .rig-stage.r360-grab { cursor: grabbing; }
@@ -5618,7 +5609,7 @@ header.top .rig-stage[data-r360] .rig-floor { transition: opacity 0.5s ease; }
 .rig-stage[data-view="360"][data-r360-ready]:not([data-r360-touched]) .r360-hint { opacity: 1; animation: r360-hint 6s ease 1.5s forwards; }
 @keyframes r360-hint { 0%, 80% { opacity: 1; } 100% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) {
-  .r360-wrap, header.top .rig-stage[data-r360] picture { transition: none; }
+  .r360-wrap { transition: none; }
   .rig-stage[data-view="360"][data-r360-ready]:not([data-r360-touched]) .r360-hint { animation: none; }
 }
 /* v77 360 zoom: +/- and Fit, bottom right of the stage */
