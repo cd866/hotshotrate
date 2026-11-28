@@ -41,11 +41,12 @@
     Object.keys(TABS).forEach(function (t) { if (document.getElementById('panel-' + t)) add('tab', TABS[t][0], 'Open section', TABS[t][1], { tab: t }); });
     add('act', 'Pre-trip checklist', 'Maintenance | check off on this phone', 'pretrip pre-trip walkaround inspection', { jump: 'mt-chk', tab: 'maint' });
     add('act', 'Broker call sheet', 'MC, DOT, insurance and equipment facts', 'call sheet broker packet mc dot coi', { call: 1 });
-    add('act', 'Team', 'Claudio, Ben, Meshach, and Felix', 'team partners totni felix 360', { team: 1 });
+    add('act', 'Team', 'Claudio, Ben, Meshach, Felix, and Mike', 'team partners totni felix mike big tex dealer 360', { team: 1 });
     add('act', 'Claudio 360', 'Partner / owner | dispatch and back office', 'claudio partner owner dispatch finances', { team: 'claudio' });
     add('act', 'Ben 360', 'Partner | trailer capital', 'ben partner capital trailer', { team: 'ben' });
     add('act', 'Driver 360', 'Meshach | loads, miles, on-time', 'driver meshach 360 profile', { driver: 1 });
     add('act', 'Felix 360', 'Totni owner | MC 1122113, 13% cut', 'felix totni carrier mc lease', { team: 'felix' });
+    add('act', 'Mike 360', 'Trailer dealer | Big Tex, 25GN', 'mike big tex trailer dealer gooseneck 25GN gear oil', { team: 'mike' });
     add('act', 'Trailer diagram', 'Big Tex labeled diagram', 'trailer diagram big tex parts', { diagram: 1 });
     var f = A().getFeed ? A().getFeed() : null;
     ((f && f.months) || []).forEach(function (m) {

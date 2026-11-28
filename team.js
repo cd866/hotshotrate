@@ -1,8 +1,8 @@
 /* Black Ram Logistics - Team and partner 360 pages.
-   Roster of first-name cards (Claudio, Ben, Meshach, Felix / Totni) styled like Driver 360.
+   Roster of first-name cards (Claudio, Ben, Meshach, Felix / Totni, Mike / Big Tex) styled like Driver 360.
    Meshach opens the existing Driver 360. Pay, capital, coverage dollars and any other
    money figures come ONLY from the PIN-gated relay /financials. Public chips are roles,
-   MC, lease rate, and COI date. No phone, email, address, DOB, license or card numbers.
+   MC, lease rate, COI date, and dealer service notes. No phone, email, address, DOB, license or card numbers.
    Reuses Driver 360 .d3-* styles when present; does not edit driver360.js.
    Tiles reuse tiles.js (BlackRamTiles). Plain ASCII. */
 (function () {
@@ -10,10 +10,10 @@
   var RELAY = 'https://blackram-relay.sandlilypad.workers.dev';
   var PIN_KEY = 'blackram_relay_pin_v1';
   var FIN_KEY = 'blackram_fin_session_v1';
-  var ART_V = '133';
+  var ART_V = '154';
   // v138: small lossless face crops (same pixels the old CSS crop showed) so the Team list
   // does not pull four full 1-1.8 MB portraits.
-  var FACE_V = '138';
+  var FACE_V = '154';
   var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var PEOPLE = [
     {
@@ -83,7 +83,28 @@
         { t: 'Lease cut', s: '13%', d: 'of gross' }
       ],
       calls: [{ tone: 'warn', html: 'Sand Lily Pad is leased onto Totni. Dispatch has been in-house since Nov 1, 2026, not run by Totni.' }],
-      tbd: ['Signed lease copy on file: TBD', 'Bobtail / non-trucking and trailer interchange on the COI: TBD']
+    },
+    {
+      id: 'mike',
+      name: 'Mike',
+      group: 'vendor',
+      kick: 'Dealer 360',
+      role: 'Trailer dealer | Big Tex Trailers (Tex Trailers)',
+      short: 'Trailer dealer | Big Tex',
+      chips: ['25GN-40D5A-MRBK', 'Gear oil 80/90', 'Axle maker TBD'],
+      art: 'brand/mike-360.png?v=' + ART_V, w: 850, h: 1136,
+      alt: 'Monogram for Mike, trailer dealer at Big Tex, with a simple 25GN gooseneck mark. No portrait is on file.',
+      duties: [
+        { t: 'Sold us', s: '25GN', d: '40D5A-MRBK, 10/5/26' },
+        { t: 'Gear oil', s: '80/90', d: 'change at 15,000 mi' },
+        { t: 'Axle maker', s: 'TBD', d: 'for brake / bearing intervals' },
+        { t: 'Dealer', s: 'Big Tex', d: 'Claudio calls it Tex Trailers' }
+      ],
+      dutyTitle: 'What he did for us',
+      dutySub: 'vendor',
+      calls: [{ tone: 'ok', html: 'Trailer dealer at Big Tex who sold us the 25GN gooseneck. Very knowledgeable. First name only; no contact details are kept in the app.' }],
+      tbd: ['Which maker builds the trailer axles (needed for brake and bearing intervals): TBD'],
+      noOrbit: true
     }
   ];
 
@@ -91,6 +112,8 @@
 
   function $(id) { return document.getElementById(id); }
   function person(id) { for (var i = 0; i < PEOPLE.length; i++) if (PEOPLE[i].id === id) return PEOPLE[i]; return null; }
+  function groupLabel(p) { return p.group === 'partner' ? 'Partner' : p.group === 'carrier' ? 'Carrier' : p.group === 'vendor' ? 'Dealer' : 'Team'; }
+  function isOutside(p) { return p.group && p.group !== 'partner'; }
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function m0(n) { if (n == null || !isFinite(n)) return '-'; var a = Math.abs(Math.round(n)).toLocaleString('en-US'); return (n <= -0.5 ? '-$' : '$') + a; }
   function m2(n) { if (n == null || !isFinite(n)) return '-'; var a = Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); return (n < -0.004 ? '-$' : '$') + a; }
@@ -225,13 +248,14 @@
   }
   function secDuties(p) {
     if (!p.duties || !p.duties.length) return '';
-    var title = p.group === 'carrier' ? 'What Totni provides' : 'Role';
+    var title = p.dutyTitle || (p.group === 'carrier' ? 'What Totni provides' : 'Role');
+    var sub = p.dutySub || (p.group === 'carrier' ? 'lease-on' : p.group === 'vendor' ? 'Big Tex' : '1/3 owner');
     var body = '<div class="d3-grid d3-g2">' + p.duties.map(function (d) {
       return tile(d.t, esc(d.s || 'TBD'), d.d ? esc(d.d) : '');
     }).join('') + '</div>';
     var calls = (p.calls || []).map(function (c) { return call(c.tone, c.html); }).join('');
     var tbd = (p.tbd || []).length ? '<p class="d3-fine">' + p.tbd.map(function (x) { return esc(x); }).join(' | ') + '</p>' : '';
-    return card('tm-role', title, p.group === 'carrier' ? 'lease-on' : '1/3 owner', body + calls + tbd);
+    return card('tm-role', title, sub, body + calls + tbd);
   }
   function secCoi(p) {
     if (p.id !== 'felix') return '';
@@ -275,12 +299,14 @@
     } else if (p.id === 'felix') {
       var left = daysBetween(todayIso(), '2026-12-10');
       extra = '<span class="tm-cs"><span><b>13%</b>cut</span><span><b>' + (left >= 0 ? left + 'd' : '--') + '</b>COI left</span></span>';
+    } else if (p.id === 'mike') {
+      extra = '<span class="tm-cs"><span><b>25GN</b>sold</span><span><b>15k</b>gear oil</span></span>';
     } else if (p.group === 'partner') {
       extra = '<span class="tm-cs"><span><b>1/3</b>owner</span></span>';
     }
     return '<button type="button" class="tm-card" data-tm-open="' + p.id + '" aria-label="' + esc(p.name) + ', ' + esc(p.short) + '. Open 360">' +
       '<span class="tm-face is-' + p.id + '" style="background-image:url(' + esc('brand/face-' + p.id + '.png?v=' + FACE_V) + ')" aria-hidden="true"></span>' +
-      '<span class="tm-meta"><small>' + esc(p.group === 'carrier' ? 'Carrier' : 'Partner') + '</small><b>' + esc(p.name) + '</b><span>' + esc(p.short) + '</span></span>' +
+      '<span class="tm-meta"><small>' + esc(groupLabel(p)) + '</small><b>' + esc(p.name) + '</b><span>' + esc(p.short) + '</span></span>' +
       extra + '<span class="d3-tchev" aria-hidden="true"></span></button>';
   }
   function renderTeam() {
@@ -288,7 +314,7 @@
     var h = teamHost(), sc = h.querySelector('.d3-scroll'), top = sc ? sc.scrollTop : 0;
     var s = st.feed ? stats() : null;
     var partners = PEOPLE.filter(function (p) { return p.group === 'partner'; }).map(function (p) { return rosterCard(p, s); }).join('');
-    var carrier = PEOPLE.filter(function (p) { return p.group === 'carrier'; }).map(function (p) { return rosterCard(p, s); }).join('');
+    var outside = PEOPLE.filter(isOutside).map(function (p) { return rosterCard(p, s); }).join('');
     var coChips = '<div class="d3-chips tm-cochips">' +
       '<span class="d3-chip">1/3 each</span>' +
       '<span class="d3-chip">Jacksonville, FL</span>' +
@@ -298,7 +324,7 @@
       '</div>';
     var body = '<div class="tm-intro"><span class="d3-kick">Sand Lily Pad LLC</span><b>Black Ram Logistics</b><span class="d3-role">Hotshot | leased onto Totni</span>' + coChips + '</div>' +
       '<h3 class="tm-h">Partners</h3><div class="tm-list">' + partners + '</div>' +
-      '<h3 class="tm-h">Carrier</h3><div class="tm-list">' + carrier + '</div>' +
+      '<h3 class="tm-h">Outside partners</h3><div class="tm-list">' + outside + '</div>' +
       '<p class="d3-fine d3-foot">First names only. No phone, email or address. Capital, pay and coverage dollars need the PIN.</p>';
     h.innerHTML = '<div class="d3-bar"><button type="button" class="d3-back" data-tm-close="1" aria-label="Close Team">Back</button><b>Team</b><span>Sand Lily Pad</span></div><div class="d3-scroll">' + body + '</div>';
     var ns = h.querySelector('.d3-scroll'); if (ns) ns.scrollTop = top;
@@ -324,7 +350,7 @@
     var h = personHost(), sc = h.querySelector('.d3-scroll'), top = sc ? sc.scrollTop : 0;
     stopOrbit(h);
     var s = st.feed ? stats() : null;
-    var jump = [['tm-role', p.group === 'carrier' ? 'Provides' : 'Role']];
+    var jump = [['tm-role', p.group === 'carrier' ? 'Provides' : (p.group === 'vendor' ? 'Trailer' : 'Role')]];
     if (p.id === 'claudio' || p.id === 'meshach') jump.push(['tm-co', 'Loads']);
     if (p.group === 'partner') { jump.push(['tm-cap', 'Capital']); jump.push(['tm-share', 'Share']); }
     if (p.id === 'felix') jump.push(['tm-coi', 'Carrier']);
@@ -335,7 +361,7 @@
     h.innerHTML = '<div class="d3-bar"><button type="button" class="d3-back" data-p360-close="1" aria-label="Back to Team">Back</button><b>' + esc(p.kick) + '</b><span>' + esc(p.name) + '</span></div><div class="d3-scroll">' + body + '</div>';
     var ns = h.querySelector('.d3-scroll'); if (ns) ns.scrollTop = top;
     var hf = h.querySelector('.d3-hero');
-    if (hf && window.BlackRamDriver && window.BlackRamDriver.bindOrbit) window.BlackRamDriver.bindOrbit(hf);
+    if (hf && !p.noOrbit && window.BlackRamDriver && window.BlackRamDriver.bindOrbit) window.BlackRamDriver.bindOrbit(hf);
     h.querySelectorAll('[data-tm-jump]').forEach(function (a) {
       a.addEventListener('click', function (e) { e.preventDefault(); var t = $(a.getAttribute('data-tm-jump')); if (t && ns) ns.scrollTo({ top: t.offsetTop - 56, behavior: 'smooth' }); });
     });
