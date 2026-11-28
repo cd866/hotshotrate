@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v150';
+  var APP_VERSION = 'v151';
   var RELAY_URL = 'https://blackram-relay.sandlilypad.workers.dev';
   var RELAY_PIN_KEY = 'blackram_relay_pin_v1';
   var DELIVERED_SYNC_KEY = 'blackram_delivered_sync_v1';
@@ -739,6 +739,8 @@
     ['rate', 'loaded', 'deadhead', 'weight', 'lengthFt', 'pickup', 'delivery', 'hours'].forEach(function (id) {
       $(id).value = '';
     });
+    if ($('rc-broker')) $('rc-broker').value = '';
+    if (window.BlackRamVet && window.BlackRamVet.syncRC) window.BlackRamVet.syncRC();
     setTarp(false);
   }
 
@@ -1851,6 +1853,7 @@
       keyMetricsGrid(ledgerRow, gridOpts) +
       milesStrip(miles, emp.mi, { loadedEst: !!load.miles_estimate, emptyEst: true, emptyFrom: emp.from }) +
       fitRow +
+      (window.BlackRamVet ? window.BlackRamVet.slotLedger(load) : '') +
       '<div class="search-actions">' + deliverBits +
       '<button type="button" class="call-sheet-btn">Call sheet</button>' + toggle + '</div>' +
       routePane + '</article>';
@@ -3739,6 +3742,9 @@
       '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" role="img" aria-label="' + esc('Cost waterfall: ' + aria) + '">' +
       parts.join('') + '</svg></div>';
   }
+
+  function vetSlot(row) { return window.BlackRamVet ? window.BlackRamVet.slotFor(row) : ''; }
+  function vetSlotNamed(row) { return window.BlackRamVet ? window.BlackRamVet.slotFor(row, 'bk-named') : ''; }
 
   function loadInfoChipsHtml(row) {
     if (!row) return '';
@@ -6890,6 +6896,7 @@
         { emptyFrom: searchOriginLabel() }) +
       truckHintSlot(row, verd) +
       fitBadgesHtml(row) +
+      vetSlotNamed(row) +
       alsoHtml +
       whyBoxHtml(row) +
       routeWxHtml(row) +
@@ -7104,6 +7111,7 @@
         '<div class="cc-leg-body">' +
           '<div class="cc-leg-route">' + esc((row.origin || 'Origin') + ' to ' + (row.destination || 'Destination')) + '</div>' +
           '<div class="cc-leg-meta">' + esc(meta.join(' | ')) + '</div>' +
+          vetSlot(row) +
         '</div>' +
         '<span class="cc-rate">' + (row.posted_rate != null ? esc(money(row.posted_rate)) : 'n/a') + '</span>' +
         '<div class="cc-leg-actions">' + acts + '</div>' +
@@ -7439,6 +7447,7 @@
       tr('Weight', rows.map(function (r) { return r.weight_lb != null ? esc(plainNum(r.weight_lb, 0)) + ' lb' : 'n/a'; }), -1) +
       tr('Pickup', rows.map(function (r) { return esc(pickupDateLabel(r)); }), -1) +
       tr('Board', rows.map(function (r) { return esc(r.board || ''); }), -1) +
+      tr('Totni MC', rows.map(function (r) { return vetSlot(r); }), -1) +
       tr('Actions', rows.map(function (r) {
         var mail = brokerMailto(r);
         var tel = brokerTel(r);

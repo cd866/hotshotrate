@@ -18,8 +18,8 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=4" sizes="180x180" />
   <link rel="preload" href="fonts/nunito-sans-variable.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="fonts/oswald-700.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="styles.css?v=150" />
-  <link rel="stylesheet" href="desktop.css?v=150" />
+  <link rel="stylesheet" href="styles.css?v=151" />
+  <link rel="stylesheet" href="desktop.css?v=151" />
   <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
   <script>
     try {
@@ -299,6 +299,11 @@
 
           <section class="rc-card" aria-label="Load details">
             <h2 class="rc-h2">Load details <span class="rc-opt">Optional</span></h2>
+            <label class="rc-field rc-full" for="rc-broker">
+              <span class="rc-lbl">Broker or MC <span class="rc-opt">Shows if Totni's MC is likely OK</span></span>
+              <span class="rc-input-box"><input id="rc-broker" name="rc-broker" type="text" maxlength="60" autocapitalize="words" enterkeyhint="next" placeholder="Name or MC number" /></span>
+            </label>
+            <div id="rc-bk" class="bk-row" data-bk-n="" data-bk-mc="" data-bk-dot=""></div>
             <div class="rc-pair">
               <label class="rc-field" for="weight">
                 <span class="rc-lbl">Weight</span>
@@ -569,6 +574,8 @@
         <span class="callsheet-copy-status" id="callsheet-copy-status" hidden></span>
       </div>
 
+      <div id="callsheet-vet"></div>
+
       <h3 class="callsheet-h">Authority</h3>
       <div class="callsheet-grid">
         <div class="callsheet-row" data-copy="Totni Enterprise LLC"><span class="callsheet-k">Carrier</span><span class="callsheet-v">Totni Enterprise LLC</span><button type="button" class="copy-btn">Copy</button></div>
@@ -702,32 +709,33 @@
   </div>
   <noscript><p class="noscript">Black Ram Logistics needs JavaScript for Rate Check, stops, and reports.</p></noscript>
   <script src="vendor/leaflet/leaflet.js"></script>
-  <script src="tiles.js?v=150"></script>
-  <script src="maps.js?v=150"></script>
-  <script src="wxicons.js?v=150"></script>
-  <script src="truckloc.js?v=150"></script>
-  <script src="tripplan.js?v=150"></script>
-  <script src="app.js?v=150"></script>
-  <script src="pullbar.js?v=150"></script>
-  <script src="stops.js?v=150"></script>
-  <script src="targets.js?v=150"></script>
-  <script src="loadcosts.js?v=150"></script>
-  <script src="reports.js?v=150"></script>
-  <script src="scoreboard.js?v=150"></script>
-  <script src="accounting.js?v=150"></script>
-  <script src="insurance.js?v=150"></script>
-  <script src="maintenance.js?v=150"></script>
-  <script src="dotready.js?v=150"></script>
-  <script src="tax.js?v=150"></script>
-  <script src="actions.js?v=150"></script>
-  <script src="loans.js?v=150"></script>
-  <script src="billwf.js?v=150"></script>
-  <script src="rig360.js?v=150"></script>
-  <script src="driver360.js?v=150"></script>
-  <script src="team.js?v=150"></script>
-  <script src="today.js?v=150"></script>
-  <script src="search.js?v=150"></script>
-  <script src="wxbar.js?v=150"></script>
+  <script src="tiles.js?v=151"></script>
+  <script src="maps.js?v=151"></script>
+  <script src="wxicons.js?v=151"></script>
+  <script src="truckloc.js?v=151"></script>
+  <script src="tripplan.js?v=151"></script>
+  <script src="vetting.js?v=151"></script>
+  <script src="app.js?v=151"></script>
+  <script src="pullbar.js?v=151"></script>
+  <script src="stops.js?v=151"></script>
+  <script src="targets.js?v=151"></script>
+  <script src="loadcosts.js?v=151"></script>
+  <script src="reports.js?v=151"></script>
+  <script src="scoreboard.js?v=151"></script>
+  <script src="accounting.js?v=151"></script>
+  <script src="insurance.js?v=151"></script>
+  <script src="maintenance.js?v=151"></script>
+  <script src="dotready.js?v=151"></script>
+  <script src="tax.js?v=151"></script>
+  <script src="actions.js?v=151"></script>
+  <script src="loans.js?v=151"></script>
+  <script src="billwf.js?v=151"></script>
+  <script src="rig360.js?v=151"></script>
+  <script src="driver360.js?v=151"></script>
+  <script src="team.js?v=151"></script>
+  <script src="today.js?v=151"></script>
+  <script src="search.js?v=151"></script>
+  <script src="wxbar.js?v=151"></script>
   <script>
     (function () {
       if (!('serviceWorker' in navigator)) return;

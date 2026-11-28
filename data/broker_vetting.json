@@ -1,0 +1,571 @@
+{
+ "schema": 1,
+ "as_of": "2026-11-28",
+ "totni": {
+  "mc": "1122113",
+  "liability_filed_usd": 750000,
+  "vehicle_oos_pct": 80.0,
+  "driver_oos_pct": 33.3,
+  "note": "Totni's other semis drive these rates. Rates sit on every load run under its MC."
+ },
+ "basis": [
+  "Likely OK = this broker has already booked Sand Lily Pad (ledger).",
+  "Strict = publishes a $1M or higher liability minimum (Totni's filing is $750K), or vets through Highway where out-of-service rates show. Source: readyforloads.com, checked Oct-Nov 2026, and the MC rating plan of 11/27.",
+  "Unknown = no booking and no published rule. Ask the broker which vetting tool they use."
+ ],
+ "brokers": [
+  {
+   "name": "MegaCorp Logistics LLC",
+   "mc": [
+    "671004"
+   ],
+   "dot": [
+    "2243917"
+   ],
+   "aliases": [
+    "MegaCorp Logistics"
+   ],
+   "flag": "ok",
+   "past": true,
+   "reason": "Booked us 10/12.",
+   "source": "Sand Lily Pad ledger"
+  },
+  {
+   "name": "Tetria Global Logistics Services LLC",
+   "mc": [
+    "1155765"
+   ],
+   "dot": [
+    "3501279"
+   ],
+   "aliases": [
+    "Tetria Global"
+   ],
+   "flag": "ok",
+   "past": true,
+   "reason": "Booked us 10/13.",
+   "source": "Sand Lily Pad ledger"
+  },
+  {
+   "name": "Logistek LLC",
+   "mc": [
+    "331063"
+   ],
+   "dot": [
+    "720753"
+   ],
+   "aliases": [
+    "Logistek"
+   ],
+   "flag": "ok",
+   "past": true,
+   "reason": "Booked us 10/14.",
+   "source": "Sand Lily Pad ledger"
+  },
+  {
+   "name": "Freeway International Logistics LLC",
+   "mc": [
+    "18898"
+   ],
+   "dot": [
+    "2990808"
+   ],
+   "aliases": [
+    "Freeway International Logistics",
+    "Freeway Logistics"
+   ],
+   "flag": "ok",
+   "past": true,
+   "reason": "Booked us 10/22 (through Totni).",
+   "source": "Sand Lily Pad ledger"
+  },
+  {
+   "name": "Trinity Logistics Inc.",
+   "mc": [
+    "205157"
+   ],
+   "dot": [
+    "2214024"
+   ],
+   "aliases": [
+    "Trinity Logistics"
+   ],
+   "flag": "ok",
+   "past": true,
+   "reason": "Booked us 10/26. It publishes a $1M minimum, so expect a setup check on new loads.",
+   "source": "Sand Lily Pad ledger"
+  },
+  {
+   "name": "Unicargo Freight Inc.",
+   "mc": [
+    "969203"
+   ],
+   "dot": [
+    "2886885"
+   ],
+   "aliases": [
+    "Unicargo Freight",
+    "Unicargo"
+   ],
+   "flag": "ok",
+   "past": true,
+   "reason": "Booked us 11/3.",
+   "source": "Sand Lily Pad ledger"
+  },
+  {
+   "name": "Priority 1 Inc.",
+   "mc": [
+    "312916"
+   ],
+   "dot": [
+    "2222837"
+   ],
+   "aliases": [
+    "Priority 1"
+   ],
+   "flag": "ok",
+   "past": true,
+   "reason": "Booked us 11/5 and paid in about 10 days.",
+   "source": "Sand Lily Pad ledger"
+  },
+  {
+   "name": "Bennett International Logistics LLC",
+   "mc": [
+    "385004"
+   ],
+   "dot": [
+    "2226471"
+   ],
+   "aliases": [
+    "Bennett International Logistics",
+    "Bennett Motor Express"
+   ],
+   "flag": "ok",
+   "past": true,
+   "reason": "Booked us 11/13 and paid in 7 days.",
+   "source": "Sand Lily Pad ledger"
+  },
+  {
+   "name": "LST Group LLC",
+   "mc": [
+    "1089624"
+   ],
+   "dot": [
+    "3390623"
+   ],
+   "aliases": [
+    "LST Group"
+   ],
+   "flag": "ok",
+   "past": true,
+   "reason": "Booked us 11/16.",
+   "source": "Sand Lily Pad ledger"
+  },
+  {
+   "name": "Rich Logistics LLC",
+   "mc": [
+    "842488"
+   ],
+   "dot": [
+    "2463281"
+   ],
+   "aliases": [
+    "Rich Logistics"
+   ],
+   "flag": "ok",
+   "past": true,
+   "reason": "Booked us 11/24.",
+   "source": "Sand Lily Pad ledger"
+  },
+  {
+   "name": "American Logistics Group LLC",
+   "mc": [
+    "764581"
+   ],
+   "dot": [
+    "2263978"
+   ],
+   "aliases": [
+    "American Logistics Group"
+   ],
+   "flag": "ok",
+   "past": true,
+   "reason": "Booked us for 11/23 and cancelled only because our temp tag had lapsed.",
+   "source": "Sand Lily Pad ledger"
+  },
+  {
+   "name": "C.H. Robinson",
+   "mc": [],
+   "dot": [],
+   "aliases": [
+    "C H Robinson",
+    "CH Robinson"
+   ],
+   "flag": "strict",
+   "past": false,
+   "reason": "Publishes a $1M liability minimum; Totni's FMCSA filing is $750K. Highway-gated, so Totni's 80% vehicle out-of-service rate is likely to show.",
+   "source": "https://readyforloads.com/brokers/"
+  },
+  {
+   "name": "TQL (Total Quality Logistics)",
+   "mc": [],
+   "dot": [],
+   "aliases": [
+    "TQL",
+    "Total Quality Logistics"
+   ],
+   "flag": "strict",
+   "past": false,
+   "reason": "Publishes a $1M liability minimum; Totni's FMCSA filing is $750K. Highway registration.",
+   "source": "https://readyforloads.com/brokers/"
+  },
+  {
+   "name": "Uber Freight",
+   "mc": [],
+   "dot": [],
+   "aliases": [
+    "Uber Freight"
+   ],
+   "flag": "strict",
+   "past": false,
+   "reason": "Publishes a $1M liability minimum; Totni's FMCSA filing is $750K. Setup runs through Highway.",
+   "source": "https://readyforloads.com/brokers/"
+  },
+  {
+   "name": "RXO",
+   "mc": [],
+   "dot": [],
+   "aliases": [
+    "RXO"
+   ],
+   "flag": "strict",
+   "past": false,
+   "reason": "Publishes a $1M liability minimum; Totni's FMCSA filing is $750K. Highway setup and a 90-day authority rule.",
+   "source": "https://readyforloads.com/brokers/"
+  },
+  {
+   "name": "Coyote Logistics",
+   "mc": [],
+   "dot": [],
+   "aliases": [
+    "Coyote Logistics"
+   ],
+   "flag": "strict",
+   "past": false,
+   "reason": "Publishes a $1M liability minimum; Totni's FMCSA filing is $750K. Highway setup through RXO.",
+   "source": "https://readyforloads.com/brokers/"
+  },
+  {
+   "name": "Arrive Logistics",
+   "mc": [],
+   "dot": [],
+   "aliases": [
+    "Arrive Logistics"
+   ],
+   "flag": "strict",
+   "past": false,
+   "reason": "Publishes a $1M liability minimum; Totni's FMCSA filing is $750K. Highway application.",
+   "source": "https://readyforloads.com/brokers/"
+  },
+  {
+   "name": "Circle Logistics",
+   "mc": [],
+   "dot": [],
+   "aliases": [
+    "Circle Logistics"
+   ],
+   "flag": "strict",
+   "past": false,
+   "reason": "Publishes a $1M liability minimum; Totni's FMCSA filing is $750K.",
+   "source": "https://readyforloads.com/brokers/"
+  },
+  {
+   "name": "PLS Logistics",
+   "mc": [],
+   "dot": [],
+   "aliases": [
+    "PLS Logistics"
+   ],
+   "flag": "strict",
+   "past": false,
+   "reason": "Publishes a $1M liability minimum; Totni's FMCSA filing is $750K. Highway setup.",
+   "source": "https://readyforloads.com/brokers/"
+  },
+  {
+   "name": "Spot (Spot Freight)",
+   "mc": [],
+   "dot": [],
+   "aliases": [
+    "Spot Freight",
+    "Spot Inc"
+   ],
+   "flag": "strict",
+   "past": false,
+   "reason": "Publishes a $1M liability minimum; Totni's FMCSA filing is $750K. Uses MySpot and RMIS.",
+   "source": "https://readyforloads.com/brokers/"
+  },
+  {
+   "name": "Flock Freight",
+   "mc": [],
+   "dot": [],
+   "aliases": [
+    "Flock Freight"
+   ],
+   "flag": "strict",
+   "past": false,
+   "reason": "Publishes a $1M liability minimum; Totni's FMCSA filing is $750K. 90-day authority rule.",
+   "source": "https://readyforloads.com/brokers/"
+  },
+  {
+   "name": "Allen Lund Company",
+   "mc": [],
+   "dot": [],
+   "aliases": [
+    "Allen Lund"
+   ],
+   "flag": "strict",
+   "past": false,
+   "reason": "Publishes a $1M liability minimum; Totni's FMCSA filing is $750K. Wants 365 days of authority.",
+   "source": "https://readyforloads.com/brokers/"
+  },
+  {
+   "name": "Nolan Transportation Group",
+   "mc": [
+    "567093"
+   ],
+   "dot": [],
+   "aliases": [
+    "Nolan Transportation Group"
+   ],
+   "flag": "strict",
+   "past": false,
+   "reason": "Publishes a $1M liability minimum; Totni's FMCSA filing is $750K. Highway setup.",
+   "source": "https://readyforloads.com/brokers/"
+  },
+  {
+   "name": "Transportation One",
+   "mc": [],
+   "dot": [],
+   "aliases": [
+    "Transportation One"
+   ],
+   "flag": "strict",
+   "past": false,
+   "reason": "Publishes a $1M liability minimum; Totni's FMCSA filing is $750K.",
+   "source": "https://readyforloads.com/brokers/"
+  },
+  {
+   "name": "ACV Transportation",
+   "mc": [],
+   "dot": [],
+   "aliases": [
+    "ACV Transportation"
+   ],
+   "flag": "strict",
+   "past": false,
+   "reason": "Publishes a $1M liability minimum; Totni's FMCSA filing is $750K.",
+   "source": "https://readyforloads.com/brokers/"
+  },
+  {
+   "name": "DSV",
+   "mc": [],
+   "dot": [],
+   "aliases": [
+    "DSV Road",
+    "DSV Air Sea",
+    "DSV"
+   ],
+   "flag": "strict",
+   "past": false,
+   "reason": "Publishes a $1M liability minimum; Totni's FMCSA filing is $750K.",
+   "source": "https://readyforloads.com/brokers/"
+  },
+  {
+   "name": "Loadsmart",
+   "mc": [],
+   "dot": [],
+   "aliases": [
+    "Loadsmart"
+   ],
+   "flag": "strict",
+   "past": false,
+   "reason": "Publishes a $1M liability minimum; Totni's FMCSA filing is $750K.",
+   "source": "https://readyforloads.com/brokers/"
+  },
+  {
+   "name": "Echo Global Logistics",
+   "mc": [],
+   "dot": [],
+   "aliases": [
+    "Echo Global Logistics"
+   ],
+   "flag": "strict",
+   "past": false,
+   "reason": "Publishes a $1M liability minimum; Totni's FMCSA filing is $750K. Uses RMIS.",
+   "source": "https://readyforloads.com/brokers/"
+  },
+  {
+   "name": "GlobalTranz",
+   "mc": [],
+   "dot": [],
+   "aliases": [
+    "GlobalTranz"
+   ],
+   "flag": "strict",
+   "past": false,
+   "reason": "Publishes a $1M liability minimum; Totni's FMCSA filing is $750K. Highway setup (minimum from a third-party list).",
+   "source": "https://readyforloads.com/brokers/"
+  },
+  {
+   "name": "NFI",
+   "mc": [],
+   "dot": [],
+   "aliases": [
+    "NFI Industries",
+    "NFI Logistics"
+   ],
+   "flag": "strict",
+   "past": false,
+   "reason": "Publishes a $1M liability minimum; Totni's FMCSA filing is $750K.",
+   "source": "https://readyforloads.com/brokers/"
+  },
+  {
+   "name": "Ryder",
+   "mc": [],
+   "dot": [],
+   "aliases": [
+    "Ryder"
+   ],
+   "flag": "strict",
+   "past": false,
+   "reason": "Publishes a $1M liability minimum; Totni's FMCSA filing is $750K. Highway registration and a 180-day authority rule.",
+   "source": "https://readyforloads.com/brokers/"
+  },
+  {
+   "name": "ArcBest",
+   "mc": [],
+   "dot": [],
+   "aliases": [
+    "ArcBest",
+    "Arcbest"
+   ],
+   "flag": "strict",
+   "past": false,
+   "reason": "Publishes a $1M liability minimum; Totni's FMCSA filing is $750K.",
+   "source": "https://readyforloads.com/brokers/"
+  },
+  {
+   "name": "Armstrong Transport Group",
+   "mc": [],
+   "dot": [],
+   "aliases": [
+    "Armstrong Transport"
+   ],
+   "flag": "strict",
+   "past": false,
+   "reason": "Publishes a $1M liability minimum; Totni's FMCSA filing is $750K. 90-day authority rule.",
+   "source": "https://readyforloads.com/brokers/"
+  },
+  {
+   "name": "Amazon Relay",
+   "mc": [],
+   "dot": [],
+   "aliases": [
+    "Amazon Relay",
+    "Amazon"
+   ],
+   "flag": "strict",
+   "past": false,
+   "reason": "Publishes a $1M liability minimum; Totni's FMCSA filing is $750K. 180-day authority rule.",
+   "source": "https://readyforloads.com/brokers/"
+  },
+  {
+   "name": "Mode Global",
+   "mc": [],
+   "dot": [],
+   "aliases": [
+    "Mode Global",
+    "Mode Transportation"
+   ],
+   "flag": "strict",
+   "past": false,
+   "reason": "Publishes a $1M liability minimum; Totni's FMCSA filing is $750K. Wants 1 year of continuous authority.",
+   "source": "https://readyforloads.com/brokers/"
+  },
+  {
+   "name": "Bison Transport",
+   "mc": [],
+   "dot": [],
+   "aliases": [
+    "Bison Transport"
+   ],
+   "flag": "strict",
+   "past": false,
+   "reason": "Publishes a $2M liability minimum; Totni's FMCSA filing is $750K.",
+   "source": "https://readyforloads.com/brokers/"
+  },
+  {
+   "name": "J.B. Hunt",
+   "mc": [],
+   "dot": [],
+   "aliases": [
+    "J B Hunt",
+    "JB Hunt"
+   ],
+   "flag": "strict",
+   "past": false,
+   "reason": "Highway verification is required; no set insurance minimum, but Totni's 80% vehicle and 33% driver out-of-service rates are likely to show. Unconfirmed.",
+   "source": "https://readyforloads.com/brokers/"
+  },
+  {
+   "name": "Ryan Transportation",
+   "mc": [
+    "196502"
+   ],
+   "dot": [],
+   "aliases": [
+    "Ryan Transportation"
+   ],
+   "flag": "unknown",
+   "past": false,
+   "reason": "Publishes a $750K minimum, which matches Totni's filing. Highway setup, so out-of-service rates may still matter.",
+   "source": "https://readyforloads.com/brokers/"
+  },
+  {
+   "name": "JTS Freight",
+   "mc": [],
+   "dot": [],
+   "aliases": [
+    "JTS Freight"
+   ],
+   "flag": "unknown",
+   "past": false,
+   "reason": "Publishes a $750K minimum, which matches Totni's filing. Its vetting tool is not known.",
+   "source": "https://readyforloads.com/brokers/"
+  },
+  {
+   "name": "Axle Logistics",
+   "mc": [],
+   "dot": [],
+   "aliases": [
+    "Axle Logistics"
+   ],
+   "flag": "unknown",
+   "past": false,
+   "reason": "Highway setup; no liability minimum published.",
+   "source": "https://readyforloads.com/brokers/"
+  },
+  {
+   "name": "ACERTUS",
+   "mc": [],
+   "dot": [],
+   "aliases": [
+    "Acertus"
+   ],
+   "flag": "unknown",
+   "past": false,
+   "reason": "Asks 6 months of DOT time or 10+ ratings at 95%; Totni's DOT is older than that. Insurance minimum not published.",
+   "source": "https://readyforloads.com/brokers/"
+  }
+ ]
+}

@@ -286,6 +286,86 @@
       '</div></section>';
   }
 
+
+  /* ---------- booking scoreboard (v151) ---------- */
+  var BE_WK = 2.3;                       /* loads per week to break even on Totni (MC rating plan, 11/27) */
+  var TALLY_KEY = 'blackram_bk_tally_v1';
+  var DAY = 86400000;
+  function isoOf(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function addIso(iso, n) { var d = new Date(utc(iso) + n * DAY); return d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate()); }
+  function mondayOf(iso) { var dow = new Date(utc(iso)).getUTCDay(); return addIso(iso, -((dow + 6) % 7)); }
+  function bookStats(f) {
+    var tIso = todayIso(), cur = mondayOf(tIso), counts = {}, first = null;
+    allLoads(f).forEach(function (e) {
+      var l = resolved(e.load);
+      if (l.status !== 'delivered' && l.status !== 'in_transit' && l.status !== 'booked') return;
+      var d = String(l.date || '').slice(0, 10);
+      if (d.length !== 10) return;
+      var w = mondayOf(d);
+      counts[w] = (counts[w] || 0) + 1;
+      if (!first || w < first) first = w;
+    });
+    var start = addIso(cur, -49);
+    if (first && first > start) start = first;
+    var weeks = [], w = start;
+    while (w <= cur) { weeks.push({ w: w, n: counts[w] || 0, cur: w === cur }); w = addIso(w, 7); }
+    var done = [];
+    for (var i = weeks.length - 2; i >= 0 && done.length < 4; i--) done.unshift(weeks[i]);
+    var avg = done.length ? done.reduce(function (a, x) { return a + x.n; }, 0) / done.length : null;
+    return { weeks: weeks, thisWeek: weeks.length ? weeks[weeks.length - 1].n : 0, avg: avg, avgN: done.length };
+  }
+  function tallyGet() { try { var a = JSON.parse(localStorage.getItem(TALLY_KEY) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+  function tallyPut(a) { try { localStorage.setItem(TALLY_KEY, JSON.stringify(a.slice(-400))); } catch (e) { /* private mode */ } }
+  function tallyLog(k) {
+    var a = tallyGet();
+    if (k === 'undo') a.pop(); else a.push({ t: Date.now(), k: k });
+    tallyPut(a);
+  }
+  function tallyCounts() {
+    var from = Date.now() - 28 * DAY, c = { called: 0, booked: 0, no: 0 };
+    tallyGet().forEach(function (x) { if (x && x.t >= from && c[x.k] != null) c[x.k]++; });
+    c.all = c.called + c.booked + c.no;
+    return c;
+  }
+  function bookChart(s) {
+    var W = 340, H = 150, L = 22, R = 8, TP = 14, B = 22, n = s.weeks.length;
+    var mx = Math.max(3, BE_WK + 0.7); s.weeks.forEach(function (x) { if (x.n > mx) mx = x.n; });
+    mx = Math.ceil(mx + 0.4);
+    function y(v) { return TP + (H - TP - B) * (1 - v / mx); }
+    var slot = (W - L - R) / Math.max(n, 1), bw = Math.min(30, slot * 0.62);
+    var grid = '';
+    for (var g = 0; g <= mx; g++) grid += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(g).toFixed(1) + '" y2="' + y(g).toFixed(1) + '" class="td-bk-grid"/><text x="' + (L - 5) + '" y="' + (y(g) + 3.5).toFixed(1) + '" text-anchor="end" class="td-lbl">' + g + '</text>';
+    var bars = s.weeks.map(function (x, i) {
+      var cx = L + slot * (i + 0.5), top = y(x.n), h = Math.max(0, y(0) - top);
+      var p = x.w.split('-');
+      return (x.n ? '<rect x="' + (cx - bw / 2).toFixed(1) + '" y="' + top.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) + '" rx="3" class="' + (x.cur ? 'td-bk-bar cur' : 'td-bk-bar') + '"/>' : '<rect x="' + (cx - bw / 2).toFixed(1) + '" y="' + (y(0) - 2).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="2" class="td-bk-zero"/>') +
+        '<text x="' + cx.toFixed(1) + '" y="' + (top - 4).toFixed(1) + '" text-anchor="middle" class="td-bk-val">' + x.n + '</text>' +
+        '<text x="' + cx.toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle" class="td-lbl' + (x.cur ? ' td-lbl-now' : '') + '">' + (+p[1]) + '/' + (+p[2]) + '</text>';
+    }).join('');
+    var be = '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(BE_WK).toFixed(1) + '" y2="' + y(BE_WK).toFixed(1) + '" class="td-bills"/><text x="' + (W - R) + '" y="' + (y(BE_WK) - 4).toFixed(1) + '" text-anchor="end" class="td-lbl td-lbl-bills">Break-even ' + BE_WK + '/wk</text>';
+    return '<svg class="td-chart" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Loads booked per week, last ' + n + ' weeks, against the break-even of ' + BE_WK + ' loads per week">' + grid + bars + be + '</svg>';
+  }
+  function secBook(f) {
+    var s = bookStats(f), c = tallyCounts();
+    var tone = s.thisWeek >= BE_WK ? 'good' : (s.thisWeek >= 1 ? 'warn' : 'bad');
+    var avgTxt = s.avg == null ? '-' : s.avg.toFixed(1);
+    var hit = c.all ? Math.round(100 * c.booked / c.all) + '%' : '-';
+    var tiles = '<div class="td-bk-kpis">' +
+      '<span><b class="' + (s.thisWeek >= BE_WK ? 'td-good' : 'num-yellow') + '">' + s.thisWeek + '</b>this week</span>' +
+      '<span><b>' + avgTxt + '</b>' + (s.avgN ? s.avgN + '-wk avg' : '4-wk avg') + '</span>' +
+      '<span><b>' + hit + '</b>hit rate</span></div>';
+    var hitLine = c.all ? c.booked + ' booked of ' + c.all + ' broker contacts, last 4 weeks.' : 'No broker contacts logged yet.';
+    var btns = '<div class="td-bk-btns" role="group" aria-label="Log a broker contact">' +
+      '<button type="button" class="td-btn gold" data-td-book="booked">Booked</button>' +
+      '<button type="button" class="td-btn" data-td-book="called">Called</button>' +
+      '<button type="button" class="td-btn" data-td-book="no">No</button>' +
+      '<button type="button" class="td-bk-undo" data-td-book="undo"' + (tallyGet().length ? '' : ' disabled') + '>Undo</button></div>';
+    return '<section class="td-card td-bk" aria-label="Booking scoreboard"><div class="td-h-row"><h2 class="td-h">Booking scoreboard</h2>' + pill(tone, s.thisWeek + ' of ' + BE_WK + ' this week') + '</div>' +
+      '<div class="td-chart-wrap">' + bookChart(s) + '</div>' + tiles +
+      '<p class="td-fine"><b>' + esc(hitLine) + '</b> The app has no contact log, so tap the result of each broker contact. Saved on this phone only.</p>' + btns +
+      '<p class="td-fine">Loads = ledger loads booked, in transit or delivered, by ledger date (weeks Mon-Sun). Break-even ' + BE_WK + ' a week on Totni. Avg = last full weeks.</p></section>';
+  }
+
   function secBoards() {
     var S = A().getScored ? A().getScored() : null;
     if (!S || !S.loads) return '<section class="td-card"><h2 class="td-h">Best on the boards</h2><p class="td-fine">Loading the last scan...</p></section>';
@@ -339,7 +419,7 @@
       el.innerHTML = hdr + secQuick() + (A().skeleton ? A().skeleton('Loading today') : '<p class="td-fine">Loading...</p>');
       return;
     }
-    el.innerHTML = hdr + secQuick() + secNow(f) + secActions() + secAlerts(f) + secMoney(f) + secReady() + secBoards() +
+    el.innerHTML = hdr + secQuick() + secNow(f) + secBook(f) + secActions() + secAlerts(f) + secMoney(f) + secReady() + secBoards() +
       '<p class="td-fine td-foot">Net kept = gross - carrier fee - fuel - other costs (ledger), before truck, trailer and insurance bills. Bills line = Targets monthly bills. Same numbers as Scoreboard. Tap any card for the detail.</p>';
   }
   function soon() { if (st.timer) return; st.timer = setTimeout(function () { st.timer = null; if (onToday()) render(); }, 60); }
@@ -443,6 +523,11 @@
       '.td-qs{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s-1)}' +
       '.td-q{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-height:72px;padding:var(--s-1) 2px;border-radius:var(--radius-md);border:1px solid var(--c-line);background:var(--c-surface-2);color:var(--c-text-1);font:inherit;font-size:11px;font-weight:800;cursor:pointer;text-align:center;line-height:1.15}' +
       '.td-q svg{width:24px;height:24px;color:var(--c-gold)}' +
+      '.td-bk-grid{stroke:var(--c-line);stroke-width:1}.td-bk-bar{fill:var(--c-gold,#F2C94C)}.td-bk-bar.cur{fill:var(--c-accent-hi,#A78BFA)}.td-bk-zero{fill:var(--c-line-strong)}' +
+      '.td-bk-val{fill:var(--c-text-1);font-size:11px;font-weight:900;stroke:var(--c-surface-2);stroke-width:3px;paint-order:stroke}' +
+      '.td-bk-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s-1)}.td-bk-kpis span{font-size:11px;font-weight:700;color:var(--c-text-3);display:flex;flex-direction:column}.td-bk-kpis b{font-size:var(--fs-xl,22px);font-weight:900;color:var(--c-text-1);line-height:1.1}' +
+      '.td-bk-btns{display:flex;gap:var(--s-1);align-items:center}.td-bk-btns .td-btn{min-width:0;padding:0 var(--s-1)}' +
+      '.td-bk-undo{flex:none;min-height:var(--tap);min-width:var(--tap);padding:0 var(--s-1h);border:0;background:none;color:var(--c-accent-hi);font:inherit;font-size:var(--fs-sm);font-weight:800;cursor:pointer}.td-bk-undo:disabled{opacity:.35;cursor:default}' +
       '@media(min-width:720px){.td-rds{grid-template-columns:repeat(3,1fr)}.td-qs{grid-template-columns:repeat(8,1fr)}}';
     document.head.appendChild(s);
   }
@@ -452,6 +537,7 @@
     el.addEventListener('click', function (e) {
       var b = e.target.closest('[data-td-go]'); if (b) { goTab(b.getAttribute('data-td-go')); return; }
       b = e.target.closest('[data-td-q]'); if (b) { quick(b.getAttribute('data-td-q')); return; }
+      b = e.target.closest('[data-td-book]'); if (b) { if (!b.disabled) { tallyLog(b.getAttribute('data-td-book')); render(); } return; }
       b = e.target.closest('[data-td-all]'); if (b) { st.showAll = !st.showAll; render(); return; }
       b = e.target.closest('[data-td-deliver]'); if (b && A().openDeliverSheet) { A().openDeliverSheet(b.getAttribute('data-td-deliver')); }
     });
