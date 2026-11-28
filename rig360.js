@@ -25,9 +25,9 @@
    - Tailgate (Truck and Rig): tap or the 'Tap tailgate' button swings it down
      in 0.6 s and eases the camera to a rear 3/4 of the bed. Once open, the
      same finger controls orbit, tilt, pinch-zoom and pan around the bed
-     (auto-spin resumes after idle). The bed has a gray spray-in liner, a
-     center gold/brass gooseneck ball with a blue latch grip, two gold
-     safety-chain U-loops, and four black 5th-wheel puck holes in a rectangle.
+     (auto-spin resumes after idle). The bed has a Mopar spray-in liner
+     (sales code XMF), a center gold/brass gooseneck ball with a blue latch
+     grip, and a B&W Turnoverball hitch (gold-zinc ball, two folding U-loop chain eyelets, two empty forward cups).
      Tap again or Reset closes it. Double-tap while open resets the bed view.
    - Toolbox (Trailer and Rig): the Big Tex storage box sits under the gooseneck,
      in the gap ahead of the deck, between the uprights. The top is a black
@@ -92,6 +92,16 @@
      look-at together, clamped above the floor. Gold chain eyelets are
      full closed rings. Truck, trailer and spare tires show a visible
      tread pattern on the crown.
+   - v156: Mopar spray-in bedliner (XMF) in dark charcoal with a fine
+     orange-peel grain, coating the floor ribs, walls, over-rails and
+     the inner tailgate. B&W Turnoverball hitch: gold-zinc ball with a
+     folded flat U-handle and blue B&W grip, two solid folding U-loop
+     chain eyelets, two empty forward tie-down cups, 2x5 waffle wall.
+     gooseneck is lengthened and angled so the neck clears the tailgate
+     with a visible gap (coupler stays on the bed ball). Trailer detail
+     is tightened to Claudio's 25GN: cutout neck, BigTex / 25GN HD
+     decals, DOT tape, square-foot jacks, wood deck, MEGA ramps, 48 in
+     spread axles and oil-bath hubs. No serials or plates.
    Units in the model are feet. x = length (truck front +x), y = up, z = width. */
 (function () {
   'use strict';
@@ -1715,6 +1725,19 @@
       info: function () { return { calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, running: !!raf }; },
       pause: function (p) { lastInput = p ? 1e15 : -1e9; update(); },
       toggleTailgate: function () { toggleInspect('tailgate'); },
+      // Open or close a part (tailgate, toolbox, hood) without stealing the camera, for close-up shots.
+      setPartOpen: function (kind, open) {
+        anim = null; camHold = null;
+        inspectFramed = false;
+        inspectKind = open ? (kind || 'tailgate') : null;
+        inspectOpen = open ? 1 : 0;
+        applyPartPose(open ? 1 : 0);
+        inspectKind = null; // keep the pose; don't enter inspect orbit
+        inspectFramed = false;
+        if (typeof updatePartButtons === 'function') updatePartButtons();
+        setInspectAttr();
+        render();
+      },
       snapInspect: function (kind, yawDeg, elevDeg, z) {
         kind = kind || 'tailgate';
         camHold = null; anim = null;
@@ -1791,8 +1814,8 @@
         var x = 0;
         while (x < w) {
           var len = 260 + rnd() * 520;
-          var tone = 0.82 + rnd() * 0.3;
-          var cr = Math.round(176 * tone), cg = Math.round(138 * tone), cb = Math.round(92 * tone);
+          var tone = 0.92 + rnd() * 0.22;
+          var cr = Math.round(198 * tone), cg = Math.round(162 * tone), cb = Math.round(112 * tone);
           g.fillStyle = 'rgb(' + cr + ',' + cg + ',' + cb + ')';
           g.fillRect(x, r * rh, len, rh);
           for (var k = 0; k < 7; k++) { // grain
@@ -1838,15 +1861,97 @@
     return t;
   }
 
-  function logoTex(THREE) {
+  function logoTex(THREE, outline) {
     return canvasTex(THREE, 512, 128, function (g, w, h) {
       g.clearRect(0, 0, w, h);
       g.font = 'italic 900 92px "Arial Black", Arial, sans-serif';
       g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.lineWidth = 10; g.strokeStyle = '#111';
+      g.lineWidth = outline === 'red' ? 14 : 10;
+      g.strokeStyle = outline === 'red' ? '#c41218' : '#111';
       g.strokeText('BigTex', w / 2, h / 2 + 4);
+      if (outline === 'red') { g.lineWidth = 6; g.strokeStyle = '#111'; g.strokeText('BigTex', w / 2, h / 2 + 4); }
       g.fillStyle = '#f4c21b';
       g.fillText('BigTex', w / 2, h / 2 + 4);
+    });
+  }
+  function badge25gnTex(THREE) {
+    // Vertical 25GN HD badge (yellow / red / white), no serials.
+    return canvasTex(THREE, 256, 512, function (g, w, h) {
+      g.clearRect(0, 0, w, h);
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.font = '700 70px Arial, sans-serif';
+      g.fillStyle = '#f4f1ea';
+      g.fillText('25GN', w / 2, 130);
+      g.font = 'italic 900 210px "Arial Black", Arial, sans-serif';
+      g.lineWidth = 14; g.strokeStyle = '#f4c21b';
+      g.strokeText('HD', w / 2, 330);
+      g.fillStyle = '#c41218';
+      g.fillText('HD', w / 2, 330);
+    });
+  }
+  function twistGuardTex(THREE) {
+    return canvasTex(THREE, 256, 80, function (g, w, h) {
+      g.clearRect(0, 0, w, h);
+      g.fillStyle = '#1a4fa0';
+      g.beginPath(); g.roundRect ? g.roundRect(8, 10, w - 16, h - 20, 12) : g.rect(8, 10, w - 16, h - 20);
+      g.fill();
+      g.font = '800 28px Arial, sans-serif';
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillStyle = '#fff';
+      g.fillText('TWISTGUARD', w / 2, h / 2);
+    });
+  }
+  function demcoDecalTex(THREE) {
+    return canvasTex(THREE, 512, 256, function (g, w, h) {
+      g.clearRect(0, 0, w, h);
+      g.fillStyle = 'rgba(20,20,22,0.92)';
+      g.fillRect(8, 8, w - 16, h - 16);
+      g.strokeStyle = '#e8e8ea'; g.lineWidth = 6; g.strokeRect(8, 8, w - 16, h - 16);
+      g.fillStyle = '#f2f2f4';
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.font = '800 48px Arial, sans-serif';
+      g.fillText('DEMCO', w / 2, 62);
+      g.font = '700 32px Arial, sans-serif';
+      g.fillText('EZ-Latch', w / 2, 112);
+      g.font = '700 28px Arial, sans-serif';
+      g.fillText('GOOSENECK COUPLER', w / 2, 158);
+      g.fillStyle = '#f4c21b';
+      g.font = '800 36px Arial, sans-serif';
+      g.fillText('30,000 LBS', w / 2, 206);
+    });
+  }
+  function hiTensileTex(THREE) {
+    return canvasTex(THREE, 512, 96, function (g, w, h) {
+      g.clearRect(0, 0, w, h);
+      g.font = 'italic 900 52px "Arial Black", Arial, sans-serif';
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.lineWidth = 8; g.strokeStyle = '#111';
+      g.strokeText('HI-TENSILE', w / 2, h / 2 + 2);
+      g.fillStyle = '#f4c21b';
+      g.fillText('HI-TENSILE', w / 2, h / 2 + 2);
+    });
+  }
+  function spreadAxleTex(THREE) {
+    return canvasTex(THREE, 512, 96, function (g, w, h) {
+      g.clearRect(0, 0, w, h);
+      g.font = '800 48px Arial, sans-serif';
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillStyle = '#f4f4f6';
+      g.fillText('48\u2033 SPREAD AXLE', w / 2, h / 2 + 2);
+    });
+  }
+  function mudflapTex(THREE) {
+    return canvasTex(THREE, 256, 512, function (g, w, h) {
+      g.fillStyle = '#121214'; g.fillRect(0, 0, w, h);
+      g.font = 'italic 900 52px "Arial Black", Arial, sans-serif';
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillStyle = '#f4c21b';
+      g.fillText('BigTex', w / 2, 150);
+      g.font = '800 42px Arial, sans-serif';
+      g.fillStyle = '#c41218';
+      g.fillText('TRAILERS', w / 2, 220);
+      g.fillStyle = '#f4f4f6';
+      g.fillRect(40, 260, w - 80, 18);
     });
   }
 
@@ -1933,27 +2038,85 @@
 
 
   function linerTex(THREE) {
-    // Spray-in bed liner: medium gray, ribs run the length of the bed (u).
+    // Mopar spray-in (XMF): dark charcoal, fine orange-peel / pebble grain.
+    // No painted-on drop-in ribs — those are geometry following the stampings.
     var t = canvasTex(THREE, 512, 512, function (g, w, h) {
-      g.fillStyle = '#5f6369';
-      g.fillRect(0, 0, w, h);
-      var rnd = seeded(77);
-      var img = g.getImageData(0, 0, w, h), d = img.data;
+      var rnd = seeded(91);
+      var img = g.createImageData(w, h), d = img.data;
       for (var i = 0; i < d.length; i += 4) {
-        var n = (rnd() - 0.5) * 18;
-        d[i] += n; d[i + 1] += n; d[i + 2] += n;
+        var n = (rnd() - 0.5) * 20;
+        d[i] = 46 + n; d[i + 1] = 48 + n; d[i + 2] = 52 + n; d[i + 3] = 255;
       }
       g.putImageData(img, 0, 0);
-      for (var x = 0; x < w; x += 30) {
-        g.fillStyle = 'rgba(0,0,0,0.18)';
-        g.fillRect(x, 0, 6, h);
-        g.fillStyle = 'rgba(255,255,255,0.07)';
-        g.fillRect(x + 6, 0, 2, h);
+      for (var k = 0; k < 9000; k++) {
+        g.fillStyle = rnd() < 0.5 ? 'rgba(0,0,0,0.16)' : 'rgba(255,255,255,0.09)';
+        g.beginPath();
+        g.arc(rnd() * w, rnd() * h, 0.5 + rnd() * 1.7, 0, Math.PI * 2);
+        g.fill();
       }
     });
     t.wrapS = t.wrapT = THREE.RepeatWrapping;
-    t.repeat.set(2, 4);
+    t.repeat.set(3, 3);
+    t.anisotropy = 4;
     return t;
+  }
+  function linerBump(THREE) {
+    var t = canvasTex(THREE, 512, 512, function (g, w, h) {
+      var rnd = seeded(93);
+      g.fillStyle = '#808080'; g.fillRect(0, 0, w, h);
+      for (var k = 0; k < 14000; k++) {
+        var v = 88 + Math.round(rnd() * 80);
+        g.fillStyle = 'rgb(' + v + ',' + v + ',' + v + ')';
+        g.beginPath();
+        g.arc(rnd() * w, rnd() * h, 0.45 + rnd() * 1.8, 0, Math.PI * 2);
+        g.fill();
+      }
+    }, false);
+    t.colorSpace = THREE.NoColorSpace || THREE.LinearSRGBColorSpace;
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.repeat.set(3, 3);
+    t.anisotropy = 4;
+    return t;
+  }
+  function waffleTex(THREE, bump) {
+    // Front-wall factory stampings: 2x5 rounded-rectangle waffle, then coated.
+    return canvasTex(THREE, 1024, 512, function (g, w, h) {
+      var rnd = seeded(47);
+      g.fillStyle = bump ? '#b8b8b8' : '#3a3d42';
+      g.fillRect(0, 0, w, h);
+      if (!bump) {
+        for (var i = 0; i < 4000; i++) {
+          g.fillStyle = rnd() < 0.5 ? 'rgba(0,0,0,0.14)' : 'rgba(255,255,255,0.07)';
+          g.beginPath(); g.arc(rnd() * w, rnd() * h, 0.5 + rnd() * 1.4, 0, Math.PI * 2); g.fill();
+        }
+      }
+      var cols = 5, rows = 2, mx = 36, my = 32, gx = 22, gy = 22;
+      var pw = (w - 2 * mx - (cols - 1) * gx) / cols;
+      var ph = (h - 2 * my - (rows - 1) * gy) / rows;
+      var rr = 36;
+      function rrect(x, y, rw, rh) {
+        g.beginPath();
+        g.moveTo(x + rr, y);
+        g.lineTo(x + rw - rr, y);
+        g.quadraticCurveTo(x + rw, y, x + rw, y + rr);
+        g.lineTo(x + rw, y + rh - rr);
+        g.quadraticCurveTo(x + rw, y + rh, x + rw - rr, y + rh);
+        g.lineTo(x + rr, y + rh);
+        g.quadraticCurveTo(x, y + rh, x, y + rh - rr);
+        g.lineTo(x, y + rr);
+        g.quadraticCurveTo(x, y, x + rr, y);
+        g.closePath();
+      }
+      for (var row = 0; row < rows; row++) for (var col = 0; col < cols; col++) {
+        var x = mx + col * (pw + gx), y = my + row * (ph + gy);
+        g.fillStyle = bump ? '#f3f3f3' : '#34363a';
+        rrect(x, y, pw, ph); g.fill();
+        if (!bump) {
+          g.strokeStyle = 'rgba(0,0,0,0.28)'; g.lineWidth = 3;
+          rrect(x, y, pw, ph); g.stroke();
+        }
+      }
+    }, bump ? false : true);
   }
 
   /* v135 textures: paint flake, tire tread, wheel faces, badges, engine cover, glow */
@@ -2242,7 +2405,21 @@
       brass: new THREE.MeshPhysicalMaterial({ color: 0xdcbc5a, metalness: 0.7, roughness: 0.32, clearcoat: 0.5, clearcoatRoughness: 0.2, emissive: 0x7a5a14, emissiveIntensity: 0.55 }),
       puck: new THREE.MeshStandardMaterial({ color: 0x161618, metalness: 0.15, roughness: 0.72 }),
       hole: new THREE.MeshStandardMaterial({ color: 0x050506, metalness: 0.4, roughness: 0.85 }),
-      liner: new THREE.MeshStandardMaterial({ map: linerTex(THREE), color: 0xc2c6cb, roughness: 0.9, metalness: 0.03 }),
+      liner: new THREE.MeshPhysicalMaterial({ map: linerTex(THREE), bumpMap: linerBump(THREE), bumpScale: 0.85, color: 0xffffff, roughness: 0.86, metalness: 0.02, clearcoat: 0.06, clearcoatRoughness: 0.72 }),
+      linerWaffle: (function () {
+        var map = waffleTex(THREE, false), bump = waffleTex(THREE, true);
+        bump.colorSpace = THREE.NoColorSpace || THREE.LinearSRGBColorSpace;
+        map.anisotropy = 4; bump.anisotropy = 4;
+        return new THREE.MeshPhysicalMaterial({ map: map, bumpMap: bump, bumpScale: 2.4, color: 0xffffff, roughness: 0.86, metalness: 0.02, clearcoat: 0.06, clearcoatRoughness: 0.72, side: THREE.DoubleSide });
+      })(),
+      logoRed: new THREE.MeshBasicMaterial({ map: logoTex(THREE, 'red'), transparent: true, depthWrite: false, alphaTest: 0.2 }),
+      badge25: new THREE.MeshBasicMaterial({ map: badge25gnTex(THREE), transparent: true, depthWrite: false, alphaTest: 0.2 }),
+      twistG: new THREE.MeshBasicMaterial({ map: twistGuardTex(THREE), transparent: true, depthWrite: false, alphaTest: 0.2 }),
+      demcoDecal: new THREE.MeshBasicMaterial({ map: demcoDecalTex(THREE), transparent: true, depthWrite: false, alphaTest: 0.2 }),
+      hiTen: new THREE.MeshBasicMaterial({ map: hiTensileTex(THREE), transparent: true, depthWrite: false, alphaTest: 0.2 }),
+      spreadDecal: new THREE.MeshBasicMaterial({ map: spreadAxleTex(THREE), transparent: true, depthWrite: false, alphaTest: 0.2 }),
+      mudflap: new THREE.MeshStandardMaterial({ map: mudflapTex(THREE), roughness: 0.9, metalness: 0 }),
+      hubRed: new THREE.MeshStandardMaterial({ color: 0xb01418, metalness: 0.35, roughness: 0.38 }),
       grip: new THREE.MeshStandardMaterial({ color: 0x1560d8, roughness: 0.55, metalness: 0.05 }),
       plate: new THREE.MeshStandardMaterial({ color: 0x16161a, metalness: 0.75, roughness: 0.38 }),
       strap: new THREE.MeshStandardMaterial({ color: 0xd4a017, roughness: 0.7, metalness: 0.05 }),
@@ -2337,9 +2514,14 @@
         c.position.z = outward * (faceOff + 0.1); w.add(c);
         var cp = new THREE.Mesh(G.cap, M.bchrome); cp.rotation.x = Math.PI / 2;
         cp.position.z = outward * (faceOff + 0.21); w.add(cp);
-      } else if (kind === 'trailer') {
-        var hc = new THREE.Mesh(G.cap, M.chrome); hc.scale.set(1.4, 2, 1.4); hc.rotation.x = Math.PI / 2;
-        hc.position.z = outward * (faceOff + 0.06); w.add(hc);
+      } else if (kind === 'trailer' || kind === 'trailerInner') {
+        // Oil-bath hub: black cylinder, silver bolt ring, red center cap.
+        var hb = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.22, r * 0.24, 0.2, 16), M.satin);
+        hb.rotation.x = Math.PI / 2; hb.position.z = outward * (faceOff + 0.1); w.add(hb);
+        var rg = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.2, r * 0.2, 0.04, 16), M.chrome);
+        rg.rotation.x = Math.PI / 2; rg.position.z = outward * (faceOff + 0.21); w.add(rg);
+        var rc = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.1, r * 0.1, 0.05, 16), M.hubRed);
+        rc.rotation.x = Math.PI / 2; rc.position.z = outward * (faceOff + 0.25); w.add(rc);
       }
       w.position.set(x, y, z);
       group.add(w);
@@ -2560,22 +2742,47 @@
     });
     box(0.06, 0.1, 1.0, M.red, -4.05, 6.42, 0); // 3rd brake light
 
-    // Bed: 6 ft 4 in box, gray spray-in liner, body-color sides, tailgate
+    // Bed: 6 ft 4 in box, Mopar spray-in liner (XMF), body-color sides, tailgate
     var BX0 = -11.0, BX1 = -4.45, BL = BX1 - BX0, BC = (BX0 + BX1) / 2;
     var FLOOR_Y = 3.03;
     box(BL, 0.15, 6.2, M.satin, BC, 2.95, 0);
     var liner = new THREE.Mesh(new THREE.PlaneGeometry(BL - 0.08, 6.05, 1, 1), M.liner);
     liner.rotation.x = -Math.PI / 2;
     add(liner, BC, FLOOR_Y, 0);
-    for (var rz = -2.7; rz <= 2.7; rz += 0.28) {
-      box(BL - 0.3, 0.03, 0.16, M.liner, BC, FLOOR_Y + 0.01, rz);
+    // Factory floor stampings: shallow longitudinal ribs, coated (not a drop-in).
+    function ribHalfW(x) {
+      return Math.abs(x - RX) < 1.45 ? 2.12 : 2.82;
+    }
+    for (var rz = -2.7; rz <= 2.7; rz += 0.32) {
+      // three segments so ribs narrow between the wheel wells
+      [[BX1 - 0.25, RX + 1.5], [RX + 1.5, RX - 1.5], [RX - 1.5, BX0 + 0.25]].forEach(function (seg) {
+        var x0 = Math.max(seg[1], BX0 + 0.2), x1 = Math.min(seg[0], BX1 - 0.2);
+        var len = x1 - x0;
+        if (len < 0.3) return;
+        var mid = (x0 + x1) / 2, hw = ribHalfW(mid);
+        if (Math.abs(rz) > hw - 0.08) return;
+        box(len, 0.045, 0.17, M.liner, mid, FLOOR_Y + 0.022, rz);
+      });
     }
     [-1, 1].forEach(function (s) {
       box(BL, 1.9, 0.22, M.paint, BC, 3.88, s * 3.2);
-      box(BL, 0.1, 0.36, M.paint, BC, 4.86, s * 3.2); // rail cap
-      box(BL - 0.4, 1.6, 0.04, M.liner, BC, 3.85, s * 3.08); // liner on the inner walls
+      box(BL, 0.1, 0.42, M.liner, BC, 4.88, s * 3.22); // spray-in wraps over the rail tops
+      box(BL - 0.4, 1.6, 0.04, M.liner, BC, 3.85, s * 3.08); // smooth coated inner walls
+      // Big rounded wheel-well humps, coated (51 in between wells).
+      var well = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.05, 2.5, 24, 1, false, 0, Math.PI), M.liner);
+      well.rotation.z = Math.PI / 2;
+      well.rotation.y = s > 0 ? 0 : Math.PI;
+      add(well, RX, FLOOR_Y + 0.08, s * (3.08 - 0.02));
+      // Square tie-down cutouts near the top of the front corners.
+      box(0.16, 0.16, 0.06, M.hole, BX1 - 0.35, 4.55, s * 3.05);
     });
-    box(0.22, 1.9, 6.62, M.paint, BX1 + 0.1, 3.88, 0);
+    box(0.22, 1.9, 6.62, M.paint, BX1 + 0.16, 3.88, 0);
+    // Coated front bulkhead with the factory waffle stampings (in front of the paint box).
+    var bulk = new THREE.Mesh(new THREE.PlaneGeometry(5.5, 1.7), M.linerWaffle);
+    bulk.rotation.y = -Math.PI / 2; // face into the bed (−x)
+    add(bulk, BX1 - 0.08, FLOOR_Y + 0.85, 0);
+    add(new THREE.PointLight(0xfff4e8, 8, 5.5, 2), BX1 - 1.1, FLOOR_Y + 1.3, 0);
+    box(0.14, 0.08, 6.3, M.liner, BX1 + 0.02, 4.86, 0); // front rail top, coated
     var TG_HINGE_Y = 2.90;
     var tailgate = new THREE.Group();
     tailgate.position.set(BX0, TG_HINGE_Y, 0);
@@ -2583,6 +2790,16 @@
     group.add(tailgate);
     box(0.22, 2.0, 6.0, M.paint, 0.12, 3.88 - TG_HINGE_Y, 0, tailgate);
     box(0.06, 0.3, 1.6, M.gloss, -0.02, 4.55 - TG_HINGE_Y, 0, tailgate);      // handle bezel
+    // Inner tailgate: spray-in coat, stamped ribs, bolt dots.
+    box(0.04, 1.88, 5.85, M.liner, 0.24, 3.88 - TG_HINGE_Y, 0, tailgate);
+    for (var tgz = -2.55; tgz <= 2.55; tgz += 0.32) {
+      box(0.03, 1.7, 0.14, M.liner, 0.27, 3.82 - TG_HINGE_Y, tgz, tailgate);
+    }
+    [-1.8, -0.6, 0.6, 1.8].forEach(function (z) {
+      [3.35, 4.15].forEach(function (y) {
+        add(new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 6), M.satin), 0.29, y - TG_HINGE_Y, z, tailgate);
+      });
+    });
     var tgRam = new THREE.Mesh(new THREE.PlaneGeometry(2.7, 0.62), badgeMat('R A M', { w: 1024, h: 192, color: '#3c3d44', spread: 1.2 }));
     tgRam.rotation.y = -Math.PI / 2; add(tgRam, -0.002, 3.9 - TG_HINGE_Y, 0, tailgate);
     var tgHit = box(0.9, 2.2, 6.8, new THREE.MeshBasicMaterial({ visible: false }), 0.15, 3.85 - TG_HINGE_Y, 0, tailgate);
@@ -2641,39 +2858,84 @@
     // puck holes in a rectangle, a center CURT gooseneck ball with a blue latch
     // grip, and two gold safety-chain U-loops.
     var BALL_X = -6.9;
-    function puckHole(x, z, rOuter, rInner) {
-      add(new THREE.Mesh(new THREE.CylinderGeometry(rOuter, rOuter + 0.02, 0.05, 28), M.puck), x, FLOOR_Y + 0.02, z);
-      add(new THREE.Mesh(new THREE.CylinderGeometry(rInner, rInner, 0.08, 24), M.hole), x, FLOOR_Y + 0.005, z);
+    // B&W Turnoverball hardware, matched to Claudio's bed photos:
+    // black flush trim rings, a gold-zinc ball with a folded flat U-handle
+    // and blue B&W grip, two solid cast folding U-loop chain eyelets, and
+    // two empty tie-down cups up near the front wall.
+    function blackRing(x, z, ro, ri) {
+      var fl = new THREE.Mesh(new THREE.RingGeometry(ri, ro, 28), M.puck);
+      fl.rotation.x = -Math.PI / 2;
+      add(fl, x, FLOOR_Y + 0.024, z);
+      var lip = new THREE.Mesh(new THREE.TorusGeometry((ri + ro) / 2, Math.max(0.012, (ro - ri) * 0.28), 8, 24), M.puck);
+      lip.rotation.x = Math.PI / 2;
+      add(lip, x, FLOOR_Y + 0.02, z);
+      add(new THREE.Mesh(new THREE.CylinderGeometry(ri, ri, 0.09, 20), M.hole), x, FLOOR_Y - 0.01, z);
     }
-    function chainLoop(x, z) {
-      puckHole(x, z, 0.22, 0.14);
-      var R = 0.085, T = 0.032;
-      var u = new THREE.Mesh(new THREE.TorusGeometry(R, T, 12, 24), M.brass);
-      u.rotation.y = Math.PI / 2; // vertical ring, hole along the bed (X) so a hook can pass through
-      add(u, x, FLOOR_Y + R + T + 0.008, z);
+    function horseshoeGeo(innerR, bar, leg, depth) {
+      var ro = innerR + bar, ri = innerR, sh = new THREE.Shape();
+      sh.moveTo(-ro, 0);
+      sh.lineTo(-ro, leg);
+      sh.absarc(0, leg, ro, Math.PI, 0, false);
+      sh.lineTo(ro, 0);
+      sh.lineTo(ri, 0);
+      sh.lineTo(ri, leg);
+      sh.absarc(0, leg, ri, 0, Math.PI, true);
+      sh.lineTo(-ri, 0);
+      sh.closePath();
+      return new THREE.ExtrudeGeometry(sh, { depth: depth, bevelEnabled: true, bevelThickness: 0.004, bevelSize: 0.003, bevelSegments: 1, curveSegments: 12 });
     }
+    function chainULoop(x, z) {
+      blackRing(x, z, 0.22, 0.11);
+      // Flat side lugs in the ring, then a solid closed U (not a thin wire).
+      box(0.1, 0.07, 0.08, M.brass, x, FLOOR_Y + 0.04, z + 0.06);
+      box(0.1, 0.07, 0.08, M.brass, x, FLOOR_Y + 0.04, z - 0.06);
+      var u = new THREE.Mesh(horseshoeGeo(0.058, 0.048, 0.045, 0.072), M.brass);
+      u.rotation.y = Math.PI / 2; // opening faces front/rear
+      u.position.set(x + 0.036, FLOOR_Y + 0.075, z);
+      group.add(u);
+    }
+    function emptyCup(x, z) { blackRing(x, z, 0.20, 0.11); }
     var bedFill = new THREE.PointLight(0xfff6e8, 22, 7.5, 2);
     add(bedFill, BALL_X, FLOOR_Y + 3.4, 0);
-    var PUCK_DX = 1.45, PUCK_DZ = 1.72;
-    [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(function (s) {
-      puckHole(BALL_X + s[0] * PUCK_DX, s[1] * PUCK_DZ, 0.24, 0.15);
-    });
-    var LOOP_X = BALL_X - 0.85, LOOP_Z = 1.28;
-    chainLoop(LOOP_X, LOOP_Z);
-    chainLoop(LOOP_X, -LOOP_Z);
-    puckHole(BALL_X, 0, 0.30, 0.18);
-    add(new THREE.Mesh(new THREE.CylinderGeometry(0.115, 0.125, 0.34, 20), M.brass), BALL_X, FLOOR_Y + 0.22, 0);
-    add(new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.06, 20), M.brass), BALL_X, FLOOR_Y + 0.38, 0);
+    // Layout from the owner photo: ball slightly forward of mid-bed (BALL_X
+    // already sits ahead of the axle); U-loops left/right, slightly rearward,
+    // near the wheel-well line; empty cups forward near the front wall.
+    var LOOP_X = BALL_X - 0.62, LOOP_Z = 1.88;
+    chainULoop(LOOP_X, LOOP_Z);
+    chainULoop(LOOP_X, -LOOP_Z);
+    emptyCup(BX1 - 0.75, 1.58);
+    emptyCup(BX1 - 0.75, -1.58);
+    // Center puck: black trim ring and the B&W gold-zinc Turnoverball.
+    blackRing(BALL_X, 0, 0.28, 0.135);
+    add(new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.10, 0.30, 20), M.brass), BALL_X, FLOOR_Y + 0.20, 0);
+    add(new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.135, 0.07, 20), M.brass), BALL_X, FLOOR_Y + 0.37, 0);
     add(new THREE.Mesh(new THREE.SphereGeometry(0.155, 24, 16), M.brass), BALL_X, FLOOR_Y + 0.52, 0);
-    add(new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.02, 8), M.chrome), BALL_X, FLOOR_Y + 0.675, 0);
-    var handle = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.028, 10, 20, Math.PI * 0.85), M.brass);
-    handle.rotation.y = Math.PI / 2;
-    handle.rotation.z = Math.PI * 0.12;
-    add(handle, BALL_X - 0.18, FLOOR_Y + 0.22, 0.02);
-    var grip = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.038, 0.16, 12), M.grip);
+    add(new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.016, 10), M.chrome), BALL_X, FLOOR_Y + 0.675, 0);
+    // Pivot lugs on the shank and silver rivet pins.
+    box(0.05, 0.08, 0.04, M.brass, BALL_X, FLOOR_Y + 0.26, 0.12);
+    box(0.05, 0.08, 0.04, M.brass, BALL_X, FLOOR_Y + 0.26, -0.12);
+    cyl(0.012, 0.012, 0.32, 8, M.chrome, 'z', BALL_X, FLOOR_Y + 0.26, 0);
+    // Flat folding U-handle, folded down toward the tailgate, wide face up.
+    // Built from bars so the strap stays visible (extruded horseshoe was easy to bury).
+    var HY = FLOOR_Y + 0.175;
+    box(0.22, 0.02, 0.055, M.brass, BALL_X - 0.10, HY, 0.12);
+    box(0.22, 0.02, 0.055, M.brass, BALL_X - 0.10, HY, -0.12);
+    box(0.055, 0.02, 0.30, M.brass, BALL_X - 0.23, HY, 0);
+    var grip = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.032, 0.18, 14), M.grip);
     grip.rotation.z = Math.PI / 2;
-    grip.rotation.y = -0.2;
-    add(grip, BALL_X - 0.36, FLOOR_Y + 0.18, 0.02);
+    add(grip, BALL_X - 0.23, HY + 0.028, 0);
+    (function () {
+      var c = document.createElement('canvas'); c.width = 128; c.height = 48;
+      var g = c.getContext('2d');
+      g.fillStyle = '#1560d8'; g.fillRect(0, 0, 128, 48);
+      g.fillStyle = '#fff'; g.font = 'bold 26px sans-serif';
+      g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('B&W', 64, 26);
+      var tex = new THREE.CanvasTexture(c);
+      if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+      var dec = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 0.045), new THREE.MeshBasicMaterial({ map: tex, transparent: true }));
+      dec.rotation.x = -Math.PI / 2;
+      add(dec, BALL_X - 0.23, HY + 0.048, 0);
+    })();
     // Breakaway cable anchor (its own eye on the bed, passenger side ahead of the ball)
     var BA_ANCHOR = [BALL_X + 0.9, FLOOR_Y + 0.1, 1.55];
     var baEye = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.02, 8, 14), M.chrome);
@@ -2685,15 +2947,25 @@
     var truckCount = group.children.length;
     /* ---- Big Tex 25GN-40D5A-MRBK: 35 ft main deck + 5 ft dovetail ---- */
     var DECK_Y = 34 / 12, HALF_W = 102 / 24;
-    var D0 = -15.6, D1 = D0 - 35, DV = D1 - 5; // deck front, dovetail start, rear
-    // Gooseneck neck (side profile), coupler tube, header
-    var neck = shape([[-4.9, 5.05], [-4.9, 6.35], [-13.0, 6.35], [D0 - 0.4, DECK_Y], [D0 + 1.3, DECK_Y], [-12.1, 5.05]]);
+    var D0 = -17.2, D1 = D0 - 35, DV = D1 - 5; // deck front, dovetail start, rear (v154: neck lengthened so the drop clears the tailgate)
+    // Gooseneck: two heavy I-beam side rails, angled upper beam, then a drop
+    // behind the tailgate (BX0 = -11) so the nose sits over the bed with a visible gap.
+    var NECK_F = -6.15, BOOM_X = -13.05;
+    var neck = shape([
+      [NECK_F, 5.28], [NECK_F, 6.18], [-8.7, 6.88], [BOOM_X, 6.58],
+      [D0 + 0.25, DECK_Y + 0.45], [D0 + 0.25, DECK_Y], [D0 + 1.45, DECK_Y],
+      [BOOM_X + 1.15, 5.48], [-8.7, 5.58]
+    ]);
+    [[-9.6, 6.05], [-11.2, 6.0], [-14.0, 5.15]].forEach(function (c) {
+      var hx = 0.55, hy = 0.42;
+      neck.holes.push(path([[c[0] - hx, c[1]], [c[0], c[1] + hy], [c[0] + hx, c[1]], [c[0], c[1] - hy]]));
+    });
     // v135: two side rails (black I-beam risers) and a lower center spine, so
     // the spare can lie flat between the rails over the spine (Claudio's photo).
     [-1, 1].forEach(function (s) { extrude(neck, 0.3, M.frame, s * 1.45, 0.04); });
-    extrude(shape([[-4.9, 5.05], [-4.9, 5.72], [-12.75, 5.72], [D0 - 0.4, DECK_Y], [D0 + 1.3, DECK_Y], [-12.1, 5.05]]), 0.7, M.frame, 0, 0.04);
-    box(0.3, 1.3, 3.2, M.frame, -5.05, 5.7, 0);                    // front cross plate
-    [-6.5, -8.6, -12.4].forEach(function (x) { box(0.25, 0.3, 2.6, M.frame, x, 5.6, 0); }); // cross members
+    extrude(shape([[NECK_F, 5.28], [NECK_F, 5.95], [BOOM_X + 0.2, 5.95], [D0 + 0.8, DECK_Y + 1.2], [D0 + 0.8, DECK_Y + 1.02], [BOOM_X + 1.15, 5.48]]), 0.7, M.frame, 0, 0.04);
+    box(0.3, 1.3, 3.2, M.frame, NECK_F - 0.1, 5.75, 0);                    // front cross plate
+    [-8.0, -10.2, -12.4].forEach(function (x) { box(0.25, 0.3, 2.6, M.frame, x, 6.15, 0); }); // cross members
     // v142: yellow Demco 2-5/16 in gooseneck coupler and the S5 Coupler Locks
     // anti-theft box, sized from Claudio's photos (no serial, QR or phone/URL).
     // Box is about 6 x 5 in by 8 in tall, gloss black, open top, rounded welds.
@@ -2708,6 +2980,9 @@
     // Gloss-yellow Demco: square upper tube, round 2-5/16 in socket below
     box(0.30, 0.48, 0.30, M.demco, CPL_X, 3.86, 0);
     cyl(0.155, 0.155, 0.28, 24, M.demco, 'y', CPL_X, 3.50, 0);
+    var demcoLbl = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.22), M.demcoDecal);
+    demcoLbl.rotation.y = Math.PI / 2;
+    add(demcoLbl, CPL_X + 0.16, 3.78, 0);
     cyl(0.11, 0.11, 0.02, 18, M.hole, 'y', CPL_X, 3.355, 0);            // socket mouth
     var CH_EYES = [-1, 1].map(function (s) {
       var eye = new THREE.Mesh(new THREE.TorusGeometry(0.07, 0.022, 8, 14), M.frame);
@@ -2861,7 +3136,7 @@
     }
     var V = function (x, y, z) { return new THREE.Vector3(x, y, z); };
     var chainsHitched = chainSet([-1, 1].map(function (s) {
-      var a = CH_EYES[s < 0 ? 0 : 1], b = V(LOOP_X, FLOOR_Y + 0.13, -s * LOOP_Z); // crossed under the coupler
+      var a = CH_EYES[s < 0 ? 0 : 1], b = V(LOOP_X, FLOOR_Y + 0.18, -s * LOOP_Z); // hook through the standing U-loops
       return [a, V((a.x + b.x) / 2 - 0.05, FLOOR_Y + 0.35, (a.z + b.z) / 2 + s * 0.12), b];
     }));
     var chainsParked = chainSet([-1, 1].map(function (s) {
@@ -2895,21 +3170,47 @@
     var cableHitched = coilCable([BA_SW[0] - 0.24, BA_SW[1] - 0.05, BA_SW[2] + 0.02], BA_ANCHOR, 0.5, 26);
     var cableParked = coilCable([BA_SW[0] - 0.24, BA_SW[1] - 0.05, BA_SW[2] + 0.02], [BA_SW[0] - 0.3, 4.2, BA_SW[2] + 0.1], 0.05, 12);
     cableParked.visible = false;
+    // Thicker black 7-pin umbilical, coiled next to the red breakaway.
+    (function () {
+      var a = new THREE.Vector3(BA_SW[0] - 0.15, BA_SW[1] - 0.15, BA_SW[2] - 0.12);
+      var b = new THREE.Vector3(CPL_X + 0.2, 4.3, 0.55);
+      var pts = [];
+      for (var i = 0; i <= 40; i++) {
+        var u = i / 40, p = a.clone().lerp(b, u);
+        p.y -= Math.sin(u * Math.PI) * 0.35;
+        var ang = u * 10 * Math.PI * 2;
+        p.z += Math.cos(ang) * 0.07; p.y += Math.sin(ang) * 0.07;
+        pts.push(p);
+      }
+      var umb = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 80, 0.028, 6, false), M.satin);
+      umb.userData.dyn = true;
+      group.add(umb);
+    })();
     [-1, 1].forEach(function (s) {
-      var lg = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 1.15), M.logo);
+      var lg = new THREE.Mesh(new THREE.PlaneGeometry(5.2, 1.25), M.logo);
       if (s < 0) lg.rotation.y = Math.PI;
-      add(lg, -8.9, 5.7, s * 1.645);
-      // DOT tape along the neck
-      var tp = new THREE.Mesh(new THREE.PlaneGeometry(7.6, 0.14), M.tape);
+      add(lg, -9.6, 6.15, s * 1.62);
+      // DOT tape along the top edge of the neck boom
+      var tp = new THREE.Mesh(new THREE.PlaneGeometry(6.6, 0.14), M.tape);
       if (s < 0) tp.rotation.y = Math.PI;
-      add(tp, -8.9, 6.22, s * 1.645);
+      add(tp, -9.6, 6.72, s * 1.62);
+      // 25GN HD badge at the kink where the neck drops
+      var bd = new THREE.Mesh(new THREE.PlaneGeometry(0.55, 1.05), M.badge25);
+      if (s < 0) bd.rotation.y = Math.PI;
+      add(bd, -12.55, 6.15, s * 1.62);
     });
+    // TWISTGUARD under the 25GN HD on the driver-side upright only
+    var tw = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.2), M.twistG);
+    tw.rotation.y = Math.PI;
+    add(tw, D0 + 0.32, DECK_Y + 1.15, -1.62);
+    // Black tubular D grab handle, driver-side upright only
+    tube([[D0 + 0.4, DECK_Y + 1.6, -1.72], [D0 + 0.15, DECK_Y + 1.6, -2.05], [D0 + 0.15, DECK_Y + 0.7, -2.05], [D0 + 0.4, DECK_Y + 0.7, -1.72]], 0.03, M.frame, group, 16);
     // v144: telescoping drop-leg landing gear. Raised (feet off the ground)
     // when the trailer is hitched in Rig 360; extended, pads on the ground
     // supporting the gooseneck, in the trailer-only view. userData.dyn so
     // mergeStatic does not bake the moving legs.
-    var JACK_X = -13.5, JACK_Z = 1.85;
-    var JACK_OUTER_H = 3.2, JACK_OUTER_TOP = 5.9, JACK_INNER_H = 2.7, JACK_FOOT_H = 0.08;
+    var JACK_X = D0 + 0.15, JACK_Z = 1.95;
+    var JACK_OUTER_H = 3.2, JACK_OUTER_TOP = 5.55, JACK_INNER_H = 2.7, JACK_FOOT_H = 0.08;
     var JACK_Y_DOWN = JACK_FOOT_H / 2 + 0.02; // 0.06, pads just above the floor
     var JACK_Y_UP = 1.9; // ~23 in off the ground, clearly raised for travel
     var jackLegs = [];
@@ -2918,25 +3219,34 @@
       jack.userData.dyn = true;
       jack.position.set(JACK_X, 0, s * JACK_Z);
       group.add(jack);
-      var outer = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, JACK_OUTER_H, 10), M.frame);
+      var outer = new THREE.Mesh(new THREE.BoxGeometry(0.34, JACK_OUTER_H, 0.34), M.frame);
       outer.position.y = JACK_OUTER_TOP - JACK_OUTER_H / 2;
       jack.add(outer);
-      var collar = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.14, 10), M.frame);
+      var collar = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.14, 0.4), M.frame);
       collar.position.y = JACK_OUTER_TOP - JACK_OUTER_H;
       jack.add(collar);
       var drop = new THREE.Group();
       jack.add(drop);
-      drop.add(new THREE.Mesh(new THREE.BoxGeometry(0.7, JACK_FOOT_H, 0.7), M.frame));
-      var inner = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, JACK_INNER_H, 10), M.chrome);
+      drop.add(new THREE.Mesh(new THREE.BoxGeometry(0.7, JACK_FOOT_H, 0.7), M.frame)); // square footpad
+      var inner = new THREE.Mesh(new THREE.BoxGeometry(0.2, JACK_INNER_H, 0.2), M.chrome); // square-tube drop
       inner.position.y = JACK_FOOT_H / 2 + JACK_INNER_H / 2;
       drop.add(inner);
       drop.position.y = JACK_Y_UP; // default Rig 360 / hitched
       jackLegs.push(drop);
+      // Crank on top, drop-pin on a chain, small white warning sticker
+      var crank = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.45, 8), M.chrome);
+      crank.rotation.z = Math.PI / 2; crank.position.set(0.22, JACK_OUTER_TOP + 0.08, 0); jack.add(crank);
+      var knob = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), M.satin);
+      knob.position.set(0.45, JACK_OUTER_TOP + 0.08, 0); jack.add(knob);
+      var pin = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.18, 8), M.zinc);
+      pin.rotation.z = Math.PI / 2; pin.position.set(0.18, JACK_OUTER_TOP - 1.1, 0.12); jack.add(pin);
+      tube([[0.18, JACK_OUTER_TOP - 1.1, 0.12], [0.28, JACK_OUTER_TOP - 1.35, 0.18], [0.22, JACK_OUTER_TOP - 1.55, 0.1]], 0.008, M.zinc, jack, 8);
+      var wr = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 0.12), new THREE.MeshBasicMaterial({ color: 0xf4f4f0 }));
+      wr.position.set(0.18, JACK_OUTER_TOP - 0.5, 0); wr.rotation.y = Math.PI / 2; jack.add(wr);
     });
-    // Storage toolbox under the gooseneck, in the gap ahead of the deck
-    // (behind the truck when hooked up), between the drop-leg jacks and the header.
-    // Placement and facing stay as they are; the lid is the top (chest-style).
-    var TB = { x: -12.12, y: 3.05, z: 0, lx: 1.9, ly: 1.8, lz: 3.7 }; // v137: rear edge clears the neck slope
+    // Storage toolbox between the gooseneck uprights at deck level, with a
+    // forward-sloping lid and a recessed stainless paddle latch (Claudio's 25GN).
+    var TB = { x: D0 + 0.95, y: DECK_Y + 0.55, z: 0, lx: 1.7, ly: 1.05, lz: 2.35 };
     var bodyMat = M.frame.clone();
     var lidMat = M.diamond.clone();
     lidMat.color.set(0x9a9aa2);
@@ -2997,8 +3307,9 @@
     toolboxLid.position.set(-TB.lx / 2, TB.ly / 2, 0);
     toolboxLid.userData.part = 'toolbox';
     toolbox.add(toolboxLid);
-    box(TB.lx, 0.08, TB.lz, lidMat, TB.lx / 2, 0.04, 0, toolboxLid);
-    box(0.4, 0.1, 0.55, M.chrome, TB.lx - 0.42, 0.15, 0, toolboxLid); // latch near the front (truck) edge
+    var lidTop = box(TB.lx, 0.08, TB.lz, lidMat, TB.lx / 2, 0.04, 0, toolboxLid);
+    lidTop.rotation.z = -0.16; // forward-sloping toward the truck
+    box(0.28, 0.06, 0.42, M.chrome, TB.lx - 0.38, 0.02, 0, toolboxLid); // recessed stainless paddle latch
     cyl(0.05, 0.05, TB.lz * 0.9, 10, M.chrome, 'z', 0, 0.04, 0, toolboxLid); // hinge barrel
     var tbHit = box(TB.lx + 0.2, 0.55, TB.lz + 0.2, tbInvis, TB.lx / 2, 0.12, 0, toolboxLid);
     tbHit.userData.part = 'toolbox';
@@ -3025,9 +3336,12 @@
     // Side rails with DOT tape, main beams
     [-1, 1].forEach(function (s) {
       box(35, 0.72, 0.18, M.frame, (D0 + D1) / 2, DECK_Y - 0.36, s * (HALF_W - 0.09));
-      var tp = new THREE.Mesh(new THREE.PlaneGeometry(35, 0.16), M.tape);
-      if (s < 0) tp.rotation.y = Math.PI;
-      add(tp, (D0 + D1) / 2, DECK_Y - 0.42, s * (HALF_W + 0.005));
+      // Short red/white tape strips along the rub rail (not one continuous run)
+      for (var ti = 0; ti < 14; ti++) {
+        var tp = new THREE.Mesh(new THREE.PlaneGeometry(0.85, 0.14), M.tape);
+        if (s < 0) tp.rotation.y = Math.PI;
+        add(tp, D0 - 1.4 - ti * 2.35, DECK_Y - 0.42, s * (HALF_W + 0.005));
+      }
       // I-beams (taller up front)
       var beam = shape([[D0, DECK_Y - 0.16], [D1, DECK_Y - 0.16], [D1, DECK_Y - 1.0], [D0 - 10, DECK_Y - 1.25], [D0, DECK_Y - 1.25]]);
       extrude(beam, 0.3, M.frame, s * 1.65);
@@ -3042,6 +3356,16 @@
       mtx.makeTranslation(px, DECK_Y - 0.3, -HALF_W - 0.07); pockets.setMatrixAt(n++, mtx);
     }
     group.add(pockets);
+    // Fold-down stirrup step, driver side, just behind the gooseneck drop;
+    // yellow HI-TENSILE decal above the step.
+    tube([[D0 - 1.15, DECK_Y - 0.15, -HALF_W + 0.05], [D0 - 1.15, DECK_Y - 1.15, -HALF_W - 0.15], [D0 - 1.85, DECK_Y - 1.15, -HALF_W - 0.15], [D0 - 1.85, DECK_Y - 0.15, -HALF_W + 0.05]], 0.03, M.frame, group, 12);
+    var ht = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.22), M.hiTen);
+    ht.rotation.y = Math.PI;
+    add(ht, D0 - 1.5, DECK_Y - 0.15, -HALF_W - 0.02);
+    // Round amber markers at the front lower corners
+    [-1, 1].forEach(function (s) {
+      cyl(0.07, 0.07, 0.06, 10, M.amber, 'z', D0 - 0.3, DECK_Y - 0.55, s * (HALF_W + 0.04));
+    });
     // Dovetail (about 5 ft), v135: only a slight drop from the deck (about 6 in),
     // with the MEGA ramps folded flat on top.
     var dvDrop = 0.5;
@@ -3081,28 +3405,28 @@
       box(dvLen - 0.1, 0.1, HALF_W - 0.26, rampMat, -dvLen / 2, 0.05, pz, dv);       // ramp panel (flat)
       var rt = new THREE.Mesh(new THREE.PlaneGeometry(HALF_W - 0.3, 0.1), M.tape);   // DOT tape, rear edge
       rt.rotation.y = -Math.PI / 2; add(rt, -dvLen + 0.04, 0.05, pz, dv);
-      var mg = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.36), mega);              // MEGA decal on the side
+      var mg = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 0.48), mega);              // MEGA decal on the side
       if (s < 0) mg.rotation.y = Math.PI;
-      add(mg, -dvLen / 2 - 0.6, -0.25, s * (HALF_W + 0.01), dv);
-      var lgd = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.38), M.logo);
-      if (s < 0) lgd.rotation.y = Math.PI;
-      add(lgd, -dvLen / 2 + 1.2, -0.25, s * (HALF_W + 0.012), dv);
+      add(mg, -dvLen / 2 - 0.5, -0.22, s * (HALF_W + 0.01), dv);
+      // Yellow BigTex with red outline, bottom-left of the driver ramp (s < 0)
+      var lgd = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.4), s < 0 ? M.logoRed : M.logo);
+      lgd.rotation.x = -Math.PI / 2;
+      add(lgd, -dvLen + 1.1, 0.12, s * (HALF_W / 2 - 0.6), dv);
     });
-    // Rear: spring-assist bar with coil springs, angled ramp stands hanging down,
-    // license plate bracket on the right (blank), red tail lights below.
-    cyl(0.07, 0.07, HALF_W * 2 - 0.4, 10, M.frame, 'z', -dvLen + 0.25, -0.72, 0, dv);
-    [-2.2, -0.75, 0.75, 2.2].forEach(function (z) {
+    // Rear: thick hinge tube, 4 coil assist springs per ramp, 3 stand-off feet per ramp.
+    // Plate bracket stays blank — no serials or plates.
+    cyl(0.1, 0.1, HALF_W * 2 - 0.3, 12, M.frame, 'z', -dvLen + 0.25, -0.55, 0, dv);
+    [-3.15, -2.35, -1.55, -0.75, 0.75, 1.55, 2.35, 3.15].forEach(function (z) {
       var pts = [];
-      for (var i = 0; i <= 60; i++) { var u = i / 60, a = u * 9 * Math.PI * 2; pts.push(new THREE.Vector3(-dvLen + 0.25 + Math.cos(a) * 0.13, -0.72 + Math.sin(a) * 0.13, z - 0.35 + u * 0.7)); }
-      add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 120, 0.022, 5, false), M.frame), 0, 0, 0, dv);
+      for (var i = 0; i <= 50; i++) { var u = i / 50, a = u * 8 * Math.PI * 2; pts.push(new THREE.Vector3(-dvLen + 0.25 + Math.cos(a) * 0.14, -0.55 + Math.sin(a) * 0.14, z - 0.28 + u * 0.56)); }
+      add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 80, 0.024, 5, false), M.frame), 0, 0, 0, dv);
     });
-    [-2.9, -1.3, 1.3, 2.9].forEach(function (z) {
-      var st = box(0.12, 0.95, 0.14, M.frame, -dvLen + 0.55, -0.95, z, dv);
-      st.rotation.z = -0.55;
+    [-3.3, -2.15, -0.95, 0.95, 2.15, 3.3].forEach(function (z) {
+      box(0.1, 0.85, 0.12, M.frame, -dvLen + 0.5, -1.05, z, dv);
     });
-    box(0.05, 0.55, 1.0, M.frame, -dvLen - 0.2, -0.95, 2.55, dv);       // plate bracket
-    box(0.04, 0.48, 0.98, M.satin, -dvLen - 0.23, -0.95, 2.55, dv);      // blank plate area
-    box(0.06, 0.06, 0.2, M.head, -dvLen - 0.22, -0.66, 2.55, dv);        // plate light
+    box(0.05, 0.55, 1.0, M.frame, -dvLen - 0.2, -0.95, 2.55, dv);       // plate bracket (blank)
+    box(0.04, 0.48, 0.98, M.satin, -dvLen - 0.23, -0.95, 2.55, dv);
+    box(0.06, 0.06, 0.2, M.head, -dvLen - 0.22, -0.66, 2.55, dv);
     // v137: MEGA hold-down latches (Big Tex spec sheet): a handle bar and keeper on each
     // ramp's front edge where it meets the deck.
     [-1, 1].forEach(function (s) {
@@ -3113,10 +3437,11 @@
     });
     // ramp seams across the dovetail plate
     box(dvLen, 0.02, 0.06, M.frame, -dvLen / 2, 0.01, 0, dv);
-    // rear end bar with lights
-    box(0.3, 0.55, HALF_W * 2, M.frame, -dvLen, -0.3, 0, dv);
+    // Rear bumper bar below the hinge: two recessed round red LED tail lights
+    box(0.3, 0.45, HALF_W * 2, M.frame, -dvLen, -0.85, 0, dv);
     [-1, 1].forEach(function (s) {
-      box(0.06, 0.3, 0.55, M.red, -dvLen - 0.17, -0.3, s * 3.4, dv);
+      add(new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.06, 16), M.satin), -dvLen - 0.16, -0.85, s * 1.35, dv).rotation.z = Math.PI / 2;
+      add(new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.04, 16), M.red), -dvLen - 0.19, -0.85, s * 1.35, dv).rotation.z = Math.PI / 2;
     });
     // marker lights along the side rails
     [D0 - 1, (D0 + D1) / 2, D1 + 0.5].forEach(function (x, i) {
@@ -3125,22 +3450,37 @@
       });
     });
     // Spare tire (ST235/80R16 LR-E, black steel wheel) lying flat on its mount on top of the neck
-    var SP = { x: -11.0, y: 5.72 + 0.06 + 0.36 };
-    box(1.4, 0.06, 1.4, M.frame, SP.x, 5.75, 0);                 // mount plate on the spine
+    var SP = { x: -9.6, y: 6.15 };
+    box(1.4, 0.06, 1.4, M.frame, SP.x, 5.98, 0);                 // mount plate on the spine
     var spare = wheel(SP.x, SP.y, 0, 1.29, 0.7, 1, 'trailer');
     spare.rotation.x = -Math.PI / 2;                             // axis up, face up
     cyl(0.05, 0.05, 0.9, 8, M.chrome, 'y', SP.x, SP.y, 0);        // hold-down stud
     cyl(0.16, 0.16, 0.06, 6, M.chrome, 'y', SP.x, SP.y + 0.42, 0); // hold-down nut
-    // Tandem 12K dual-wheel axles, ST235/80R16 LR-E on black steel wheels
-    var TT = 1.29, AX1 = D1 + 9.6, AX2 = D1 + 5.9;
+    // Tandem 12K duals, 48 in spread, black leaf springs, no raised fenders.
+    var TT = 1.29, AX1 = D1 + 9.8, AX2 = D1 + 5.8; // 4.0 ft = 48 in spread
     [AX1, AX2].forEach(function (ax) {
       box(0.25, 0.25, 7.2, M.frame, ax, TT, 0);
       [-1, 1].forEach(function (s) {
         wheel(ax, TT, s * 3.6, TT, 0.7, s, 'trailer');
         wheel(ax, TT, s * 2.86, TT, 0.7, -s, 'trailerInner');
+        // Leaf-spring pack
+        for (var lf = 0; lf < 4; lf++) box(3.4, 0.04, 0.18, M.satin, ax, TT + 0.42 + lf * 0.05, s * 1.65);
       });
-      box(3.6, 0.22, 0.2, M.frame, ax, TT + 0.55, 1.65);
-      box(3.6, 0.22, 0.2, M.frame, ax, TT + 0.55, -1.65);
+    });
+    // Diamond-plate deck panels over the axles (front panel, wood gap, rear panel).
+    var axPlate = M.diamond.clone(); axPlate.map = M.diamond.map.clone(); axPlate.map.needsUpdate = true;
+    axPlate.map.repeat.set(4, 2);
+    box(3.2, 0.04, HALF_W * 2 - 0.4, axPlate, AX1, DECK_Y + 0.02, 0);
+    box(3.2, 0.04, HALF_W * 2 - 0.4, axPlate, AX2, DECK_Y + 0.02, 0);
+    // 48" SPREAD AXLE decal on the frame between hubs (driver side)
+    var spDec = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.22), M.spreadDecal);
+    spDec.rotation.y = Math.PI;
+    add(spDec, (AX1 + AX2) / 2, TT + 0.15, -2.0);
+    // Black mudflaps behind the rear duals, yellow BigTex + red/white TRAILERS
+    [-1, 1].forEach(function (s) {
+      var fl = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 1.15), M.mudflap);
+      if (s < 0) fl.rotation.y = Math.PI;
+      add(fl, AX2 - 1.15, 0.95, s * 3.35);
     });
 
     // Center the rig on the turntable. Front of truck bumper +9.6, back of dovetail DV.
@@ -3234,20 +3574,20 @@
       { id: 'engine', p: [6.6, 5.2, 0], subj: 'truck rig', t: 'Cummins 6.7L HO turbo diesel', l: ['430 hp @ 2,800 rpm, 1,075 lb-ft @ 1,800 rpm', 'TorqueFlite HD 8-speed automatic', 'Oil: every 5,000 mi (our rule; Ram max 15,000 mi / 12 mo)', 'Tap Hood to see the engine bay'] },
       { id: 'wheels', p: [FX, TR + 0.2, 3.55], n: [0, 0, 1], subj: 'truck rig', t: 'Front wheels and tires', l: ['LT235/80R17 E tires, 31.8 in tall', '17 in black-painted aluminum wheels, machined eyelets (Night Edition DRW)', '6,000 lb front axle with hub extension (DRW group)'] },
       { id: 'rear', p: [RX, TR + 0.3, 4.15], n: [0, 0, 1], subj: 'truck rig', t: 'Rear axle and duals', l: ['12.0 in DRW rear axle, Mopar 75W-140 only (OM p. 353)', '4 rear tires LT235/80R17 E', 'GVWR 14,000 lb, GCWR 41,950 lb', 'Max trailer 32,890 lb, max payload 5,380 lb (Ram chart, our config)'] },
-      { id: 'hitch', p: [BALL_X, FLOOR_Y + 0.9, 0], subj: 'truck', t: 'Gooseneck hitch', l: ['CURT 60638 ball: 38,000 lb, 9,500 lb pin', 'Ram factory puck system: 37,100 lb trailer, 5,565 lb pin (OM p. 200)', 'The lower rating rules: 37,100 lb', '2 gold safety-chain loops; trailer GVWR 25,900 lb'] },
-      { id: 'bed', p: [-9.6, 4.95, -1.6], n: [0, 1, 0], subj: 'truck', t: 'Bed: 6 ft 4 in box', l: ['76.3 in floor length, 66.4 in wall to wall', '51.0 in between the wheel wells, 20.1 in deep', 'Gray spray-in liner, 4 puck holes, 2 chain loops'] },
+      { id: 'hitch', p: [BALL_X, FLOOR_Y + 0.9, 0], subj: 'truck', t: 'Gooseneck hitch', l: ['B&W Turnoverball, gold-zinc 2-5/16 in ball', 'Ram factory puck system: 37,100 lb trailer, 5,565 lb pin (OM p. 200)', 'The lower rating rules: 37,100 lb', 'Two solid folding U-loop chain eyelets; two empty forward tie-down cups; trailer GVWR 25,900 lb'] },
+      { id: 'bed', p: [-9.6, 4.95, -1.6], n: [0, 1, 0], subj: 'truck', t: 'Bed: 6 ft 4 in box', l: ['76.3 in floor length, 66.4 in wall to wall', '51.0 in between the wheel wells, 20.1 in deep', 'Mopar spray-in liner (XMF); B&W Turnoverball puck system'] },
       { id: 'mirrors', p: [3.4, 6.05, 4.15], subj: 'truck rig', t: 'Mirrors and lights', l: ['Black trailer-tow mirrors (Night Edition)', 'LED headlamps, black headlamp and taillamp bezels', 'LED clearance lamps: 5 on the cab roof, plus box and rear fenders (DRW group)'] },
       { id: 'coupler', p: [CPL_X, 4.75, 0.45], subj: 'rig trailer', t: 'Coupler, chains, breakaway', l: ['Demco 2-5/16 in gooseneck coupler', 'Latch closed and pinned before every trip', '2 safety chains, crossed, hooked to the truck', 'Zip breakaway cable on its own anchor'] },
       { id: 'lock', p: [CPL_X, 3.72, -0.42], n: [0, 0, -1], subj: 'trailer', t: 'S5 Coupler Lock + Trimax THP XL', l: ['S5 Coupler Lock + Trimax THP XL puck lock - blocks the gooseneck coupler when parked/unhooked', 'Steel box over the Demco coupler, puck lock in the side shroud', 'Lube the puck lock every 3 months; keep the key off the trailer'] },
       { id: 'box', p: [TB.x, TB.y + TB.ly / 2 + 0.25, 0], subj: 'rig trailer', t: 'Front storage box', l: ['Lockable mega front storage box with chain holder', 'Hot Shot kit: 10 winch straps 5,400 lb WLL, 6 grade 70 chains 4,700 lb WLL, 6 binders 6,600 lb WLL', 'Tap Toolbox to open it'] },
-      { id: 'spare', p: [-11.0, 6.85, 0], subj: 'rig trailer', t: 'Spare tire', l: ['Spare tire and mount (Big Tex 25GN)', 'ST235/80R16 LR-E on a black steel wheel, same as the trailer', '80 psi cold, like the road tires'] },
-      { id: 'jacks', p: [-13.5, 2.0, 2.05], n: [0, 0, 1], subj: 'rig trailer', t: 'Landing gear', l: ['Dual 2-speed 50K landing gear', 'Raised when hitched; down, pads on the ground, when the trailer is parked'] },
+      { id: 'spare', p: [SP.x, 6.85, 0], subj: 'rig trailer', t: 'Spare tire', l: ['Spare tire and mount (Big Tex 25GN)', 'ST235/80R16 LR-E on a black steel wheel, same as the trailer', '80 psi cold, like the road tires'] },
+      { id: 'jacks', p: [JACK_X, 2.0, 2.05], n: [0, 0, 1], subj: 'rig trailer', t: 'Landing gear', l: ['Dual 2-speed 50K landing gear', 'Raised when hitched; down, pads on the ground, when the trailer is parked'] },
       { id: 'deck', p: [(D0 + D1) / 2 + 4, DECK_Y + 0.15, 0], n: [0, 1, 0], subj: 'rig trailer', t: 'Big Tex 25GN-40D5A-MRBK', l: ['40 ft deck incl. about 5 ft dovetail', '102 in wide, 34 in deck height, treated wood floor', 'GVWR 25,900 lb: 8,770 lb empty, 17,130 lb capacity', 'Stake pockets, rubrail, sliding winch track'] },
       { id: 'axles', p: [(AX1 + AX2) / 2, TT + 0.85, HALF_W + 0.1], n: [0, 0, 1], subj: 'rig trailer', t: 'Trailer axles', l: ['Tandem 12,000 lb dual-wheel axles', 'Electric brakes, forward self-adjusting', '30K HD adjustable suspension'] },
       { id: 'ttires', p: [AX2, TT, 4.0], n: [0, 0, 1], subj: 'rig trailer', t: 'Trailer tires', l: ['ST235/80R16 LR-E radials on black steel wheels', '80 psi cold', 'TrailerGard warranty to 10/5/2033', 'Spare tire and mount'] },
       { id: 'dovetail', p: [D1 - 2.5, DECK_Y - 0.1, 0], n: [0, 1, 0], subj: 'rig trailer', t: 'Dovetail and ramps', l: ['About 5 ft dovetail', 'MEGA ramps with hold-down latches, folded flat on the dovetail'] }
     ];
-    var trailerFront = -4.9;
+    var trailerFront = NECK_F;
     var res = {
       group: group, truck: truck, trailer: trailer, tailgate: tailgate, toolbox: toolbox, toolboxLid: toolboxLid,
       hood: hood, struts: struts, hoodPivot: HOOD_PIVOT, lock: lock, lockY0: LOCK_Y0, lockH: LB.y, puck: puck,
