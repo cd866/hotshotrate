@@ -1,8 +1,12 @@
-/* Black Ram Logistics - Bill Waterfall (v145, cards v155, priority).
-   Swipeable bill cards (scroll-snap) under the chart: one card per upcoming bill,
-   summary last. User-set pay order (localStorage blackram_bill_priority_v1).
-   Reorder mode: long-press handle (iPhone) or drag (desktop), plus up/down.
-   Before/After cash and OK/Short follow the chosen pay order.
+/* Black Ram Logistics - Bill Waterfall (v145, cards v155, priority, fuel paydown).
+   Swipeable bill cards under the chart. Default Priority: Truck > Trailer >
+   Insurance > Fuel reserve (weekly, from last 28 days of ledger fuel) > everything
+   else by due date. Due date is a view toggle. Reset restores this priority.
+   Timeline plan reserves cash for higher-tier bills so earlier lower bills cannot
+   starve them (Hold / Pay partial / Reserve $X). Top-tier shorts flag
+   'Short - needs $X by MM/DD'. Fuel card paydown panel is PIN-gated, local only
+   (no bank send, no contact info). Order in localStorage blackram_bill_priority_v1;
+   paydown in blackram_fuel_paydown_v1. No server writes.
    What is due next and what cash is left after each bill. PIN-gated: cash, bills, dates and
    owed load pay all come from the relay /financials payload (bills, loans.others, income,
    account), loaded through window.BlackRamBills.ensure (loans.js). Targets inputs supply only
@@ -11,8 +15,8 @@
   'use strict';
   var FIN_KEY = 'blackram_fin_session_v1', PIN_KEY = 'blackram_relay_pin_v1', RANGE_KEY = 'blackram_billwf_range_v1', PRI_KEY = 'blackram_bill_priority_v1';
   var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  var SHORT = { truck: 'Truck', trailer: 'Trailer', ins: 'Insur.', truckstop: 'TStop', amex_8008: 'AmEx' };
-  var st = { range: rget(), lastForce: 0, reorder: false };
+  var SHORT = { truck: 'Truck', trailer: 'Trailer', ins: 'Insur.', fuel: 'Fuel', truckstop: 'TStop', amex_8008: 'AmEx' };
+  var st = { range: rget(), lastForce: 0, reorder: false, view: 'priority' };
 
   function rget() { try { var v = localStorage.getItem(RANGE_KEY); return v === '60' || v === 'mo' ? v : '30'; } catch (e) { return '30'; } }
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -93,14 +97,19 @@
     var id = e.id || slug(e.name || e.payee || '');
     return e.date ? (id + ':' + e.date) : ('tbd:' + id);
   }
-  function loadPri() {
-    try { var j = JSON.parse(localStorage.getItem(PRI_KEY) || 'null'); return (j && Array.isArray(j.order)) ? j.order : []; }
-    catch (e) { return []; }
-  }
-  function savePri(order) {
+  function loadPriState() {
     try {
-      if (!order || !order.length) localStorage.removeItem(PRI_KEY);
-      else localStorage.setItem(PRI_KEY, JSON.stringify({ order: order }));
+      var j = JSON.parse(localStorage.getItem(PRI_KEY) || 'null');
+      if (!j) return { order: [], view: 'priority' };
+      return { order: Array.isArray(j.order) ? j.order : [], view: j.view === 'duedate' ? 'duedate' : 'priority' };
+    } catch (e) { return { order: [], view: 'priority' }; }
+  }
+  function loadPri() { return loadPriState().order; }
+  function savePri(order, view) {
+    try {
+      var cur = loadPriState();
+      var v = view || cur.view || 'priority';
+      localStorage.setItem(PRI_KEY, JSON.stringify({ order: order && order.length ? order : [], view: v }));
     } catch (e) { /* private mode */ }
   }
   function applyOrder(list, saved) {
@@ -112,37 +121,249 @@
     return out;
   }
   function sameOrder(a, b) { return (a || []).join('\0') === (b || []).join('\0'); }
+  function vget() {
+    try { var j = JSON.parse(localStorage.getItem(PRI_KEY) || 'null'); if (j && j.view === 'duedate') return 'duedate'; }
+    catch (e) { /* ignore */ }
+    return 'priority';
+  }
+  function rnd(n) { return Math.round(Number(n) * 100) / 100; }
+  function tierOf(e) {
+    var id = e && e.id || '';
+    if (id === 'truck') return 1;
+    if (id === 'trailer') return 2;
+    if (id === 'ins') return 3;
+    if (id === 'fuel') return 4;
+    return 5;
+  }
+  function tierName(t) { return t === 1 ? 'Truck' : t === 2 ? 'Trailer' : t === 3 ? 'Insurance' : t === 4 ? 'Fuel' : 'higher bills'; }
+  function dueSort(a, b) {
+    if (!!a.date !== !!b.date) return a.date ? -1 : 1;
+    if (a.date && b.date && a.date !== b.date) return a.date < b.date ? -1 : 1;
+    return (a.tier || tierOf(a)) - (b.tier || tierOf(b));
+  }
+  function idealOrder(list) {
+    var buckets = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+    (list || []).forEach(function (e) { e.tier = tierOf(e); buckets[e.tier] ? buckets[e.tier].push(e) : buckets[5].push(e); });
+    [1, 2, 3, 4].forEach(function (t) { buckets[t].sort(dueSort); });
+    var restD = buckets[5].filter(function (e) { return e.date; }).sort(dueSort);
+    var restT = buckets[5].filter(function (e) { return !e.date; });
+    return buckets[1].concat(buckets[2], buckets[3], buckets[4], restD, restT);
+  }
+  function datedInflows(d) {
+    var out = [];
+    (d.income || []).forEach(function (i) {
+      var dt = i.expected ? String(i.expected).slice(0, 10) : '';
+      var amt = Number(i.amount);
+      if (i.status === 'unpaid' && dt && isFinite(amt) && amt > 0) out.push({ date: dt, amount: amt, name: i.payer || 'Load pay' });
+    });
+    return out;
+  }
+  function fuelLines(d) {
+    var rows = [], loads = d.load_costs && d.load_costs.loads;
+    if (loads) {
+      Object.keys(loads).forEach(function (id) {
+        (loads[id].fuel || []).forEach(function (f) {
+          var dt = String(f.d || f.date || '').slice(0, 10), a = Number(f.a != null ? f.a : f.amount);
+          if (dt && isFinite(a) && a > 0) rows.push({ date: dt, amount: a });
+        });
+      });
+    }
+    if (!rows.length) {
+      ((d.accounting && d.accounting.expenses) || []).forEach(function (x) {
+        if (String(x.cat || '').toLowerCase() !== 'fuel') return;
+        var dt = String(x.date || '').slice(0, 10), a = Math.abs(Number(x.amount));
+        if (dt && isFinite(a) && a > 0) rows.push({ date: dt, amount: a });
+      });
+    }
+    if (!rows.length) {
+      ((d.accounting && d.accounting.journal) || []).forEach(function (x) {
+        if (String(x.cat || '').toLowerCase() !== 'fuel') return;
+        var dt = String(x.date || '').slice(0, 10), a = Math.abs(Number(x.amount));
+        if (dt && isFinite(a) && a > 0) rows.push({ date: dt, amount: a });
+      });
+    }
+    return rows;
+  }
+  function fuelWeekly(d, t) {
+    var rows = fuelLines(d); if (!rows.length) return null;
+    var last = rows.reduce(function (a, r) { return r.date > a ? r.date : a; }, '0000-00-00');
+    var from = addDays(last, -27), sum = 0, n = 0;
+    rows.forEach(function (r) { if (r.date >= from && r.date <= last) { sum += r.amount; n++; } });
+    if (!n) return null;
+    var weekly = rnd(sum / 4);
+    var dow = new Date(t + 'T12:00:00').getDay(), add = dow === 0 ? 0 : (7 - dow);
+    var due = addDays(t, add <= 1 ? add + 7 : add);
+    var weekOf = addDays(due, -6);
+    return {
+      id: 'fuel', name: 'Fuel reserve (weekly)', amount: weekly, date: due, card: true, reserve: true, tier: 4,
+      note: 'Last 28 days ledger fuel ' + m2(sum) + ' / 4. Not a lender bill.',
+      weekOf: weekOf, fuelFrom: from, fuelTo: last, fuelSum: sum
+    };
+  }
+  var FUEL_KEY = 'blackram_fuel_paydown_v1';
+  function loadFuel() {
+    try { var j = JSON.parse(localStorage.getItem(FUEL_KEY) || 'null'); return j && typeof j === 'object' ? j : {}; }
+    catch (e) { return {}; }
+  }
+  function saveFuel(j) { try { localStorage.setItem(FUEL_KEY, JSON.stringify(j)); } catch (e) { /* private mode */ } }
+  function lastLedgerPaydown(d) {
+    var last = '';
+    (d.transactions || []).forEach(function (t) {
+      var desc = String(t.desc || t.description || t.memo || '').toLowerCase();
+      if (!/paydown|fuel card|gas paydown/.test(desc)) return;
+      var dt = String(t.date || '').slice(0, 10); if (dt > last) last = dt;
+    });
+    return last || null;
+  }
+  function fuelSincePaydown(d) {
+    var last = lastLedgerPaydown(d); if (!last) return null;
+    var sum = 0, n = 0;
+    fuelLines(d).forEach(function (r) { if (r.date > last) { sum += r.amount; n++; } });
+    return n ? { since: last, amount: rnd(sum), n: n } : { since: last, amount: 0, n: 0 };
+  }
+  function fuelPendingAdj(d) {
+    var fs = loadFuel(), asOf = String(d.bank_as_of || d.as_of || '').slice(0, 10), out = { total: 0, items: [] };
+    var keep = [];
+    (fs.pending || []).forEach(function (p) {
+      if (p.cleared) return;
+      var amt = Math.abs(Number(p.amount)), dt = String(p.date || '').slice(0, 10);
+      if (!isFinite(amt) || amt <= 0 || !dt) return;
+      var hit = (d.transactions || []).some(function (t) {
+        return Math.abs(Math.abs(Number(t.amount)) - amt) < 0.005 && Math.abs(days(String(t.date).slice(0, 10), dt)) <= 5;
+      });
+      if (hit) return;
+      keep.push(p);
+      out.total = rnd(out.total - amt);
+      out.items.push({ label: 'Fuel card paydown sent', date: dt, amount: -amt });
+    });
+    if (keep.length !== (fs.pending || []).length) { fs.pending = keep; saveFuel(fs); }
+    return out;
+  }
+  function reserveNeeded(higherBills, inflows, fromDate) {
+    var evs = [];
+    (higherBills || []).forEach(function (b) { evs.push({ date: b.date, kind: 'bill', amount: b.amount }); });
+    (inflows || []).forEach(function (i) { if (i.date >= fromDate) evs.push({ date: i.date, kind: 'in', amount: i.amount }); });
+    evs.sort(function (a, b) {
+      if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+      if (a.kind !== b.kind) return a.kind === 'in' ? -1 : 1;
+      return 0;
+    });
+    var need = 0, i;
+    for (i = evs.length - 1; i >= 0; i--) {
+      if (evs[i].date < fromDate) continue;
+      if (evs[i].kind === 'bill') need += evs[i].amount;
+      else need = Math.max(0, need - evs[i].amount);
+    }
+    return rnd(need);
+  }
+  function applyPlan(bills, start, inflows) {
+    var run = start != null ? start : 0;
+    var list = (bills || []).slice();
+    list.forEach(function (e) { e.tier = e.tier || tierOf(e); });
+    var dates = [];
+    list.forEach(function (e) { if (e.date && dates.indexOf(e.date) < 0) dates.push(e.date); });
+    (inflows || []).forEach(function (i) { if (i.date && dates.indexOf(i.date) < 0) dates.push(i.date); });
+    dates.sort();
+    var addedIn = {};
+    dates.forEach(function (dt) {
+      (inflows || []).forEach(function (i) {
+        if (i.date === dt && !addedIn[i.date + ':' + i.amount + ':' + (i.name || '')]) {
+          run = rnd(run + i.amount); addedIn[i.date + ':' + i.amount + ':' + (i.name || '')] = 1;
+        }
+      });
+      var dayBills = list.filter(function (e) { return e.date === dt; }).sort(function (a, b) { return a.tier - b.tier; });
+      dayBills.forEach(function (e) {
+        var higher = list.filter(function (h) { return h !== e && h.tier < e.tier && h.date > e.date; });
+        var reserve = reserveNeeded(higher, inflows, addDays(e.date, 1));
+        var names = [];
+        higher.sort(function (a, b) { return a.tier - b.tier; }).forEach(function (h) {
+          var lab = tierName(h.tier); if (names.indexOf(lab) < 0) names.push(lab);
+        });
+        e.before = run;
+        e.reserveAmt = reserve;
+        e.reserveFor = names;
+        var room = rnd(Math.max(0, run - reserve));
+        var pay = rnd(Math.min(e.amount, room));
+        var top = e.tier <= 4, after = names[0] || 'higher bills';
+        if (pay >= e.amount - 0.005) {
+          e.pay = e.amount; e.tag = 'ok'; e.callout = ''; e.need = 0;
+        } else if (top) {
+          e.pay = pay; e.tag = 'short'; e.need = rnd(e.amount - pay);
+          e.callout = 'Short - needs ' + m0(e.need) + ' by ' + md(e.date);
+        } else if (pay > 0.005) {
+          e.pay = pay; e.tag = 'partial'; e.need = rnd(e.amount - pay);
+          e.callout = 'Pay partial ' + m0(pay) + ' - hold rest for ' + after;
+        } else {
+          e.pay = 0; e.tag = 'hold'; e.need = e.amount;
+          e.callout = 'Hold - pay after ' + after;
+        }
+        run = rnd(run - e.pay);
+        e.bal = run;
+      });
+    });
+    return run;
+  }
 
   function adjNote(A) { return A.items.map(function (x) { return 'incl. ' + x.label + ' ' + md(x.date) + ' ' + (x.amount < 0 ? '-' : '+') + Math.abs(x.amount).toLocaleString('en-US', { minimumFractionDigits: 2 }); }).join(', '); }
   function model(d, range) {
-    var t = today(), end = endFor(range, t), acct = d.account || {};
+    var t = today(), end = endFor(range, t), planEnd = addDays(t, 60), acct = d.account || {};
     var start = acct.available != null ? Number(acct.available) : null;
-    var adj = pendingAdj(d), cash = start;
-    if (start != null && adj.total) start = Math.round((start + adj.total) * 100) / 100;
-    var be = billEvents(d, t, end), all = billEvents(d, t, '9999-12-31').ev;
+    var adj = pendingAdj(d), fuelAdj = fuelPendingAdj(d), cash = start;
+    if (start != null && adj.total) start = rnd(start + adj.total);
+    if (start != null && fuelAdj.total) start = rnd(start + fuelAdj.total);
+    if (fuelAdj.items.length) adj = { total: rnd((adj.total || 0) + fuelAdj.total), items: (adj.items || []).concat(fuelAdj.items) };
+    var be = billEvents(d, t, planEnd), all = billEvents(d, t, '9999-12-31').ev;
+    var fuel = fuelWeekly(d, t);
+    if (fuel && fuel.date <= planEnd) be.ev.push(fuel);
+    be.ev.sort(dueSort);
     var tbd = be.tbd.concat(targetsTbd());
-    var defItems = be.ev.concat(tbd), defKeys = defItems.map(eventKey);
-    var saved = loadPri();
-    var items = applyOrder(defItems, saved);
-    var custom = saved.length > 0 && !sameOrder(items.map(eventKey), defKeys);
-    var run = start != null ? start : 0, ev = [], tbdOrd = [];
-    items.forEach(function (e) {
-      if (e.date) {
-        e.before = run; run = Math.round((run - e.amount) * 100) / 100; e.bal = run; ev.push(e);
-      } else tbdOrd.push(e);
+    be.ev.forEach(function (e) { e.tier = tierOf(e); });
+    tbd.forEach(function (e) { e.tier = tierOf(e); });
+    var seenTop = {}, visible = [];
+    be.ev.forEach(function (e) {
+      if (e.tier <= 4) {
+        if (seenTop[e.id]) { if (range === '60' && e.date <= planEnd) visible.push(e); return; }
+        seenTop[e.id] = 1; visible.push(e); return;
+      }
+      if (e.date <= end) visible.push(e);
     });
+    var inflows = datedInflows(d);
+    applyPlan(visible, start != null ? start : 0, inflows);
+    var runAtEnd = start != null ? start : 0;
+    var addedIn = {};
+    be.ev.concat(inflows.map(function (i) { return { date: i.date, inflow: i }; })).sort(function (a, b) { return (a.date || '') < (b.date || '') ? -1 : 1; });
+    inflows.forEach(function (i) { if (i.date <= end) runAtEnd = rnd(runAtEnd + i.amount); });
+    visible.forEach(function (e) { if (e.date <= end) runAtEnd = rnd(runAtEnd - (e.pay || 0)); });
+    var ideal = idealOrder(visible.concat(tbd));
+    var defKeys = ideal.map(eventKey);
+    var saved = loadPri();
+    var custom = saved.length > 0 && !sameOrder(applyOrder(ideal, saved).map(eventKey), defKeys);
+    var view = st.view === 'duedate' ? 'duedate' : 'priority';
+    var items = view === 'duedate' ? visible.concat(tbd) : (custom ? applyOrder(ideal, saved) : ideal);
+    if (view === 'duedate') items = items.slice().sort(function (a, b) { return dueSort(a, b); });
+    var ev = items.filter(function (e) { return e.date; });
+    var tbdOrd = items.filter(function (e) { return !e.date; });
     var owed = (d.income || []).filter(function (i) { return i.status === 'unpaid' && i.amount; });
+    var owedDated = owed.filter(function (i) { return i.expected; });
+    var owedUndated = owed.filter(function (i) { return !i.expected; });
     var owedTot = owed.reduce(function (a, i) { return a + i.amount; }, 0);
-    return { t: t, end: end, start: start, cash: cash, adj: adj, asOf: d.bank_as_of || d.as_of, ev: ev, tbd: tbdOrd, items: items, defKeys: defKeys, keys: items.map(eventKey), custom: custom,
-      next: ev[0] || all[0] || null,
-      left: run, owed: owed, owedTot: owedTot, leftIfPaid: Math.round((run + owedTot) * 100) / 100, pendingIn: acct.pending_incoming || 0 };
+    var owedUndatedTot = owedUndated.reduce(function (a, i) { return a + i.amount; }, 0);
+    var firstNeed = ev.filter(function (e) { return e.tag === 'short'; }).sort(dueSort)[0] || null;
+    return { t: t, end: end, planEnd: planEnd, start: start, cash: cash, adj: adj, fuelAdj: fuelAdj, fuel: fuel, asOf: d.bank_as_of || d.as_of,
+      ev: ev, tbd: tbdOrd, items: items, allDated: visible, defKeys: defKeys, keys: items.map(eventKey), custom: custom, view: view, inflows: inflows,
+      next: ev[0] || all[0] || null, firstNeed: firstNeed,
+      left: runAtEnd, owed: owed, owedTot: owedTot, owedUndatedTot: owedUndatedTot, leftIfPaid: rnd(runAtEnd + owedUndatedTot), pendingIn: acct.pending_incoming || 0 };
   }
 
   /* ---------- chart ---------- */
   function chart(M) {
     var bars = [{ k: 'start', lab: 'Cash', sub: md(String(M.asOf).slice(0, 10)), from: 0, to: M.start }];
     var run = M.start;
-    M.ev.forEach(function (e) { bars.push({ k: e.overdue ? 'late' : 'bill', lab: SHORT[e.id] || e.name.split(' ')[0], sub: md(e.date), from: run, to: e.bal, v: -e.amount }); run = e.bal; });
+    (M.allDated || M.ev).filter(function (e) { return e.date <= M.end && (e.pay || 0) > 0.005; }).sort(dueSort).forEach(function (e) {
+      var after = rnd(run - e.pay);
+      bars.push({ k: e.tag === 'short' || e.overdue ? 'late' : 'bill', lab: SHORT[e.id] || e.name.split(' ')[0], sub: md(e.date), from: run, to: after, v: -e.pay });
+      run = after;
+    });
     bars.push({ k: M.left < 0 ? 'endneg' : 'end', lab: 'Left', sub: md(M.end), from: 0, to: M.left });
     M.owed.forEach(function (i) { bars.push({ k: 'in', lab: 'Owed', sub: 'date ?', from: run, to: run + i.amount, v: i.amount }); run += i.amount; });
     if (M.owed.length) bars.push({ k: M.leftIfPaid < 0 ? 'endneg' : 'end2', lab: 'If paid', sub: md(M.end), from: 0, to: M.leftIfPaid });
@@ -175,8 +396,8 @@
     if (e.why) return 'Pay method not set';
     return 'ACH';
   }
-  function firstShort(ev) { return (ev || []).filter(function (e) { return e.bal < 0; })[0] || null; }
-  function billsTot(ev) { return (ev || []).reduce(function (a, e) { return a + e.amount; }, 0); }
+  function firstShort(ev) { return (ev || []).filter(function (e) { return e.tag === 'short' || e.bal < 0; }).sort(dueSort)[0] || null; }
+  function billsTot(ev) { return (ev || []).reduce(function (a, e) { return a + (e.reserve ? 0 : e.amount); }, 0); }
   function miniBar(before, after) {
     var lo = Math.min(0, after, before), hi = Math.max(0, after, before, 1);
     if (hi - lo < 1) hi = lo + 1;
@@ -193,19 +414,31 @@
       '<circle cx="' + xa.toFixed(1) + '" cy="' + y + '" r="4.5" class="' + (neg ? 'bw-mini-a-neg' : 'bw-mini-a') + '"/>' +
       '<text x="' + xz.toFixed(1) + '" y="33" text-anchor="middle" class="bw-mini-lbl">0</text></svg>';
   }
+  function planChip(e) {
+    if (e.tag === 'short') return '<span class="bw-chip bw-chip-short">Short ' + m0(e.need) + '</span>';
+    if (e.tag === 'hold') return '<span class="bw-chip bw-chip-hold">Hold</span>';
+    if (e.tag === 'partial') return '<span class="bw-chip bw-chip-part">Partial ' + m0(e.pay) + '</span>';
+    if (e.bal < 0) return '<span class="bw-chip bw-chip-short">Short ' + m0(Math.abs(e.bal)) + '</span>';
+    return '<span class="bw-chip bw-chip-ok">OK</span>';
+  }
   function billCard(e, i, n, t, isFirst) {
-    var u = urg(e.date, t), short = e.bal < 0, chip = short ? '<span class="bw-chip bw-chip-short">Short ' + m0(Math.abs(e.bal)) + '</span>' : '<span class="bw-chip bw-chip-ok">OK</span>';
+    var u = urg(e.date, t), short = e.tag === 'short' || e.bal < 0, chip = planChip(e);
     var daysN = u.n < 0 ? -u.n : u.n, daysL = u.n < 0 ? 'days late' : (u.n === 1 ? 'day' : 'days');
-    var kick = isFirst ? (e.priority ? 'Pay first' : 'Due next') : (e.priority ? 'Priority ' + e.priority : 'Upcoming');
-    return '<article class="bw-slide bw-scard bw-h-' + u.cls + (short ? ' bw-scard-short' : '') + '" data-bw-i="' + i + '" data-bw-key="' + esc(eventKey(e)) + '" aria-label="' + esc((isFirst ? kick + '. ' : '') + e.name + ', ' + m2(e.amount) + ', ' + md(e.date)) + '">' +
+    var pri = st.view !== 'duedate';
+    var kick = isFirst ? (pri ? 'Pay first' : 'Due next') : (pri && e.tier && e.tier <= 4 ? ('Tier ' + e.tier) : (e.priority ? 'Priority ' + e.priority : 'Upcoming'));
+    var fuelBtn = e.id === 'fuel' ? '<button type="button" class="bw-btn gold bw-fuel-btn" data-bw-fuel="1">Fuel card paydown</button>' : '';
+    var call = e.callout ? '<div class="bw-call' + (e.tag === 'short' ? ' bw-call-short' : ' bw-call-hold') + '">' + esc(e.callout) + '</div>' : '';
+    var res = (e.reserveAmt > 0.005 && e.reserveFor && e.reserveFor.length) ? '<div class="bw-res">Reserve ' + m0(e.reserveAmt) + ' for ' + esc(e.reserveFor.join(', ')) + '</div>' : '';
+    return '<article class="bw-slide bw-scard bw-h-' + u.cls + (short ? ' bw-scard-short' : '') + (e.tag === 'hold' ? ' bw-scard-hold' : '') + '" data-bw-i="' + i + '" data-bw-key="' + esc(eventKey(e)) + '" aria-label="' + esc((isFirst ? kick + '. ' : '') + e.name + ', ' + m2(e.amount) + ', ' + md(e.date) + (e.callout ? '. ' + e.callout : '')) + '">' +
       '<div class="bw-scard-top"><div class="bw-k">' + kick + '</div>' +
       '<div class="bw-days bw-days-sm" aria-hidden="true"><b>' + daysN + '</b><span>' + daysL + '</span></div></div>' +
       '<div class="bw-hn">' + esc(e.name) + '</div>' +
       '<div class="bw-ha">' + m2(e.amount) + '</div>' +
-      '<div class="bw-hd">Due ' + md(e.date) + ' | ' + u.rel + ' | ' + esc(payMethod(e)) + '</div>' +
+      '<div class="bw-hd">Due ' + md(e.date) + ' | ' + u.rel + ' | ' + esc(e.reserve ? 'Reserve' : payMethod(e)) + '</div>' +
+      call + res +
       '<div class="bw-ba"><div><span>Before</span><b>' + m2(e.before) + '</b></div><div><span>After</span><b class="' + (short ? 'bw-neg' : 'bw-pos') + '">' + m2(e.bal) + '</b></div></div>' +
-      miniBar(e.before, e.bal) +
-      '<div class="bw-scard-foot">' + chip + '</div></article>';
+      (e.callout ? '' : miniBar(e.before, e.bal)) +
+      '<div class="bw-scard-foot">' + (e.callout ? '' : chip) + fuelBtn + '</div></article>';
   }
   function tbdCard(x, i) {
     return '<article class="bw-slide bw-scard bw-scard-tbd" data-bw-i="' + i + '" aria-label="Date TBD, ' + esc(x.name) + ', ' + m2(x.amount) + '">' +
@@ -221,7 +454,7 @@
     return '<div class="bw-sum-blk"><div class="bw-k">' + esc(label) + '</div>' +
       '<div class="bw-sum-row"><div><span>Bills due</span><b class="bw-neg">' + m0(tot) + '</b></div>' +
       '<div><span>Left ' + md(M.end) + '</span><b class="' + (M.left < 0 ? 'bw-neg' : 'bw-pos') + '">' + m0(M.left) + '</b></div></div>' +
-      '<div class="bw-hd">' + (sh ? 'First short: ' + md(sh.date) + ' ' + esc(sh.name) + ' | Short ' + m0(Math.abs(sh.bal)) : 'No short date in this range') + '</div></div>';
+      '<div class="bw-hd">' + (sh ? (sh.callout || ('First short: ' + md(sh.date) + ' ' + esc(sh.name) + ' | Short ' + m0(Math.abs(sh.need || sh.bal)))) : 'No short date in this range') + '</div></div>';
   }
   function summaryCard(d, i, n) {
     var a = model(d, '30'), b = model(d, '60');
@@ -229,17 +462,23 @@
       '<div class="bw-k">Summary</div>' +
       '<div class="bw-hn">30 and 60 days</div>' +
       sumBlock('30 days', a) + sumBlock('60 days', b) +
+      (a.owedUndatedTot ? '<p class="bw-fine">Owed load pay ' + m2(a.owedUndatedTot) + ' has no date, so it is not counted toward due dates.</p>' : '') +
       '</article>';
   }
 
   function orderBar(M) {
-    var custom = !!M.custom;
+    var custom = !!M.custom, view = st.view === 'duedate' ? 'duedate' : 'priority';
     return '<div class="bw-orderbar">' +
-      '<div class="bw-order-lbl">Order: <b class="' + (custom ? 'bw-pri-on' : '') + '">' + (custom ? 'Priority' : 'Due date') + '</b></div>' +
+      '<div class="bw-seg bw-viewseg" role="group" aria-label="Bill order">' +
+      '<button type="button" data-bw-view="priority" aria-pressed="' + (view === 'priority') + '">Priority</button>' +
+      '<button type="button" data-bw-view="duedate" aria-pressed="' + (view === 'duedate') + '">Due date</button></div>' +
       '<div class="bw-order-acts">' +
-      ((custom || st.reorder) ? '<button type="button" class="bw-btn" id="bw-reset" aria-label="Reset to due date">Reset to due date</button>' : '') +
+      (custom ? '<button type="button" class="bw-btn" id="bw-reset" aria-label="Reset to priority">Reset to priority</button>' : '') +
       '<button type="button" class="bw-btn' + (st.reorder ? ' gold' : '') + '" id="bw-reorder">' + (st.reorder ? 'Done' : 'Reorder') + '</button>' +
-      '</div></div>';
+      '<button type="button" class="bw-btn" id="bw-fuel-open">Fuel paydown</button>' +
+      '</div></div>' +
+      '<div class="bw-order-lbl">Order: <b class="' + (view === 'priority' ? 'bw-pri-on' : '') + '">' + (view === 'priority' ? (custom ? 'Priority (custom)' : 'Priority') : 'Due date') + '</b>' +
+      (view === 'priority' && !custom ? ' <span class="bw-hd">Truck, trailer, insurance, fuel, then the rest</span>' : '') + '</div>';
   }
   function orderList(M) {
     var items = M.items || [], n = items.length;
@@ -249,7 +488,7 @@
     var rows = items.map(function (e, i) {
       var short = e.date && e.bal < 0;
       var sub = e.date ? ('Due ' + md(e.date) + ' | ' + payMethod(e)) : ((e.why === 'after bills' ? 'After bills' : 'Date TBD') + ' | ' + payMethod(e));
-      var after = e.date ? ('<span class="' + (short ? 'bw-neg' : 'bw-pos') + '">' + (short ? 'Short ' + m0(Math.abs(e.bal)) : 'OK') + ' | After ' + m2(e.bal) + '</span>') : '<span class="bw-hd">Not in the cash bars</span>';
+      var after = e.date ? ('<span class="' + (e.tag === 'short' || short ? 'bw-neg' : (e.tag === 'hold' || e.tag === 'partial' ? 'bw-amb' : 'bw-pos')) + '">' + esc(e.callout || ((short ? 'Short ' + m0(Math.abs(e.bal)) : 'OK') + ' | After ' + m2(e.bal))) + '</span>') : '<span class="bw-hd">Not in the cash bars</span>';
       return '<li class="bw-ord" data-bw-i="' + i + '" data-bw-key="' + esc(eventKey(e)) + '" aria-label="' + esc(e.name) + ', position ' + (i + 1) + ' of ' + n + '">' +
         '<button type="button" class="bw-drag" aria-label="Drag to reorder ' + esc(e.name) + '. Long press, then drag." title="Long press, then drag">' +
         '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 7h10v2H7V7zm0 4h10v2H7v-2zm0 4h10v2H7v-2z"/></svg></button>' +
@@ -261,13 +500,14 @@
         '</div></li>';
     }).join('');
     return '<section class="bw-card bw-order-card" id="bw-order-card"><div class="bw-k">Reorder bills</div>' +
-      '<p class="bw-fine">Long press the handle, then drag. Or use the up and down buttons. Cash Before / After follows this pay order. The summary card stays last.</p>' +
+      '<p class="bw-fine">Long press the handle, then drag. Or use the up and down buttons. Reset restores Truck, Trailer, Insurance, Fuel, then the rest. The summary card stays last.</p>' +
       '<ol class="bw-order" id="bw-order">' + rows + '</ol></section>';
   }
   function commitOrder(keys, stay) {
     var def = st._defKeys || [];
-    if (sameOrder(keys, def)) savePri([]);
-    else savePri(keys);
+    st.view = 'priority';
+    if (sameOrder(keys, def)) savePri([], 'priority');
+    else savePri(keys, 'priority');
     st.carIdx = stay != null ? stay : 0;
     render();
   }
@@ -423,7 +663,7 @@
     var M = model(d, st.range);
     var seg = '<div class="bw-seg" role="group" aria-label="Range">' + [['30', '30 days'], ['60', '60 days'], ['mo', 'This month']].map(function (r) {
       return '<button type="button" data-bw-range="' + r[0] + '" aria-pressed="' + (st.range === r[0]) + '">' + r[1] + '</button>'; }).join('') + '</div>';
-    var tiles = '<div class="bw-tiles"><div><span>Cash now</span><b class="num-yellow">' + m0(M.start) + '</b>' + (M.adj.total ? '<small class="bw-adj">' + esc(adjNote(M.adj)) + '</small>' : '') + '</div><div><span>Bills due</span><b class="bw-neg">' + m0(M.ev.reduce(function (a, e) { return a + e.amount; }, 0)) + '</b></div>' +
+    var tiles = '<div class="bw-tiles"><div><span>Cash now</span><b class="num-yellow">' + m0(M.start) + '</b>' + (M.adj.total ? '<small class="bw-adj">' + esc(adjNote(M.adj)) + '</small>' : '') + '</div><div><span>Bills due</span><b class="bw-neg">' + m0(billsTot(M.ev)) + '</b></div>' +
       '<div><span>Left ' + md(M.end) + '</span><b class="' + (M.left < 0 ? 'bw-neg' : 'bw-pos') + '">' + m0(M.left) + '</b></div></div>';
     var rows = '<div class="bw-row bw-row-h"><span>Date</span><span>Bill</span><span>Amount</span><span>Balance</span></div>' +
       '<div class="bw-row bw-row-start"><span>' + md(String(M.asOf).slice(0, 10)) + '</span><span>Bluevine cash' + (M.adj.total ? '<small>' + m2(M.cash) + ' as of the ' + md(String(M.asOf).slice(0, 10)) + ' pull</small>' : '') + '</span><span></span><span>' + m2(M.cash) + '</span></div>' +
@@ -450,10 +690,28 @@
     var f = document.getElementById('bw-pin-form');
     if (f) f.addEventListener('submit', function (e) { e.preventDefault(); var v = (document.getElementById('bw-pin').value || '').trim(); if (!v) return; try { localStorage.setItem(PIN_KEY, v); } catch (er) { /* ignore */ } load(true); });
     var rf = document.getElementById('bw-refresh'); if (rf) rf.addEventListener('click', function () { load(true); });
+    el.querySelectorAll('[data-bw-view]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        st.view = b.getAttribute('data-bw-view') === 'duedate' ? 'duedate' : 'priority';
+        st.reorder = false; st.carIdx = 0;
+        savePri(loadPri(), st.view);
+        render();
+      });
+    });
     var rb = document.getElementById('bw-reorder');
-    if (rb) rb.addEventListener('click', function () { st.reorder = !st.reorder; if (!st.reorder) st.carIdx = 0; render(); });
+    if (rb) rb.addEventListener('click', function () {
+      st.reorder = !st.reorder;
+      if (st.reorder) { st.view = 'priority'; savePri(loadPri(), 'priority'); }
+      if (!st.reorder) st.carIdx = 0;
+      render();
+    });
     var rs = document.getElementById('bw-reset');
-    if (rs) rs.addEventListener('click', function () { savePri([]); st.carIdx = 0; render(); });
+    if (rs) rs.addEventListener('click', function () { savePri([], 'priority'); st.view = 'priority'; st.carIdx = 0; render(); });
+    el.querySelectorAll('[data-bw-fuel]').forEach(function (b) {
+      b.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); openFuelPaydown(); });
+    });
+    var fo = document.getElementById('bw-fuel-open');
+    if (fo) fo.addEventListener('click', function () { openFuelPaydown(); });
     if (st.reorder) bindReorder(); else bindCarousel();
   }
   function load(force) {
@@ -532,16 +790,206 @@
       '.bw-fold[open]>summary::after{transform:rotate(180deg)}' +
       '@media (prefers-reduced-motion: reduce){.bw-track{scroll-behavior:auto}.bw-fold>summary::after{transition:none}}' +
       '.bw-orderbar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:10px}' +'.bw-order-lbl{font-size:13px;font-weight:700;color:var(--c-text-3)}.bw-order-lbl b{color:var(--c-text-1);font-weight:900}.bw-order-lbl b.bw-pri-on{color:var(--c-gold)}' +'.bw-order-acts{display:flex;flex-wrap:wrap;gap:6px;margin-left:auto}' +'.bw-btn.gold{background:var(--c-gold);border-color:var(--c-gold);color:var(--c-gold-ink)}' +'.bw-order{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}' +'.bw-ord{display:flex;align-items:center;gap:6px;min-height:64px;padding:6px;border:1px solid var(--c-line);border-radius:var(--radius-md,12px);background:var(--c-surface-2);touch-action:pan-y;-webkit-user-select:none;user-select:none}' +'.bw-ord-dragging{opacity:.72;border-color:var(--c-gold);box-shadow:0 8px 24px rgba(0,0,0,.35)}' +'.bw-drag{flex:none;width:var(--tap,44px);height:var(--tap,44px);padding:0;border:0;border-radius:var(--radius-sm,10px);background:rgba(255,255,255,.04);color:var(--c-text-2);display:inline-flex;align-items:center;justify-content:center;touch-action:none}' +'.bw-drag svg{width:22px;height:22px}' +'.bw-ord-m{flex:1;min-width:0}.bw-ord-m b{display:block;font-size:14px;font-weight:800;color:var(--c-text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bw-ord-m small,.bw-ord-m span{display:block;font-size:11px;font-weight:700;color:var(--c-text-3)}.bw-ord-m span.bw-neg{color:#FCA5A5}.bw-ord-m span.bw-pos{color:var(--c-take)}' +'.bw-ord-amt{flex:none;font-size:14px;font-weight:900;color:var(--c-gold);font-variant-numeric:tabular-nums}' +'.bw-ord-btns{display:flex;flex-direction:column;gap:2px;flex:none}.bw-ord-btns .bw-arrow{width:var(--tap,44px);height:var(--tap,44px);min-height:var(--tap,44px);border-radius:var(--radius-sm,8px)}.bw-ord-btns .bw-arrow:disabled{opacity:.32}' +'.bw-order-card .bw-k{margin-bottom:2px}' +
+      '.bw-viewseg{margin:0}' +'.bw-order-lbl{margin-top:8px;font-size:13px;font-weight:700;color:var(--c-text-3)}.bw-order-lbl b{color:var(--c-text-1);font-weight:900}.bw-order-lbl b.bw-pri-on{color:var(--c-gold)}' +'.bw-call{margin:6px 0 0;padding:6px 8px;border-radius:var(--radius-sm,10px);font-size:12px;font-weight:800;line-height:1.3;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}' +'.bw-call-short{background:rgba(248,113,113,.16);color:#FCA5A5}' +'.bw-call-hold{background:rgba(242,201,76,.12);color:var(--c-gold)}' +'.bw-res{margin:4px 0 0;font-size:11px;font-weight:700;color:var(--c-text-3)}' +'.bw-chip-hold,.bw-chip-part{background:rgba(242,201,76,.16);color:var(--c-gold)}' +'.bw-scard-hold{border-color:rgba(242,201,76,.35)}' +'.bw-fuel-btn{margin:6px 0 0;align-self:flex-start}' +'.bw-scard-foot{display:flex;align-items:center;gap:8px;flex-wrap:wrap}' +'.bw-amb{color:var(--c-gold)}' +'.bw-fp{position:fixed;inset:0;z-index:80;display:flex;align-items:flex-end;justify-content:center;padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}' +'.bw-fp-bg{position:absolute;inset:0;background:rgba(0,0,0,.55)}' +'.bw-fp-wrap{position:relative;z-index:1;width:100%;max-width:430px;max-height:calc(100vh - 96px);padding:8px;display:flex;flex-direction:column}' +'.bw-fp-card{background:var(--c-surface-1);border:1px solid var(--c-line);border-radius:var(--radius-lg,16px);padding:12px 14px 14px;display:flex;flex-direction:column;gap:6px;box-shadow:0 16px 48px rgba(0,0,0,.45);max-height:100%;overflow:hidden}' +'.bw-fp-card h3{margin:0;font-size:15px;font-weight:800;color:var(--c-text-1);line-height:1.35}' +'.bw-fp-top{display:flex;align-items:center;justify-content:space-between;gap:8px}' +'.bw-fp-body{overflow:auto;-webkit-overflow-scrolling:touch;flex:1;min-height:0;display:flex;flex-direction:column;gap:6px}' +'.bw-fp-row,.bw-fp-acts,.bw-fp-chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center}' +'.bw-fp-acts{padding-top:8px;border-top:1px solid var(--c-line);flex:none}' +'.bw-fp-card input{flex:1;min-height:var(--tap,44px);min-width:0;padding:0 12px;border-radius:var(--radius-md,12px);border:1px solid var(--c-line);background:var(--c-surface-2);color:var(--c-text-1);font:inherit;font-weight:800}' +'.bw-fp-pend{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}' +'.bw-fp-pend li{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:13px;font-weight:700;color:var(--c-text-2)}' +'@media (min-width:720px){.bw-fp{align-items:center}}' +
       '@media (min-width:900px){.bw-slide{flex-basis:400px}.bw-track{padding-left:0}}' +
       '@media (min-width:900px){.bw-row{grid-template-columns:70px 1fr 120px 120px;font-size:14px}}';
     document.head.appendChild(s);
   })();
 
   function init() {
+    st.view = vget();
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && st.fuelPanel) closeFuelPanel(); });
     document.addEventListener('blackram:tab', function (e) { if (e.detail && e.detail.tab === 'bills') load(false); });
     document.addEventListener('blackram:financials', function () { var p = document.getElementById('panel-bills'); if (p && !p.hidden) render(); });
     var p = document.getElementById('panel-bills'); if (p && !p.hidden) load(false);
   }
-  window.BlackRamBillWaterfall = { render: render, show: function () { load(false); }, model: function (r) { var d = fin(); return d ? model(d, r || st.range) : null; }, openFirst: function () { st.carIdx = 0; st.reorder = false; }, go: function (i) { st.carIdx = i || 0; if (st.goCard) st.goCard(st.carIdx, false); }, setReorder: function (on) { st.reorder = !!on; render(); }, setOrder: function (keys) { if (!keys || !keys.length) savePri([]); else savePri(keys); st.carIdx = 0; render(); }, keys: function () { var d = fin(); return d ? (model(d, st.range).keys || []) : []; } };
+  function copyText(s) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(s).then(function () { return true; }).catch(function () {
+        try {
+          var t = document.createElement('textarea'); t.value = s; t.setAttribute('readonly', ''); t.style.position = 'fixed'; t.style.left = '-9999px';
+          document.body.appendChild(t); t.select(); document.execCommand('copy'); document.body.removeChild(t); return true;
+        } catch (e) { return false; }
+      });
+    }
+    try {
+      var t2 = document.createElement('textarea'); t2.value = s; document.body.appendChild(t2); t2.select(); document.execCommand('copy'); document.body.removeChild(t2); return Promise.resolve(true);
+    } catch (e) { return Promise.resolve(false); }
+  }
+  function paydownImpact(d, amount) {
+    var M = model(d, st.range || '30'), start = M.start, X = Math.abs(Number(amount) || 0);
+    var after = rnd((start != null ? start : 0) - X);
+    var beforeMap = {};
+    (M.allDated || M.ev || []).forEach(function (e) { beforeMap[e.id + ':' + e.date] = { tag: e.tag, need: e.need || 0 }; });
+    var clone = (M.allDated || M.ev || []).map(function (e) { return { id: e.id, name: e.name, date: e.date, amount: e.amount, tier: e.tier || tierOf(e) }; });
+    applyPlan(clone, after, M.inflows || []);
+    var warns = [];
+    clone.forEach(function (e) {
+      if (e.tier > 3) return;
+      var prev = beforeMap[e.id + ':' + e.date] || {}, lab = tierName(e.tier);
+      if (e.tag === 'short') {
+        var worse = rnd((e.need || 0) - (prev.need || 0));
+        if (worse > 0.005) warns.push('Warning: this leaves ' + lab + ' ' + m0(worse) + ' more short (' + m0(e.need) + ' needed by ' + md(e.date) + ')');
+        else warns.push(lab + ' short - needs ' + m0(e.need) + ' by ' + md(e.date));
+      }
+    });
+    return { before: start, after: after, amount: X, warns: warns };
+  }
+  function weekOfNote(t) {
+    var d = new Date((t || today()) + 'T12:00:00'), dow = d.getDay();
+    return addDays(iso(d), dow === 0 ? -6 : 1 - dow);
+  }
+  function closeFuelPanel() {
+    var el = document.getElementById('bw-fuel-panel');
+    if (el && el.parentNode) el.parentNode.removeChild(el);
+    st.fuelPanel = false;
+  }
+  function pendingListHtml(pending) {
+    if (!pending || !pending.length) return '';
+    return '<div class="bw-k">Pending (not in the bank pull yet)</div><ul class="bw-fp-pend">' + pending.map(function (p, i) {
+      return '<li>' + m2(p.amount) + ' sent ' + md(p.date) + (p.note ? ' | ' + esc(p.note) : '') +
+        ' <button type="button" class="bw-btn" data-bw-fp-clear="' + i + '">Clear</button></li>';
+    }).join('') + '</ul>';
+  }
+  function fuelPanelInner(d) {
+    var fs = loadFuel(), fuel = d ? fuelWeekly(d, today()) : null, since = d ? fuelSincePaydown(d) : null;
+    var bal = fs.balance != null && isFinite(Number(fs.balance)) ? Number(fs.balance) : null;
+    if (!pin()) {
+      return '<div class="bw-fp-card"><div class="bw-k">Fuel card paydown</div><h3>Enter the app PIN</h3>' +
+        '<form id="bw-fp-pin"><label class="bw-hd" for="bw-fp-pin-in">PIN</label><input id="bw-fp-pin-in" type="password" inputmode="numeric" autocomplete="off" /><button type="submit" class="bw-btn gold">Unlock</button></form>' +
+        '<p class="bw-fine">Cash and the card balance stay PIN-gated. This panel does not move money.</p></div>';
+    }
+    if (!d || !d.bills) return '<div class="bw-fp-card"><div class="bw-k">Fuel card paydown</div><p class="bw-fine">Loading financials...</p></div>';
+    var hint = [];
+    if (fuel) hint.push('Weekly reserve from last 28 days of ledger fuel: ' + m2(fuel.amount) + ' (week of ' + md(fuel.weekOf) + ').');
+    if (since) hint.push('Ledger fuel since the ' + md(since.since) + ' AmEx gas paydown: ' + m2(since.amount) + '. Not used as the card balance.');
+    hint.push('If the current fuel card balance is not on file, enter it below. Saved on this phone only.');
+    return '<div class="bw-fp-card" role="document">' +
+      '<div class="bw-fp-top"><div class="bw-k">Fuel card paydown</div><button type="button" class="bw-btn" id="bw-fp-close" aria-label="Close">Close</button></div>' +
+      '<h3>Note for Ben to pay the fuel card. The app does not move money.</h3>' +
+      '<div class="bw-fp-body">' +
+      '<p class="bw-fine">' + esc(hint.join(' ')) + '</p>' +
+      '<label class="bw-hd" for="bw-fp-bal">Current balance owed</label>' +
+      '<div class="bw-fp-row"><input id="bw-fp-bal" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Enter amount" value="' + (bal != null ? bal : '') + '" />' +
+      '<button type="button" class="bw-btn" id="bw-fp-savebal">Save</button></div>' +
+      (since && since.amount > 0 ? '<button type="button" class="bw-btn" id="bw-fp-useledger" data-amt="' + since.amount + '">Use ledger fuel since ' + md(since.since) + ' (' + m2(since.amount) + ')</button>' : '') +
+      '<div class="bw-k">Paydown amount</div>' +
+      '<div class="bw-fp-chips" role="group" aria-label="Quick amounts">' +
+      '<button type="button" class="bw-btn" data-bw-chip="full">Full balance</button>' +
+      '<button type="button" class="bw-btn" data-bw-chip="half">Half</button>' +
+      '<button type="button" class="bw-btn" data-bw-chip="custom">Custom</button></div>' +
+      '<label class="bw-hd" for="bw-fp-amt">Custom amount</label>' +
+      '<input id="bw-fp-amt" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Amount" value="' + (bal != null ? bal : '') + '" />' +
+      '<div class="bw-fp-impact" id="bw-fp-impact"></div>' +
+      pendingListHtml(fs.pending) +
+      '</div>' +
+      '<div class="bw-fp-acts">' +
+      '<button type="button" class="bw-btn gold" id="bw-fp-copy">Copy note for Ben</button>' +
+      '<button type="button" class="bw-btn" id="bw-fp-sent">Mark sent</button></div>' +
+      '<p class="bw-fine" id="bw-fp-msg" aria-live="polite"></p>' +
+      '</div>';
+  }
+  function paintImpact() {
+    var d = fin(), inp = document.getElementById('bw-fp-amt'), box = document.getElementById('bw-fp-impact');
+    if (!box || !d) return;
+    var X = inp ? Number(inp.value) : 0;
+    if (!isFinite(X) || X <= 0) { box.innerHTML = '<p class="bw-fine">Enter an amount to see the cash impact.</p>'; return; }
+    var im = paydownImpact(d, X);
+    var warns = (im.warns || []).map(function (w) { return '<div class="bw-call bw-call-short">' + esc(w) + '</div>'; }).join('');
+    box.innerHTML = '<div class="bw-ba"><div><span>Before</span><b>' + m2(im.before) + '</b></div><div><span>After</span><b class="' + (im.after < 0 ? 'bw-neg' : 'bw-pos') + '">' + m2(im.after) + '</b></div></div>' + warns;
+  }
+  function bindFuelPanel(d) {
+    var root = document.getElementById('bw-fuel-panel'); if (!root) return;
+    function msg(t) { var m = document.getElementById('bw-fp-msg'); if (m) m.textContent = t || ''; }
+    var cl = document.getElementById('bw-fp-close'); if (cl) cl.addEventListener('click', closeFuelPanel);
+    var bg = root.querySelector('.bw-fp-bg'); if (bg) bg.addEventListener('click', closeFuelPanel);
+    var pf = document.getElementById('bw-fp-pin');
+    if (pf) pf.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var v = (document.getElementById('bw-fp-pin-in').value || '').trim(); if (!v) return;
+      try { localStorage.setItem(PIN_KEY, v); } catch (er) { /* ignore */ }
+      var B = window.BlackRamBills;
+      if (B && B.ensure) B.ensure(function () { openFuelPaydown(); }, true);
+      else openFuelPaydown();
+    });
+    var amt = document.getElementById('bw-fp-amt'), bal = document.getElementById('bw-fp-bal');
+    function currentBal() {
+      var n = bal ? Number(bal.value) : NaN;
+      if (isFinite(n) && n >= 0) return n;
+      var fs = loadFuel();
+      return fs.balance != null ? Number(fs.balance) : 0;
+    }
+    root.querySelectorAll('[data-bw-chip]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var k = b.getAttribute('data-bw-chip'), tot = currentBal();
+        if (k === 'full' && amt) amt.value = tot ? String(rnd(tot)) : '';
+        if (k === 'half' && amt) amt.value = tot ? String(rnd(tot / 2)) : '';
+        if (k === 'custom' && amt) { amt.focus(); amt.select && amt.select(); }
+        paintImpact();
+      });
+    });
+    if (amt) amt.addEventListener('input', paintImpact);
+    var saveb = document.getElementById('bw-fp-savebal');
+    if (saveb) saveb.addEventListener('click', function () {
+      var n = bal ? Number(bal.value) : NaN;
+      if (!isFinite(n) || n < 0) { msg('Enter a valid balance.'); return; }
+      var fs = loadFuel(); fs.balance = rnd(n); fs.balanceSetAt = today(); saveFuel(fs); msg('Balance saved on this phone.'); paintImpact();
+    });
+    var use = document.getElementById('bw-fp-useledger');
+    if (use) use.addEventListener('click', function () {
+      var n = Number(use.getAttribute('data-amt')); if (!isFinite(n)) return;
+      if (bal) bal.value = String(n); if (amt) amt.value = String(n);
+      var fs = loadFuel(); fs.balance = rnd(n); fs.balanceSetAt = today(); fs.balanceNote = 'ledger fuel since last paydown'; saveFuel(fs);
+      msg('Using ledger fuel since the last paydown as the entered balance. Edit if the card statement differs.');
+      paintImpact();
+    });
+    var copy = document.getElementById('bw-fp-copy');
+    if (copy) copy.addEventListener('click', function () {
+      var X = amt ? Number(amt.value) : 0;
+      if (!isFinite(X) || X <= 0) { msg('Enter an amount first.'); return; }
+      var week = weekOfNote(today());
+      var note = 'Fuel card paydown - ' + m2(X) + ' - week of ' + md(week);
+      copyText(note).then(function (ok) { msg(ok ? ('Copied: ' + note) : ('Could not copy. Note: ' + note)); });
+    });
+    var sent = document.getElementById('bw-fp-sent');
+    if (sent) sent.addEventListener('click', function () {
+      var X = amt ? Number(amt.value) : 0;
+      if (!isFinite(X) || X <= 0) { msg('Enter an amount first.'); return; }
+      var fs = loadFuel(), week = weekOfNote(today());
+      fs.pending = fs.pending || [];
+      fs.pending.push({ amount: rnd(X), date: today(), weekOf: week, note: 'week of ' + md(week) });
+      if (fs.balance != null) fs.balance = rnd(Math.max(0, Number(fs.balance) - X));
+      saveFuel(fs);
+      msg('Marked sent ' + m2(X) + '. Shown as pending until a matching bank line lands, or you clear it. No money was moved.');
+      openFuelPaydown();
+      var rootEl = document.getElementById('bw-root'); if (rootEl) render();
+    });
+    root.querySelectorAll('[data-bw-fp-clear]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var i = +b.getAttribute('data-bw-fp-clear'), fs = loadFuel();
+        (fs.pending || []).splice(i, 1); saveFuel(fs); openFuelPaydown();
+        var rootEl = document.getElementById('bw-root'); if (rootEl) render();
+      });
+    });
+    paintImpact();
+  }
+  function openFuelPaydown() {
+    st.fuelPanel = true;
+    var wrap = document.getElementById('bw-fuel-panel');
+    if (!wrap) {
+      wrap = document.createElement('div'); wrap.id = 'bw-fuel-panel'; wrap.className = 'bw-fp';
+      wrap.setAttribute('role', 'dialog'); wrap.setAttribute('aria-modal', 'true'); wrap.setAttribute('aria-label', 'Fuel card paydown');
+      document.body.appendChild(wrap);
+    }
+    wrap.innerHTML = '<div class="bw-fp-bg" tabindex="-1"></div><div class="bw-fp-wrap">' + fuelPanelInner(fin()) + '</div>';
+    bindFuelPanel(fin());
+    if (pin() && !fin() && window.BlackRamBills && window.BlackRamBills.ensure) {
+      window.BlackRamBills.ensure(function (d) { if (st.fuelPanel) { wrap.innerHTML = '<div class="bw-fp-bg" tabindex="-1"></div><div class="bw-fp-wrap">' + fuelPanelInner(d || fin()) + '</div>'; bindFuelPanel(d || fin()); } }, true);
+    }
+    var closeBtn = document.getElementById('bw-fp-close') || document.getElementById('bw-fp-pin-in');
+    if (closeBtn && closeBtn.focus) try { closeBtn.focus(); } catch (e) { /* ignore */ }
+  }
+
+  window.BlackRamBillWaterfall = { render: render, show: function () { load(false); }, model: function (r) { var d = fin(); return d ? model(d, r || st.range) : null; }, openFirst: function () { st.carIdx = 0; st.reorder = false; }, go: function (i) { st.carIdx = i || 0; if (st.goCard) st.goCard(st.carIdx, false); }, setReorder: function (on) { st.reorder = !!on; render(); }, setOrder: function (keys) { st.view = 'priority'; if (!keys || !keys.length) savePri([], 'priority'); else savePri(keys, 'priority'); st.carIdx = 0; render(); }, setView: function (v) { st.view = v === 'duedate' ? 'duedate' : 'priority'; savePri(loadPri(), st.view); st.carIdx = 0; st.reorder = false; render(); }, keys: function () { var d = fin(); return d ? (model(d, st.range).keys || []) : []; }, openFuelPaydown: openFuelPaydown };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

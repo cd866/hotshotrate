@@ -395,6 +395,7 @@
     ['check', 'Rate check', '<rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M8.5 7h7M8.5 11h2M13.5 11h2M8.5 14.5h2M13.5 14.5h2M8.5 18h2M13.5 18h2"/>'],
     ['searches', 'Load boards', '<path d="M4 6h16M4 12h16M4 18h10"/><circle cx="18.5" cy="17.5" r="2.5"/>'],
     ['bills', 'Bills', '<path d="M4 4v16h16"/><rect x="6.5" y="6" width="3" height="11" rx="1"/><rect x="11" y="9" width="3" height="5" rx="1"/><rect x="15.5" y="12" width="3" height="5" rx="1"/>'],
+    ['fuelpay', 'Fuel paydown', '<path d="M7 4h8v12a3 3 0 0 1-3 3h-2a3 3 0 0 1-3-3V4z"/><path d="M8 4V3h6v1M9.5 8h5"/><path d="M15 8.5h2.2a1.8 1.8 0 0 1 1.8 1.8V16"/><circle cx="19" cy="16.5" r="1.6"/>'],
     ['pretrip', 'Pre-trip', '<path d="M9 4h6l1 2h3v14H5V6h3z"/><path d="M8.5 13.2l2.6 2.6 4.4-4.8"/>'],
     ['maint', 'Log service', '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.1L4 16.7 7.3 20l5.3-5.3a4 4 0 0 0 5.1-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/>'],
     ['stops', 'Truck stops', '<path d="M12 21s-6.5-6.2-6.5-11A6.5 6.5 0 0 1 18.5 10c0 4.8-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>'],
@@ -474,6 +475,11 @@
       setTimeout(function () { if (BW && BW.go) BW.go(0); }, 180);
       return;
     }
+    if (q === 'fuelpay') {
+      var F = window.BlackRamBillWaterfall;
+      if (F && F.openFuelPaydown) F.openFuelPaydown();
+      return;
+    }
     goTab(q);
   }
 
@@ -536,7 +542,7 @@
       '.td-bk-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s-1)}.td-bk-kpis span{font-size:11px;font-weight:700;color:var(--c-text-3);display:flex;flex-direction:column}.td-bk-kpis b{font-size:var(--fs-xl,22px);font-weight:900;color:var(--c-text-1);line-height:1.1}' +
       '.td-bk-btns{display:flex;gap:var(--s-1);align-items:center}.td-bk-btns .td-btn{min-width:0;padding:0 var(--s-1)}' +
       '.td-bk-undo{flex:none;min-height:var(--tap);min-width:var(--tap);padding:0 var(--s-1h);border:0;background:none;color:var(--c-accent-hi);font:inherit;font-size:var(--fs-sm);font-weight:800;cursor:pointer}.td-bk-undo:disabled{opacity:.35;cursor:default}' +
-      '@media(min-width:720px){.td-rds{grid-template-columns:repeat(3,1fr)}.td-qs{grid-template-columns:repeat(9,1fr)}}';
+      '@media(min-width:720px){.td-rds{grid-template-columns:repeat(3,1fr)}.td-qs{grid-template-columns:repeat(5,1fr)}}';
     document.head.appendChild(s);
   }
 
