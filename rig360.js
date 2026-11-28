@@ -115,6 +115,20 @@
      steel cap (it does not lift into the neck). Access is a small
      side door on each long face, paddle latch toward the deck,
      hinged at the front, swinging out to show the dark interior.
+   - v166: Trailer-tow mirrors get GT4 lights (outboard amber running
+     / turn strip, under-mirror puddle, forward utility and rear
+     guidance lamps, blind-spot icon in the glass). Mega Cab rear
+     doors open on tap (~0.6 s, hinged at the B-pillar) to show a
+     generic rear-seat sleeper (platform, mattress, pillow, blanket)
+     and a dome light. Rear dually fenders flare outward over the
+     duals (shape winding / normals fixed; bed wells stay inside the
+     bed). The 360 right stick orbits the camera around a static
+     rig (yaw + pitch, clamped above the ground); the left stick
+     pans; zoom pills stay. Auto-spin and drag move the camera, not
+     the turntable. The gooseneck toolbox lid opens like a chest,
+     hinged on the deck-side long edge (~70 deg, notched for the
+     neck spine so it does not clip the frame), with the interior
+     light on when open.
    Units in the model are feet. x = length (truck front +x), y = up, z = width. */
 (function () {
   'use strict';
@@ -545,7 +559,8 @@
     // Tailgate / toolbox inspect: open the part, ease the camera, pause auto-spin.
     var inspectKind = null; // 'tailgate' | 'toolbox' | 'hood' | 'lock' | null
     var inspectFramed = false; // camera already framed on this part; later taps only toggle the part
-    var TB_OPEN = Math.PI * 0.62; // side door swing (~112 deg) out from under the gooseneck
+    var TB_OPEN = Math.PI * 70 / 180; // chest lid, ~70 deg up and toward the deck
+    var DOOR_OPEN = Math.PI * 0.72; // Mega Cab rear door swing (~130 deg) out
     var inspectOpen = 0;    // 0 closed .. 1 open (eased)
     var anim = null;
     var camHold = null; // frame a part from the front without opening it
@@ -635,11 +650,14 @@
         var L1 = worldAt(rig.ballX + 0.1, 2.9, -0.5, ang), C1 = worldAt(rig.ballX + 3.0, 4.0, -2.8, ang);
         return { look: L0.clone().lerp(L1, t), cam: C0.clone().lerp(C1, t), angle: -0.15 };
       }
+      if (kind === 'doors') {
+        // Passenger 3/4 looking into the rear Mega Cab at the mattress.
+        return { look: worldAt(-1.55, 3.25, 0.2, ang), cam: worldAt(-0.4, 4.6, 9.6, ang), angle: 0.12 };
+      }
       var tb = rig.tb;
-      // Front-driver 3/4, same family as Claudio's photo: the side of the neck
-      // stays in view, the camera is not under the boom, and the open side door
-      // and solid cap sit in the arch.
-      return { look: worldAt(tb.x + 0.6, tb.y + 0.35, tb.z, ang), cam: worldAt(tb.x + 9.5, tb.y + 3.6, tb.z - 14.0, ang), angle: 0.2 };
+      // Deck-side 3/4 of the chest lid: the lid lifts toward the deck
+      // and stays clear of the gooseneck frame.
+      return { look: worldAt(tb.x - 0.2, tb.y + 0.55, tb.z, ang), cam: worldAt(tb.x - 2.4, tb.y + 3.4, tb.z - 11.5, ang), angle: 0.35 };
     }
     function applyHeldCam() {
       if (!camHold || anim || inspectKind) return;
@@ -651,10 +669,16 @@
     }
     function applyPartPose(open) {
       if (rig.tailgate) rig.tailgate.rotation.z = (inspectKind === 'tailgate' ? open : 0) * (Math.PI / 2);
-      if (rig.toolboxDoors) {
-        var t = (inspectKind === 'toolbox' ? open : 0) * TB_OPEN;
-        rig.toolboxDoors.forEach(function (d) { d.g.rotation.y = d.side * t; });
+      if (rig.toolboxLid) {
+        var t = (inspectKind === 'toolbox' ? open : 0);
+        rig.toolboxLid.rotation.z = t * TB_OPEN;
       }
+      if (rig.tbLight) rig.tbLight.intensity = (inspectKind === 'toolbox' ? open : 0) * 2.2;
+      if (rig.rearDoors) {
+        var d = (inspectKind === 'doors' ? open : 0);
+        rig.rearDoors.forEach(function (door) { door.g.rotation.y = door.side * d * DOOR_OPEN; });
+      }
+      if (rig.domeLight) rig.domeLight.intensity = (inspectKind === 'doors' ? open : 0) * 2.6;
       if (rig.ballLight) rig.ballLight.intensity = (inspectKind === 'tailgate' ? open : 0) * 2.2;
       setHood(inspectKind === 'hood' ? open : 0);
       setLock(inspectKind === 'lock' ? open : 0);
@@ -792,7 +816,10 @@
     }
     function snapPartsClosed() {
       if (rig.tailgate) rig.tailgate.rotation.z = 0;
-      if (rig.toolboxDoors) rig.toolboxDoors.forEach(function (d) { d.g.rotation.y = 0; });
+      if (rig.toolboxLid) rig.toolboxLid.rotation.z = 0;
+      if (rig.tbLight) rig.tbLight.intensity = 0;
+      if (rig.rearDoors) rig.rearDoors.forEach(function (door) { door.g.rotation.y = 0; });
+      if (rig.domeLight) rig.domeLight.intensity = 0;
       if (typeof setHood === 'function') setHood(0);
       if (typeof setLock === 'function') setLock(0);
     }
@@ -851,6 +878,9 @@
       if (rig.truck && rig.truck.visible && rig.tailgate) targets.push(rig.tailgate);
       if (rig.trailer && rig.trailer.visible && rig.toolbox) targets.push(rig.toolbox);
       if (rig.truck && rig.truck.visible && rig.hood) targets.push(rig.hood);
+      if (rig.truck && rig.truck.visible && rig.rearDoors) {
+        rig.rearDoors.forEach(function (d) { targets.push(d.g); });
+      }
       if (rig.lock && rig.lock.visible) targets.push(rig.lock);
       if (!targets.length) return false;
       var hits = raycaster.intersectObjects(targets, true);
@@ -934,10 +964,14 @@
         if (inspectOrbiting() || inspectFramed) {
           iYaw += held.da * dt;
           if (held.de) iElev += held.de * dt;
+          if (held.dpx) iPanX += held.dpx * dt;
+          if (held.dpy) iPanY += held.dpy * dt;
           applyInspectOrbit();
         } else {
           camAz += held.da * dt;
           if (held.de && !inspectKind) ELEV = clampArrowElev(ELEV + held.de * dt);
+          if (held.dpx) panX += held.dpx * dt;
+          if (held.dpy) panY += held.dpy * dt;
           applyCamera();
         }
         lastInput = performance.now();
@@ -951,7 +985,7 @@
           applyInspectOrbit();
         } else if (!inspectKind) {
           if (Math.abs(velocity) > 0.002) {
-            angle += velocity * dt;
+            camAz += velocity * dt;
             velocity *= Math.pow(0.04, dt); // coast out a flick
           } else velocity = 0;
           if (Math.abs(elevVel) > 0.002) {
@@ -961,7 +995,7 @@
           } else elevVel = 0;
           if (velocity === 0 && elevVel === 0 && performance.now() - lastInput > IDLE_RESUME_MS) {
             var ramp = Math.min(1, (performance.now() - lastInput - IDLE_RESUME_MS) / 1200);
-            angle += autoSpeed * ramp * dt;
+            camAz += autoSpeed * ramp * dt;
           }
         }
       }
@@ -1134,7 +1168,7 @@
         applyInspectOrbit();
         render();
       } else {
-        angle += da;
+        camAz += da;
         if (!inspectKind) {
           ELEV += de;
           applyCamera();
@@ -1261,6 +1295,7 @@
       '<button type="button" data-part="tailgate" aria-pressed="false">Tailgate</button>' +
       '<button type="button" data-part="toolbox" aria-pressed="false">Toolbox</button>' +
       '<button type="button" data-part="hood" aria-pressed="false" aria-label="Open the hood">Hood</button>' +
+      '<button type="button" data-part="doors" aria-pressed="false" aria-label="Open the Mega Cab rear doors">Rear doors</button>' +
       '<button type="button" data-part="lock" aria-pressed="false" aria-label="Coupler lock: take the S5 box off or put it back">Coupler lock</button>' +
       '<button type="button" data-specs aria-pressed="false" aria-label="Show spec dots">Specs</button>';
     stage.appendChild(partsBar);
@@ -1272,7 +1307,7 @@
     function updatePartButtons() {
       var truckOn = !(subject === 'trailer');
       var trailOn = !(subject === 'truck');
-      var map = { tailgate: truckOn, toolbox: trailOn, hood: truckOn, lock: subject === 'trailer' };
+      var map = { tailgate: truckOn, toolbox: trailOn, hood: truckOn, doors: truckOn, lock: subject === 'trailer' };
       var btns = partsBar.querySelectorAll('button[data-part]');
       for (var i = 0; i < btns.length; i++) {
         var kind = btns[i].getAttribute('data-part');
@@ -1390,24 +1425,26 @@
     var ROT = 1.5, TILT = THREE.MathUtils.degToRad(32); // per second while held
     var STEP = { left: [-0.26, 0], right: [0.26, 0], up: [0, THREE.MathUtils.degToRad(6)], down: [0, -THREE.MathUtils.degToRad(6)] };
     var ZOOM_LN = 0.9; // zoom *= exp(ZOOM_LN * dt) while a shoulder is held
-    // Compact DualSense-style sticks: left orbits, right raises/lowers,
-    // small shoulder pills zoom. Reset view and fullscreen live in edgeBar.
+    // Compact DualSense-style sticks: left pans the view, right orbits
+    // the camera around a static rig (yaw + pitch). Shoulder pills zoom.
+    // Reset view and fullscreen live in edgeBar.
     // Dark glossy with gold accents; no brand names or logos.
-    var ctlAxes = { ox: 0, oy: 0, hy: 0, z: 0, key: null };
+    var PAN_RATE = 10; // ft/s at full left-stick deflection
+    var ctlAxes = { ox: 0, oy: 0, px: 0, py: 0, hy: 0, z: 0, key: null };
     function syncHeld() {
       var da = ctlAxes.ox * ROT, de = -ctlAxes.oy * TILT, dp = -ctlAxes.hy * PED_RATE, dz = ctlAxes.z;
+      var dpx = ctlAxes.px * PAN_RATE, dpy = -ctlAxes.py * PAN_RATE;
       if (ctlAxes.key) {
         da += ctlAxes.key.da; de += ctlAxes.key.de; dp += ctlAxes.key.dp;
       }
-      held = (da || de || dp || dz) ? { da: da, de: de, dp: dp, dz: dz } : null;
+      held = (da || de || dp || dz || dpx || dpy) ? { da: da, de: de, dp: dp, dz: dz, dpx: dpx, dpy: dpy } : null;
     }
     var ctl = document.createElement('div');
     ctl.className = 'r360-ctl';
     ctl.setAttribute('aria-label', 'View controls');
-    function stickHtml(kind, label) {
-      var z = kind === 'orbit' ? 'out' : 'in';
-      var zLbl = kind === 'orbit' ? 'Zoom out' : 'Zoom in';
-      var zTxt = kind === 'orbit' ? '−' : '+';
+    function stickHtml(kind, label, z) {
+      var zLbl = z === 'out' ? 'Zoom out' : 'Zoom in';
+      var zTxt = z === 'out' ? '−' : '+';
       return '<div class="r360-stick-wrap r360-stick-' + kind + '">' +
         '<button type="button" class="r360-shoulder" data-z="' + z + '" aria-label="' + zLbl + '">' + zTxt + '</button>' +
         '<div class="r360-well" data-stick="' + kind + '" role="slider" aria-label="' + label + '" tabindex="0">' +
@@ -1415,7 +1452,7 @@
         '</div>' +
       '</div>';
     }
-    ctl.innerHTML = stickHtml('orbit', 'Orbit and tilt') + stickHtml('height', 'Camera height');
+    ctl.innerHTML = stickHtml('pan', 'Move view', 'out') + stickHtml('orbit', 'Orbit around the rig', 'in');
     stage.appendChild(ctl);
     function bindStick(well, axis) {
       var knob = well.querySelector('.r360-knob');
@@ -1429,6 +1466,7 @@
         var ax = Math.abs(nx) < dead ? 0 : nx;
         var ay = Math.abs(ny) < dead ? 0 : ny;
         if (axis === 'orbit') { ctlAxes.ox = ax; ctlAxes.oy = ay; }
+        else if (axis === 'pan') { ctlAxes.px = ax; ctlAxes.py = ay; }
         else { ctlAxes.hy = ay; }
         syncHeld();
         lastInput = performance.now();
@@ -1469,7 +1507,7 @@
       well.addEventListener('contextmenu', function (ev) { ev.preventDefault(); });
     }
     ctl.querySelectorAll('.r360-well').forEach(function (well) {
-      bindStick(well, well.getAttribute('data-stick') === 'height' ? 'height' : 'orbit');
+      bindStick(well, well.getAttribute('data-stick') || 'orbit');
     });
     ctl.querySelectorAll('.r360-shoulder').forEach(function (btn) {
       var pid = null;
@@ -1590,7 +1628,7 @@
     }
     document.addEventListener('visibilitychange', function () {
       if (document.hidden) {
-        ctlAxes.ox = ctlAxes.oy = ctlAxes.hy = ctlAxes.z = 0;
+        ctlAxes.ox = ctlAxes.oy = ctlAxes.px = ctlAxes.py = ctlAxes.hy = ctlAxes.z = 0;
         endHold();
       }
     });
@@ -2634,19 +2672,33 @@
     var WHEEL_IN = 17, NIGHT_BADGE = false;
     var FX = 5.97, RX = -7.4, TR = 1.325; // front axle, rear axle, tire radius (LT235/80R17 31.8 in)
     var BODY_Y = 1.55, CAB_F = 3.85, CAB_R = -4.1;
-    // Cab (full width), Mega Cab length: long rear doors plus a quarter window
-    extrude(shape([[CAB_F, BODY_Y], [CAB_F, 4.86], [CAB_R, 4.82], [CAB_R, BODY_Y]]), 6.42, M.paint, 0, 0.12);
-    // Front fenders (left and right) with the wheel arch; the engine bay sits between them
+    // Cab is a hollow shell so the rear Mega Cab doors can open into the
+    // sleeper. Front-door sides and the quarters stay fixed; the rear-door
+    // aperture is cut on each side. (Was a solid extrusion.)
+    var CAB_W = 6.42, CAB_SIDE = 3.21, B_PILLAR = -0.05, C_PILLAR = -2.85;
+    box(0.14, 3.31, CAB_W, M.paint, CAB_F - 0.04, 3.205, 0); // front bulk under the cowl
+    box(0.14, 3.27, CAB_W, M.paint, CAB_R + 0.04, 3.18, 0);  // rear wall, facing the bed
+    box(CAB_F - CAB_R - 0.2, 0.10, 6.1, M.paint, (CAB_F + CAB_R) / 2, BODY_Y + 0.04, 0); // floor pan
+    [-1, 1].forEach(function (s) {
+      // Front-door lower skin (does not open)
+      box(CAB_F - B_PILLAR, 3.31, 0.14, M.paint, (CAB_F + B_PILLAR) / 2, 3.205, s * CAB_SIDE);
+      // Rear quarter lower skin
+      box(C_PILLAR - CAB_R, 3.27, 0.14, M.paint, (C_PILLAR + CAB_R) / 2, 3.18, s * CAB_SIDE);
+      // Rocker under the rear-door opening
+      box(B_PILLAR - C_PILLAR, 0.16, 0.18, M.paint, (B_PILLAR + C_PILLAR) / 2, BODY_Y + 0.06, s * CAB_SIDE);
+    });
+    // Front fenders (left and right) with the wheel arch; the engine bay sits between them.
+    // Shape is CCW so the bevel flares outward and normals point out.
     var fender = new THREE.Shape();
     fender.moveTo(CAB_F, BODY_Y);
-    fender.lineTo(FX - 1.62, BODY_Y);
-    fender.absarc(FX, 1.45, 1.62, Math.PI, 0, true);
-    fender.lineTo(9.3, 2.15);
-    fender.lineTo(9.32, 4.42);
-    fender.quadraticCurveTo(9.3, 4.72, 9.0, 4.76);
     fender.lineTo(CAB_F, 4.88);
+    fender.lineTo(9.0, 4.76);
+    fender.quadraticCurveTo(9.3, 4.72, 9.32, 4.42);
+    fender.lineTo(9.3, 2.15);
+    fender.lineTo(FX + 1.62, 1.45);
+    fender.absarc(FX, 1.45, 1.62, 0, Math.PI, false);
     fender.closePath();
-    [-1, 1].forEach(function (s) { extrude(fender, 0.62, M.paint, s * 2.98, 0.1); });
+    [-1, 1].forEach(function (s) { extrude(fender, 0.72, M.paint, s * 3.05, 0.12); });
     // Wheel-arch liners (black, open half tubes)
     function archLiner(cx, cy, r, z0, z1) {
       var g = new THREE.CylinderGeometry(r, r, Math.abs(z1 - z0), 22, 1, true, Math.PI / 2, Math.PI);
@@ -2735,8 +2787,8 @@
       return { g: g, rod: rod, a: new THREE.Vector3(CAB_F + 0.7, 4.3, s * 2.5), hp: new THREE.Vector2(1.4, -0.06), z: s * 2.5 };
     });
 
-    // Greenhouse: tinted glass, roof, gloss-black window frames
-    extrude(shape([[CAB_F + 0.05, 4.86], [1.95, 6.34], [-3.88, 6.38], [-4.02, 4.8]]), 6.1, M.glass, 0);
+    // Greenhouse: roof and gloss-black window frames. Side/front/rear glass
+    // is fitted as panes (see below) so the cabin is hollow.
     extrude(shape([[2.05, 6.3], [1.8, 6.5], [-3.82, 6.5], [-3.98, 6.3]]), 6.24, M.paint, 0, 0.06);
     var frameShape = shape([[CAB_F + 0.1, 4.84], [1.95, 6.4], [-3.92, 6.44], [-4.08, 4.78]]);
     frameShape.holes.push(
@@ -2748,21 +2800,103 @@
     extrude(frameShape, 0.1, M.gloss, -3.06);
     // Body-side character line (catches a highlight along the black paint)
     [-1, 1].forEach(function (s) {
-      box(CAB_R - CAB_F - 0.1 > 0 ? 0 : CAB_F - CAB_R - 0.1, 0.05, 0.04, M.paint, (CAB_F + CAB_R) / 2, 4.25, s * 3.34);
+      box(CAB_F - B_PILLAR - 0.08, 0.05, 0.04, M.paint, (CAB_F + B_PILLAR) / 2, 4.25, s * 3.34);
+      box(C_PILLAR - CAB_R - 0.08, 0.05, 0.04, M.paint, (C_PILLAR + CAB_R) / 2, 4.25, s * 3.34);
       box(5.2, 0.05, 0.04, M.paint, 6.5, 4.25, s * 3.4);
     });
     // Wipers
     [-0.9, 1.3].forEach(function (z) { var wp = box(0.05, 0.05, 2.1, M.satin, 3.72, 4.98, z); wp.rotation.x = 0.05; });
-    // Door seams and black handles
-    [3.78, -0.05, -2.85].forEach(function (x) { box(0.03, 3.2, 6.7, M.frame, x, 3.2, 0); });
-    [2.9, -0.95].forEach(function (hx) {
-      [-1, 1].forEach(function (s) { box(0.5, 0.11, 0.07, M.gloss, hx, 4.45, s * 3.36); });
+    // Windshield and rear glass (the greenhouse is no longer a solid slab —
+    // side glass is on the doors, front doors, and quarters so the cabin is visible).
+    extrude(shape([[CAB_F + 0.05, 4.86], [1.95, 6.34], [1.88, 6.42], [CAB_F - 0.02, 4.94]]), 6.0, M.glass, 0);
+    extrude(shape([[-3.88, 6.38], [-4.02, 4.80], [-3.94, 4.80], [-3.80, 6.38]]), 5.9, M.glass, 0);
+    [-1, 1].forEach(function (s) {
+      box(3.20, 1.22, 0.05, M.glass, 1.82, 5.63, s * 3.16); // front-door glass
+      box(0.82, 1.22, 0.05, M.glass, -3.36, 5.64, s * 3.16); // quarter glass
     });
+    // Door seams (side-only so they don't wall off the cabin) and front handles.
+    // Rear handles live on the opening door groups below.
+    [3.78, B_PILLAR, C_PILLAR].forEach(function (x) {
+      [-1, 1].forEach(function (s) { box(0.03, 3.2, 0.08, M.frame, x, 3.2, s * 3.30); });
+    });
+    [-1, 1].forEach(function (s) { box(0.5, 0.11, 0.07, M.gloss, 2.9, 4.45, s * 3.36); });
     // Running boards (black, cab length)
     [-1, 1].forEach(function (s) {
       box(7.6, 0.12, 0.5, M.satin, -0.15, 1.3, s * 3.58);
       [-3, 0, 3].forEach(function (bx) { box(0.15, 0.22, 0.4, M.frame, bx, 1.42, s * 3.35); });
     });
+
+    // Rear Mega Cab doors, hinged at the B-pillar (front edge of the rear door).
+    // Tap (or the Rear doors button) swings both out ~0.6 s; tap again to close.
+    var rearDoors = [];
+    var doorCard = new THREE.MeshStandardMaterial({ color: 0x1a1b20, roughness: 0.72, metalness: 0.05 });
+    [-1, 1].forEach(function (s) {
+      var g = new THREE.Group();
+      g.position.set(B_PILLAR, 0, s * CAB_SIDE);
+      g.userData.part = 'doors';
+      group.add(g);
+      var doorL = B_PILLAR - C_PILLAR; // 2.80
+      box(doorL, 3.31, 0.12, M.paint, -doorL / 2, 3.205, 0, g);             // lower skin
+      box(doorL - 0.32, 1.22, 0.05, M.glass, -doorL / 2, 5.63, 0, g);       // door glass
+      box(doorL - 0.12, 0.08, 0.04, M.gloss, -doorL / 2, 4.90, 0, g);      // belt
+      box(doorL - 0.12, 0.06, 0.04, M.gloss, -doorL / 2, 6.28, 0, g);      // header
+      box(0.06, 1.36, 0.04, M.gloss, -0.08, 5.63, 0, g);
+      box(0.06, 1.36, 0.04, M.gloss, -doorL + 0.08, 5.63, 0, g);
+      box(doorL - 0.2, 3.05, 0.04, doorCard, -doorL / 2, 3.15, -s * 0.09, g); // inner card
+      box(2.55, 0.05, 0.04, M.paint, -doorL / 2, 4.25, s * 0.08, g);        // character line
+      box(0.5, 0.11, 0.07, M.gloss, -0.90, 4.45, s * 0.15, g);              // handle
+      var hit = box(doorL + 0.1, 4.9, 0.28, new THREE.MeshBasicMaterial({ visible: false }), -doorL / 2, 3.9, 0, g);
+      hit.userData.part = 'doors';
+      rearDoors.push({ g: g, side: s });
+    });
+
+    // Cabin interior + generic rear-seat sleeper (no brand or photo of
+    // Meshach's mattress turned up in receipts, the ledger, or transcripts).
+    var carpet = new THREE.MeshStandardMaterial({ color: 0x1c1d22, roughness: 0.9, metalness: 0 });
+    var headliner = new THREE.MeshStandardMaterial({ color: 0x2a2b30, roughness: 0.85, metalness: 0 });
+    var leather = new THREE.MeshStandardMaterial({ color: 0x121214, roughness: 0.55, metalness: 0.08 });
+    var mattressMat = new THREE.MeshStandardMaterial({ color: 0xd8d0c4, roughness: 0.82, metalness: 0 });
+    var sheetMat = new THREE.MeshStandardMaterial({ color: 0xc9b8a0, roughness: 0.78, metalness: 0 });
+    var pillowMat = new THREE.MeshStandardMaterial({ color: 0xe8e2d6, roughness: 0.75, metalness: 0 });
+    var blanketMat = new THREE.MeshStandardMaterial({ color: 0x3a4a62, roughness: 0.8, metalness: 0 });
+    var woodPlat = new THREE.MeshStandardMaterial({ color: 0x4a3a2a, roughness: 0.7, metalness: 0.05 });
+    box(CAB_F - CAB_R - 0.3, 0.08, 6.0, carpet, (CAB_F + CAB_R) / 2, 1.68, 0);
+    box(CAB_F - CAB_R - 0.5, 0.05, 5.9, headliner, (CAB_F + CAB_R) / 2, 6.18, 0);
+    box(0.08, 4.4, 6.0, doorCard, CAB_R + 0.14, 3.9, 0); // interior rear wall
+    box(0.08, 2.6, 6.0, doorCard, CAB_F - 0.16, 3.1, 0); // firewall trim
+    // B-pillars
+    [-1, 1].forEach(function (s) {
+      box(0.16, 4.6, 0.22, M.satin, B_PILLAR, 3.95, s * 2.95);
+    });
+    // Front buckets (passenger rides up front by day)
+    [-1, 1].forEach(function (s) {
+      box(1.35, 0.22, 1.15, leather, 2.15, 2.15, s * 0.95); // cushion
+      box(0.28, 1.35, 1.15, leather, 1.55, 2.90, s * 0.95); // back
+      box(0.18, 0.55, 0.18, M.satin, 2.4, 1.85, s * 0.95);  // pedestal
+    });
+    // Simple dash so the cabin isn't an empty box when you look forward
+    box(0.7, 0.85, 5.6, M.satin, 3.35, 3.35, 0);
+    box(0.08, 0.45, 2.4, M.gloss, 3.68, 3.55, 0); // screen
+    // Folded rear-seat platform, level with the seat cushion, plus a
+    // generic mattress, pillow and blanket.
+    var platY = 2.22;
+    box(2.55, 0.12, 5.15, woodPlat, -1.55, platY, 0);
+    box(0.35, 0.85, 5.15, leather, -2.95, 2.55, 0); // folded rear-seat back as a riser at the cab wall
+    box(2.40, 0.28, 4.85, mattressMat, -1.45, platY + 0.22, 0);
+    box(2.36, 0.04, 4.80, sheetMat, -1.45, platY + 0.37, 0);
+    // Pillow at the rear wall, slightly toward the driver side
+    var pillow = box(0.55, 0.22, 1.15, pillowMat, -2.45, platY + 0.50, -0.7);
+    pillow.rotation.z = 0.12;
+    // Folded blanket at the passenger-side foot of the mattress
+    var blanket = box(1.15, 0.12, 1.6, blanketMat, -0.7, platY + 0.46, 1.15);
+    blanket.rotation.y = 0.18;
+    blanket.rotation.z = -0.05;
+    box(0.7, 0.10, 1.15, blanketMat, -0.55, platY + 0.52, 1.05);
+    // Dome light in the rear headliner; on when the doors are open
+    cyl(0.14, 0.14, 0.04, 16, M.head, 'y', -1.5, 6.14, 0);
+    var domeLight = new THREE.PointLight(0xfff2d6, 0, 9, 1.6);
+    domeLight.position.set(-1.5, 5.85, 0);
+    group.add(domeLight);
 
     // Front: body-color grille surround, gloss-black billets, black RAM letters, LED headlamps
     box(0.3, 0.24, 4.6, M.paint, 9.22, 4.6, 0);
@@ -2793,13 +2927,31 @@
     extrude(shape([[9.05, 1.25], [9.42, 1.3], [9.55, 1.7], [9.55, 2.25], [9.42, 2.62], [9.1, 2.66]]), 6.9, M.paint, 0, 0.06);
     box(0.35, 0.2, 5.6, M.satin, 9.35, 1.18, 0);
     box(0.04, 0.38, 2.5, M.mesh, 9.62, 1.95, 0);
-    // Black trailer-tow mirrors (Night Edition) with amber signals
+    // Black trailer-tow mirrors (Night Edition GT4). Lights placed from
+    // the 2026 Ram HD QSG (forward utility + rear guidance), Mopar
+    // 68620524AB / 68620525AB outboard LED, and courtesy/puddle + BSM.
     [-1, 1].forEach(function (s) {
       box(0.12, 0.1, 0.8, M.gloss, 3.45, 5.55, s * 3.62);
       box(0.12, 0.1, 0.8, M.gloss, 3.45, 5.05, s * 3.62);
       box(0.32, 1.05, 0.62, M.gloss, 3.4, 5.4, s * 4.15);
       box(0.02, 0.9, 0.52, M.mirror, 3.235, 5.42, s * 4.15);
-      box(0.25, 0.04, 0.45, M.amber, 3.42, 4.86, s * 4.15);
+      // Outboard vertical running / supplemental turn / clearance LED
+      box(0.10, 0.85, 0.07, M.amber, 3.40, 5.42, s * (4.15 + 0.34));
+      glowPts.push([3.40, 5.42, s * (4.15 + 0.42), 0, s, 0xff9a00, 0.5]);
+      // Courtesy / puddle under the housing, with a short downward glow
+      cyl(0.055, 0.055, 0.03, 12, M.head, 'y', 3.40, 4.855, s * 4.15);
+      glowPts.push([3.40, 4.70, s * 4.15, 0, s, 0xf4f6ff, 0.35]);
+      var puddle = new THREE.PointLight(0xfff4e0, 0.45, 3.0, 1.8);
+      puddle.position.set(3.40, 4.68, s * 4.15);
+      group.add(puddle);
+      // Forward utility light (front of the housing)
+      cyl(0.07, 0.07, 0.04, 12, M.fog, 'x', 3.58, 5.05, s * 4.15);
+      glowPts.push([3.70, 5.05, s * 4.15, 1, 0, 0xf4f6ff, 0.4]);
+      // Rear guidance / reverse utility (back of the housing)
+      cyl(0.06, 0.06, 0.03, 12, M.head, 'x', 3.22, 4.98, s * 4.15);
+      glowPts.push([3.10, 4.98, s * 4.15, -1, 0, 0xf4f6ff, 0.35]);
+      // Blind-spot indicator in the upper inboard corner of the glass
+      box(0.006, 0.07, 0.10, M.amber, 3.222, 5.72, s * (4.15 - 0.16));
     });
     // Badges (black): LARAMIE on the front doors, 3500 on the front fenders
     var lar = badgeMat('LARAMIE', { w: 1024, h: 128, color: '#4a4b53', font: '700 96px Georgia, "Times New Roman", serif', spread: 1.1 });
@@ -2856,11 +3008,15 @@
       box(BL, 1.9, 0.22, M.paint, BC, 3.88, s * 3.2);
       box(BL, 0.1, 0.42, M.liner, BC, 4.88, s * 3.22); // spray-in wraps over the rail tops
       box(BL - 0.4, 1.6, 0.04, M.liner, BC, 3.85, s * 3.08); // smooth coated inner walls
-      // Big rounded wheel-well humps, coated (51 in between wells).
-      var well = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.05, 2.5, 24, 1, false, 0, Math.PI), M.liner);
+      // Rounded wheel-well humps inside the bed only (51 in between wells).
+      // Quarter-pipe at the wall/floor corner so the well does not poke
+      // through the exterior dually fender.
+      var well = new THREE.Mesh(
+        new THREE.CylinderGeometry(1.05, 1.05, 2.5, 24, 1, false, s > 0 ? Math.PI / 2 : 0, Math.PI / 2),
+        M.liner
+      );
       well.rotation.z = Math.PI / 2;
-      well.rotation.y = s > 0 ? 0 : Math.PI;
-      add(well, RX, FLOOR_Y + 0.08, s * (3.08 - 0.02));
+      add(well, RX, FLOOR_Y, s * 3.06);
       // Square tie-down cutouts near the top of the front corners.
       box(0.16, 0.16, 0.06, M.hole, BX1 - 0.35, 4.55, s * 3.05);
     });
@@ -2905,23 +3061,27 @@
     box(0.3, 0.03, 1.4, M.satin, -11.15, 2.735, 0);
     [-1, 1].forEach(function (s) { box(0.3, 0.03, 0.8, M.satin, -11.15, 2.735, s * 2.6); });
     box(0.35, 0.26, 0.26, M.satin, -11.3, 1.82, 0);
-    // Dually rear fenders with LED clearance lamps (amber front, red rear)
+    // Dually rear fenders with LED clearance lamps (amber front, red rear).
+    // CCW outline so the bevel crowns outward over the outer dual, matching
+    // a real Ram 3500 DRW flare (the previous clockwise winding made the
+    // lip curve in and hid the outer face).
     var fl = new THREE.Shape();
     fl.moveTo(RX - 2.35, 2.0);
-    fl.lineTo(RX - 2.35, 3.7);
-    fl.quadraticCurveTo(RX - 2.25, 4.75, RX - 1.0, 4.85);
-    fl.lineTo(RX + 1.0, 4.85);
-    fl.quadraticCurveTo(RX + 2.25, 4.75, RX + 2.35, 3.7);
+    fl.lineTo(RX - 1.72, 2.0);
+    fl.absarc(RX, TR + 0.05, 1.72, Math.PI - 0.36, 0.36, true);
     fl.lineTo(RX + 2.35, 2.0);
-    fl.lineTo(RX + 1.72, 2.0);
-    fl.absarc(RX, TR + 0.05, 1.72, 0.36, Math.PI - 0.36, false);
+    fl.lineTo(RX + 2.35, 3.7);
+    fl.quadraticCurveTo(RX + 2.25, 4.75, RX + 1.0, 4.85);
+    fl.lineTo(RX - 1.0, 4.85);
+    fl.quadraticCurveTo(RX - 2.25, 4.75, RX - 2.35, 3.7);
     fl.closePath();
     [-1, 1].forEach(function (s) {
-      extrude(fl, 0.62, M.paint, s * 3.6, 0.1);
-      box(0.08, 0.14, 0.3, M.amber, RX + 2.47, 3.55, s * 3.62);
-      box(0.08, 0.14, 0.3, M.red, RX - 2.47, 3.55, s * 3.62);
-      glowPts.push([RX + 2.6, 3.55, s * 3.62, 1, 0, 0xffa020, 0.4]);
-      glowPts.push([RX - 2.6, 3.55, s * 3.62, -1, 0, 0xff2028, 0.4]);
+      // ~11.5 in thick, center outboard so the outer face clears the outer tire (~3.96).
+      extrude(fl, 0.96, M.paint, s * 3.82, 0.14);
+      box(0.08, 0.14, 0.3, M.amber, RX + 2.47, 3.55, s * 3.95);
+      box(0.08, 0.14, 0.3, M.red, RX - 2.47, 3.55, s * 3.95);
+      glowPts.push([RX + 2.6, 3.55, s * 3.95, 1, 0, 0xffa020, 0.4]);
+      glowPts.push([RX - 2.6, 3.55, s * 3.95, -1, 0, 0xff2028, 0.4]);
     });
 
     // Under the truck: frame rails, axles, 12 in rear diff, driveshaft, tank, exhaust
@@ -3330,9 +3490,9 @@
       wr.position.set(0.18, JACK_OUTER_TOP - 0.5, 0); wr.rotation.y = Math.PI / 2; jack.add(wr);
     });
     // Storage toolbox between the gooseneck uprights at deck level.
-    // Solid steel cap (part of the frame — it does not lift into the neck).
-    // Access is a small side door on each long face, paddle latch toward
-    // the deck, hinged at the front (toward the truck), matching Claudio's 25GN.
+    // Chest lid hinged along the deck-side (rear, -x) long top edge, lifting
+    // ~70 deg toward the deck. A U-notch in the front center clears the
+    // 0.7 ft neck spine so the lid does not clip the gooseneck frame.
     var TB = { x: D0 + 0.95, y: DECK_Y + 0.55, z: 0, lx: 1.7, ly: 1.05, lz: 2.35 };
     var bodyMat = M.frame.clone();
     var toolbox = new THREE.Group();
@@ -3340,20 +3500,14 @@
     toolbox.userData.part = 'toolbox';
     group.add(toolbox);
     var tbInvis = new THREE.MeshBasicMaterial({ visible: false });
-    // Floor, rear wall (toward the deck, -x) and front wall (toward the truck, +x).
+    // Floor, four walls (solid — no side doors).
     box(TB.lx, 0.08, TB.lz, bodyMat, 0, -TB.ly / 2 + 0.04, 0, toolbox);
     box(0.08, TB.ly, TB.lz - 0.08, bodyMat, -TB.lx / 2 + 0.04, 0, 0, toolbox);
     box(0.08, TB.ly, TB.lz - 0.08, bodyMat, TB.lx / 2 - 0.04, 0, 0, toolbox);
-    // Bottom sills under each side door.
-    box(TB.lx - 0.08, 0.06, 0.08, bodyMat, 0, -TB.ly / 2 + 0.05, -TB.lz / 2 + 0.04, toolbox);
-    box(TB.lx - 0.08, 0.06, 0.08, bodyMat, 0, -TB.ly / 2 + 0.05,  TB.lz / 2 - 0.04, toolbox);
-    // Solid steel cap with a rain lip over the doors and a raised front edge.
-    var cap = box(TB.lx + 0.02, 0.09, TB.lz + 0.12, bodyMat, 0.01, TB.ly / 2 + 0.03, 0, toolbox);
-    cap.rotation.z = -0.08;
-    box(0.14, 0.14, TB.lz + 0.12, bodyMat, TB.lx / 2 - 0.04, TB.ly / 2 + 0.05, 0, toolbox);
+    box(TB.lx - 0.08, TB.ly, 0.08, bodyMat, 0, 0, -TB.lz / 2 + 0.04, toolbox);
+    box(TB.lx - 0.08, TB.ly, 0.08, bodyMat, 0, 0,  TB.lz / 2 - 0.04, toolbox);
     var interior = new THREE.MeshStandardMaterial({ color: 0x141416, roughness: 0.88, metalness: 0.08 });
     box(TB.lx - 0.16, 0.02, TB.lz - 0.16, interior, 0, -TB.ly / 2 + 0.09, 0, toolbox);
-    box(TB.lx - 0.16, 0.02, TB.lz - 0.16, interior, 0, TB.ly / 2 - 0.07, 0, toolbox);
     box(0.02, TB.ly - 0.18, TB.lz - 0.16, interior, -TB.lx / 2 + 0.09, 0, 0, toolbox);
     box(0.02, TB.ly - 0.18, TB.lz - 0.16, interior,  TB.lx / 2 - 0.09, 0, 0, toolbox);
     // Contents: rolled straps, chain coils, ratchet binders, winch bar
@@ -3387,46 +3541,37 @@
     binder(-0.55, 0.7, 0.3);
     binder(0.15, 0.75, -0.2);
     binder(0.7, 0.55, 0.5);
-    // winch bar across the back of the box, visible through the open side door
+    // winch bar across the back of the box, visible with the lid up
     var wbar = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 2.2, 8), M.bar);
     wbar.rotation.x = Math.PI / 2;
     add(wbar, -0.55, -TB.ly / 2 + 0.16, 0, toolbox);
     var wcap = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.12, 0.12), M.bar);
     add(wcap, -0.55, -TB.ly / 2 + 0.16, 1.15, toolbox);
-    // Side doors: driver (-z) and passenger (+z). Hinged at the front (+x),
-    // paddle latch toward the deck. Both swing out (no lid into the neck).
-    var doorH = TB.ly - 0.18;
-    var doorL = TB.lx - 0.16;
-    var doorT = 0.06;
-    var toolboxDoors = [];
-    function makeTbDoor(side) {
-      var g = new THREE.Group();
-      g.position.set(TB.lx / 2 - 0.08, -0.02, side * (TB.lz / 2 - 0.03));
-      g.userData.part = 'toolbox';
-      toolbox.add(g);
-      box(doorL, doorH, doorT, bodyMat, -doorL / 2, 0, 0, g);
-      // Recessed stainless paddle latch, upper, toward the rear (away from the hinge).
-      var latchX = -doorL + 0.38;
-      var latchY = doorH / 2 - 0.22;
-      box(0.20, 0.24, 0.035, M.chrome, latchX, latchY, side * (doorT / 2 + 0.01), g);
-      box(0.12, 0.09, 0.03, M.satin, latchX - 0.01, latchY - 0.02, side * (doorT / 2 + 0.025), g);
-      box(0.03, 0.03, 0.02, M.chrome, latchX + 0.06, latchY + 0.06, side * (doorT / 2 + 0.03), g); // keyhole
-      cyl(0.02, 0.02, doorH * 0.82, 8, M.chrome, 'y', 0, 0, 0, g);
-      var hit = box(doorL + 0.08, doorH + 0.08, 0.22, tbInvis, -doorL / 2, 0, 0, g);
-      hit.userData.part = 'toolbox';
-      toolboxDoors.push({ g: g, side: side });
-      return g;
-    }
-    makeTbDoor(-1);
-    makeTbDoor(1);
-    // Lock hasp on the cap above each latch.
-    [-1, 1].forEach(function (side) {
-      var stap = new THREE.Mesh(new THREE.TorusGeometry(0.035, 0.01, 6, 10, Math.PI), M.chrome);
-      stap.rotation.x = Math.PI / 2;
-      add(stap, -TB.lx / 2 + 0.42, TB.ly / 2 + 0.09, side * (TB.lz / 2 - 0.02), toolbox);
+    // Chest lid. Hinge at the rear long top edge (deck side). The lid's
+    // local +x runs toward the truck; rotation.z lifts the front up and
+    // back toward the deck. A U-notch clears the neck spine (ends at D0+0.8).
+    var lidT = 0.09, notchW = 1.08, notchL = 1.08;
+    var lidL = TB.lx + 0.02, lidW = TB.lz + 0.10, rearL = lidL - notchL;
+    var toolboxLid = new THREE.Group();
+    toolboxLid.position.set(-TB.lx / 2 + 0.01, TB.ly / 2 + 0.01, 0);
+    toolboxLid.userData.part = 'toolbox';
+    toolbox.add(toolboxLid);
+    box(rearL, lidT, lidW, bodyMat, rearL / 2, lidT / 2, 0, toolboxLid);
+    var wingW = (lidW - notchW) / 2;
+    [-1, 1].forEach(function (s) {
+      box(notchL, lidT, wingW, bodyMat, rearL + notchL / 2, lidT / 2, s * (notchW / 2 + wingW / 2), toolboxLid);
+      // small rain lip on each front wing
+      box(0.06, 0.07, wingW, bodyMat, lidL - 0.03, lidT / 2 + 0.02, s * (notchW / 2 + wingW / 2), toolboxLid);
     });
-    var tbLight = new THREE.PointLight(0xffe8c8, 0.85, 3.5, 1.6);
-    tbLight.position.set(0, 0.05, 0);
+    // Handle on the deck-facing edge — stand on the deck and lift
+    box(0.10, 0.06, 0.55, M.chrome, 0.20, lidT + 0.04, 0, toolboxLid);
+    box(0.16, 0.04, 0.28, M.satin, 0.22, lidT + 0.07, 0, toolboxLid);
+    var lidHit = box(lidL, 0.24, lidW, tbInvis, lidL / 2, 0.04, 0, toolboxLid);
+    lidHit.userData.part = 'toolbox';
+    // Fixed spine cap in the notch — part of the neck, does not lift
+    box(notchL + 0.04, 0.08, notchW - 0.12, bodyMat, TB.lx / 2 - notchL / 2 + 0.02, TB.ly / 2 + 0.02, 0, toolbox);
+    var tbLight = new THREE.PointLight(0xffe8c8, 0, 3.8, 1.6);
+    tbLight.position.set(0, 0.15, 0);
     toolbox.add(tbLight);
     var tbBodyHit = box(TB.lx, TB.ly, TB.lz, tbInvis, 0, 0, 0, toolbox);
     tbBodyHit.userData.part = 'toolbox';
@@ -3691,7 +3836,7 @@
       { id: 'rear', p: [RX, TR + 0.3, 4.15], n: [0, 0, 1], subj: 'truck rig', t: 'Rear axle and duals', l: ['12.0 in DRW rear axle, Mopar 75W-140 only (OM p. 353)', '4 rear tires LT235/80R17 E', 'GVWR 14,000 lb, GCWR 41,950 lb', 'Max trailer 32,890 lb, max payload 5,380 lb (Ram chart, our config)'] },
       { id: 'hitch', p: [BALL_X, FLOOR_Y + 0.9, 0], subj: 'truck', t: 'Gooseneck hitch', l: ['B&W Turnoverball, gold-zinc 2-5/16 in ball', 'Ram factory puck system: 37,100 lb trailer, 5,565 lb pin (OM p. 200)', 'The lower rating rules: 37,100 lb', 'Two solid folding U-loop chain eyelets; two empty forward tie-down cups; trailer GVWR 25,900 lb'] },
       { id: 'bed', p: [-9.6, 4.95, -1.6], n: [0, 1, 0], subj: 'truck', t: 'Bed: 6 ft 4 in box', l: ['76.3 in floor length, 66.4 in wall to wall', '51.0 in between the wheel wells, 20.1 in deep', 'Mopar spray-in liner (XMF); B&W Turnoverball puck system'] },
-      { id: 'mirrors', p: [3.4, 6.05, 4.15], subj: 'truck rig', t: 'Mirrors and lights', l: ['Black trailer-tow mirrors (Night Edition)', 'LED headlamps, black headlamp and taillamp bezels', 'LED clearance lamps: 5 on the cab roof, plus box and rear fenders (DRW group)'] },
+      { id: 'mirrors', p: [3.4, 6.05, 4.15], subj: 'truck rig', t: 'Mirrors and lights', l: ['Black trailer-tow mirrors (Night Edition, GT4)', 'Outboard LED running / turn strip, under-mirror puddle lamps', 'Forward utility and rear guidance lights, blind-spot indicator in the glass'] },
       { id: 'coupler', p: [CPL_X, 4.75, 0.45], subj: 'rig trailer', t: 'Coupler, chains, breakaway', l: ['Demco 2-5/16 in gooseneck coupler', 'Latch closed and pinned before every trip', '2 safety chains, crossed, hooked to the truck', 'Zip breakaway cable on its own anchor'] },
       { id: 'lock', p: [CPL_X, 3.72, -0.42], n: [0, 0, -1], subj: 'trailer', t: 'S5 Coupler Lock + Trimax THP XL', l: ['S5 Coupler Lock + Trimax THP XL puck lock - blocks the gooseneck coupler when parked/unhooked', 'Steel box over the Demco coupler, puck lock in the side shroud', 'Lube the puck lock every 3 months; keep the key off the trailer'] },
       { id: 'box', p: [TB.x, TB.y + TB.ly / 2 + 0.25, 0], subj: 'rig trailer', t: 'Front storage box', l: ['Lockable mega front storage box with chain holder', 'Hot Shot kit: 10 winch straps 5,400 lb WLL, 6 grade 70 chains 4,700 lb WLL, 6 binders 6,600 lb WLL', 'Tap Toolbox to open it'] },
@@ -3704,7 +3849,7 @@
     ];
     var trailerFront = NECK_F;
     var res = {
-      group: group, truck: truck, trailer: trailer, tailgate: tailgate, toolbox: toolbox, toolboxDoors: toolboxDoors,
+      group: group, truck: truck, trailer: trailer, tailgate: tailgate, toolbox: toolbox, toolboxLid: toolboxLid, tbLight: tbLight, rearDoors: rearDoors, domeLight: domeLight,
       hood: hood, struts: struts, hoodPivot: HOOD_PIVOT, lock: lock, lockY0: LOCK_Y0, lockH: LB.y, puck: puck,
       hitchedOnly: [chainsHitched, cableHitched], parkedOnly: [chainsParked, cableParked, lock],
       jackLegs: jackLegs, jackYDown: JACK_Y_DOWN, jackYUp: JACK_Y_UP, jackBlobs: jackBlobs,

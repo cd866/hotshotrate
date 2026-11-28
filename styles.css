@@ -5633,7 +5633,8 @@ header.top .rig-stage[data-r360][data-view="360"] .r360-canvas { touch-action: p
   position: absolute; bottom: 4px;
   display: flex; flex-direction: column; align-items: center; gap: 2px;
 }
-.r360-stick-orbit { left: 4px; }
+.r360-stick-pan { left: 4px; }
+.r360-stick-orbit { right: 4px; }
 .r360-stick-height { right: 4px; }
 
 .r360-shoulder {
