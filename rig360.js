@@ -85,6 +85,13 @@
      no low-power WebGL path; BasicShadowMap on iOS (PCFSoft on desktop);
      every mesh casts and receives; the ground receives; contact blobs
      use depthWrite off, renderOrder and polygonOffset.
+   - v153: part buttons (Toolbox, Hood, Tailgate, Coupler lock) are a
+     pure open/close toggle from the current lid angle; the camera is
+     framed on first open only and stays put on later taps. A height pad
+     (and PageUp/PageDown or Shift+Up/Down) pedestals the camera and
+     look-at together, clamped above the floor. Gold chain eyelets are
+     full closed rings. Truck, trailer and spare tires show a visible
+     tread pattern on the crown.
    Units in the model are feet. x = length (truck front +x), y = up, z = width. */
 (function () {
   'use strict';
@@ -401,9 +408,11 @@
     var ELEV_MIN = THREE.MathUtils.degToRad(-85), ELEV_MAX = THREE.MathUtils.degToRad(85);
     var ELEV = ELEV0;
     var camAz = 0; // camera azimuth around the look-at; the rig itself stays put
+    var pedY = 0;  // v153: world-up pedestal (ft); camera and look-at rise together
+    var PED_STEP = 1.5, PED_RATE = 5, PED_MIN = -4, PED_MAX = 14, PED_FLOOR = 0.8;
     var upAxis = new THREE.Vector3(0, Math.cos(ELEV), -Math.sin(ELEV));
     var arrowAnim = null;
-    var held = null; // arrow button being held: { da, de }
+    var held = null; // arrow button being held: { da, de, dp }
     // After a tailgate / toolbox opens, the camera orbits the part in world space.
     var iYaw = 0, iElev = 0, iDist = 18, iPanX = 0, iPanY = 0, iVelY = 0, iVelE = 0;
     var iLook = new THREE.Vector3();
@@ -433,11 +442,14 @@
       upAxis.copy(pose.up);
       var below = Math.max(0, Math.min(1, (0.09 - Math.sin(ELEV)) / 0.6));
       underLight.intensity = 5 * below * below;
+      pedY = clampPedestal(pedY);
       camera.position.copy(pose.cam);
-      camera.lookAt(pose.look);
+      camera.position.y += pedY;
+      _look.copy(pose.look); _look.y += pedY;
+      camera.lookAt(_look);
       camera.updateProjectionMatrix();
       stage.toggleAttribute('data-r360-zoomed', zoom > 1.02);
-      stage.toggleAttribute('data-r360-adjusted', zoom > 1.02 || Math.abs(ELEV - ELEV0) > 0.01 || Math.abs(camAz) > 0.01 || Math.abs(panX) > 0.05 || Math.abs(panY) > 0.05 || !!inspectKind);
+      stage.toggleAttribute('data-r360-adjusted', zoom > 1.02 || Math.abs(ELEV - ELEV0) > 0.01 || Math.abs(camAz) > 0.01 || Math.abs(panX) > 0.05 || Math.abs(panY) > 0.05 || Math.abs(pedY) > 0.05 || !!inspectKind);
     }
 
     function feetPerPx() {
@@ -475,7 +487,8 @@
         applyPartPose(0);
         angle = toAng;
         camAz = 0;
-        zoom = 1; panX = 0; panY = 0; ELEV = ELEV0;
+        zoom = 1; panX = 0; panY = 0; ELEV = ELEV0; pedY = 0;
+        inspectFramed = false;
         arrowAnim = null;
         lastInput = performance.now();
         setInspectAttr();
@@ -498,7 +511,7 @@
         fromLook: fromLook,
         fromAng: angle, toAng: toAng, fromAz: camAz,
         fromZoom: zoom, fromPanX: panX, fromPanY: panY, fromElev: ELEV,
-        fromOpen: inspectOpen,
+        fromPed: pedY, fromOpen: inspectOpen,
         opening: false
       };
       lastInput = 1e15;
@@ -507,7 +520,8 @@
     }
 
     // Tailgate / toolbox inspect: open the part, ease the camera, pause auto-spin.
-    var inspectKind = null; // 'tailgate' | 'toolbox' | null
+    var inspectKind = null; // 'tailgate' | 'toolbox' | 'hood' | 'lock' | null
+    var inspectFramed = false; // camera already framed on this part; later taps only toggle the part
     var TB_OPEN = Math.PI * 0.155; // v137: toolbox lid travel (~28 deg) so it stays under the neck rails and spine
     var inspectOpen = 0;    // 0 closed .. 1 open (eased)
     var anim = null;
@@ -534,10 +548,21 @@
       return new THREE.Vector3(px * c + pz * s, ly, -px * s + pz * c);
     }
     function currentLookAt() {
-      return cameraRigPose(ELEV, camAz, zoom, panX, panY).look;
+      var look = cameraRigPose(ELEV, camAz, zoom, panX, panY).look;
+      look.y += pedY;
+      return look;
     }
     function currentCamPos() {
-      return cameraRigPose(ELEV, camAz, zoom, panX, panY).cam;
+      var cam = cameraRigPose(ELEV, camAz, zoom, panX, panY).cam;
+      cam.y += pedY;
+      return cam;
+    }
+    function clampPedestal(p) {
+      p = Math.max(PED_MIN, Math.min(PED_MAX, p));
+      var pose = cameraRigPose(ELEV, camAz, zoom, panX, panY);
+      var minP = Math.max(PED_FLOOR - pose.cam.y, 0.3 - pose.look.y);
+      if (p < minP) p = minP;
+      return p;
     }
     function inspectOrbiting() { return !!(inspectKind && !anim); }
     function defaultInspectOrbit(kind) {
@@ -557,7 +582,7 @@
       var d = iDist / z;
       var ce = Math.cos(iElev), se = Math.sin(iElev);
       var sy = Math.sin(iYaw), cy = Math.cos(iYaw);
-      var lookX = iLook.x + cy * iPanX, lookY = iLook.y + iPanY, lookZ = iLook.z + (-sy) * iPanX;
+      var lookX = iLook.x + cy * iPanX, lookY = iLook.y + iPanY + pedY, lookZ = iLook.z + (-sy) * iPanX;
       camera.position.set(lookX + sy * ce * d, lookY + se * d, lookZ + cy * ce * d);
       camera.lookAt(lookX, lookY, lookZ);
       camera.updateProjectionMatrix();
@@ -565,7 +590,7 @@
       stage.toggleAttribute('data-r360-adjusted', true);
     }
     function currentInspectLook() {
-      return new THREE.Vector3(iLook.x + Math.cos(iYaw) * iPanX, iLook.y + iPanY, iLook.z + (-Math.sin(iYaw)) * iPanX);
+      return new THREE.Vector3(iLook.x + Math.cos(iYaw) * iPanX, iLook.y + iPanY + pedY, iLook.z + (-Math.sin(iYaw)) * iPanX);
     }
     function inspectPose(kind, ang) {
       // Camera and look-at in world space for a rear / lid-side 3/4 of the part.
@@ -639,6 +664,7 @@
       var ang = fromAng + wrapDelta(fromAng, toAng) * open;
       angle = ang;
       var pose = inspectPose(inspectKind, ang);
+      pose.cam.y += pedY; pose.look.y += pedY;
       if (open >= 0.999) {
         camera.position.copy(pose.cam);
         camera.lookAt(pose.look);
@@ -651,32 +677,26 @@
     }
     function setInspectAttr() {
       stage.toggleAttribute('data-r360-inspect', !!inspectKind);
-      stage.toggleAttribute('data-r360-adjusted', zoom > 1.02 || Math.abs(ELEV - ELEV0) > 0.01 || Math.abs(panX) > 0.05 || Math.abs(panY) > 0.05 || !!inspectKind);
+      stage.toggleAttribute('data-r360-adjusted', zoom > 1.02 || Math.abs(ELEV - ELEV0) > 0.01 || Math.abs(panX) > 0.05 || Math.abs(panY) > 0.05 || Math.abs(pedY) > 0.05 || !!inspectKind);
       updatePartButtons();
     }
-    function startAnim(kind, opening) {
+    function startAnim(kind, opening, frameCam) {
       var dur = reduceMotion ? 80 : 600;
       var from = inspectOpen;
       var to = opening ? 1 : 0;
-      var fromAng = angle;
-      var toAng = opening ? inspectPose(kind, 0).angle : angle;
-      // Remember the default orbit only so Reset view can return to it.
-      // Closing a part now keeps the camera on the part (v145).
-      var rest = (anim && anim.rest) || { angle: angle, zoom: zoom, panX: panX, panY: panY, elev: ELEV };
-      if (opening && !(inspectKind && inspectOpen > 0.2)) {
-        rest = { angle: angle, zoom: zoom, panX: panX, panY: panY, elev: ELEV };
-      }
       inspectKind = kind || inspectKind;
+      var fromAng = angle;
+      var toAng = (opening && frameCam) ? inspectPose(kind, 0).angle : angle;
       var fromCam = camera.position.clone();
-      var fromLook = (inspectKind && inspectOpen > 0.2)
-        ? (inspectOrbiting() ? currentInspectLook() : inspectPose(inspectKind, angle).look)
+      var fromLook = (inspectFramed || (inspectKind && inspectOpen > 0.2))
+        ? (inspectOrbiting() || inspectFramed ? currentInspectLook() : inspectPose(inspectKind, angle).look)
         : currentLookAt();
+      if (frameCam) inspectFramed = true; // session starts as soon as the first frame begins
       anim = {
         start: performance.now(), dur: dur, from: from, to: to, kind: inspectKind,
         fromAng: fromAng, toAng: toAng,
         fromCam: fromCam, fromLook: fromLook,
-        rest: rest, restAngle: rest.angle,
-        opening: opening
+        opening: opening, frameCam: !!frameCam
       };
       lastInput = 1e15; // pause auto-spin while open or closing
       setInspectAttr();
@@ -699,16 +719,17 @@
         panY = anim.fromPanY * (1 - e);
         ELEV = anim.fromElev + (ELEV0 - anim.fromElev) * e;
         camAz = (anim.fromAz || 0) * (1 - e);
+        pedY = (anim.fromPed || 0) * (1 - e);
         var destCamR = currentCamPos(), destLookR = currentLookAt();
         camera.position.copy(anim.fromCam).lerp(destCamR, e);
         _look.copy(anim.fromLook).lerp(destLookR, e);
         camera.lookAt(_look);
         camera.updateProjectionMatrix();
-      } else if (anim.opening) {
+      } else if (anim.opening && anim.frameCam) {
         applyInspectCamera(e, anim.fromAng, anim.toAng, anim.fromCam, anim.fromLook);
       } else {
-        // v145: lid / part animates closed, camera stays on the part.
-        if (inspectKind) applyInspectOrbit();
+        // Lid / part only. Camera stays (already framed, or mid-reverse).
+        if (inspectFramed) applyInspectOrbit();
       }
       if (u >= 1) {
         if (anim.kind === 'resetView') {
@@ -717,7 +738,8 @@
           applyPartPose(0);
           angle = anim.toAng;
           camAz = 0;
-          zoom = 1; panX = 0; panY = 0; ELEV = ELEV0;
+          zoom = 1; panX = 0; panY = 0; ELEV = ELEV0; pedY = 0;
+          inspectFramed = false;
           arrowAnim = null;
           lastInput = performance.now();
           applyCamera();
@@ -726,11 +748,14 @@
           inspectOpen = 0;
           applyPartPose(0);
           lastInput = 1e15; // stay put; no auto-spin
-          if (inspectKind) applyInspectOrbit();
+          if (inspectFramed) applyInspectOrbit();
         } else {
           inspectOpen = 1;
-          syncInspectOrbitFromPose();
-          applyInspectOrbit();
+          if (anim.frameCam) {
+            syncInspectOrbitFromPose();
+            inspectFramed = true;
+          }
+          if (inspectFramed) applyInspectOrbit();
           lastInput = 1e15; // stay on the part; no auto-rotate
         }
         anim = null;
@@ -738,24 +763,41 @@
         renderer.shadowMap.needsUpdate = true;
       }
     }
+    function snapPartsClosed() {
+      if (rig.tailgate) rig.tailgate.rotation.z = 0;
+      if (rig.toolboxLid) { rig.toolboxLid.rotation.x = 0; rig.toolboxLid.rotation.z = 0; }
+      if (typeof setHood === 'function') setHood(0);
+      if (typeof setLock === 'function') setLock(0);
+    }
     function toggleInspect(kind) {
       camHold = null;
+      var now = performance.now();
+      // Ignore a second pointer/click that lands within one frame (touch + click).
+      if (toggleInspect._at && now - toggleInspect._at < 80 && toggleInspect._kind === kind) return;
+      toggleInspect._at = now;
+      toggleInspect._kind = kind;
       if (inspectKind && inspectKind !== kind) {
-        // close the other first, then open this one on the next tick of the close? snap-close other.
-        if (rig.tailgate) rig.tailgate.rotation.z = 0;
-        if (rig.toolboxLid) { rig.toolboxLid.rotation.x = 0; rig.toolboxLid.rotation.z = 0; }
+        anim = null;
+        snapPartsClosed();
         inspectOpen = 0;
+        inspectFramed = false;
+        inspectKind = kind;
+        startAnim(kind, true, true);
+        return;
       }
-      var opening = !(inspectKind === kind && inspectOpen > 0.5);
-      if (!opening) { startAnim(kind, false); return; }
+      var isOpen;
+      if (anim && anim.kind !== 'resetView' && inspectKind === kind) isOpen = !!anim.opening;
+      else isOpen = inspectKind === kind && inspectOpen > 0.5;
+      var opening = !isOpen;
       inspectKind = kind;
-      startAnim(kind, true);
+      startAnim(kind, opening, opening && !inspectFramed);
     }
     function closeInspect(snap) {
       camHold = null;
       if (!inspectKind && inspectOpen < 0.01) return;
       if (snap || reduceMotion) {
         inspectKind = null;
+        inspectFramed = false;
         inspectOpen = 0;
         anim = null;
         applyPartPose(0);
@@ -763,7 +805,7 @@
         setInspectAttr();
         return;
       }
-      startAnim(inspectKind, false);
+      startAnim(inspectKind, false, false);
     }
     function partFromObj(obj) {
       while (obj) {
@@ -860,7 +902,8 @@
       if (arrowAnim) stepArrowAnim(t);
       if (held) {
         arrowAnim = null;
-        if (inspectOrbiting()) {
+        if (held.dp) pedY = clampPedestal(pedY + held.dp * dt);
+        if (inspectOrbiting() || inspectFramed) {
           iYaw += held.da * dt;
           if (held.de) iElev += held.de * dt;
           applyInspectOrbit();
@@ -946,7 +989,7 @@
     try { stage.tabIndex = 0; } catch (e) { /* ignore */ }
     function down(ev) {
       if (mode !== '360') return;
-      if (ev.target.closest && ev.target.closest('.r360-zoom, .r360-pad, .r360-zreset, .r360-fs, .r360-card')) return;
+      if (ev.target.closest && ev.target.closest('.r360-zoom, .r360-pad, .r360-pads, .r360-height, .r360-zreset, .r360-fs, .r360-card')) return;
       if (ev.target.closest && ev.target.closest('.r360-toggle, .r360-parts, .r360-hot')) {
         ctlPending[ev.pointerId] = { x: ev.clientX, y: ev.clientY };
         return;
@@ -1139,7 +1182,7 @@
     // page-pinch from a touch that started on the viewer.
     function stopDefault(ev) {
       if (mode !== '360') return;
-      if (ev.target.closest && ev.target.closest('.r360-toggle, .r360-zoom, .r360-pad, .r360-zreset, .r360-fs, .r360-parts, .r360-hot, .r360-card')) return;
+      if (ev.target.closest && ev.target.closest('.r360-toggle, .r360-zoom, .r360-pad, .r360-pads, .r360-height, .r360-zreset, .r360-fs, .r360-parts, .r360-hot, .r360-card')) return;
       if (ev.cancelable) ev.preventDefault();
     }
     ['dragstart', 'selectstart', 'contextmenu', 'gesturestart', 'gesturechange', 'gestureend'].forEach(function (t) {
@@ -1154,7 +1197,7 @@
     }, true);
     stage.addEventListener('touchstart', function (ev) { if (ev.touches && ev.touches.length > 1) stopDefault(ev); }, { passive: false, capture: true });
     stage.addEventListener('dblclick', function (ev) {
-      if (mode !== '360' || (ev.target.closest && ev.target.closest('.r360-toggle, .r360-zoom, .r360-pad, .r360-zreset, .r360-fs, .r360-parts, .r360-hot, .r360-card'))) return;
+      if (mode !== '360' || (ev.target.closest && ev.target.closest('.r360-toggle, .r360-zoom, .r360-pad, .r360-pads, .r360-height, .r360-zreset, .r360-fs, .r360-parts, .r360-hot, .r360-card'))) return;
       resetZoom();
     });
     // Desktop: wheel zooms only when the canvas is focused / clicked, in
@@ -1322,10 +1365,13 @@
     // never the turntable. A tap eases one step; press and hold keeps moving.
     // Auto-spin pauses while used. Polar tilt stays above the ground.
     var ICON = {
-      left: 'M15 5l-7 7 7 7', right: 'M9 5l7 7-7 7', up: 'M5 15l7-7 7 7', down: 'M5 9l7 7 7-7'
+      left: 'M15 5l-7 7 7 7', right: 'M9 5l7 7-7 7', up: 'M5 15l7-7 7 7', down: 'M5 9l7 7 7-7',
+      rise: 'M5 15l7-7 7 7M5 20h14', drop: 'M5 9l7 7 7-7M5 20h14'
     };
     var ROT = 1.5, TILT = THREE.MathUtils.degToRad(32); // per second while held
     var STEP = { left: [-0.26, 0], right: [0.26, 0], up: [0, THREE.MathUtils.degToRad(6)], down: [0, -THREE.MathUtils.degToRad(6)] };
+    var pads = document.createElement('div');
+    pads.className = 'r360-pads';
     var pad = document.createElement('div');
     pad.className = 'r360-pad';
     pad.setAttribute('role', 'group');
@@ -1334,9 +1380,23 @@
       var lbl = { left: 'Orbit left', right: 'Orbit right', up: 'Tilt camera up', down: 'Tilt camera down' }[d];
       return '<button type="button" data-dir="' + d + '" aria-label="' + lbl + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + ICON[d] + '" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>';
     }).join('');
-    stage.appendChild(pad);
+    var hpad = document.createElement('div');
+    hpad.className = 'r360-height';
+    hpad.setAttribute('role', 'group');
+    hpad.setAttribute('aria-label', 'Camera height');
+    hpad.innerHTML = ['rise', 'drop'].map(function (d) {
+      var lbl = d === 'rise' ? 'Raise camera' : 'Lower camera';
+      return '<button type="button" data-dir="' + d + '" aria-label="' + lbl + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + ICON[d] + '" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>';
+    }).join('<span class="r360-height-lbl">Height</span>');
+    pads.appendChild(pad);
+    pads.appendChild(hpad);
+    stage.appendChild(pads);
     function rate(d) {
-      return { da: d === 'left' ? -ROT : d === 'right' ? ROT : 0, de: d === 'up' ? TILT : d === 'down' ? -TILT : 0 };
+      return {
+        da: d === 'left' ? -ROT : d === 'right' ? ROT : 0,
+        de: d === 'up' ? TILT : d === 'down' ? -TILT : 0,
+        dp: d === 'rise' ? PED_RATE : d === 'drop' ? -PED_RATE : 0
+      };
     }
     function clampArrowElev(el) {
       var d = baseDist / Math.max(1, zoom) * (1 + 0.3 * Math.sin(el) * Math.sin(el));
@@ -1355,6 +1415,7 @@
       if (!arrowAnim) return;
       var u = Math.min(1, (now - arrowAnim.start) / arrowAnim.dur);
       var e = easeInOut(u);
+      pedY = arrowAnim.fromP + (arrowAnim.toP - arrowAnim.fromP) * e;
       if (arrowAnim.inspect) {
         iYaw = arrowAnim.fromY + wrapDelta(arrowAnim.fromY, arrowAnim.toY) * e;
         iElev = arrowAnim.fromE + (arrowAnim.toE - arrowAnim.fromE) * e;
@@ -1367,20 +1428,25 @@
       if (u >= 1) arrowAnim = null;
     }
     function step(d) {
-      var da = STEP[d][0], de = STEP[d][1];
+      var isPed = d === 'rise' || d === 'drop';
+      var da = isPed ? 0 : STEP[d][0], de = isPed ? 0 : STEP[d][1];
+      var dp = d === 'rise' ? PED_STEP : d === 'drop' ? -PED_STEP : 0;
       var dur = reduceMotion ? 0 : 240;
       velocity = 0; elevVel = 0; iVelY = 0; iVelE = 0;
       lastInput = performance.now();
-      if (inspectOrbiting()) {
+      var fromP = (arrowAnim && arrowAnim.toP != null) ? arrowAnim.toP : pedY;
+      var toP = clampPedestal(fromP + dp);
+      var insp = inspectOrbiting() || inspectFramed;
+      if (insp) {
         var toY = (arrowAnim && arrowAnim.inspect ? arrowAnim.toY : iYaw) + da;
         var toE = clampInspectArrowElev((arrowAnim && arrowAnim.inspect ? arrowAnim.toE : iElev) + de);
         if (!dur) {
           arrowAnim = null;
-          iYaw = toY; iElev = toE;
+          iYaw = toY; iElev = toE; pedY = toP;
           applyInspectOrbit(); render(); update();
           return;
         }
-        arrowAnim = { start: performance.now(), dur: dur, inspect: true, fromY: iYaw, toY: toY, fromE: iElev, toE: toE };
+        arrowAnim = { start: performance.now(), dur: dur, inspect: true, fromY: iYaw, toY: toY, fromE: iElev, toE: toE, fromP: pedY, toP: toP };
         update();
         return;
       }
@@ -1388,11 +1454,11 @@
       var toEl = clampArrowElev((arrowAnim && !arrowAnim.inspect ? arrowAnim.toE : ELEV) + de);
       if (!dur) {
         arrowAnim = null;
-        camAz = toA; ELEV = toEl;
+        camAz = toA; ELEV = toEl; pedY = toP;
         applyCamera(); render(); update();
         return;
       }
-      arrowAnim = { start: performance.now(), dur: dur, inspect: false, fromY: camAz, toY: toA, fromE: ELEV, toE: toEl };
+      arrowAnim = { start: performance.now(), dur: dur, inspect: false, fromY: camAz, toY: toA, fromE: ELEV, toE: toEl, fromP: pedY, toP: toP };
       update();
     }
     var holdBtn = null, holdTimer = 0;
@@ -1403,7 +1469,7 @@
       lastInput = performance.now();
       update();
     }
-    pad.addEventListener('pointerdown', function (ev) {
+    pads.addEventListener('pointerdown', function (ev) {
       var b = ev.target.closest('button[data-dir]');
       if (!b || mode !== '360') return;
       ev.preventDefault();
@@ -1415,12 +1481,12 @@
       step(d); // immediate nudge, then keep moving while held
       holdTimer = setTimeout(function () { holdTimer = 0; if (holdBtn === b) { held = rate(d); update(); } }, 260);
     });
-    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (t) { pad.addEventListener(t, endHold); });
-    pad.addEventListener('click', function (ev) {
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (t) { pads.addEventListener(t, endHold); });
+    pads.addEventListener('click', function (ev) {
       var b = ev.target.closest('button[data-dir]');
       if (b && ev.detail === 0) step(b.getAttribute('data-dir')); // keyboard
     });
-    pad.addEventListener('contextmenu', function (ev) { ev.preventDefault(); });
+    pads.addEventListener('contextmenu', function (ev) { ev.preventDefault(); });
     document.addEventListener('visibilitychange', function () { if (document.hidden) endHold(); });
 
     zbar.addEventListener('click', function (ev) {
@@ -1431,9 +1497,14 @@
       else zoomAt(zoom * (z === 'in' ? 1.5 : 1 / 1.5));
     });
     var ARROW_KEY = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' };
+    function heightKey(ev) {
+      if (ev.key === 'PageUp' || ((ev.key === 'ArrowUp' || ev.key === 'Up') && ev.shiftKey)) return 'rise';
+      if (ev.key === 'PageDown' || ((ev.key === 'ArrowDown' || ev.key === 'Down') && ev.shiftKey)) return 'drop';
+      return null;
+    }
     stage.addEventListener('keydown', function (ev) {
       if (mode !== '360') return;
-      var d = ARROW_KEY[ev.key];
+      var d = heightKey(ev) || ((ev.shiftKey) ? null : ARROW_KEY[ev.key]);
       if (!d) return;
       ev.preventDefault();
       if (ev.repeat) return;
@@ -1443,7 +1514,7 @@
       holdTimer = setTimeout(function () { holdTimer = 0; held = rate(dir); update(); }, 260);
     });
     stage.addEventListener('keyup', function (ev) {
-      if (ARROW_KEY[ev.key]) endHold();
+      if (ARROW_KEY[ev.key] || ev.key === 'PageUp' || ev.key === 'PageDown') endHold();
     });
     window.addEventListener('resize', function () { w = 0; update(); });
     if (typeof ResizeObserver === 'function') {
@@ -1590,7 +1661,7 @@
         if (typeof closeCard === 'function') closeCard();
         fitShadowCam();
         renderer.shadowMap.needsUpdate = true;
-        zoom = 1; panX = 0; panY = 0; ELEV = ELEV0; camAz = 0;
+        zoom = 1; panX = 0; panY = 0; ELEV = ELEV0; camAz = 0; pedY = 0;
         arrowAnim = null;
         closeInspect(true);
         updatePartButtons();
@@ -1604,6 +1675,22 @@
       resetView: function () { resetView(true); },
       getZoom: function () { return zoom; },
       getTilt: function () { return THREE.MathUtils.radToDeg(ELEV); },
+      getPedestal: function () { return pedY; },
+      inspectState: function () { return { kind: inspectKind, open: inspectOpen, framed: inspectFramed, pedY: pedY }; },
+      framePoint: function (x, y, z, dist, yawDeg, elevDeg) {
+        lastInput = 1e15;
+        turntable.rotation.y = angle;
+        turntable.updateMatrixWorld(true);
+        var p = new THREE.Vector3(x, y, z);
+        rig.group.localToWorld(p);
+        var yaw = THREE.MathUtils.degToRad(yawDeg != null ? yawDeg : 35);
+        var el = THREE.MathUtils.degToRad(elevDeg != null ? elevDeg : 22);
+        var d = dist != null ? dist : 5;
+        camera.position.set(p.x + Math.sin(yaw) * Math.cos(el) * d, p.y + Math.sin(el) * d, p.z + Math.cos(yaw) * Math.cos(el) * d);
+        camera.lookAt(p);
+        camera.updateProjectionMatrix();
+        render();
+      },
       idleMs: function () { return performance.now() - lastInput; },
       getPan: function () { return [panX, panY]; },
       setAngle: function (a) { angle = a; lastInput = performance.now(); render(); },
@@ -1620,8 +1707,9 @@
         if (opts.panX != null) panX = opts.panX;
         if (opts.panY != null) panY = opts.panY;
         if (opts.elev != null) ELEV = THREE.MathUtils.degToRad(opts.elev);
+        if (opts.pedY != null) pedY = clampPedestal(opts.pedY);
         lastInput = performance.now();
-        if (shown) { applyCamera(); render(); }
+        if (shown) { if (inspectFramed) applyInspectOrbit(); else applyCamera(); render(); }
         update();
       },
       info: function () { return { calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, running: !!raf }; },
@@ -1630,7 +1718,7 @@
       snapInspect: function (kind, yawDeg, elevDeg, z) {
         kind = kind || 'tailgate';
         camHold = null; anim = null;
-        inspectKind = kind; inspectOpen = 1;
+        inspectKind = kind; inspectOpen = 1; inspectFramed = true;
         applyPartPose(1);
         angle = inspectPose(kind, 0).angle;
         turntable.rotation.y = angle;
@@ -1887,24 +1975,77 @@
     return t;
   }
 
-  function treadTex(THREE) {
-    // Bump map: u runs around the tire, v across the profile. Tread blocks
-    // only in the middle band (the crown); shoulders and sidewalls stay smooth.
-    var t = canvasTex(THREE, 1024, 128, function (g, w, h) {
-      g.fillStyle = '#fff'; g.fillRect(0, 0, w, h);
-      var y0 = h * 0.40, y1 = h * 0.60, mid = (y0 + y1) / 2;
-      g.fillStyle = '#222';
-      // 3 circumferential grooves
-      [0.43, 0.5, 0.57].forEach(function (f) { g.fillRect(0, h * f - 1.5, w, 3); });
-      // lateral sipes / block edges, staggered
-      for (var x = 0; x < w; x += 16) {
-        g.fillRect(x, y0, 3, mid - y0 - 2);
-        g.fillRect(x + 8, mid + 2, 3, y1 - mid - 2);
-      }
-    }, false);
-    t.wrapS = THREE.RepeatWrapping;
-    t.repeat.set(3, 1);
+  function finishTreadTex(THREE, t, repeatU) {
+    t.colorSpace = THREE.NoColorSpace || THREE.LinearSRGBColorSpace;
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.repeat.set(repeatU, 1);
+    t.anisotropy = 4;
+    t.needsUpdate = true;
     return t;
+  }
+  function drawTrailerTread(g, w, h, bump) {
+    // Highway-trailer rib: 5 ribs, 4 circumferential grooves, thin sipes.
+    g.fillStyle = bump ? '#f2f2f2' : '#2a2a2e';
+    g.fillRect(0, 0, w, h);
+    var grooves = [0.2, 0.4, 0.6, 0.8];
+    var gw = bump ? 10 : 8;
+    g.fillStyle = bump ? '#111' : '#0a0a0b';
+    grooves.forEach(function (f) { g.fillRect(0, h * f - gw / 2, w, gw); });
+    g.fillStyle = bump ? '#555' : '#141416';
+    var ribH = h * 0.2 - gw;
+    for (var x = 0; x < w; x += 28) {
+      for (var r = 0; r < 5; r++) {
+        var y = r * (h * 0.2) + gw / 2 + 2;
+        g.fillRect(x + (r % 2) * 8, y, 2, ribH - 4);
+      }
+    }
+    // shoulder notches
+    g.fillStyle = bump ? '#222' : '#101012';
+    for (x = 0; x < w; x += 20) {
+      g.fillRect(x, 0, 8, 8);
+      g.fillRect(x + 10, h - 8, 8, 8);
+    }
+  }
+  function drawTruckTread(g, w, h, bump) {
+    // All-terrain / highway LT: 4 grooves, staggered blocks, shoulder lugs.
+    g.fillStyle = bump ? '#f2f2f2' : '#2a2a2e';
+    g.fillRect(0, 0, w, h);
+    var grooves = [0.18, 0.4, 0.6, 0.82];
+    var gw = bump ? 12 : 9;
+    g.fillStyle = bump ? '#101010' : '#08080a';
+    grooves.forEach(function (f) { g.fillRect(0, h * f - gw / 2, w, gw); });
+    var bands = [
+      [0, 0.18], [0.18, 0.4], [0.4, 0.6], [0.6, 0.82], [0.82, 1]
+    ];
+    var pitch = 36;
+    for (var b = 0; b < bands.length; b++) {
+      var y0 = h * bands[b][0] + gw / 2 + 1;
+      var y1 = h * bands[b][1] - gw / 2 - 1;
+      if (y1 <= y0) continue;
+      var off = (b % 2) * (pitch / 2);
+      for (var x = -pitch; x < w + pitch; x += pitch) {
+        var xx = x + off;
+        g.fillStyle = bump ? '#3a3a3a' : '#161618';
+        g.fillRect(xx, y0, 5, y1 - y0);
+        // chevron / siping inside the block
+        g.fillStyle = bump ? '#666' : '#1c1c1e';
+        g.fillRect(xx + 10, y0 + 2, 2, (y1 - y0) * 0.45);
+        g.fillRect(xx + 20, y0 + (y1 - y0) * 0.5, 2, (y1 - y0) * 0.45);
+      }
+    }
+    g.fillStyle = bump ? '#1a1a1a' : '#0c0c0e';
+    for (x = 0; x < w; x += 22) {
+      g.fillRect(x, 0, 11, 14);
+      g.fillRect(x + 11, h - 14, 11, 14);
+    }
+  }
+  function treadMaps(THREE, kind) {
+    var truck = kind === 'truck';
+    var draw = truck ? drawTruckTread : drawTrailerTread;
+    var bump = canvasTex(THREE, 1024, 256, function (g, w, h) { draw(g, w, h, true); }, false);
+    var map = canvasTex(THREE, 1024, 256, function (g, w, h) { draw(g, w, h, false); }, true);
+    var ru = truck ? 8 : 10;
+    return { bump: finishTreadTex(THREE, bump, ru), map: (map.wrapS = map.wrapT = THREE.RepeatWrapping, map.repeat.set(ru, 1), map) };
   }
 
   function wheelFaceTex(THREE, kind) {
@@ -2060,7 +2201,9 @@
       satin: new THREE.MeshStandardMaterial({ color: 0x0f0f12, metalness: 0.2, roughness: 0.62 }),
       glass: new THREE.MeshPhysicalMaterial({ color: 0x000000, metalness: 0, roughness: 0.04, clearcoat: 0.6, clearcoatRoughness: 0.02, envMapIntensity: 0.45 }),
       mirror: new THREE.MeshStandardMaterial({ color: 0x8b8f99, metalness: 1, roughness: 0.04 }),
-      tire: new THREE.MeshPhysicalMaterial({ color: 0x0c0c0e, roughness: 0.6, metalness: 0, clearcoat: 0.45, clearcoatRoughness: 0.32, bumpMap: treadTex(THREE), bumpScale: 1.4 }),
+      tire: new THREE.MeshPhysicalMaterial({ color: 0x0c0c0e, roughness: 0.62, metalness: 0, clearcoat: 0.45, clearcoatRoughness: 0.32 }),
+      treadTruck: (function () { var m = treadMaps(THREE, 'truck'); return new THREE.MeshPhysicalMaterial({ color: 0xffffff, map: m.map, roughness: 0.72, metalness: 0, clearcoat: 0.16, clearcoatRoughness: 0.55, bumpMap: m.bump, bumpScale: 3.2 }); })(),
+      treadTrailer: (function () { var m = treadMaps(THREE, 'trailer'); return new THREE.MeshPhysicalMaterial({ color: 0xffffff, map: m.map, roughness: 0.72, metalness: 0, clearcoat: 0.16, clearcoatRoughness: 0.55, bumpMap: m.bump, bumpScale: 3.2 }); })(),
       rim: new THREE.MeshStandardMaterial({ color: 0x0c0c0f, metalness: 0.7, roughness: 0.3 }),
       face: new THREE.MeshStandardMaterial({ map: wheelFaceTex(THREE, 'night'), metalness: 0.75, roughness: 0.28, transparent: false, alphaTest: 0.5 }),
       steelFace: new THREE.MeshStandardMaterial({ map: wheelFaceTex(THREE, 'steel'), metalness: 0.5, roughness: 0.45, alphaTest: 0.5 }),
@@ -2163,6 +2306,7 @@
         ].map(function (p) { return new THREE.Vector2(p[0], p[1]); });
         tireGeoCache[k] = {
           tire: new THREE.LatheGeometry(pts, 40),
+          belt: new THREE.CylinderGeometry(r + 0.014, r + 0.014, width * 0.72, 48, 1, true),
           barrel: new THREE.CylinderGeometry(rr, rr, width * 0.86, 28, 1, true),
           face: new THREE.CircleGeometry(rr * 1.01, 32),
           ext: new THREE.CylinderGeometry(r * 0.2, r * 0.33, 0.5, 20),
@@ -2175,6 +2319,9 @@
       var inner = kind === 'rearInner' || kind === 'trailerInner';
       var w = new THREE.Group();
       var t = new THREE.Mesh(G.tire, M.tire); t.rotation.x = Math.PI / 2; w.add(t);
+      var belt = new THREE.Mesh(G.belt, truckW ? M.treadTruck : M.treadTrailer);
+      belt.rotation.x = Math.PI / 2;
+      w.add(belt);
       var bar = new THREE.Mesh(G.barrel, M.rim); bar.rotation.x = Math.PI / 2; w.add(bar);
       var faceOff = inner ? -width * 0.32 : kind === 'front' ? width * 0.3 : width * 0.18;
       var f = new THREE.Mesh(G.face, steel ? M.steelFace : M.face);
@@ -2500,10 +2647,10 @@
     }
     function chainLoop(x, z) {
       puckHole(x, z, 0.22, 0.14);
-      var u = new THREE.Mesh(new THREE.TorusGeometry(0.085, 0.032, 10, 18, Math.PI), M.brass);
-      u.rotation.z = Math.PI / 2;
-      u.rotation.y = Math.PI / 2;
-      add(u, x, FLOOR_Y + 0.1, z);
+      var R = 0.085, T = 0.032;
+      var u = new THREE.Mesh(new THREE.TorusGeometry(R, T, 12, 24), M.brass);
+      u.rotation.y = Math.PI / 2; // vertical ring, hole along the bed (X) so a hook can pass through
+      add(u, x, FLOOR_Y + R + T + 0.008, z);
     }
     var bedFill = new THREE.PointLight(0xfff6e8, 22, 7.5, 2);
     add(bedFill, BALL_X, FLOOR_Y + 3.4, 0);
