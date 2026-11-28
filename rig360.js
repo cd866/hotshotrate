@@ -111,6 +111,10 @@
      small shoulder zoom pills, at rest opacity 0.75. The face-button
      diamond is gone; Reset view and fullscreen return to a small
      top-left pill and icon so the rig stays fully visible at 390.
+   - v162: The deck-level toolbox under the gooseneck has a solid
+     steel cap (it does not lift into the neck). Access is a small
+     side door on each long face, paddle latch toward the deck,
+     hinged at the front, swinging out to show the dark interior.
    Units in the model are feet. x = length (truck front +x), y = up, z = width. */
 (function () {
   'use strict';
@@ -541,7 +545,7 @@
     // Tailgate / toolbox inspect: open the part, ease the camera, pause auto-spin.
     var inspectKind = null; // 'tailgate' | 'toolbox' | 'hood' | 'lock' | null
     var inspectFramed = false; // camera already framed on this part; later taps only toggle the part
-    var TB_OPEN = Math.PI * 0.155; // v137: toolbox lid travel (~28 deg) so it stays under the neck rails and spine
+    var TB_OPEN = Math.PI * 0.62; // side door swing (~112 deg) out from under the gooseneck
     var inspectOpen = 0;    // 0 closed .. 1 open (eased)
     var anim = null;
     var camHold = null; // frame a part from the front without opening it
@@ -632,9 +636,10 @@
         return { look: L0.clone().lerp(L1, t), cam: C0.clone().lerp(C1, t), angle: -0.15 };
       }
       var tb = rig.tb;
-      // High front-passenger 3/4, well out to the side so the neck is behind
-      // the box, looking down onto the lid and into the open chest.
-      return { look: worldAt(tb.x + 0.3, tb.y + 0.2, tb.z, ang), cam: worldAt(tb.x + 4.2, tb.y + 5.2, tb.z + 7.6, ang), angle: 0.55 }; // v137: lower, so you see under the ~28 deg lid
+      // Front-driver 3/4, same family as Claudio's photo: the side of the neck
+      // stays in view, the camera is not under the boom, and the open side door
+      // and solid cap sit in the arch.
+      return { look: worldAt(tb.x + 0.6, tb.y + 0.35, tb.z, ang), cam: worldAt(tb.x + 9.5, tb.y + 3.6, tb.z - 14.0, ang), angle: 0.2 };
     }
     function applyHeldCam() {
       if (!camHold || anim || inspectKind) return;
@@ -646,7 +651,10 @@
     }
     function applyPartPose(open) {
       if (rig.tailgate) rig.tailgate.rotation.z = (inspectKind === 'tailgate' ? open : 0) * (Math.PI / 2);
-      if (rig.toolboxLid) rig.toolboxLid.rotation.z = (inspectKind === 'toolbox' ? open : 0) * TB_OPEN; // rear hinge; stops under the neck rails
+      if (rig.toolboxDoors) {
+        var t = (inspectKind === 'toolbox' ? open : 0) * TB_OPEN;
+        rig.toolboxDoors.forEach(function (d) { d.g.rotation.y = d.side * t; });
+      }
       if (rig.ballLight) rig.ballLight.intensity = (inspectKind === 'tailgate' ? open : 0) * 2.2;
       setHood(inspectKind === 'hood' ? open : 0);
       setLock(inspectKind === 'lock' ? open : 0);
@@ -784,7 +792,7 @@
     }
     function snapPartsClosed() {
       if (rig.tailgate) rig.tailgate.rotation.z = 0;
-      if (rig.toolboxLid) { rig.toolboxLid.rotation.x = 0; rig.toolboxLid.rotation.z = 0; }
+      if (rig.toolboxDoors) rig.toolboxDoors.forEach(function (d) { d.g.rotation.y = 0; });
       if (typeof setHood === 'function') setHood(0);
       if (typeof setLock === 'function') setLock(0);
     }
@@ -3321,25 +3329,33 @@
       var wr = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 0.12), new THREE.MeshBasicMaterial({ color: 0xf4f4f0 }));
       wr.position.set(0.18, JACK_OUTER_TOP - 0.5, 0); wr.rotation.y = Math.PI / 2; jack.add(wr);
     });
-    // Storage toolbox between the gooseneck uprights at deck level, with a
-    // forward-sloping lid and a recessed stainless paddle latch (Claudio's 25GN).
+    // Storage toolbox between the gooseneck uprights at deck level.
+    // Solid steel cap (part of the frame — it does not lift into the neck).
+    // Access is a small side door on each long face, paddle latch toward
+    // the deck, hinged at the front (toward the truck), matching Claudio's 25GN.
     var TB = { x: D0 + 0.95, y: DECK_Y + 0.55, z: 0, lx: 1.7, ly: 1.05, lz: 2.35 };
     var bodyMat = M.frame.clone();
-    var lidMat = M.diamond.clone();
-    lidMat.color.set(0x9a9aa2);
     var toolbox = new THREE.Group();
     toolbox.position.set(TB.x, TB.y, TB.z);
     toolbox.userData.part = 'toolbox';
     group.add(toolbox);
     var tbInvis = new THREE.MeshBasicMaterial({ visible: false });
-    // Body: floor, both sides, rear and front walls (black sheet metal). The top is the lid.
+    // Floor, rear wall (toward the deck, -x) and front wall (toward the truck, +x).
     box(TB.lx, 0.08, TB.lz, bodyMat, 0, -TB.ly / 2 + 0.04, 0, toolbox);
-    box(TB.lx, TB.ly, 0.08, bodyMat, 0, 0, -TB.lz / 2 + 0.04, toolbox);
-    box(TB.lx, TB.ly, 0.08, bodyMat, 0, 0, TB.lz / 2 - 0.04, toolbox);
     box(0.08, TB.ly, TB.lz - 0.08, bodyMat, -TB.lx / 2 + 0.04, 0, 0, toolbox);
     box(0.08, TB.ly, TB.lz - 0.08, bodyMat, TB.lx / 2 - 0.04, 0, 0, toolbox);
-    var interior = new THREE.MeshStandardMaterial({ color: 0x1c1c20, roughness: 0.8, metalness: 0.2 });
+    // Bottom sills under each side door.
+    box(TB.lx - 0.08, 0.06, 0.08, bodyMat, 0, -TB.ly / 2 + 0.05, -TB.lz / 2 + 0.04, toolbox);
+    box(TB.lx - 0.08, 0.06, 0.08, bodyMat, 0, -TB.ly / 2 + 0.05,  TB.lz / 2 - 0.04, toolbox);
+    // Solid steel cap with a rain lip over the doors and a raised front edge.
+    var cap = box(TB.lx + 0.02, 0.09, TB.lz + 0.12, bodyMat, 0.01, TB.ly / 2 + 0.03, 0, toolbox);
+    cap.rotation.z = -0.08;
+    box(0.14, 0.14, TB.lz + 0.12, bodyMat, TB.lx / 2 - 0.04, TB.ly / 2 + 0.05, 0, toolbox);
+    var interior = new THREE.MeshStandardMaterial({ color: 0x141416, roughness: 0.88, metalness: 0.08 });
     box(TB.lx - 0.16, 0.02, TB.lz - 0.16, interior, 0, -TB.ly / 2 + 0.09, 0, toolbox);
+    box(TB.lx - 0.16, 0.02, TB.lz - 0.16, interior, 0, TB.ly / 2 - 0.07, 0, toolbox);
+    box(0.02, TB.ly - 0.18, TB.lz - 0.16, interior, -TB.lx / 2 + 0.09, 0, 0, toolbox);
+    box(0.02, TB.ly - 0.18, TB.lz - 0.16, interior,  TB.lx / 2 - 0.09, 0, 0, toolbox);
     // Contents: rolled straps, chain coils, ratchet binders, winch bar
     function coil(mat, x, z, r, h) {
       var t = new THREE.Mesh(new THREE.TorusGeometry(r, r * 0.42, 8, 16), mat);
@@ -3371,25 +3387,47 @@
     binder(-0.55, 0.7, 0.3);
     binder(0.15, 0.75, -0.2);
     binder(0.7, 0.55, 0.5);
-    // winch bar across the back of the box, visible from above when the lid is open
+    // winch bar across the back of the box, visible through the open side door
     var wbar = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 2.2, 8), M.bar);
     wbar.rotation.x = Math.PI / 2;
     add(wbar, -0.55, -TB.ly / 2 + 0.16, 0, toolbox);
     var wcap = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.12, 0.12), M.bar);
     add(wcap, -0.55, -TB.ly / 2 + 0.16, 1.15, toolbox);
-    // Lid: top face, black diamond plate. v135: hinged at the REAR top edge (-x,
-    // toward the deck), so the front edge (toward the truck, with the latch)
-    // lifts and the lid swings back over the deck side; the box opens toward the truck.
-    var toolboxLid = new THREE.Group();
-    toolboxLid.position.set(-TB.lx / 2, TB.ly / 2, 0);
-    toolboxLid.userData.part = 'toolbox';
-    toolbox.add(toolboxLid);
-    var lidTop = box(TB.lx, 0.08, TB.lz, lidMat, TB.lx / 2, 0.04, 0, toolboxLid);
-    lidTop.rotation.z = -0.16; // forward-sloping toward the truck
-    box(0.28, 0.06, 0.42, M.chrome, TB.lx - 0.38, 0.02, 0, toolboxLid); // recessed stainless paddle latch
-    cyl(0.05, 0.05, TB.lz * 0.9, 10, M.chrome, 'z', 0, 0.04, 0, toolboxLid); // hinge barrel
-    var tbHit = box(TB.lx + 0.2, 0.55, TB.lz + 0.2, tbInvis, TB.lx / 2, 0.12, 0, toolboxLid);
-    tbHit.userData.part = 'toolbox';
+    // Side doors: driver (-z) and passenger (+z). Hinged at the front (+x),
+    // paddle latch toward the deck. Both swing out (no lid into the neck).
+    var doorH = TB.ly - 0.18;
+    var doorL = TB.lx - 0.16;
+    var doorT = 0.06;
+    var toolboxDoors = [];
+    function makeTbDoor(side) {
+      var g = new THREE.Group();
+      g.position.set(TB.lx / 2 - 0.08, -0.02, side * (TB.lz / 2 - 0.03));
+      g.userData.part = 'toolbox';
+      toolbox.add(g);
+      box(doorL, doorH, doorT, bodyMat, -doorL / 2, 0, 0, g);
+      // Recessed stainless paddle latch, upper, toward the rear (away from the hinge).
+      var latchX = -doorL + 0.38;
+      var latchY = doorH / 2 - 0.22;
+      box(0.20, 0.24, 0.035, M.chrome, latchX, latchY, side * (doorT / 2 + 0.01), g);
+      box(0.12, 0.09, 0.03, M.satin, latchX - 0.01, latchY - 0.02, side * (doorT / 2 + 0.025), g);
+      box(0.03, 0.03, 0.02, M.chrome, latchX + 0.06, latchY + 0.06, side * (doorT / 2 + 0.03), g); // keyhole
+      cyl(0.02, 0.02, doorH * 0.82, 8, M.chrome, 'y', 0, 0, 0, g);
+      var hit = box(doorL + 0.08, doorH + 0.08, 0.22, tbInvis, -doorL / 2, 0, 0, g);
+      hit.userData.part = 'toolbox';
+      toolboxDoors.push({ g: g, side: side });
+      return g;
+    }
+    makeTbDoor(-1);
+    makeTbDoor(1);
+    // Lock hasp on the cap above each latch.
+    [-1, 1].forEach(function (side) {
+      var stap = new THREE.Mesh(new THREE.TorusGeometry(0.035, 0.01, 6, 10, Math.PI), M.chrome);
+      stap.rotation.x = Math.PI / 2;
+      add(stap, -TB.lx / 2 + 0.42, TB.ly / 2 + 0.09, side * (TB.lz / 2 - 0.02), toolbox);
+    });
+    var tbLight = new THREE.PointLight(0xffe8c8, 0.85, 3.5, 1.6);
+    tbLight.position.set(0, 0.05, 0);
+    toolbox.add(tbLight);
     var tbBodyHit = box(TB.lx, TB.ly, TB.lz, tbInvis, 0, 0, 0, toolbox);
     tbBodyHit.userData.part = 'toolbox';
     // Full-width header at the front of the deck
@@ -3666,7 +3704,7 @@
     ];
     var trailerFront = NECK_F;
     var res = {
-      group: group, truck: truck, trailer: trailer, tailgate: tailgate, toolbox: toolbox, toolboxLid: toolboxLid,
+      group: group, truck: truck, trailer: trailer, tailgate: tailgate, toolbox: toolbox, toolboxDoors: toolboxDoors,
       hood: hood, struts: struts, hoodPivot: HOOD_PIVOT, lock: lock, lockY0: LOCK_Y0, lockH: LB.y, puck: puck,
       hitchedOnly: [chainsHitched, cableHitched], parkedOnly: [chainsParked, cableParked, lock],
       jackLegs: jackLegs, jackYDown: JACK_Y_DOWN, jackYUp: JACK_Y_UP, jackBlobs: jackBlobs,
