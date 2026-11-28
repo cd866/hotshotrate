@@ -1,4 +1,6 @@
-/* Black Ram Logistics - Bill Waterfall (v145).
+/* Black Ram Logistics - Bill Waterfall (v145, cards v155).
+   Swipeable bill cards (scroll-snap) under the chart: one card per upcoming bill,
+   summary and Date TBD at the end. Prev/next, dots and a step label.
    What is due next and what cash is left after each bill. PIN-gated: cash, bills, dates and
    owed load pay all come from the relay /financials payload (bills, loans.others, income,
    account), loaded through window.BlackRamBills.ensure (loans.js). Targets inputs supply only
@@ -91,7 +93,7 @@
     if (start != null && adj.total) start = Math.round((start + adj.total) * 100) / 100;
     var be = billEvents(d, t, end), all = billEvents(d, t, '9999-12-31').ev;
     var run = start != null ? start : 0;
-    be.ev.forEach(function (e) { run = Math.round((run - e.amount) * 100) / 100; e.bal = run; });
+    be.ev.forEach(function (e) { e.before = run; run = Math.round((run - e.amount) * 100) / 100; e.bal = run; });
     var owed = (d.income || []).filter(function (i) { return i.status === 'unpaid' && i.amount; });
     var owedTot = owed.reduce(function (a, i) { return a + i.amount; }, 0);
     return { t: t, end: end, start: start, cash: cash, adj: adj, asOf: d.bank_as_of || d.as_of, ev: be.ev, tbd: be.tbd.concat(targetsTbd()), next: all[0] || null,
@@ -128,6 +130,138 @@
       '<div class="bw-leg"><span><i class="lg-cash"></i>Cash</span><span><i class="lg-bill"></i>Bill</span>' + (M.ev.some(function (e) { return e.overdue; }) ? '<span><i class="lg-late"></i>Overdue</span>' : '') + (M.owed.length ? '<span><i class="lg-in"></i>Owed load pay (date ?)</span>' : '') + '</div>';
   }
 
+
+  function payMethod(e) {
+    if (e.why === 'after bills') return 'From profit';
+    if (e.card) return 'Card';
+    if (e.why) return 'Pay method not set';
+    return 'ACH';
+  }
+  function firstShort(ev) { return (ev || []).filter(function (e) { return e.bal < 0; })[0] || null; }
+  function billsTot(ev) { return (ev || []).reduce(function (a, e) { return a + e.amount; }, 0); }
+  function miniBar(before, after) {
+    var lo = Math.min(0, after, before), hi = Math.max(0, after, before, 1);
+    if (hi - lo < 1) hi = lo + 1;
+    var W = 280, H = 36, l = 36, r = 36, y = 16;
+    function X(v) { return l + (W - l - r) * (v - lo) / (hi - lo); }
+    var xa = X(after), xb = X(before), xz = X(0), x1 = Math.min(xa, xz), x2 = Math.max(xa, xz);
+    var neg = after < 0;
+    return '<svg class="bw-mini" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Before ' + m2(before) + ', after ' + m2(after) + '">' +
+      '<line x1="' + l + '" x2="' + (W - r) + '" y1="' + y + '" y2="' + y + '" class="bw-mini-track"/>' +
+      '<line x1="' + xz.toFixed(1) + '" x2="' + xz.toFixed(1) + '" y1="8" y2="24" class="bw-mini-zero"/>' +
+      '<line x1="' + xb.toFixed(1) + '" x2="' + xa.toFixed(1) + '" y1="' + y + '" y2="' + y + '" class="' + (neg ? 'bw-mini-drop-neg' : 'bw-mini-drop') + '"/>' +
+      (neg ? '<line x1="' + x1.toFixed(1) + '" x2="' + x2.toFixed(1) + '" y1="' + y + '" y2="' + y + '" class="bw-mini-short"/>' : '') +
+      '<circle cx="' + xb.toFixed(1) + '" cy="' + y + '" r="3.5" class="bw-mini-b"/>' +
+      '<circle cx="' + xa.toFixed(1) + '" cy="' + y + '" r="4.5" class="' + (neg ? 'bw-mini-a-neg' : 'bw-mini-a') + '"/>' +
+      '<text x="' + xz.toFixed(1) + '" y="33" text-anchor="middle" class="bw-mini-lbl">0</text></svg>';
+  }
+  function billCard(e, i, n, t, isFirst) {
+    var u = urg(e.date, t), short = e.bal < 0, chip = short ? '<span class="bw-chip bw-chip-short">Short ' + m0(Math.abs(e.bal)) + '</span>' : '<span class="bw-chip bw-chip-ok">OK</span>';
+    var daysN = u.n < 0 ? -u.n : u.n, daysL = u.n < 0 ? 'days late' : (u.n === 1 ? 'day' : 'days');
+    return '<article class="bw-slide bw-scard bw-h-' + u.cls + (short ? ' bw-scard-short' : '') + '" data-bw-i="' + i + '" aria-label="' + esc((isFirst ? 'Due next. ' : '') + e.name + ', ' + m2(e.amount) + ', ' + md(e.date)) + '">' +
+      '<div class="bw-scard-top"><div class="bw-k">' + (isFirst ? 'Due next' : 'Upcoming') + '</div>' +
+      '<div class="bw-days bw-days-sm" aria-hidden="true"><b>' + daysN + '</b><span>' + daysL + '</span></div></div>' +
+      '<div class="bw-hn">' + esc(e.name) + '</div>' +
+      '<div class="bw-ha">' + m2(e.amount) + '</div>' +
+      '<div class="bw-hd">Due ' + md(e.date) + ' | ' + u.rel + ' | ' + esc(payMethod(e)) + '</div>' +
+      '<div class="bw-ba"><div><span>Before</span><b>' + m2(e.before) + '</b></div><div><span>After</span><b class="' + (short ? 'bw-neg' : 'bw-pos') + '">' + m2(e.bal) + '</b></div></div>' +
+      miniBar(e.before, e.bal) +
+      '<div class="bw-scard-foot">' + chip + '</div></article>';
+  }
+  function tbdCard(x, i) {
+    return '<article class="bw-slide bw-scard bw-scard-tbd" data-bw-i="' + i + '" aria-label="Date TBD, ' + esc(x.name) + ', ' + m2(x.amount) + '">' +
+      '<div class="bw-k">Date TBD</div>' +
+      '<div class="bw-hn">' + esc(x.name) + '</div>' +
+      '<div class="bw-ha">' + m2(x.amount) + '</div>' +
+      '<div class="bw-hd">' + esc(x.why === 'after bills' ? 'After bills' : 'Due date not set') + ' | ' + esc(payMethod(x)) + (x.est ? ' | EST' : '') + '</div>' +
+      (x.note ? '<p class="bw-fine">' + esc(x.note) + '</p>' : '') +
+      '<div class="bw-scard-foot"><span class="bw-chip bw-chip-tbd">Date TBD</span><span class="bw-hd">Not in the cash bars</span></div></article>';
+  }
+  function sumBlock(label, M) {
+    var sh = firstShort(M.ev), tot = billsTot(M.ev);
+    return '<div class="bw-sum-blk"><div class="bw-k">' + esc(label) + '</div>' +
+      '<div class="bw-sum-row"><div><span>Bills due</span><b class="bw-neg">' + m0(tot) + '</b></div>' +
+      '<div><span>Left ' + md(M.end) + '</span><b class="' + (M.left < 0 ? 'bw-neg' : 'bw-pos') + '">' + m0(M.left) + '</b></div></div>' +
+      '<div class="bw-hd">' + (sh ? 'First short: ' + md(sh.date) + ' ' + esc(sh.name) + ' | Short ' + m0(Math.abs(sh.bal)) : 'No short date in this range') + '</div></div>';
+  }
+  function summaryCard(d, i, n) {
+    var a = model(d, '30'), b = model(d, '60');
+    return '<article class="bw-slide bw-scard bw-scard-sum" data-bw-i="' + i + '" aria-label="Summary, 30 and 60 day totals">' +
+      '<div class="bw-k">Summary</div>' +
+      '<div class="bw-hn">30 and 60 days</div>' +
+      sumBlock('30 days', a) + sumBlock('60 days', b) +
+      '</article>';
+  }
+  function chev(dir) {
+    return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="' + (dir < 0 ? 'M14.5 6L8.5 12l6 6' : 'M9.5 6l6 6-6 6') + '"/></svg>';
+  }
+  function carousel(d, M) {
+    var cards = [], first = true;
+    M.ev.forEach(function (e) { cards.push({ html: billCard(e, cards.length, 0, M.t, first), short: e.bal < 0, kind: 'bill', name: e.name }); first = false; });
+    M.tbd.forEach(function (x) { cards.push({ html: tbdCard(x, cards.length), kind: 'tbd', name: x.name }); });
+    cards.push({ html: summaryCard(d, cards.length, 0), kind: 'sum', name: 'Summary' });
+    if (!cards.length) return '';
+    var n = cards.length;
+    var slides = cards.map(function (c, i) { return c.html.replace('data-bw-i="' + i + '"', 'data-bw-i="' + i + '" data-bw-n="' + n + '"'); }).join('');
+    var dots = cards.map(function (c, i) {
+      return '<button type="button" class="bw-dot" data-bw-go="' + i + '" role="tab" aria-label="' + esc((c.kind === 'sum' ? 'Summary' : c.name) + ', card ' + (i + 1) + ' of ' + n) + '"' + (i === 0 ? ' aria-current="true"' : '') + '><i></i></button>';
+    }).join('');
+    return '<section class="bw-car" aria-roledescription="carousel" aria-label="Upcoming bills">' +
+      '<div class="bw-track" id="bw-track" tabindex="0">' + slides + '</div>' +
+      '<div class="bw-nav">' +
+      '<button type="button" class="bw-arrow" id="bw-prev" aria-label="Previous bill" disabled>' + chev(-1) + '</button>' +
+      '<div class="bw-steps"><div class="bw-step" id="bw-step" aria-live="polite">1 of ' + n + '</div>' +
+      '<div class="bw-dots" role="tablist" aria-label="Bills">' + dots + '</div></div>' +
+      '<button type="button" class="bw-arrow" id="bw-next" aria-label="Next bill">' + chev(1) + '</button>' +
+      '</div></section>';
+  }
+  function bindCarousel() {
+    var track = document.getElementById('bw-track'); if (!track) return;
+    var slides = [].slice.call(track.querySelectorAll('.bw-slide')), n = slides.length;
+    var step = document.getElementById('bw-step'), prev = document.getElementById('bw-prev'), next = document.getElementById('bw-next');
+    var dots = [].slice.call(document.querySelectorAll('.bw-dot'));
+    var reduce = false; try { reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { /* ignore */ }
+    function slideLeft(s) {
+      return s.getBoundingClientRect().left - track.getBoundingClientRect().left + track.scrollLeft;
+    }
+    function idx() {
+      var left = track.scrollLeft, best = 0, bd = 1e9;
+      slides.forEach(function (s, i) { var d = Math.abs(slideLeft(s) - left); if (d < bd) { bd = d; best = i; } });
+      return best;
+    }
+    function go(i, smooth) {
+      i = Math.max(0, Math.min(n - 1, i));
+      st.carIdx = i;
+      var sl = slides[i]; if (!sl) return;
+      var pad = parseFloat(window.getComputedStyle(track).paddingLeft) || 0;
+      track.scrollTo({ left: Math.max(0, slideLeft(sl) - pad), behavior: (smooth && !reduce) ? 'smooth' : 'auto' });
+      mark(i);
+    }
+    function mark(i) {
+      if (step) step.textContent = (i + 1) + ' of ' + n;
+      if (prev) prev.disabled = i <= 0;
+      if (next) next.disabled = i >= n - 1;
+      dots.forEach(function (d, k) { if (k === i) d.setAttribute('aria-current', 'true'); else d.removeAttribute('aria-current'); });
+      slides.forEach(function (s, k) { s.setAttribute('aria-hidden', k === i ? 'false' : 'true'); });
+    }
+    var ticking = false;
+    track.addEventListener('scroll', function () {
+      if (ticking) return; ticking = true;
+      requestAnimationFrame(function () { ticking = false; mark(idx()); });
+    }, { passive: true });
+    if (prev) prev.addEventListener('click', function () { go(idx() - 1, true); });
+    if (next) next.addEventListener('click', function () { go(idx() + 1, true); });
+    dots.forEach(function (d) { d.addEventListener('click', function () { go(+d.getAttribute('data-bw-go'), true); }); });
+    track.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowLeft') { e.preventDefault(); go(idx() - 1, true); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); go(idx() + 1, true); }
+      else if (e.key === 'Home') { e.preventDefault(); go(0, true); }
+      else if (e.key === 'End') { e.preventDefault(); go(n - 1, true); }
+    });
+    go(Math.min(st.carIdx || 0, n - 1), false);
+    st.goCard = go;
+  }
+
   /* ---------- render ---------- */
   function lockView(msg) {
     return '<section class="bw-card bw-lock"><h3>Bill Waterfall is locked</h3><p class="bw-fine">' + esc(msg) + '</p>' +
@@ -142,13 +276,8 @@
       el.innerHTML = pin() ? '<section class="bw-card"><p class="bw-fine">Loading bills...</p></section>' : lockView('Cash on hand, bills by due date and what is left. Enter the app PIN.');
       bind(); return;
     }
-    var M = model(d, st.range), N = M.next;
-    var hero = N ? (function () {
-      var u = urg(N.date, M.t);
-      return '<section class="bw-card bw-hero bw-h-' + u.cls + '"><div class="bw-k">Due next</div><div class="bw-hrow"><div><div class="bw-hn">' + esc(N.name) + '</div><div class="bw-hd">' + md(N.date) + ' | ' + u.rel + (N.card ? ' | card' : '') + '</div></div>' +
-        '<div class="bw-ha">' + m2(N.amount) + '</div></div>' +
-        '<div class="bw-days"><b>' + (u.n < 0 ? -u.n : u.n) + '</b><span>' + (u.n < 0 ? 'days late' : u.n === 1 ? 'day' : 'days') + '</span></div></section>';
-    })() : '<section class="bw-card bw-hero bw-h-ok"><div class="bw-k">Due next</div><div class="bw-hn">Nothing dated on file</div></section>';
+    if (st._rangeForCar !== st.range) { st.carIdx = 0; st._rangeForCar = st.range; }
+    var M = model(d, st.range);
     var seg = '<div class="bw-seg" role="group" aria-label="Range">' + [['30', '30 days'], ['60', '60 days'], ['mo', 'This month']].map(function (r) {
       return '<button type="button" data-bw-range="' + r[0] + '" aria-pressed="' + (st.range === r[0]) + '">' + r[1] + '</button>'; }).join('') + '</div>';
     var tiles = '<div class="bw-tiles"><div><span>Cash now</span><b class="num-yellow">' + m0(M.start) + '</b>' + (M.adj.total ? '<small class="bw-adj">' + esc(adjNote(M.adj)) + '</small>' : '') + '</div><div><span>Bills due</span><b class="bw-neg">' + m0(M.ev.reduce(function (a, e) { return a + e.amount; }, 0)) + '</b></div>' +
@@ -165,9 +294,11 @@
       return '<div class="bw-row bw-tbd"><span>' + esc(x.why) + '</span><span>' + esc(x.name) + (x.est ? ' <em>EST</em>' : '') + (x.card ? ' <em>card</em>' : '') + (x.note ? '<small>' + esc(x.note) + '</small>' : '') + '</span><span>' + m2(x.amount) + '</span><span></span></div>'; }).join('') : '';
     var asOf = String(M.asOf || '').slice(0, 10);
     el.innerHTML = '<div class="bw-top"><div><div class="bw-k">Sand Lily Pad LLC</div><h2>Bill Waterfall</h2></div><button type="button" class="bw-btn" id="bw-refresh">Refresh</button></div>' +
-      hero + '<section class="bw-card">' + seg + tiles + chart(M) + '</section>' +
-      '<section class="bw-card bw-list">' + rows + tbd + '</section>' +
-      '<p class="bw-fine">Cash = Bluevine available ' + md(asOf) + (M.pendingIn ? ' (incl. ' + m2(M.pendingIn) + ' pending in)' : '') + (M.adj.total ? ', ' + esc(adjNote(M.adj)) + ' (not in that pull yet)' : '') + '. card = paid on the company AmEx, not from Bluevine. Owed load pay has no promised date. No new loads counted.</p>';
+      '<section class="bw-card">' + seg + tiles + '</section>' +
+      carousel(d, M) +
+      '<details class="bw-fold" id="bw-chart-fold" open><summary>Waterfall chart</summary><div class="bw-fold-body">' + chart(M) + '</div></details>' +
+      '<details class="bw-fold" id="bw-list-fold"><summary>List</summary><div class="bw-fold-body"><div class="bw-card bw-list">' + rows + tbd + '</div></div></details>' +
+      '<p class="bw-fine">Cash = Bluevine available ' + md(asOf) + (M.pendingIn ? ' (incl. ' + m2(M.pendingIn) + ' pending in)' : '') + (M.adj.total ? ', ' + esc(adjNote(M.adj)) + ' (not in that pull yet)' : '') + '. Card = company AmEx, ACH = Bluevine. Owed load pay has no promised date. No new loads counted.</p>';
     bind();
   }
   function bind() {
@@ -176,6 +307,7 @@
     var f = document.getElementById('bw-pin-form');
     if (f) f.addEventListener('submit', function (e) { e.preventDefault(); var v = (document.getElementById('bw-pin').value || '').trim(); if (!v) return; try { localStorage.setItem(PIN_KEY, v); } catch (er) { /* ignore */ } load(true); });
     var rf = document.getElementById('bw-refresh'); if (rf) rf.addEventListener('click', function () { load(true); });
+    bindCarousel();
   }
   function load(force) {
     var B = window.BlackRamBills; render();
@@ -191,7 +323,7 @@
     s.textContent =
       '.bw-top{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;margin:4px 2px 10px}.bw-top h2{margin:0;font-size:var(--fs-xl,22px)}' +
       '.bw-k{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--c-text-3)}' +
-      '.bw-btn{min-height:36px;padding:0 14px;border-radius:var(--radius-pill,999px);border:1px solid var(--c-line-strong);background:var(--c-surface-2);color:var(--c-text-1);font-weight:800}' +
+      '.bw-btn{min-height:var(--tap,44px);padding:0 14px;border-radius:var(--radius-pill,999px);border:1px solid var(--c-line-strong);background:var(--c-surface-2);color:var(--c-text-1);font-weight:800}' +
       '.bw-card{background:var(--c-surface-1);border:1px solid var(--c-line);border-radius:var(--radius-lg,16px);padding:14px;margin:0 0 12px}' +
       '.bw-hero{position:relative;border-width:1.5px}.bw-hrow{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-top:4px;padding-right:76px}' +
       '.bw-hn{font-size:20px;font-weight:900;color:var(--c-text-1);line-height:1.15}.bw-hd{font-size:13px;font-weight:700;color:var(--c-text-2);margin-top:3px}.bw-ha{font-size:26px;font-weight:900;color:var(--c-gold);white-space:nowrap;font-variant-numeric:tabular-nums}' +
@@ -199,7 +331,7 @@
       '.bw-days b{font-size:22px;font-weight:900;line-height:1;color:var(--c-text-1)}.bw-days span{font-size:10px;font-weight:800;color:var(--c-text-3)}' +
       '.bw-h-amb{border-color:var(--c-maybe);background:linear-gradient(0deg,var(--c-maybe-bg),var(--c-maybe-bg)),var(--c-surface-1)}.bw-h-amb .bw-days{border-color:var(--c-maybe)}.bw-h-amb .bw-days b{color:var(--c-maybe)}' +
       '.bw-h-red{border-color:#F87171;background:linear-gradient(0deg,rgba(248,113,113,.12),rgba(248,113,113,.12)),var(--c-surface-1)}.bw-h-red .bw-days{border-color:#F87171}.bw-h-red .bw-days b,.bw-h-red .bw-hd{color:#FCA5A5}' +
-      '.bw-seg{display:flex;gap:4px;background:var(--c-surface-2);border-radius:var(--radius-pill,999px);padding:3px;margin-bottom:10px}.bw-seg button{flex:1;min-height:36px;border:0;border-radius:var(--radius-pill,999px);background:transparent;color:var(--c-text-2);font-weight:800;font-size:13px}' +
+      '.bw-seg{display:flex;gap:4px;background:var(--c-surface-2);border-radius:var(--radius-pill,999px);padding:3px;margin-bottom:10px}.bw-seg button{flex:1;min-height:var(--tap,44px);border:0;border-radius:var(--radius-pill,999px);background:transparent;color:var(--c-text-2);font-weight:800;font-size:13px}' +
       '.bw-seg button[aria-pressed=true]{background:var(--c-gold);color:var(--c-gold-ink)}' +
       '.bw-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:6px}.bw-tiles div{background:var(--c-surface-2);border-radius:var(--radius-md,12px);padding:8px}.bw-tiles span{display:block;font-size:11px;font-weight:700;color:var(--c-text-3)}.bw-tiles b{font-size:18px;font-weight:900}' +
       '.bw-tiles small.bw-adj{display:block;font-size:10px;font-weight:700;color:var(--c-text-3);line-height:1.25;margin-top:2px}.bw-row-start>span small{display:block;color:var(--c-text-3);font-weight:700}.bw-row-pend>span:first-child{color:#FCA5A5;font-weight:800}' +
@@ -221,6 +353,38 @@
       '.bw-fine{font-size:12px;color:var(--c-text-3);line-height:1.4;margin:4px 2px 0}' +
       '.bw-lock{text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px}.bw-lock h3{margin:0}' +
       '.bw-pin{display:flex;gap:8px;width:100%;max-width:320px}.bw-pin input{flex:1;min-width:0;min-height:var(--tap,44px);padding:0 12px;border-radius:var(--radius-sm,10px);border:1px solid var(--c-line-strong);background:var(--c-surface-2);color:var(--c-text-1)}' +
+      '.bw-car{margin:0 0 12px}' +
+      '.bw-track{position:relative;display:flex;gap:10px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scroll-padding-inline:12px;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;padding:2px 12px 8px;margin:0 -2px;min-height:280px;scrollbar-width:none}' +
+      '.bw-track::-webkit-scrollbar{display:none}' +
+      '.bw-slide{flex:0 0 calc(100% - 28px);max-width:420px;scroll-snap-align:start;scroll-snap-stop:always;min-height:280px;box-sizing:border-box}' +
+      '.bw-scard{background:var(--c-surface-1);border:1.5px solid var(--c-line);border-radius:var(--radius-lg,16px);padding:14px 14px 12px;display:flex;flex-direction:column;position:relative}' +
+      '.bw-scard-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;min-height:64px}' +
+      '.bw-days-sm{position:static;flex:none;width:58px;height:58px}' +
+      '.bw-scard .bw-hn{margin:0 0 2px;min-height:2.3em}.bw-scard .bw-ha{margin:0 0 4px}.bw-scard .bw-hd{margin:0 0 10px}' +
+      '.bw-ba{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 6px}.bw-ba div{background:var(--c-surface-2);border-radius:var(--radius-md,12px);padding:8px 10px}.bw-ba span{display:block;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--c-text-3)}.bw-ba b{font-size:18px;font-weight:900;font-variant-numeric:tabular-nums;color:var(--c-text-1)}.bw-ba b.bw-neg{color:#FCA5A5}.bw-ba b.bw-pos{color:var(--c-take)}' +
+      '.bw-mini{width:100%;height:36px;display:block;margin:2px 0 6px;flex:none}.bw-mini-track{stroke:var(--c-line-strong);stroke-width:6;stroke-linecap:round}.bw-mini-zero{stroke:var(--c-text-3);stroke-width:1}' +
+      '.bw-mini-drop{stroke:var(--c-gold);stroke-width:6;stroke-linecap:round}.bw-mini-drop-neg{stroke:#F87171;stroke-width:6;stroke-linecap:round}.bw-mini-short{stroke:#DC2626;stroke-width:6;stroke-linecap:round}' +
+      '.bw-mini-b{fill:var(--c-text-3)}.bw-mini-a{fill:var(--c-gold)}.bw-mini-a-neg{fill:#F87171}.bw-mini-lbl{fill:var(--c-text-3);font-size:9px;font-weight:700;font-family:var(--body)}' +
+      '.bw-scard-foot{display:flex;align-items:center;gap:8px;margin-top:auto;min-height:28px}' +
+      '.bw-chip{display:inline-flex;align-items:center;min-height:24px;padding:0 8px;border-radius:var(--radius-pill,999px);font-size:12px;font-weight:800}' +
+      '.bw-chip-ok{background:rgba(52,211,153,.16);color:var(--c-take)}.bw-chip-short{background:rgba(248,113,113,.16);color:#FCA5A5}.bw-chip-tbd{background:var(--c-pass-bg);color:var(--c-text-3)}' +
+      '.bw-scard-short{border-color:#F87171}.bw-scard-tbd{border-style:dashed}.bw-scard-sum .bw-hn{margin-right:0;min-height:0}' +
+      '.bw-sum-blk{background:var(--c-surface-2);border-radius:var(--radius-md,12px);padding:10px;margin:8px 0 0}.bw-sum-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:4px 0}.bw-sum-row span{display:block;font-size:11px;font-weight:700;color:var(--c-text-3)}.bw-sum-row b{font-size:20px;font-weight:900}' +
+      '.bw-nav{display:flex;align-items:center;gap:8px;margin:4px 0 0;min-height:var(--tap,44px)}' +
+      '.bw-arrow{flex:none;width:var(--tap,44px);height:var(--tap,44px);padding:0;border-radius:50%;border:1px solid var(--c-line-strong);background:var(--c-surface-2);color:var(--c-text-1);display:inline-flex;align-items:center;justify-content:center}' +
+      '.bw-arrow svg{width:22px;height:22px}.bw-arrow:disabled{opacity:.35}' +
+      '.bw-steps{flex:1;min-width:0;text-align:center}.bw-step{font-size:12px;font-weight:800;color:var(--c-text-2);margin-bottom:2px}' +
+      '.bw-dots{display:flex;justify-content:center;gap:0;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}' +
+      '.bw-dot{flex:none;width:32px;height:var(--tap,44px);padding:0;border:0;background:transparent;display:inline-flex;align-items:center;justify-content:center}' +
+      '.bw-dot i{width:8px;height:8px;border-radius:50%;background:var(--c-line-strong);display:block}' +
+      '.bw-dot[aria-current=true] i{background:var(--c-gold);width:16px;border-radius:5px}' +
+      '.bw-fold{background:var(--c-surface-1);border:1px solid var(--c-line);border-radius:var(--radius-lg,16px);padding:4px 14px 10px;margin:0 0 12px}' +
+      '.bw-fold>summary{cursor:pointer;min-height:var(--tap,44px);display:flex;align-items:center;font-size:var(--fs-sm,14px);font-weight:800;color:var(--c-accent-hi);list-style:none}' +
+      '.bw-fold>summary::-webkit-details-marker{display:none}' +
+      '.bw-fold>summary::after{content:"";margin-left:auto;flex:0 0 16px;width:16px;height:16px;background-color:currentColor;-webkit-mask:var(--caret-svg) center/contain no-repeat;mask:var(--caret-svg) center/contain no-repeat;transition:transform .25s ease}' +
+      '.bw-fold[open]>summary::after{transform:rotate(180deg)}' +
+      '@media (prefers-reduced-motion: reduce){.bw-track{scroll-behavior:auto}.bw-fold>summary::after{transition:none}}' +
+      '@media (min-width:900px){.bw-slide{flex-basis:400px}.bw-track{padding-left:0}}' +
       '@media (min-width:900px){.bw-row{grid-template-columns:70px 1fr 120px 120px;font-size:14px}}';
     document.head.appendChild(s);
   })();
@@ -230,6 +394,6 @@
     document.addEventListener('blackram:financials', function () { var p = document.getElementById('panel-bills'); if (p && !p.hidden) render(); });
     var p = document.getElementById('panel-bills'); if (p && !p.hidden) load(false);
   }
-  window.BlackRamBillWaterfall = { render: render, show: function () { load(false); }, model: function (r) { var d = fin(); return d ? model(d, r || st.range) : null; } };
+  window.BlackRamBillWaterfall = { render: render, show: function () { load(false); }, model: function (r) { var d = fin(); return d ? model(d, r || st.range) : null; }, go: function (i) { if (st.goCard) st.goCard(i, false); } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
