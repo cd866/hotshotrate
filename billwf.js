@@ -1,16 +1,18 @@
-/* Black Ram Logistics - Bill Waterfall (v145, cards v155).
+/* Black Ram Logistics - Bill Waterfall (v145, cards v155, priority).
    Swipeable bill cards (scroll-snap) under the chart: one card per upcoming bill,
-   summary and Date TBD at the end. Prev/next, dots and a step label.
+   summary last. User-set pay order (localStorage blackram_bill_priority_v1).
+   Reorder mode: long-press handle (iPhone) or drag (desktop), plus up/down.
+   Before/After cash and OK/Short follow the chosen pay order.
    What is due next and what cash is left after each bill. PIN-gated: cash, bills, dates and
    owed load pay all come from the relay /financials payload (bills, loans.others, income,
    account), loaded through window.BlackRamBills.ensure (loans.js). Targets inputs supply only
    the Other monthly and Meshach amounts already shown on the Break-even sheets. Plain ASCII. */
 (function () {
   'use strict';
-  var FIN_KEY = 'blackram_fin_session_v1', PIN_KEY = 'blackram_relay_pin_v1', RANGE_KEY = 'blackram_billwf_range_v1';
+  var FIN_KEY = 'blackram_fin_session_v1', PIN_KEY = 'blackram_relay_pin_v1', RANGE_KEY = 'blackram_billwf_range_v1', PRI_KEY = 'blackram_bill_priority_v1';
   var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var SHORT = { truck: 'Truck', trailer: 'Trailer', ins: 'Insur.', truckstop: 'TStop', amex_8008: 'AmEx' };
-  var st = { range: rget(), lastForce: 0 };
+  var st = { range: rget(), lastForce: 0, reorder: false };
 
   function rget() { try { var v = localStorage.getItem(RANGE_KEY); return v === '60' || v === 'mo' ? v : '30'; } catch (e) { return '30'; } }
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -42,7 +44,7 @@
       if (b.status === 'withheld') return;
       var name = b.payee, card = !b.hits_bank;
       if (b.amount == null) return;                       // e.g. ELD fees: no amount on file
-      if (!b.next) { tbd.push({ name: name, amount: b.amount, est: !!b.est, card: card, why: 'date TBD' }); return; }
+      if (!b.next) { tbd.push({ id: b.id || null, name: name, amount: b.amount, est: !!b.est, card: card, why: 'date TBD' }); return; }
       if (b.id === 'ins' && insRows) {
         insRows.forEach(function (r) { if (!r[2] && r[0] <= end) ev.push({ id: b.id, name: name, date: r[0], amount: r[1], card: card }); });
         return;
@@ -64,10 +66,10 @@
       var B = T && T.bills ? T.bills() : [], om = B.filter(function (b) { return /^Other monthly/.test(b.label); })[0];
       if (om) {
         var rest = Math.round((om.amount - 42) * 100) / 100;   // Targets Other monthly includes Truckstop $42 (dated above)
-        if (rest > 0) out.push({ name: 'Other monthly (phone, software)', amount: rest, why: 'date TBD', note: 'Targets ' + m0(om.amount) + ' less Truckstop $42' });
+        if (rest > 0) out.push({ id: 'other-mo', name: 'Other monthly (phone, software)', amount: rest, why: 'date TBD', note: 'Targets ' + m0(om.amount) + ' less Truckstop $42' });
       }
       var M = T && T.model ? T.model() : null;
-      if (M && M.driverMo) out.push({ name: 'Meshach (from profit only)', amount: M.driverMo, why: 'after bills', note: 'paid only from profit left after bills' });
+      if (M && M.driverMo) out.push({ id: 'meshach', name: 'Meshach (from profit only)', amount: M.driverMo, why: 'after bills', note: 'paid only from profit left after bills' });
     } catch (e) { /* ignore */ }
     return out;
   }
@@ -85,6 +87,32 @@
     });
     return out;
   }
+
+  function slug(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'item'; }
+  function eventKey(e) {
+    var id = e.id || slug(e.name || e.payee || '');
+    return e.date ? (id + ':' + e.date) : ('tbd:' + id);
+  }
+  function loadPri() {
+    try { var j = JSON.parse(localStorage.getItem(PRI_KEY) || 'null'); return (j && Array.isArray(j.order)) ? j.order : []; }
+    catch (e) { return []; }
+  }
+  function savePri(order) {
+    try {
+      if (!order || !order.length) localStorage.removeItem(PRI_KEY);
+      else localStorage.setItem(PRI_KEY, JSON.stringify({ order: order }));
+    } catch (e) { /* private mode */ }
+  }
+  function applyOrder(list, saved) {
+    if (!saved || !saved.length) return list.slice();
+    var map = {}, used = {}, out = [];
+    list.forEach(function (e) { map[eventKey(e)] = e; });
+    saved.forEach(function (k) { if (map[k] && !used[k]) { out.push(map[k]); used[k] = 1; } });
+    list.forEach(function (e) { var k = eventKey(e); if (!used[k]) { out.push(e); used[k] = 1; } });
+    return out;
+  }
+  function sameOrder(a, b) { return (a || []).join('\0') === (b || []).join('\0'); }
+
   function adjNote(A) { return A.items.map(function (x) { return 'incl. ' + x.label + ' ' + md(x.date) + ' ' + (x.amount < 0 ? '-' : '+') + Math.abs(x.amount).toLocaleString('en-US', { minimumFractionDigits: 2 }); }).join(', '); }
   function model(d, range) {
     var t = today(), end = endFor(range, t), acct = d.account || {};
@@ -92,11 +120,21 @@
     var adj = pendingAdj(d), cash = start;
     if (start != null && adj.total) start = Math.round((start + adj.total) * 100) / 100;
     var be = billEvents(d, t, end), all = billEvents(d, t, '9999-12-31').ev;
-    var run = start != null ? start : 0;
-    be.ev.forEach(function (e) { e.before = run; run = Math.round((run - e.amount) * 100) / 100; e.bal = run; });
+    var tbd = be.tbd.concat(targetsTbd());
+    var defItems = be.ev.concat(tbd), defKeys = defItems.map(eventKey);
+    var saved = loadPri();
+    var items = applyOrder(defItems, saved);
+    var custom = saved.length > 0 && !sameOrder(items.map(eventKey), defKeys);
+    var run = start != null ? start : 0, ev = [], tbdOrd = [];
+    items.forEach(function (e) {
+      if (e.date) {
+        e.before = run; run = Math.round((run - e.amount) * 100) / 100; e.bal = run; ev.push(e);
+      } else tbdOrd.push(e);
+    });
     var owed = (d.income || []).filter(function (i) { return i.status === 'unpaid' && i.amount; });
     var owedTot = owed.reduce(function (a, i) { return a + i.amount; }, 0);
-    return { t: t, end: end, start: start, cash: cash, adj: adj, asOf: d.bank_as_of || d.as_of, ev: be.ev, tbd: be.tbd.concat(targetsTbd()), next: all[0] || null,
+    return { t: t, end: end, start: start, cash: cash, adj: adj, asOf: d.bank_as_of || d.as_of, ev: ev, tbd: tbdOrd, items: items, defKeys: defKeys, keys: items.map(eventKey), custom: custom,
+      next: ev[0] || all[0] || null,
       left: run, owed: owed, owedTot: owedTot, leftIfPaid: Math.round((run + owedTot) * 100) / 100, pendingIn: acct.pending_incoming || 0 };
   }
 
@@ -158,8 +196,9 @@
   function billCard(e, i, n, t, isFirst) {
     var u = urg(e.date, t), short = e.bal < 0, chip = short ? '<span class="bw-chip bw-chip-short">Short ' + m0(Math.abs(e.bal)) + '</span>' : '<span class="bw-chip bw-chip-ok">OK</span>';
     var daysN = u.n < 0 ? -u.n : u.n, daysL = u.n < 0 ? 'days late' : (u.n === 1 ? 'day' : 'days');
-    return '<article class="bw-slide bw-scard bw-h-' + u.cls + (short ? ' bw-scard-short' : '') + '" data-bw-i="' + i + '" aria-label="' + esc((isFirst ? 'Due next. ' : '') + e.name + ', ' + m2(e.amount) + ', ' + md(e.date)) + '">' +
-      '<div class="bw-scard-top"><div class="bw-k">' + (isFirst ? 'Due next' : 'Upcoming') + '</div>' +
+    var kick = isFirst ? (e.priority ? 'Pay first' : 'Due next') : (e.priority ? 'Priority ' + e.priority : 'Upcoming');
+    return '<article class="bw-slide bw-scard bw-h-' + u.cls + (short ? ' bw-scard-short' : '') + '" data-bw-i="' + i + '" data-bw-key="' + esc(eventKey(e)) + '" aria-label="' + esc((isFirst ? kick + '. ' : '') + e.name + ', ' + m2(e.amount) + ', ' + md(e.date)) + '">' +
+      '<div class="bw-scard-top"><div class="bw-k">' + kick + '</div>' +
       '<div class="bw-days bw-days-sm" aria-hidden="true"><b>' + daysN + '</b><span>' + daysL + '</span></div></div>' +
       '<div class="bw-hn">' + esc(e.name) + '</div>' +
       '<div class="bw-ha">' + m2(e.amount) + '</div>' +
@@ -192,13 +231,117 @@
       sumBlock('30 days', a) + sumBlock('60 days', b) +
       '</article>';
   }
+
+  function orderBar(M) {
+    var custom = !!M.custom;
+    return '<div class="bw-orderbar">' +
+      '<div class="bw-order-lbl">Order: <b class="' + (custom ? 'bw-pri-on' : '') + '">' + (custom ? 'Priority' : 'Due date') + '</b></div>' +
+      '<div class="bw-order-acts">' +
+      ((custom || st.reorder) ? '<button type="button" class="bw-btn" id="bw-reset" aria-label="Reset to due date">Reset to due date</button>' : '') +
+      '<button type="button" class="bw-btn' + (st.reorder ? ' gold' : '') + '" id="bw-reorder">' + (st.reorder ? 'Done' : 'Reorder') + '</button>' +
+      '</div></div>';
+  }
+  function orderList(M) {
+    var items = M.items || [], n = items.length;
+    if (!n) return '<p class="bw-fine">No bills to reorder in this range.</p>';
+    st._ordKeys = items.map(eventKey);
+    st._defKeys = M.defKeys || st._ordKeys.slice();
+    var rows = items.map(function (e, i) {
+      var short = e.date && e.bal < 0;
+      var sub = e.date ? ('Due ' + md(e.date) + ' | ' + payMethod(e)) : ((e.why === 'after bills' ? 'After bills' : 'Date TBD') + ' | ' + payMethod(e));
+      var after = e.date ? ('<span class="' + (short ? 'bw-neg' : 'bw-pos') + '">' + (short ? 'Short ' + m0(Math.abs(e.bal)) : 'OK') + ' | After ' + m2(e.bal) + '</span>') : '<span class="bw-hd">Not in the cash bars</span>';
+      return '<li class="bw-ord" data-bw-i="' + i + '" data-bw-key="' + esc(eventKey(e)) + '" aria-label="' + esc(e.name) + ', position ' + (i + 1) + ' of ' + n + '">' +
+        '<button type="button" class="bw-drag" aria-label="Drag to reorder ' + esc(e.name) + '. Long press, then drag." title="Long press, then drag">' +
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 7h10v2H7V7zm0 4h10v2H7v-2zm0 4h10v2H7v-2z"/></svg></button>' +
+        '<div class="bw-ord-m"><b>' + esc(e.name) + '</b><small>' + esc(sub) + '</small>' + after + '</div>' +
+        '<b class="bw-ord-amt">' + m2(e.amount) + '</b>' +
+        '<div class="bw-ord-btns">' +
+        '<button type="button" class="bw-arrow bw-ord-up" data-bw-move="-1" data-bw-i="' + i + '" aria-label="Move up" ' + (i === 0 ? 'disabled' : '') + '>' + chevUpDown(-1) + '</button>' +
+        '<button type="button" class="bw-arrow bw-ord-dn" data-bw-move="1" data-bw-i="' + i + '" aria-label="Move down" ' + (i === n - 1 ? 'disabled' : '') + '>' + chevUpDown(1) + '</button>' +
+        '</div></li>';
+    }).join('');
+    return '<section class="bw-card bw-order-card" id="bw-order-card"><div class="bw-k">Reorder bills</div>' +
+      '<p class="bw-fine">Long press the handle, then drag. Or use the up and down buttons. Cash Before / After follows this pay order. The summary card stays last.</p>' +
+      '<ol class="bw-order" id="bw-order">' + rows + '</ol></section>';
+  }
+  function commitOrder(keys, stay) {
+    var def = st._defKeys || [];
+    if (sameOrder(keys, def)) savePri([]);
+    else savePri(keys);
+    st.carIdx = stay != null ? stay : 0;
+    render();
+  }
+  function bindReorder() {
+    var list = document.getElementById('bw-order'); if (!list) return;
+    list.querySelectorAll('[data-bw-move]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var keys = (st._ordKeys || []).slice(), i = +b.getAttribute('data-bw-i'), j = i + (+b.getAttribute('data-bw-move'));
+        if (j < 0 || j >= keys.length) return;
+        var t = keys[i]; keys[i] = keys[j]; keys[j] = t;
+        commitOrder(keys, j);
+      });
+    });
+    var timer, dragging, startY, startX, curIdx, origin, handleEl;
+    function rowAt(y) {
+      var rows = [].slice.call(list.querySelectorAll('.bw-ord')), best = 0, bd = 1e9;
+      rows.forEach(function (r, i) {
+        var b = r.getBoundingClientRect(), d = Math.abs(y - (b.top + b.height / 2));
+        if (d < bd) { bd = d; best = i; }
+      });
+      return best;
+    }
+    function lift(row) {
+      dragging = true;
+      row.classList.add('bw-ord-dragging');
+      try { if (navigator.vibrate) navigator.vibrate(12); } catch (e) { /* ignore */ }
+      try { if (handleEl && handleEl.setPointerCapture) handleEl.setPointerCapture(handleEl._pid); } catch (e) { /* ignore */ }
+    }
+    list.addEventListener('pointerdown', function (e) {
+      var h = e.target.closest && e.target.closest('.bw-drag'); if (!h) return;
+      var row = h.closest('.bw-ord'); if (!row) return;
+      if (e.pointerType !== 'touch') e.preventDefault();
+      handleEl = h; h._pid = e.pointerId;
+      origin = curIdx = +row.getAttribute('data-bw-i');
+      startY = e.clientY; startX = e.clientX; dragging = false;
+      if (e.pointerType === 'touch') timer = setTimeout(function () { lift(row); }, 400);
+      else lift(row);
+    });
+    list.addEventListener('pointermove', function (e) {
+      if (timer && !dragging && (Math.abs(e.clientY - startY) > 12 || Math.abs(e.clientX - startX) > 12)) { clearTimeout(timer); timer = null; }
+      if (!dragging) return;
+      e.preventDefault();
+      var i = rowAt(e.clientY);
+      if (i === curIdx) return;
+      var rows = list.querySelectorAll('.bw-ord'), row = rows[curIdx], target = rows[i];
+      if (!row || !target) return;
+      if (i < curIdx) list.insertBefore(row, target); else list.insertBefore(row, target.nextSibling);
+      curIdx = i;
+    }, { passive: false });
+    function endDrag() {
+      if (timer) { clearTimeout(timer); timer = null; }
+      if (!dragging) return;
+      dragging = false;
+      var rows = [].slice.call(list.querySelectorAll('.bw-ord'));
+      rows.forEach(function (r) { r.classList.remove('bw-ord-dragging'); });
+      var keys = rows.map(function (r) { return r.getAttribute('data-bw-key'); });
+      if (!sameOrder(keys, st._ordKeys)) commitOrder(keys, curIdx);
+    }
+    list.addEventListener('pointerup', endDrag);
+    list.addEventListener('pointercancel', endDrag);
+  }
+
+  function chevUpDown(dir) {
+    return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="' + (dir < 0 ? 'M6 14.5L12 8.5l6 6' : 'M6 9.5l6 6 6-6') + '"/></svg>';
+  }
   function chev(dir) {
     return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="' + (dir < 0 ? 'M14.5 6L8.5 12l6 6' : 'M9.5 6l6 6-6 6') + '"/></svg>';
   }
   function carousel(d, M) {
-    var cards = [], first = true;
-    M.ev.forEach(function (e) { cards.push({ html: billCard(e, cards.length, 0, M.t, first), short: e.bal < 0, kind: 'bill', name: e.name }); first = false; });
-    M.tbd.forEach(function (x) { cards.push({ html: tbdCard(x, cards.length), kind: 'tbd', name: x.name }); });
+    var cards = [], first = true, pri = 0;
+    (M.items || M.ev.concat(M.tbd || [])).forEach(function (e) {
+      if (e.date) { pri += 1; e.priority = M.custom ? pri : 0; cards.push({ html: billCard(e, cards.length, 0, M.t, first), short: e.bal < 0, kind: 'bill', name: e.name, key: eventKey(e) }); first = false; }
+      else cards.push({ html: tbdCard(e, cards.length), kind: 'tbd', name: e.name, key: eventKey(e) });
+    });
     cards.push({ html: summaryCard(d, cards.length, 0), kind: 'sum', name: 'Summary' });
     if (!cards.length) return '';
     var n = cards.length;
@@ -294,8 +437,8 @@
       return '<div class="bw-row bw-tbd"><span>' + esc(x.why) + '</span><span>' + esc(x.name) + (x.est ? ' <em>EST</em>' : '') + (x.card ? ' <em>card</em>' : '') + (x.note ? '<small>' + esc(x.note) + '</small>' : '') + '</span><span>' + m2(x.amount) + '</span><span></span></div>'; }).join('') : '';
     var asOf = String(M.asOf || '').slice(0, 10);
     el.innerHTML = '<div class="bw-top"><div><div class="bw-k">Sand Lily Pad LLC</div><h2>Bill Waterfall</h2></div><button type="button" class="bw-btn" id="bw-refresh">Refresh</button></div>' +
-      '<section class="bw-card">' + seg + tiles + '</section>' +
-      carousel(d, M) +
+      '<section class="bw-card">' + seg + tiles + orderBar(M) + '</section>' +
+      (st.reorder ? orderList(M) : carousel(d, M)) +
       '<details class="bw-fold" id="bw-chart-fold" open><summary>Waterfall chart</summary><div class="bw-fold-body">' + chart(M) + '</div></details>' +
       '<details class="bw-fold" id="bw-list-fold"><summary>List</summary><div class="bw-fold-body"><div class="bw-card bw-list">' + rows + tbd + '</div></div></details>' +
       '<p class="bw-fine">Cash = Bluevine available ' + md(asOf) + (M.pendingIn ? ' (incl. ' + m2(M.pendingIn) + ' pending in)' : '') + (M.adj.total ? ', ' + esc(adjNote(M.adj)) + ' (not in that pull yet)' : '') + '. Card = company AmEx, ACH = Bluevine. Owed load pay has no promised date. No new loads counted.</p>';
@@ -307,7 +450,11 @@
     var f = document.getElementById('bw-pin-form');
     if (f) f.addEventListener('submit', function (e) { e.preventDefault(); var v = (document.getElementById('bw-pin').value || '').trim(); if (!v) return; try { localStorage.setItem(PIN_KEY, v); } catch (er) { /* ignore */ } load(true); });
     var rf = document.getElementById('bw-refresh'); if (rf) rf.addEventListener('click', function () { load(true); });
-    bindCarousel();
+    var rb = document.getElementById('bw-reorder');
+    if (rb) rb.addEventListener('click', function () { st.reorder = !st.reorder; if (!st.reorder) st.carIdx = 0; render(); });
+    var rs = document.getElementById('bw-reset');
+    if (rs) rs.addEventListener('click', function () { savePri([]); st.carIdx = 0; render(); });
+    if (st.reorder) bindReorder(); else bindCarousel();
   }
   function load(force) {
     var B = window.BlackRamBills; render();
@@ -384,6 +531,7 @@
       '.bw-fold>summary::after{content:"";margin-left:auto;flex:0 0 16px;width:16px;height:16px;background-color:currentColor;-webkit-mask:var(--caret-svg) center/contain no-repeat;mask:var(--caret-svg) center/contain no-repeat;transition:transform .25s ease}' +
       '.bw-fold[open]>summary::after{transform:rotate(180deg)}' +
       '@media (prefers-reduced-motion: reduce){.bw-track{scroll-behavior:auto}.bw-fold>summary::after{transition:none}}' +
+      '.bw-orderbar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:10px}' +'.bw-order-lbl{font-size:13px;font-weight:700;color:var(--c-text-3)}.bw-order-lbl b{color:var(--c-text-1);font-weight:900}.bw-order-lbl b.bw-pri-on{color:var(--c-gold)}' +'.bw-order-acts{display:flex;flex-wrap:wrap;gap:6px;margin-left:auto}' +'.bw-btn.gold{background:var(--c-gold);border-color:var(--c-gold);color:var(--c-gold-ink)}' +'.bw-order{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}' +'.bw-ord{display:flex;align-items:center;gap:6px;min-height:64px;padding:6px;border:1px solid var(--c-line);border-radius:var(--radius-md,12px);background:var(--c-surface-2);touch-action:pan-y;-webkit-user-select:none;user-select:none}' +'.bw-ord-dragging{opacity:.72;border-color:var(--c-gold);box-shadow:0 8px 24px rgba(0,0,0,.35)}' +'.bw-drag{flex:none;width:var(--tap,44px);height:var(--tap,44px);padding:0;border:0;border-radius:var(--radius-sm,10px);background:rgba(255,255,255,.04);color:var(--c-text-2);display:inline-flex;align-items:center;justify-content:center;touch-action:none}' +'.bw-drag svg{width:22px;height:22px}' +'.bw-ord-m{flex:1;min-width:0}.bw-ord-m b{display:block;font-size:14px;font-weight:800;color:var(--c-text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bw-ord-m small,.bw-ord-m span{display:block;font-size:11px;font-weight:700;color:var(--c-text-3)}.bw-ord-m span.bw-neg{color:#FCA5A5}.bw-ord-m span.bw-pos{color:var(--c-take)}' +'.bw-ord-amt{flex:none;font-size:14px;font-weight:900;color:var(--c-gold);font-variant-numeric:tabular-nums}' +'.bw-ord-btns{display:flex;flex-direction:column;gap:2px;flex:none}.bw-ord-btns .bw-arrow{width:var(--tap,44px);height:var(--tap,44px);min-height:var(--tap,44px);border-radius:var(--radius-sm,8px)}.bw-ord-btns .bw-arrow:disabled{opacity:.32}' +'.bw-order-card .bw-k{margin-bottom:2px}' +
       '@media (min-width:900px){.bw-slide{flex-basis:400px}.bw-track{padding-left:0}}' +
       '@media (min-width:900px){.bw-row{grid-template-columns:70px 1fr 120px 120px;font-size:14px}}';
     document.head.appendChild(s);
@@ -394,6 +542,6 @@
     document.addEventListener('blackram:financials', function () { var p = document.getElementById('panel-bills'); if (p && !p.hidden) render(); });
     var p = document.getElementById('panel-bills'); if (p && !p.hidden) load(false);
   }
-  window.BlackRamBillWaterfall = { render: render, show: function () { load(false); }, model: function (r) { var d = fin(); return d ? model(d, r || st.range) : null; }, openFirst: function () { st.carIdx = 0; }, go: function (i) { st.carIdx = i || 0; if (st.goCard) st.goCard(st.carIdx, false); } };
+  window.BlackRamBillWaterfall = { render: render, show: function () { load(false); }, model: function (r) { var d = fin(); return d ? model(d, r || st.range) : null; }, openFirst: function () { st.carIdx = 0; st.reorder = false; }, go: function (i) { st.carIdx = i || 0; if (st.goCard) st.goCard(st.carIdx, false); }, setReorder: function (on) { st.reorder = !!on; render(); }, setOrder: function (keys) { if (!keys || !keys.length) savePri([]); else savePri(keys); st.carIdx = 0; render(); }, keys: function () { var d = fin(); return d ? (model(d, st.range).keys || []) : []; } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
