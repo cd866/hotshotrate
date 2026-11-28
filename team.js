@@ -1,5 +1,5 @@
 /* Black Ram Logistics - Team and partner 360 pages.
-   Roster of first-name cards (Claudio, Ben, Meshach, Felix / Totni, Mike / Big Tex) styled like Driver 360.
+   Roster of first-and-last-name cards (Claudio Dias, Ben Smokovich, Meshach Riley, Felix Onyango / Totni, Mike Piazza / Big Tex) styled like Driver 360.
    Meshach opens the existing Driver 360. Pay, capital, coverage dollars and any other
    money figures come ONLY from the PIN-gated relay /financials. Public chips are roles,
    MC, lease rate, COI date, and dealer service notes. No phone, email, address, DOB, license or card numbers.
@@ -18,7 +18,7 @@
   var PEOPLE = [
     {
       id: 'claudio',
-      name: 'Claudio',
+      name: 'Claudio', full: 'Claudio Dias',
       group: 'partner',
       kick: 'Partner 360',
       role: 'Partner / owner | Dispatch, loads, finances, and back office',
@@ -37,7 +37,7 @@
     },
     {
       id: 'ben',
-      name: 'Ben',
+      name: 'Ben', full: 'Ben Smokovich',
       group: 'partner',
       kick: 'Partner 360',
       role: 'Partner | Trailer capital and company paydowns',
@@ -56,7 +56,7 @@
     },
     {
       id: 'meshach',
-      name: 'Meshach',
+      name: 'Meshach', full: 'Meshach Riley',
       group: 'partner',
       kick: 'Driver 360',
       role: 'Driver and 1/3 partner | Black Ram Logistics',
@@ -68,7 +68,7 @@
     },
     {
       id: 'felix',
-      name: 'Felix',
+      name: 'Felix', full: 'Felix Onyango',
       group: 'carrier',
       kick: 'Carrier 360',
       role: 'Carrier owner | Totni, our lease-on carrier',
@@ -86,7 +86,7 @@
     },
     {
       id: 'mike',
-      name: 'Mike',
+      name: 'Mike', full: 'Mike Piazza',
       group: 'vendor',
       kick: 'Dealer 360',
       role: 'Trailer dealer | Big Tex Trailers (Tex Trailers)',
@@ -102,7 +102,7 @@
       ],
       dutyTitle: 'What he did for us',
       dutySub: 'vendor',
-      calls: [{ tone: 'ok', html: 'Trailer dealer at Big Tex who sold us the 25GN gooseneck. Very knowledgeable. First name only; no contact details are kept in the app.' }],
+      calls: [{ tone: 'ok', html: 'Trailer dealer at Big Tex who sold us the 25GN gooseneck. Very knowledgeable. No contact details are kept in the app.' }],
       tbd: ['Which maker builds the trailer axles (needed for brake and bearing intervals): TBD']
     }
   ];
@@ -111,6 +111,8 @@
 
   function $(id) { return document.getElementById(id); }
   function person(id) { for (var i = 0; i < PEOPLE.length; i++) if (PEOPLE[i].id === id) return PEOPLE[i]; return null; }
+  function fullName(p) { return (p && (p.full || p.name)) || ''; }
+  function fullFor(n) { for (var i = 0; i < PEOPLE.length; i++) if (PEOPLE[i].name === n) return PEOPLE[i].full || n; return n; }
   function groupLabel(p) { return p.group === 'partner' ? 'Partner' : p.group === 'carrier' ? 'Carrier' : p.group === 'vendor' ? 'Dealer' : 'Team'; }
   function isOutside(p) { return p.group && p.group !== 'partner'; }
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -206,7 +208,7 @@
     if (!me) return card('tm-cap', 'Partner capital', 'PIN', '<p class="d3-fine">No partner record found.</p>');
     var tot = P.reduce(function (s, x) { return s + (x.capital_total || 0); }, 0);
     var bars = P.slice().sort(function (a, b) { return b.capital_total - a.capital_total; }).map(function (x) {
-      return '<div class="d3-crow' + (x.name === p.name ? ' me' : '') + '"><span>' + esc(x.name) + '</span><div class="d3-ctrack"><i style="width:' + (tot ? x.capital_total / tot * 100 : 0).toFixed(1) + '%"></i></div><b>' + m0(x.capital_total) + '</b></div>';
+      return '<div class="d3-crow' + (x.name === p.name ? ' me' : '') + '"><span>' + esc(fullFor(x.name)) + '</span><div class="d3-ctrack"><i style="width:' + (tot ? x.capital_total / tot * 100 : 0).toFixed(1) + '%"></i></div><b>' + m0(x.capital_total) + '</b></div>';
     }).join('');
     var rows = (me.capital || []).slice().reverse().map(function (c) {
       return '<div class="d3-ev"><span class="d3-evd">' + day(c.date) + '</span><span class="d3-evi d3-unk"></span><span class="d3-evm"><b>' + esc(pubLabel(c.label)) + '</b><small>' + m2(c.amount) + '</small></span></div>';
@@ -286,7 +288,7 @@
       chips += '<span class="d3-chip">' + s.loads + ' company loads</span><span class="d3-chip">' + n0(s.loaded + s.dead) + ' mi</span>';
     }
     return '<figure class="d3-hero"><img src="' + esc(p.art) + '" width="' + (p.w || 864) + '" height="' + (p.h || 1152) + '" alt="' + esc(p.alt) + '" decoding="async">' +
-      '<figcaption><span class="d3-kick">' + esc(p.kick) + '</span><b>' + esc(p.name) + '</b><span class="d3-role">' + esc(p.role) + '</span>' +
+      '<figcaption><span class="d3-kick">' + esc(p.kick) + '</span><b>' + esc(fullName(p)) + '</b><span class="d3-role">' + esc(p.role) + '</span>' +
       '<span class="d3-chips">' + chips + '</span></figcaption></figure>';
   }
 
@@ -303,9 +305,9 @@
     } else if (p.group === 'partner') {
       extra = '<span class="tm-cs"><span><b>1/3</b>owner</span></span>';
     }
-    return '<button type="button" class="tm-card" data-tm-open="' + p.id + '" aria-label="' + esc(p.name) + ', ' + esc(p.short) + '. Open 360">' +
+    return '<button type="button" class="tm-card" data-tm-open="' + p.id + '" aria-label="' + esc(fullName(p)) + ', ' + esc(p.short) + '. Open 360">' +
       '<span class="tm-face is-' + p.id + '" style="background-image:url(' + esc('brand/face-' + p.id + '.png?v=' + FACE_V) + ')" aria-hidden="true"></span>' +
-      '<span class="tm-meta"><small>' + esc(groupLabel(p)) + '</small><b>' + esc(p.name) + '</b><span>' + esc(p.short) + '</span></span>' +
+      '<span class="tm-meta"><small>' + esc(groupLabel(p)) + '</small><b>' + esc(fullName(p)) + '</b><span>' + esc(p.short) + '</span></span>' +
       extra + '<span class="d3-tchev" aria-hidden="true"></span></button>';
   }
   function renderTeam() {
@@ -324,7 +326,7 @@
     var body = '<div class="tm-intro"><span class="d3-kick">Sand Lily Pad LLC</span><b>Black Ram Logistics</b><span class="d3-role">Hotshot | leased onto Totni</span>' + coChips + '</div>' +
       '<h3 class="tm-h">Partners</h3><div class="tm-list">' + partners + '</div>' +
       '<h3 class="tm-h">Outside partners</h3><div class="tm-list">' + outside + '</div>' +
-      '<p class="d3-fine d3-foot">First names only. No phone, email or address. Capital, pay and coverage dollars need the PIN.</p>';
+      '<p class="d3-fine d3-foot">No phone, email or address. Capital, pay and coverage dollars need the PIN.</p>';
     h.innerHTML = '<div class="d3-bar"><button type="button" class="d3-back" data-tm-close="1" aria-label="Close Team">Back</button><b>Team</b><span>Sand Lily Pad</span></div><div class="d3-scroll">' + body + '</div>';
     var ns = h.querySelector('.d3-scroll'); if (ns) ns.scrollTop = top;
   }
@@ -356,15 +358,15 @@
     var body = secHero(p, s) +
       '<nav class="d3-jump">' + jump.map(function (j) { return '<a href="#' + j[0] + '" data-tm-jump="' + j[0] + '">' + j[1] + '</a>'; }).join('') + '</nav>' +
       secDuties(p) + secCompany(p) + secCap(p) + secShare(p) + secCoi(p) +
-      '<p class="d3-fine d3-foot">First name only. No contact, license or address details are kept in the app. Money figures need the PIN.</p>';
-    h.innerHTML = '<div class="d3-bar"><button type="button" class="d3-back" data-p360-close="1" aria-label="Back to Team">Back</button><b>' + esc(p.kick) + '</b><span>' + esc(p.name) + '</span></div><div class="d3-scroll">' + body + '</div>';
+      '<p class="d3-fine d3-foot">No contact, license or address details are kept in the app. Money figures need the PIN.</p>';
+    h.innerHTML = '<div class="d3-bar"><button type="button" class="d3-back" data-p360-close="1" aria-label="Back to Team">Back</button><b>' + esc(p.kick) + '</b><span>' + esc(fullName(p)) + '</span></div><div class="d3-scroll">' + body + '</div>';
     var ns = h.querySelector('.d3-scroll'); if (ns) ns.scrollTop = top;
     var hf = h.querySelector('.d3-hero');
     if (hf && !p.noOrbit && window.BlackRamDriver && window.BlackRamDriver.bindOrbit) window.BlackRamDriver.bindOrbit(hf);
     h.querySelectorAll('[data-tm-jump]').forEach(function (a) {
       a.addEventListener('click', function (e) { e.preventDefault(); var t = $(a.getAttribute('data-tm-jump')); if (t && ns) ns.scrollTo({ top: t.offsetTop - 56, behavior: 'smooth' }); });
     });
-    h.setAttribute('aria-label', p.kick + ': ' + p.name);
+    h.setAttribute('aria-label', p.kick + ': ' + fullName(p));
   }
   function stopOrbit(h) {
     var f = h && h.querySelector('.d3-hero');
@@ -470,7 +472,7 @@
       '.d3-scroll>*{flex-shrink:0}' +
       '.d3-hero{position:relative;margin:0;border-radius:14px;overflow:hidden;border:1px solid var(--c-line);aspect-ratio:3/4;background:#2a1a33}.d3-hero img{display:block;width:100%;height:100%;object-fit:cover;object-position:center;border:0;outline:0;box-shadow:none;padding:0;margin:0;background:transparent}' +
       '.d3-hero figcaption{position:absolute;left:0;right:0;bottom:0;padding:48px 14px 14px;background:linear-gradient(180deg,rgba(15,13,23,0),rgba(15,13,23,.78) 45%,rgba(15,13,23,.95));display:flex;flex-direction:column;gap:2px}' +
-      '.d3-kick{font-size:11px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:var(--c-gold)}.d3-hero figcaption>b{font-size:34px;font-weight:900;line-height:1;letter-spacing:.01em}.d3-role{font-size:13px;font-weight:700;color:var(--c-text-2)}' +
+      '.d3-kick{font-size:11px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:var(--c-gold)}.d3-hero figcaption>b{font-size:34px;font-weight:900;line-height:1;letter-spacing:.01em;overflow-wrap:break-word}.d3-role{font-size:13px;font-weight:700;color:var(--c-text-2)}' +
       '.d3-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.d3-chip{font-size:12px;font-weight:800;padding:4px 10px;border-radius:999px;background:rgba(242,201,76,.16);color:var(--c-gold);border:1px solid rgba(242,201,76,.35)}' +
       '.d3-jump{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}.d3-jump a{flex:0 0 auto;padding:6px 12px;border-radius:999px;background:var(--c-surface-2);border:1px solid var(--c-line);color:var(--c-text-2);font-size:12px;font-weight:800;text-decoration:none}' +
       '.d3-card{background:var(--c-surface-1);border:1px solid var(--c-line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:10px}' +
@@ -506,7 +508,7 @@
       '.tm-face{background-size:cover;background-position:50% 50%}' +
       '.tm-meta{display:flex;flex-direction:column;min-width:0;line-height:1.15;flex:1}' +
       '.tm-meta small{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--c-gold)}' +
-      '.tm-meta b{font-size:20px;font-weight:900}' +
+      '.tm-meta b{font-size:20px;font-weight:900;overflow-wrap:break-word}' +
       '.tm-meta span{font-size:12px;color:var(--c-text-3);font-weight:700}' +
       '.tm-cs{display:flex;gap:10px;margin-left:auto;flex:0 0 auto}' +
       '.tm-cs span{display:flex;flex-direction:column;align-items:center;font-size:9.5px;color:var(--c-text-3);font-weight:700;line-height:1.1}' +

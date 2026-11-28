@@ -1,7 +1,7 @@
 /* Black Ram Logistics - app search (v96).
    One box that finds sections, loads in the books, the latest board scan, maintenance items,
    DOT checklist items, checklist lines, manual insights and rig specs/gear, then jumps there.
-   Indexes only what the public app already shows (city-level lanes, first names only).
+   Indexes only what the public app already shows (city-level lanes, first and last names on Team).
    Opens from the appbar magnifier, the Today quick action, or "/" on a keyboard. Plain ASCII. */
 (function () {
   'use strict';
@@ -41,12 +41,12 @@
     Object.keys(TABS).forEach(function (t) { if (document.getElementById('panel-' + t)) add('tab', TABS[t][0], 'Open section', TABS[t][1], { tab: t }); });
     add('act', 'Pre-trip checklist', 'Maintenance | check off on this phone', 'pretrip pre-trip walkaround inspection', { jump: 'mt-chk', tab: 'maint' });
     add('act', 'Broker call sheet', 'MC, DOT, insurance and equipment facts', 'call sheet broker packet mc dot coi', { call: 1 });
-    add('act', 'Team', 'Claudio, Ben, Meshach, Felix, and Mike', 'team partners totni felix mike big tex dealer 360', { team: 1 });
-    add('act', 'Claudio 360', 'Partner / owner | dispatch and back office', 'claudio partner owner dispatch finances', { team: 'claudio' });
-    add('act', 'Ben 360', 'Partner | trailer capital', 'ben partner capital trailer', { team: 'ben' });
-    add('act', 'Driver 360', 'Meshach | loads, miles, on-time', 'driver meshach 360 profile', { driver: 1 });
-    add('act', 'Felix 360', 'Totni owner | MC 1122113, 13% cut', 'felix totni carrier mc lease', { team: 'felix' });
-    add('act', 'Mike 360', 'Trailer dealer | Big Tex, 25GN', 'mike big tex trailer dealer gooseneck 25GN gear oil', { team: 'mike' });
+    add('act', 'Team', 'Claudio Dias, Ben Smokovich, Meshach Riley, Felix Onyango, and Mike Piazza', 'team partners totni felix onyango mike piazza dias smokovich riley big tex dealer 360', { team: 1 });
+    add('act', 'Claudio Dias 360', 'Partner / owner | dispatch and back office', 'claudio dias partner owner dispatch finances', { team: 'claudio' });
+    add('act', 'Ben Smokovich 360', 'Partner | trailer capital', 'ben smokovich benjamin partner capital trailer', { team: 'ben' });
+    add('act', 'Driver 360', 'Meshach Riley | loads, miles, on-time', 'driver meshach riley 360 profile', { driver: 1 });
+    add('act', 'Felix Onyango 360', 'Totni owner | MC 1122113, 13% cut', 'felix onyango totni carrier mc lease', { team: 'felix' });
+    add('act', 'Mike Piazza 360', 'Trailer dealer | Big Tex, 25GN', 'mike piazza big tex trailer dealer gooseneck 25GN gear oil', { team: 'mike' });
     add('act', 'Trailer diagram', 'Big Tex labeled diagram', 'trailer diagram big tex parts', { diagram: 1 });
     var f = A().getFeed ? A().getFeed() : null;
     ((f && f.months) || []).forEach(function (m) {

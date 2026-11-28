@@ -1,5 +1,5 @@
 /* Black Ram Logistics - Driver 360 (v92+). Meshach: performance, pay, compliance, safety, capital.
-   Public: first name only, load stats from the public ledger feed (data/feed.json, same numbers as Scoreboard),
+   Public: first and last name on the 360 page, load stats from the public ledger feed (data/feed.json, same numbers as Scoreboard),
    DOT status from data/dot_ready.json + check-offs (via window.BlackRamDot). No phone, email, DOB, license
    number or address. Pay and partner capital come ONLY from the PIN-gated relay /financials.
    Tiles reuse tiles.js (BlackRamTiles). v51 tokens. Plain ASCII. */
@@ -9,6 +9,9 @@
   var PIN_KEY = 'blackram_relay_pin_v1';
   var FIN_KEY = 'blackram_fin_session_v1';
   var NAME = 'Meshach';
+  var FULL = 'Meshach Riley';
+  var FULLS = { Claudio: 'Claudio Dias', Ben: 'Ben Smokovich', Meshach: 'Meshach Riley' };
+  function fullFor(n) { return FULLS[n] || n; }
   var ART = 'brand/meshach-360.png?v=133';
   var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var DOT_IDS = ['d-cdl', 'd-med', 'd-dq', 'd-da', 'd-eld', 'd-hos', 'd-eldpack', 'd-blank', 't-pre', 't-dvir'];
@@ -193,7 +196,7 @@
     var now = c ? '<b>Now:</b> ' + esc(city(c.pickup_place)) + ' to ' + esc(city(c.drop_place)) + ' | ' + esc(c.status || 'booked') :
       (s.last ? '<b>Now:</b> no load booked. Last drop ' + esc(city(s.last.drop_place)) + ' ' + day(s.last.delivered_date || s.last.delivery_date) : '<b>Now:</b> no loads yet');
     return '<figure class="d3-hero"><img src="' + ART + '" width="858" height="1150" alt="Illustration of Meshach, arms crossed, in front of the black Ram 3500 dually with the Big Tex gooseneck hitch at sunset." decoding="async">' +
-      '<figcaption><span class="d3-kick">Driver 360</span><b>' + NAME + '</b><span class="d3-role">Driver and 1/3 partner | Black Ram Logistics</span>' +
+      '<figcaption><span class="d3-kick">Driver 360</span><b>' + FULL + '</b><span class="d3-role">Driver and 1/3 partner | Black Ram Logistics</span>' +
       '<span class="d3-chips"><span class="d3-chip">' + s.loads + ' loads</span><span class="d3-chip">' + n0(s.loaded + s.dead) + ' mi</span><span class="d3-chip">Since ' + day(s.first) + '</span></span></figcaption></figure>' +
       '<div class="d3-now tl-tap tl-chev"' + ta('d3', 'now', 'Current or next load. Show') + '>' + now + '</div>';
   }
@@ -267,7 +270,7 @@
     if (!me) return card('d3-cap', 'Partner capital', 'PIN', '<p class="d3-fine">No partner record found.</p>');
     var tot = P.reduce(function (s, p) { return s + (p.capital_total || 0); }, 0);
     var bars = P.slice().sort(function (a, b) { return b.capital_total - a.capital_total; }).map(function (p) {
-      return '<div class="d3-crow' + (p.name === NAME ? ' me' : '') + '"><span>' + esc(p.name) + '</span><div class="d3-ctrack"><i style="width:' + (tot ? p.capital_total / tot * 100 : 0).toFixed(1) + '%"></i></div><b>' + m0(p.capital_total) + '</b></div>';
+      return '<div class="d3-crow' + (p.name === NAME ? ' me' : '') + '"><span>' + esc(fullFor(p.name)) + '</span><div class="d3-ctrack"><i style="width:' + (tot ? p.capital_total / tot * 100 : 0).toFixed(1) + '%"></i></div><b>' + m0(p.capital_total) + '</b></div>';
     }).join('');
     return card('d3-cap', 'Partner capital', esc(me.share || '1/3') + ' owner',
       '<div class="d3-grid d3-g2">' + tile('d3acct', 'cap:' + NAME, 'Put in', m2(me.capital_total), me.capital.length + ' contributions') +
@@ -499,7 +502,7 @@
     var tex = new THREE.Texture(img); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8; tex.needsUpdate = true;
     if (ia > ca) { tex.repeat.set(ca / ia, 1); tex.offset.set((1 - ca / ia) / 2, 0); } else { tex.repeat.set(1, ia / ca); tex.offset.set(0, (1 - ia / ca) / 2); }
     var front = new THREE.MeshBasicMaterial({ map: tex });
-    var back = new THREE.MeshBasicMaterial({ map: drawBack(THREE, opts.name || ((fig.querySelector('figcaption>b') || {}).textContent) || NAME) });
+    var back = new THREE.MeshBasicMaterial({ map: drawBack(THREE, opts.name || ((fig.querySelector('figcaption>b') || {}).textContent) || FULL) });
     var card = new THREE.Mesh(new THREE.BoxGeometry(CARD_W, CARD_H, 0.16), [gold, gold, gold, gold, front, back]);
     card.position.y = CARD_Y; scene.add(card);
     var plinth = new THREE.Mesh(new THREE.BoxGeometry(CARD_W + 0.5, 0.3, 0.9), darkGold); plinth.position.y = 0.15 + 0.12; scene.add(plinth);
@@ -825,7 +828,7 @@
     var h = $('d3-view');
     if (h) return h;
     h = document.createElement('div'); h.id = 'd3-view'; h.className = 'd3-view'; h.hidden = true;
-    h.setAttribute('role', 'dialog'); h.setAttribute('aria-modal', 'true'); h.setAttribute('aria-label', 'Driver 360: ' + NAME);
+    h.setAttribute('role', 'dialog'); h.setAttribute('aria-modal', 'true'); h.setAttribute('aria-label', 'Driver 360: ' + FULL);
     document.body.appendChild(h);
     h.addEventListener('click', function (e) {
       if (e.target.closest('[data-d3-close]')) { close(); return; }
@@ -847,9 +850,9 @@
       var s = stats();
       body = secHero(s) + '<nav class="d3-jump">' + [['d3-perf', 'Performance'], ['d3-pay', 'Pay'], ['d3-dot', 'Compliance'], ['d3-safe', 'Safety'], ['d3-cap', 'Capital']].map(function (j) { return '<a href="#' + j[0] + '" data-d3-jump="' + j[0] + '">' + j[1] + '</a>'; }).join('') + '</nav>' +
         secPerf(s) + secPay() + secDot() + secSafety() + secCap() +
-        '<p class="d3-fine d3-foot">First name only. No contact, license or address details are kept in the app. Pay and capital need the PIN.</p>';
+        '<p class="d3-fine d3-foot">No contact, license or address details are kept in the app. Pay and capital need the PIN.</p>';
     }
-    h.innerHTML = '<div class="d3-bar"><button type="button" class="d3-back" data-d3-close="1" aria-label="Close Driver 360">Back</button><b>Driver 360</b><span>' + NAME + '</span></div><div class="d3-scroll">' + body + '</div>';
+    h.innerHTML = '<div class="d3-bar"><button type="button" class="d3-back" data-d3-close="1" aria-label="Close Driver 360">Back</button><b>Driver 360</b><span>' + FULL + '</span></div><div class="d3-scroll">' + body + '</div>';
     var ns = h.querySelector('.d3-scroll'); if (ns) ns.scrollTop = top;
     h.querySelectorAll('[data-d3-jump]').forEach(function (a) {
       a.addEventListener('click', function (e) { e.preventDefault(); var t = $(a.getAttribute('data-d3-jump')); if (t && ns) ns.scrollTo({ top: t.offsetTop - 56, behavior: 'smooth' }); });
@@ -881,9 +884,9 @@
     if (!el) { el = document.createElement('section'); el.id = 'd3-teaser'; el.className = 'd3-teaser tl-tap'; rig.parentNode.insertBefore(el, rig.nextSibling); }
     var s = st.feed ? stats() : null;
     el.setAttribute('role', 'button'); el.setAttribute('tabindex', '0'); el.setAttribute('data-tl', 'd3open');
-    el.setAttribute('aria-label', 'Driver 360: ' + NAME + '. Open');
+    el.setAttribute('aria-label', 'Driver 360: ' + FULL + '. Open');
     el.innerHTML = '<span class="d3-face" style="background-image:url(brand/face-meshach.png?v=138)" aria-hidden="true"></span>' +
-      '<span class="d3-tm"><small>Driver 360</small><b>' + NAME + '</b><span>Driver + partner</span></span>' +
+      '<span class="d3-tm"><small>Driver 360</small><b>' + FULL + '</b><span>Driver + partner</span></span>' +
       '<span class="d3-ts">' + (s ? '<span><b>' + s.loads + '</b>loads</span><span><b>' + n0(s.loaded) + '</b>loaded mi</span><span><b>' + (s.loads ? Math.round(s.onTime / s.loads * 100) : 0) + '%</b>on time</span>' : '<span><b>--</b>loads</span>') + '</span>' +
       '<span class="d3-tchev" aria-hidden="true"></span>';
   }
@@ -908,7 +911,7 @@
       '.d3-hero figcaption{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:48px 14px 14px;background:linear-gradient(180deg,rgba(15,13,23,0),rgba(15,13,23,.78) 45%,rgba(15,13,23,.95));display:flex;flex-direction:column;gap:2px;pointer-events:none}' +
       '.d3-hero-hint{white-space:nowrap;position:absolute;left:50%;top:14px;transform:translateX(-50%);z-index:3;padding:5px 10px;border-radius:999px;background:rgba(15,13,23,.72);color:#F2C94C;font-size:11px;font-weight:800;letter-spacing:.04em;pointer-events:none;opacity:0}.d3-orbit:not([data-d3-touched]) .d3-hero-hint{opacity:1}' +
       '.d3-hero-reset{position:absolute;top:10px;left:10px;z-index:3;display:none;min-height:32px;padding:0 10px;border-radius:999px;border:1px solid rgba(242,201,76,.35);background:rgba(15,13,23,.72);color:#F2C94C;font-size:12px;font-weight:800}.d3-orbit[data-d3-adjusted] .d3-hero-reset{display:block}' +
-      '.d3-kick{font-size:11px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:var(--c-gold)}.d3-hero figcaption>b{font-size:34px;font-weight:900;line-height:1;letter-spacing:.01em}.d3-role{font-size:13px;font-weight:700;color:var(--c-text-2)}' +
+      '.d3-kick{font-size:11px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:var(--c-gold)}.d3-hero figcaption>b{font-size:34px;font-weight:900;line-height:1;letter-spacing:.01em;overflow-wrap:break-word}.d3-role{font-size:13px;font-weight:700;color:var(--c-text-2)}' +
       '.d3-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.d3-chip{font-size:12px;font-weight:800;padding:4px 10px;border-radius:999px;background:rgba(242,201,76,.16);color:var(--c-gold);border:1px solid rgba(242,201,76,.35)}' +
       '.d3-now{padding:10px 30px 10px 12px;border-radius:10px;background:var(--c-surface-1);border:1px solid var(--c-line);font-size:13px;color:var(--c-text-2);position:relative}.d3-now b{color:var(--c-text-1)}' +
       '.d3-jump{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}.d3-jump a{flex:0 0 auto;padding:6px 12px;border-radius:999px;background:var(--c-surface-2);border:1px solid var(--c-line);color:var(--c-text-2);font-size:12px;font-weight:800;text-decoration:none}' +
