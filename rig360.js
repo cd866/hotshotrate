@@ -107,6 +107,10 @@
      The 360 arrow, height and zoom pads are DualSense-style sticks
      (orbit; height) with shoulder zoom and a face-button cluster
      (reset, fullscreen), no brand marks.
+   - v161: 360 sticks shrink to 64px wells in the bottom corners with
+     small shoulder zoom pills, at rest opacity 0.75. The face-button
+     diamond is gone; Reset view and fullscreen return to a small
+     top-left pill and icon so the rig stays fully visible at 390.
    Units in the model are feet. x = length (truck front +x), y = up, z = width. */
 (function () {
   'use strict';
@@ -1229,8 +1233,18 @@
       var dy = ev.deltaMode === 1 ? ev.deltaY * 16 : ev.deltaY;
       zoomAt(zoom * Math.exp(-dy * (ev.ctrlKey || ev.metaKey ? 0.01 : 0.0022)), ev.clientX, ev.clientY);
     }, { passive: false });
-    // +/- buttons
-    var facePad = null; // filled when the DualSense-style cluster is built
+    // Reset view + fullscreen sit in a top-left edge cluster (not over the rig).
+    var edgeBar = document.createElement('div');
+    edgeBar.className = 'r360-edge';
+    var zreset = document.createElement('button');
+    zreset.type = 'button';
+    zreset.className = 'r360-zreset';
+    zreset.setAttribute('data-z', 'reset');
+    zreset.setAttribute('aria-label', 'Reset view');
+    zreset.textContent = 'Reset view';
+    edgeBar.appendChild(zreset);
+    stage.appendChild(edgeBar);
+    zreset.addEventListener('click', function () { resetView(true); });
     var partsBar = document.createElement('div');
     partsBar.className = 'r360-parts';
     partsBar.setAttribute('role', 'group');
@@ -1368,8 +1382,8 @@
     var ROT = 1.5, TILT = THREE.MathUtils.degToRad(32); // per second while held
     var STEP = { left: [-0.26, 0], right: [0.26, 0], up: [0, THREE.MathUtils.degToRad(6)], down: [0, -THREE.MathUtils.degToRad(6)] };
     var ZOOM_LN = 0.9; // zoom *= exp(ZOOM_LN * dt) while a shoulder is held
-    // DualSense-style cluster: left stick orbits, right stick raises/lowers,
-    // shoulder pills zoom, face buttons for reset / fullscreen / specs / close.
+    // Compact DualSense-style sticks: left orbits, right raises/lowers,
+    // small shoulder pills zoom. Reset view and fullscreen live in edgeBar.
     // Dark glossy with gold accents; no brand names or logos.
     var ctlAxes = { ox: 0, oy: 0, hy: 0, z: 0, key: null };
     function syncHeld() {
@@ -1391,35 +1405,10 @@
         '<div class="r360-well" data-stick="' + kind + '" role="slider" aria-label="' + label + '" tabindex="0">' +
           '<div class="r360-knob" aria-hidden="true"></div>' +
         '</div>' +
-        '<span class="r360-stick-lbl">' + (kind === 'orbit' ? 'Orbit' : 'Height') + '</span>' +
       '</div>';
     }
-    var faces = document.createElement('div');
-    faces.className = 'r360-faces';
-    faces.setAttribute('role', 'group');
-    faces.setAttribute('aria-label', 'View actions');
-    facePad = faces;
-    function faceBtn(name, label, svg) {
-      return '<button type="button" class="r360-face" data-face="' + name + '" aria-label="' + label + '">' +
-        '<svg viewBox="0 0 24 24" aria-hidden="true">' + svg + '</svg></button>';
-    }
-    faces.innerHTML =
-      faceBtn('tri', 'Reset view', '<path d="M12 4.5 L20.5 19.5 H3.5 Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>') +
-      faceBtn('circ', 'Show spec dots', '<circle cx="12" cy="12" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/>') +
-      faceBtn('cross', 'Close part view', '<path d="M7 7 L17 17 M17 7 L7 17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>');
-    // Square (fullscreen) is the existing fsBtn, appended to faces once it exists.
     ctl.innerHTML = stickHtml('orbit', 'Orbit and tilt') + stickHtml('height', 'Camera height');
-    ctl.appendChild(faces);
     stage.appendChild(ctl);
-    var zreset = faces.querySelector('[data-face="tri"]');
-    zreset.addEventListener('click', function () { resetView(true); });
-    faces.addEventListener('click', function (ev) {
-      var b = ev.target.closest('button[data-face]');
-      if (!b) return;
-      var f = b.getAttribute('data-face');
-      if (f === 'circ') setSpecs(!specsOn, true);
-      else if (f === 'cross') closeInspect();
-    });
     function bindStick(well, axis) {
       var knob = well.querySelector('.r360-knob');
       var pid = null;
@@ -1636,14 +1625,7 @@
       '<svg class="r360-fs-enter" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 14H5v5h5v-2H7v-3zm12 0h-2v3h-3v2h5v-5zM7 7h3V5H5v5h2V7zm7-2v2h3v3h2V5h-5z"/></svg>' +
       '<svg class="r360-fs-exit" viewBox="0 0 24 24" aria-hidden="true" hidden><path fill="currentColor" d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>' +
       '<span class="r360-fs-label" hidden>Exit</span>';
-    if (facePad) {
-      fsBtn.setAttribute('data-face', 'sq');
-      fsBtn.classList.add('r360-face');
-      // Insert square in the DualSense diamond (left of the cluster).
-      var circ = facePad.querySelector('[data-face="circ"]');
-      if (circ) facePad.insertBefore(fsBtn, circ);
-      else facePad.appendChild(fsBtn);
-    } else stage.appendChild(fsBtn);
+    edgeBar.appendChild(fsBtn);
     function fsNativeEl() {
       return document.fullscreenElement || document.webkitFullscreenElement || null;
     }
