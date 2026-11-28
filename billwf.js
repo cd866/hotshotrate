@@ -394,6 +394,6 @@
     document.addEventListener('blackram:financials', function () { var p = document.getElementById('panel-bills'); if (p && !p.hidden) render(); });
     var p = document.getElementById('panel-bills'); if (p && !p.hidden) load(false);
   }
-  window.BlackRamBillWaterfall = { render: render, show: function () { load(false); }, model: function (r) { var d = fin(); return d ? model(d, r || st.range) : null; }, go: function (i) { if (st.goCard) st.goCard(i, false); } };
+  window.BlackRamBillWaterfall = { render: render, show: function () { load(false); }, model: function (r) { var d = fin(); return d ? model(d, r || st.range) : null; }, openFirst: function () { st.carIdx = 0; }, go: function (i) { st.carIdx = i || 0; if (st.goCard) st.goCard(st.carIdx, false); } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
